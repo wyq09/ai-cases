@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>荒原之上 · 藏南秘境 × 藏北无人区 · 私人自驾远征</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* --- 大地 · 荒原调性 --- */
+  --ink:#0b0b0d;        /* 主底 · 近乎黑 */
+  --ink2:#131317;       /* 次级底 */
+  --paper:#f2efe8;      /* 暖白纸面 */
+  --paper-dim:#c8c3b8;  /* 弱化纸面 */
+  --muted:#8f8b80;      /* 中性灰 */
+  --muted2:#5f5c54;     /* 弱灰 */
+  --amber:#e2a24a;      /* 篝火金 · 主强调 */
+  --amber-dim:#a5741f;
+  --red:#8c2f2b;        /* 藏红 · 次强调 */
+  --gold:#d8b878;       /* 白金 */
+  --hairline:rgba(242,239,232,.16);
+  --hairline2:rgba(242,239,232,.08);
+  --serif:"Noto Serif SC",source-han-serif-sc,serif;
+  --sans:"Noto Sans SC",source-han-sans-sc,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --disp:"Bebas Neue","Noto Serif SC",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);color:var(--paper);font-family:var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+::selection{background:rgba(226,162,74,.4)}
+
+/* ===== Deck ===== */
+#deck{position:fixed;inset:0;width:10000vw;height:100vh;display:flex;flex-wrap:nowrap;transition:transform .95s cubic-bezier(.77,0,.18,1);z-index:10;will-change:transform}
+.slide{width:100vw;height:100vh;flex:0 0 100vw;position:relative;overflow:hidden;padding:7vh 7vw;display:flex;flex-direction:column;justify-content:center}
+.slide.dark{background:var(--ink)}
+.slide.light{background:var(--paper);color:var(--ink)}
+
+/* ===== 背景图 ===== */
+.slide .bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;transform:scale(1.06)}
+.slide .scrim{position:absolute;inset:0;z-index:1;pointer-events:none}
+.slide.dark .scrim{background:linear-gradient(180deg,rgba(11,11,13,.82) 0%,rgba(11,11,13,.30) 34%,rgba(11,11,13,.42) 62%,rgba(11,11,13,.92) 100%)}
+.slide.light .scrim{background:linear-gradient(180deg,rgba(242,239,232,.86) 0%,rgba(242,239,232,.46) 40%,rgba(242,239,232,.55) 64%,rgba(242,239,232,.94) 100%)}
+.slide .bg.side{clip-path:inset(0 0 0 55%)}
+.slide .bg.side-r{clip-path:inset(0 55% 0 0)}
+
+/* ===== 文字层级 ===== */
+.slide .inner{position:relative;z-index:2;width:100%;max-width:1200px;margin:0 auto}
+.kick{font-family:var(--mono);font-size:1.05vw;letter-spacing:.42em;text-transform:uppercase;color:var(--amber);margin-bottom:2.6vh;display:flex;align-items:center;gap:.9vw}
+.kick::before{content:"";width:3.2vw;height:1px;background:var(--amber);display:inline-block}
+.kick .n{color:var(--muted)}
+.display{font-family:var(--serif);font-weight:900;line-height:1.02;letter-spacing:.01em;color:var(--paper);font-size:clamp(44px,7.4vw,150px)}
+.slide.light .display{color:var(--ink)}
+.display .accent{color:var(--amber)}
+.sub{font-family:var(--sans);font-weight:400;color:var(--paper-dim);font-size:clamp(15px,1.6vw,28px);line-height:1.55;margin-top:3vh;max-width:46vw}
+.slide.light .sub{color:#3a3832}
+.lead{font-family:var(--serif);font-weight:600;color:var(--paper);font-size:clamp(22px,2.6vw,42px);line-height:1.4}
+.meta{font-family:var(--mono);color:var(--muted);font-size:.95vw;letter-spacing:.14em;text-transform:uppercase;line-height:1.9}
+
+/* ===== chrome 顶底 ===== */
+.chrome-top{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;justify-content:space-between;align-items:center;padding:3.6vh 7vw;pointer-events:none;font-family:var(--mono);font-size:.82vw;letter-spacing:.3em;text-transform:uppercase;color:var(--paper-dim)}
+.chrome-top .brand{color:var(--amber);font-weight:600}
+.chrome-top .sec{color:var(--muted)}
+.chrome-bottom{position:absolute;bottom:0;left:0;right:0;z-index:3;display:flex;justify-content:space-between;align-items:flex-end;padding:3.2vh 7vw;pointer-events:none;font-family:var(--mono);font-size:.8vw;letter-spacing:.26em;text-transform:uppercase;color:var(--muted)}
+.chrome-bottom .pg{color:var(--paper-dim)}
+.chrome-bottom .rule{flex:1;height:1px;background:var(--hairline2);margin:0 2vw 1vh}
+.slide.light .chrome-top .brand{color:var(--amber-dim)}
+.slide.light .chrome-bottom{color:#7c786d}
+
+/* ===== 组件 ===== */
+.rule{height:1px;background:var(--hairline);width:100%;margin:3vh 0}
+.hairline{height:1px;background:var(--hairline2)}
+.grid{display:grid;gap:1.6vw}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.card{position:relative;padding:2.6vh 2vw;border:1px solid var(--hairline);background:rgba(255,255,255,.02);border-radius:2px;min-height:20vh}
+.card .t{font-family:var(--serif);font-weight:700;color:var(--paper);font-size:clamp(18px,1.85vw,30px)}
+.card .d{font-family:var(--sans);color:var(--muted);font-size:clamp(12px,1.05vw,17px);line-height:1.7;margin-top:1.2vh}
+.card .am{font-family:var(--mono);letter-spacing:.2em;color:var(--amber);font-size:.95vw;text-transform:uppercase;margin-bottom:1vh}
+.card.outline{border-color:rgba(226,162,74,.5)}
+.card.accent{border-color:var(--amber);background:rgba(226,162,74,.05)}
+.card.red-accent{border-color:rgba(140,47,43,.6);background:rgba(140,47,43,.06)}
+.card.gold-accent{border-color:rgba(216,184,120,.6);background:rgba(216,184,120,.05)}
+.slide.light .card{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.16)}
+.slide.light .card .t{color:var(--ink)}
+.slide.light .card .d{color:#54514a}
+
+/* ===== pill / tag ===== */
+.tag{display:inline-flex;align-items:center;gap:.5vw;font-family:var(--mono);font-size:.82vw;letter-spacing:.18em;text-transform:uppercase;color:var(--ink);background:var(--amber);padding:.55vh 1vw;border-radius:2px}
+.tag.ghost{background:transparent;color:var(--paper-dim);border:1px solid var(--hairline)}
+.tag.red{background:var(--red);color:var(--paper)}
+.tag.gold{background:var(--gold);color:#1a1508}
+
+/* ===== route list ===== */
+.route{display:flex;flex-direction:column;gap:.5vh}
+.route .r{display:grid;grid-template-columns:4.4vw 1fr auto;gap:1.4vw;align-items:baseline;padding:1.1vh 0;border-bottom:1px solid var(--hairline2)}
+.route .dy{font-family:var(--mono);color:var(--amber);font-size:1.05vw;letter-spacing:.06em}
+.route .nm{font-family:var(--sans);color:var(--paper);font-size:clamp(13px,1.25vw,20px);font-weight:500}
+.route .ht{font-family:var(--mono);color:var(--muted);font-size:.85vw;letter-spacing:.1em}
+
+/* ===== 三步 / 分块 ===== */
+.seg{position:relative;padding:3vh 2.2vw;border-left:1px solid var(--hairline)}
+.seg .d{font-family:var(--serif);font-weight:700;color:var(--paper);font-size:clamp(20px,2.2vw,36px)}
+.seg .meta{font-family:var(--mono);color:var(--muted);font-size:.82vw;letter-spacing:.18em;text-transform:uppercase;margin-top:.8vh}
+
+/* ===== 数据大字 ===== */
+.stat .v{font-family:var(--disp);font-weight:400;color:var(--paper);font-size:clamp(44px,4.6vw,92px);line-height:1;letter-spacing:.02em}
+.stat .v .u{font-size:.4em;color:var(--amber);margin-left:.2vw}
+.stat .l{font-family:var(--mono);color:var(--muted);font-size:.82vw;letter-spacing:.18em;text-transform:uppercase;margin-top:1vh}
+
+/* ===== 大引号块 ===== */
+.quote{font-family:var(--serif);font-weight:700;color:var(--paper);font-size:clamp(24px,3vw,50px);line-height:1.5}
+.quote .q{color:var(--amber)}
+
+/* ===== pricing ===== */
+.price-card{position:relative;display:flex;flex-direction:column;padding:3.4vh 2.2vw;border-radius:3px;min-height:46vh}
+.price-card.pc{background:#151519;border:1px solid var(--hairline)}
+.price-card.tb{background:linear-gradient(160deg,#1a1410 0%,#17130d 100%);border:1px solid rgba(226,162,74,.45)}
+.price-card.sv{background:linear-gradient(160deg,#16100d 0%,#12100d 100%);border:1px solid rgba(216,184,120,.6)}
+.price-card .pname{font-family:var(--serif);font-weight:700;color:var(--paper);font-size:clamp(19px,1.9vw,30px)}
+.price-card .pdim{font-family:var(--mono);color:var(--muted);font-size:.8vw;letter-spacing:.2em;text-transform:uppercase;margin-top:.6vh}
+.price-card .amount{font-family:var(--disp);font-weight:400;color:var(--paper);font-size:clamp(38px,3.6vw,72px);line-height:1;margin-top:2.2vh}
+.price-card .amount .cur{font-size:.45em;color:var(--amber);margin-right:.1vw}
+.price-card .amount .per{font-family:var(--mono);font-size:.5em;color:var(--muted);letter-spacing:.1em;margin-left:.3vw}
+.price-card ul{list-style:none;margin-top:2.4vh;display:flex;flex-direction:column;gap:1.1vh;flex:1}
+.price-card li{font-size:clamp(12px,1vw,16px);color:var(--paper-dim);line-height:1.55;padding-left:1.1vw;position:relative}
+.price-card li::before{content:"—";position:absolute;left:0;color:var(--amber)}
+.price-card sv li::before{color:var(--gold)}
+.price-card .foot{font-family:var(--mono);color:var(--muted);font-size:.78vw;letter-spacing:.08em;margin-top:2vh;border-top:1px solid var(--hairline2);padding-top:1.4vh}
+.price-card.badge{background:rgba(226,162,74,.1);border-color:var(--amber)}
+
+/* ===== grain ===== */
+.grain{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.05;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+#hint{position:fixed;bottom:1.4vh;left:50%;transform:translateX(-50%);z-index:70;font-family:var(--mono);font-size:.72vw;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);opacity:.38;pointer-events:none;font-size:.62vw}
+#nav{position:fixed;right:2.4vw;top:50%;transform:translateY(-50%);z-index:70;display:flex;flex-direction:column;gap:.9vh}
+#nav .dot{width:7px;height:7px;border-radius:50%;border:none;background:var(--muted2);opacity:.5;cursor:pointer;transition:all .3s;padding:0}
+#nav .dot.active{background:var(--amber);opacity:1;transform:scale(1.5)}
+
+/* ===== motion 初始态 ===== */
+[data-anim]{opacity:1}
+
+/* hero 专属排版 */
+.hero .display{font-size:clamp(52px,10.5vw,208px)}
+.hero .sub{max-width:52vw}
+.slide.light .lead,.slide.light .quote{color:var(--ink)}
+
+@media (max-width:900px){
+  .kick{font-size:12px}.meta,.chrome-top,.chrome-bottom{letter-spacing:.2em;font-size:9px}
+  .sub{max-width:92vw}.route .r{grid-template-columns:16vw 1fr}.g2,.g3,.g4{grid-template-columns:1fr}
+  .card,.price-card{min-height:auto}
+}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div id="hint">← → 翻页 · B 静态</div>
+<div id="deck">
+<!-- ========== 01 COVER ========== -->
+<section class="slide dark hero" style="padding:0">
+  <div class="bg" style="background-image:url(images/hero-cover.jpg)"></div>
+  <div class="scrim"></div>
+  <div class="chrome-top"><span class="brand">藏地边缘</span><span class="sec">PRIVATE BESPOKE EXPEDITION · 2026</span></div>
+  <div class="inner" style="padding:0 7vw">
+    <div class="kick" data-anim><span class="n">00 /</span> 世界屋脊 · 未竟之地</div>
+    <h1 class="display" data-anim>荒原之上</h1>
+    <div class="sub" data-anim>藏南秘境 × 藏北无人区&nbsp;·&nbsp;30 天私人自驾远征</div>
+    <div style="margin-top:4vh" data-anim><span class="tag">只做私人定制</span> <span class="tag ghost">绝不跟团 · 绝无购物</span></div>
+  </div>
+  <div class="chrome-bottom" style="justify-content:space-between"><span>WILD TIBET EXPEDITION · 深入无人区级体验</span><span class="pg">01 / 23</span></div>
+</section>
+
+<!-- 02 ETHOS -->
+<section class="slide dark">
+  <div class="chrome-top"><span class="brand">荒原之上</span><span class="sec">THE ETHOS · 定调</span></div>
+  <div class="inner">
+    <div class="kick" data-anim><span class="n">01 /</span> 定调 · THE ETHOS</div>
+    <h2 class="display" style="font-size:clamp(40px,6.4vw,120px)" data-anim>这不是一次旅行，<br>这是一场<span class="accent">远征</span>。</h2>
+    <div class="sub" style="max-width:42vw;margin-top:3.4vh" data-anim>我们把世界屋脊，走成一条无人路。没有打卡，没有购物店，没有大巴与快门声。真正进入藏地，是把车开进地图的空白处。</div>
+    <div style="margin-top:5vh" data-anim>
+      <div class="grid g3" style="gap:1.4vw">
+        <div class="card outline"><div class="am">01 · WILD</div><div class="t">野性</div><div class="d">用四驱与双脚，抵达公路的尽头。</div></div>
+        <div class="card outline"><div class="am">02 · PRIMITIVE</div><div class="t">原始</div><div class="d">保存了地球最古老地貌与生灵的地方。</div></div>
+        <div class="card outline"><div class="am">03 · EXPLORATION</div><div class="t">探索</div><div class="d">深入无人区级地貌与未知。</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="chrome-bottom"><span>为极少数人定制</span><span class="pg">02 / 23</span></div>
+</section>
+
+<!-- 03 TERRITORY -->
+<section class="slide dark">
+  <div class="chrome-top"><span class="brand">荒原之上</span><span class="sec">THE TERRITORY · 地缘</span></div>
+  <div class="inner">
+    <div class="kick" data-anim><span class="n">02 /</span> 地缘 · THE TERRITORY</div>
+    <h2 class="display" style="font-size:clamp(40px,6.2vw,116px)" data-anim>一南一北，<br>走穿两种<span class="accent">极端</span>。</h2>
+    <div style="margin-top:5vh" data-anim>
+      <div class="grid g2" style="gap:1.4vw">
+        <div class="card"><div class="am">藏南秘境 · SOUTH</div><div class="t">喜马拉雅南麓 · 边境纵谷</div><div class="d">雪山 · 原始丛林 · 大峡谷 · 亚热带雨林<br>不丹 / 锡金 / 尼泊尔三面边境秘境<br>珞巴 · 门巴 · 夏尔巴人的家园</div></div>
+        <div class="card accent"><div class="am">藏北无人区 · NORTH</div><div class="t">羌塘高原 · 地球最后的荒野</div><div class="d">极地冰原 · 湖泊群 · 无边草原 · 平均海拔 4800m+<br>世界第三极 · 藏羚羊 / 藏野驴 / 野牦牛<br>最接近火星地貌的广阔无人区</div></div>
+      </div>
+    </div>
+    <div class="sub" style="max-width:56vw;margin-top:4.4vh" data-anim>从亚热带峡谷到极地荒原，30 天穿越中国最极致的垂直地带——这是一条普通旅行到此为止、我们才刚刚开始的路。</div>
+  </div>
+  <div class="chrome-bottom"><span>从 8,848m 到 1,800m 的垂直剖面</span><span class="pg">03 / 23</span></div>
+</section>
+
+<!-- 04 ROUTE -->
+<section class="slide dark">
+  <div class="chrome-top"><span class="brand">荒原之上</span><span class="sec">THE ROUTE · 路线</span></div>
+  <div class="inner">
+    <div class="kick" data-anim><span class="n">03 /</span> 路线 · THE ROUTE</div>
+    <h2 class="display" style="font-size:clamp(40px,6.2vw,116px)" data-anim>30 天 · 三段纵深。</h2>
+    <div style="margin-top:4.6vh" data-anim><div class="grid g3" style="gap:1.6vw">
+      <div class="seg"><div class="d">段一 · 藏南秘境</div><div class="meta">D1 – D10 · 边境纵谷 · 2600–5600m</div></div>
+      <div class="seg"><div class="d">段二 · 神山圣湖</div><div class="meta">D11 – D16 · 阿里 · 转山 5730m</div></div>
+      <div class="seg"><div class="d">段三 · 羌塘无人区</div><div class="meta">D17 – D30 · 极地高原 · 4800–5800m</div></div>
+    </div></div>
+    <div style="margin-top:4.6vh" data-anim><div class="grid g4" style="gap:1.6vw">
+      <div class="stat"><div class="v">6,200<span class="u">KM</span></div><div class="l">全程里程</div></div>
+      <div class="stat"><div class="v">40<span class="u">%</span></div><div class="l">越野路段占比</div></div>
+      <div class="stat"><div class="v">5,840<span class="u">M</span></div><div class="l">最高海拔</div></div>
+      <div class="stat"><div class="v">3<span class="u">区</span></div><div class="l">无人区级生境</div></div>
+    </div></div>
+  </div>
+  <div class="chrome-bottom"><span>深入无人区级体验</span><span class="pg">04 / 23</span></div>
+</section>
+
+<!-- 05 CHAPTER SOUTH -->
+<section class="slide dark hero" style="padding:0">
+  <div class="bg" style="background-image:url(images/south-chapter.jpg)"></div>
+  <div class="scrim"></div>
+  <div class="chrome-top"><span class="brand">荒原之上</span><span class="sec">CHAPTER · 段一</span></div>
+  <div class="inner" style="padding:0 7vw">
+    <div class="kick" data-anim><span class="n">段一 /</span> 藏南秘境 · SOUTH TIBET</div>
+    <h2 class="display" data-anim>把世界屋脊的<br>另一面走穿。</h2>
+    <div class="meta" style="margin-top:3vh" data-anim>喜马拉雅南麓 · 边境秘境 · D1 – D10</div>
+  </div>
+  <div class="chrome-bottom"><span>HIMALAYA SOUTH FRONTIER</span><span class="pg">05 / 23</span></div>
+</section>
+
+<!-- 06 SOUTH EXPLAIN -->
+<section class="slide dark">
+  <div class="chrome-top"><span class="brand">段一 · 藏南秘境</span><span class="sec">EXPLAIN</span></div>
+  <div class="inner">
+    <div class="kick" data-anim><span class="n">段一 /</span> 为什么是这里</div>
+    <h2 class="display" style="font-size:clamp(40px,6.2vw,116px)" data-anim>边境。无人。<br>原始的南方。</h2>
+    <div style="margin-top:5vh" data-anim><div class="grid g2" style="gap:1.2vw">
+      <div class="card outline"><div class="am">BORDER GORGES</div><div class="t">真正的边界</div><div class="d">不丹、锡金、尼泊尔三面边境的纵深沟谷——普通旅行者到不了的地方，正好是藏地最原始的南缘。</div></div>
+      <div class="card outline"><div class="am">VERTICAL WORLD</div><div class="t">垂直的星球</div><div class="d">一半是雪山与冰塔林，一半是原始丛林与雨林。同一条路，一天之内横跨数个气候带。</div></div>
+      <div class="card outline"><div class="am">PEOPLES</div><div class="t">隐秘的族群</div><div class="d">珞巴、门巴、夏尔巴人的秘境家园——比风景更打动人的，是这里的文明。</div></div>
+      <div class="card outline"><div class="am">PRIMEVAL</div><div class="t">原始的南方</div><div class="d">没有公路化的景区，只有悬崖古寺、冰川湖泊与峡谷里的炊烟。</div></div>
+    </div></div>
+  </div>
+  <div class="chrome-bottom"><span>段一 · D1–D10</span><span class="pg">06 / 23</span></div>
+</section>
+<!-- 07 SOUTH ITINERARY -->
+<section class="slide dark">
+  <div class="chrome-top"><span class="brand">段一 · 藏南秘境</span><span class="sec">ITINERARY · D1–D10</span></div>
+  <div class="inner">
+    <div class="kick" data-anim><span class="n">段一 /</span> 每日行程 · 10 天</div>
+    <h2 class="display" style="font-size:clamp(40px,5.2vw,96px)" data-anim>雪山与雨林<br>之间。<span class="accent"></span></h2>
+    <div style="margin-top:3.6vh" data-anim>
+      <div class="route">
+        <div class="r"><div class="dy">D1</div><div class="nm">拉萨 · 集结 / 休整 / 行前会</div><div class="ht">3,650 M</div></div>
+        <div class="r"><div class="dy">D2</div><div class="nm">拉萨 → 羊卓雍措 → 浪卡子</div><div class="ht">羊湖 4,400 M</div></div>
+        <div class="r"><div class="dy">D3</div><div class="nm">浪卡子 → 洛扎 · 库拉岗日 / 白马林措</div><div class="ht">不丹边境 4,560 M</div></div>
+        <div class="r"><div class="dy">D4</div><div class="nm">洛扎 → 卡久寺 → 措美</div><div class="ht">悬崖古寺</div></div>
+        <div class="r"><div class="dy">D5</div><div class="nm">措美 → 亚东 · 康布温泉</div><div class="ht">锡金边境 2,800 M</div></div>
+        <div class="r"><div class="dy">D6</div><div class="nm">亚东 → 陈塘沟</div><div class="ht">夏尔巴第一村 2,000 M</div></div>
+        <div class="r"><div class="dy">D7</div><div class="nm">陈塘 → 定结 · 珠峰东缘</div><div class="ht">嘎玛沟</div></div>
+        <div class="r"><div class="dy">D8</div><div class="nm">定结 → 珠峰大本营</div><div class="ht">观珠峰 5,200 M</div></div>
+        <div class="r"><div class="dy">D9</div><div class="nm">珠峰 → 吉隆沟</div><div class="ht">中尼边境 2,800 M</div></div>
+        <div class="r"><div class="dy">D10</div><div class="nm">吉隆 → 萨嘎 · 进入阿里</div><div class="ht">4,600 M</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="chrome-bottom"><span>段一 · 每日行程</span><span class="pg">07 / 23</span></div>
+</section>
+
+<!-- 08 SOUTH IMAGES -->
+<section class="slide dark" style="padding:0">
+  <div class="chrome-top" style="padding-top:4vh"><span class="brand">段一 · 藏南秘境</span><span class="sec">GALLERY</span></div>
+  <div class="inner" style="padding:12vh 7vw 9vh;animation:none">
+    <div class="kick" data-anim><span class="n">段一 /</span> 见所未见</div>
+    <div style="margin-top:3vh;display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:1.1vw;height:60vh" data-anim>
+      <div style="position:relative;border-radius:2px;overflow:hidden"><div class="bg" style="background-image:url(images/lake-baima.jpg)"></div><div class="cap" style="position:absolute;left:14px;bottom:14px;z-index:2;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#fff">白马林措 · 4,560m</div></div>
+      <div style="position:relative;border-radius:2px;overflow:hidden;margin-top:6vh"><div class="bg" style="background-image:url(images/frontier-valley.jpg)"></div><div class="cap" style="position:absolute;left:14px;bottom:14px;z-index:2;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#fff">亚东 · 边境村落</div></div>
+      <div style="position:relative;border-radius:2px;overflow:hidden;margin-top:-4vh"><div class="bg" style="background-image:url(images/gorge-jilong.jpg)"></div><div class="cap" style="position:absolute;left:14px;bottom:14px;z-index:2;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#fff">吉隆沟 · 中尼边境</div></div>
+    </div>
+  </div>
+  <div class="chrome-bottom"><span>南 · 喜马拉雅南麓</span><span class="pg">08 / 23</span></div>
+</section>
+
+<!-- 09 CHAPTER NGARI -->
+<section class="slide dark hero" style="padding:0">
+  <div class="bg" style="background-image:url(images/kailash.jpg)"></div>
+  <div class="scrim"></div>
+  <div class="chrome-top"><span class="brand">荒原之上</span><span class="sec">CHAPTER · 段二</span></div>
+  <div class="inner" style="padding:0 7vw">
+    <div class="kick" data-anim><span class="n">段二 /</span> 神山圣湖 · NGARI</div>
+    <h2 class="display" data-anim>在世界的中心，<br>磕一次长头。</h2>
+    <div class="meta" style="margin-top:3vh" data-anim>冈仁波齐 · 玛旁雍措 · 札达土林 · D11 – D16</div>
+  </div>
+  <div class="chrome-bottom"><span>ALI · SACRED LAND</span><span class="pg">09 / 23</span></div>
+</section>
+
+<!-- 10 NGARI KORA -->
+<section class="slide dark">
+  <div class="chrome-top"><span class="brand">段二 · 神山圣湖</span><span class="sec">KORA · 转山</span></div>
+  <div class="inner">
+    <div class="kick" data-anim><span class="n">段二 /</span> 冈仁波齐 · 转山</div>
+    <h2 class="display" style="font-size:clamp(40px,6.2vw,116px)" data-anim>52 公里，<br>从 5,000 到 <span class="accent">5,730</span>。</h2>
+    <div class="sub" style="max-width:44vw;margin-top:3.4vh" data-anim>以徒步的方式，绕过冈仁波齐一圈。卓玛拉垭口，是这条路上离天空最近、也最接近信仰的一刻。</div>
+    <div style="margin-top:4.6vh" data-anim><div class="grid g4" style="gap:1.6vw">
+      <div class="stat"><div class="v">52<span class="u">KM</span></div><div class="l">转山里程</div></div>
+      <div class="stat"><div class="v">5,730<span class="u">M</span></div><div class="l">卓玛拉垭口</div></div>
+      <div class="stat"><div class="v">2<span class="u">天</span></div><div class="l">转山时间</div></div>
+      <div class="stat"><div class="v">自选<span class="u"></span></div><div class="l">徒步 / 骑马</div></div>
+    </div></div>
+    <div style="margin-top:3vh" data-anim><span class="tag ghost">唐蕃古道 · 千年转山之路</span></div>
+  </div>
+  <div class="chrome-bottom"><span>段二 · D11–D16</span><span class="pg">10 / 23</span></div>
+</section>
+
+<!-- 11 NGARI ITINERARY -->
+<section class="slide dark">
+  <div class="chrome-top"><span class="brand">段二 · 神山圣湖</span><span class="sec">ITINERARY · D11–D16</span></div>
+  <div class="inner">
+    <div class="kick" data-anim><span class="n">段二 /</span> 每日行程 · 6 天</div>
+    <h2 class="display" style="font-size:clamp(40px,5.2vw,96px)" data-anim>圣湖 · 神山 · 王朝。</h2>
+    <div style="margin-top:3.6vh" data-anim>
+      <div class="route">
+        <div class="r"><div class="dy">D11</div><div class="nm">萨嘎 → 帕羊 → 玛旁雍措</div><div class="ht">圣湖日落 4,600 M</div></div>
+        <div class="r"><div class="dy">D12</div><div class="nm">玛旁雍措 → 拉昂错 → 冈仁波齐</div><div class="ht">4,600 M</div></div>
+        <div class="r"><div class="dy">D13</div><div class="nm">冈仁波齐转山 · 卓玛拉垭口</div><div class="ht">徒步 5,730 M</div></div>
+        <div class="r"><div class="dy">D14</div><div class="nm">冈仁波齐 → 札达 · 土林 / 古格王朝</div><div class="ht">千年遗址 3,700 M</div></div>
+        <div class="r"><div class="dy">D15</div><div class="nm">札达 → 狮泉河</div><div class="ht">4,300 M</div></div>
+        <div class="r"><div class="dy">D16</div><div class="nm">狮泉河 → 改则 · 进入羌塘西南缘</div><div class="ht">4,650 M</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="chrome-bottom"><span>段二 · 每日行程</span><span class="pg">11 / 23</span></div>
+</section>
+
+<!-- 12 NGARI IMAGES -->
+<section class="slide dark" style="padding:0">
+  <div class="chrome-top" style="padding-top:4vh"><span class="brand">段二 · 神山圣湖</span><span class="sec">GALLERY</span></div>
+  <div class="inner" style="padding:12vh 7vw 9vh;animation:none">
+    <div class="kick" data-anim><span class="n">段二 /</span> 圣湖与王朝</div>
+    <div style="margin-top:3vh;display:grid;grid-template-columns:1.5fr 1fr;gap:1.1vw;height:58vh" data-anim>
+      <div style="position:relative;border-radius:2px;overflow:hidden"><div class="bg" style="background-image:url(images/lake-sacred.jpg)"></div><div class="cap" style="position:absolute;left:14px;bottom:14px;z-index:2;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#fff">圣湖 · 玛旁雍措</div></div>
+      <div style="position:relative;border-radius:2px;overflow:hidden;margin-top:6vh"><div class="bg" style="background-image:url(images/zabuye.jpg)"></div><div class="cap" style="position:absolute;left:14px;bottom:14px;z-index:2;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#fff">札达 · 古格王朝</div></div>
+    </div>
+  </div>
+  <div class="chrome-bottom"><span>西 · 阿里</span><span class="pg">12 / 23</span></div>
+</section>
+<!-- 13 CHAPTER CHANGTANG -->
+<section class="slide dark hero" style="padding:0">
+  <div class="bg" style="background-image:url(images/wilderness.jpg)"></div>
+  <div class="scrim"></div>
+  <div class="chrome-top"><span class="brand">荒原之上</span><span class="sec">CHAPTER · 段三</span></div>
+  <div class="inner" style="padding:0 7vw">
+    <div class="kick" data-anim><span class="n">段三 /</span> 羌塘无人区 · CHANGTANG</div>
+    <h2 class="display" data-anim>地球上<br>最后一处原野。</h2>
+    <div class="meta" style="margin-top:3vh" data-anim>平均海拔 4,800m+ · 无人区纵深 · D17 – D30</div>
+  </div>
+  <div class="chrome-bottom"><span>THE LAST WILDERNESS</span><span class="pg">13 / 23</span></div>
+</section>
+
+<!-- 14 CHANGTANG EXPLAIN -->
+<section class="slide dark">
+  <div class="chrome-top"><span class="brand">段三 · 羌塘无人区</span><span class="sec">EXPLAIN</span></div>
+  <div class="inner">
+    <div class="kick" data-anim><span class="n">段三 /</span> 为什么是这里</div>
+    <h2 class="display" style="font-size:clamp(40px,6.2vw,116px)" data-anim>把车开进<br>地图的空白处。</h2>
+    <div style="margin-top:5vh" data-anim><div class="grid g2" style="gap:1.2vw">
+      <div class="card accent"><div class="am">THIRD POLE</div><div class="t">世界第三极</div><div class="d">普若岗日冰原——地球上除南北极外最大的冰体，藏北无人区的心脏。</div></div>
+      <div class="card outline"><div class="am">ALTITUDE</div><div class="t">极地高原</div><div class="d">平均海拔 4,800–5,800m 的无树平原，空气稀薄到让时间都慢下来。</div></div>
+      <div class="card outline"><div class="am">WILDLIFE</div><div class="t">生灵的王国</div><div class="d">藏羚羊 · 藏野驴 · 野牦牛 · 藏狐 · 黑颈鹤——地球上最完整的荒原生态。</div></div>
+      <div class="card outline"><div class="am">MARS-LIKE</div><div class="t">火星地貌</div><div class="d">盐湖、雅丹、无尽荒滩。最接近地外星球的广阔无人区。</div></div>
+    </div></div>
+  </div>
+  <div class="chrome-bottom"><span>段三 · D17–D30</span><span class="pg">14 / 23</span></div>
+</section>
+
+<!-- 15 CHANGTANG ITINERARY -->
+<section class="slide dark">
+  <div class="chrome-top"><span class="brand">段三 · 羌塘无人区</span><span class="sec">ITINERARY · D17–D30</span></div>
+  <div class="inner">
+    <div class="kick" data-anim><span class="n">段三 /</span> 每日行程 · 14 天</div>
+    <h2 class="display" style="font-size:clamp(40px,5vw,92px)" data-anim>穿越大北线。<span class="accent"></span></h2>
+    <div style="margin-top:3vh" data-anim>
+      <div class="grid g2" style="gap:1vw 2vw">
+        <div class="route">
+          <div class="r"><div class="dy">D17</div><div class="nm">改则 → 措勤</div><div class="ht">4,700 M</div></div>
+          <div class="r"><div class="dy">D18</div><div class="nm">措勤 → 尼玛（色林错等湖泊群）</div><div class="ht">4,600 M</div></div>
+          <div class="r"><div class="dy">D19</div><div class="nm">尼玛 → 双湖 · 深入羌塘核心</div><div class="ht">4,900 M</div></div>
+          <div class="r"><div class="dy">D20</div><div class="nm">双湖 → 普若岗日冰川</div><div class="ht">世界第三极</div></div>
+          <div class="r"><div class="dy">D21</div><div class="nm">羌塘腹地深探（藏羚羊/藏野驴/野牦牛/藏狐）</div><div class="ht">无人区</div></div>
+          <div class="r"><div class="dy">D22</div><div class="nm">羌塘 → 申扎</div><div class="ht">4,700 M</div></div>
+          <div class="r"><div class="dy">D23</div><div class="nm">申扎 → 班戈</div><div class="ht">4,700 M</div></div>
+        </div>
+        <div class="route">
+          <div class="r"><div class="dy">D24</div><div class="nm">班戈 → 纳木错 · 圣象天门</div><div class="ht">4,700 M</div></div>
+          <div class="r"><div class="dy">D25</div><div class="nm">当雄 → 拉萨</div><div class="ht">休整</div></div>
+          <div class="r"><div class="dy">D26</div><div class="nm">拉萨 · 人文（布宫 / 大昭寺）</div><div class="ht">3,650 M</div></div>
+          <div class="r"><div class="dy">D27</div><div class="nm">拉萨 · 摄影整理 / 行程收束</div><div class="ht"></div></div>
+          <div class="r"><div class="dy">D28</div><div class="nm">机动 / 返程准备</div><div class="ht"></div></div>
+          <div class="r"><div class="dy">D29</div><div class="nm">送机 · 行程结束</div><div class="ht"></div></div>
+          <div class="r"><div class="dy">D30</div><div class="nm">预留 · 机动</div><div class="ht">按需调整</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="chrome-bottom"><span>段三 · 每日行程</span><span class="pg">15 / 23</span></div>
+</section>
+
+<!-- 16 CHANGTANG IMAGES -->
+<section class="slide dark" style="padding:0">
+  <div class="chrome-top" style="padding-top:4vh"><span class="brand">段三 · 羌塘无人区</span><span class="sec">GALLERY</span></div>
+  <div class="inner" style="padding:12vh 7vw 9vh;animation:none">
+    <div class="kick" data-anim><span class="n">段三 /</span> 世界的尽头</div>
+    <div style="margin-top:3vh;display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:1vw;height:58vh" data-anim>
+      <div style="position:relative;border-radius:2px;overflow:hidden"><div class="bg" style="background-image:url(images/glacier-purog.jpg)"></div><div class="cap" style="position:absolute;left:14px;bottom:14px;z-index:2;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#fff">普若岗日 · 世界第三极</div></div>
+      <div style="position:relative;border-radius:2px;overflow:hidden;margin-top:6vh"><div class="bg" style="background-image:url(images/wildlife.jpg)"></div><div class="cap" style="position:absolute;left:14px;bottom:14px;z-index:2;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#fff">藏羚羊 · 藏野驴</div></div>
+      <div style="position:relative;border-radius:2px;overflow:hidden;margin-top:-4vh"><div class="bg" style="background-image:url(images/wilderness.jpg)"></div><div class="cap" style="position:absolute;left:14px;bottom:14px;z-index:2;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#fff">羌塘 · 无人区</div></div>
+    </div>
+  </div>
+  <div class="chrome-bottom"><span>北 · 羌塘高原</span><span class="pg">16 / 23</span></div>
+</section>
+
+<!-- 17 LOGISTICS -->
+<section class="slide dark">
+  <div class="chrome-top"><span class="brand">荒原之上</span><span class="sec">LOGISTICS · 保障</span></div>
+  <div class="inner">
+    <div class="kick" data-anim><span class="n">04 /</span> 极地保障 · LOGISTICS</div>
+    <h2 class="display" style="font-size:clamp(40px,6vw,112px)" data-anim>敢进无人区，<br>靠的是<span class="accent">体系</span>。</h2>
+    <div style="margin-top:4.6vh" data-anim><div class="grid g3" style="gap:1.4vw">
+      <div class="card outline"><div class="am">VEHICLES</div><div class="t">双车编队 + 保障车</div><div class="d">专业四驱越野 + 独立后勤保障车，燃油、备胎、装备随行。</div></div>
+      <div class="card outline"><div class="am">CREW</div><div class="t">全程专业团队</div><div class="d">越野领队 · 随队医生 · 资深摄影师，全员双认证。</div></div>
+      <div class="card outline"><div class="am">COMMS</div><div class="t">卫星通讯 · 氧气</div><div class="d">卫星电话 + 便携氧气 + 高反应急预案 · 每日血氧监测。</div></div>
+      <div class="card outline"><div class="am">FILM</div><div class="t">全程跟拍记录</div><div class="d">无人机/多机位跟拍，把远征留成一部可收藏的纪录片。</div></div>
+      <div class="card outline"><div class="am">FOOD</div><div class="t">高原主厨</div><div class="d">全程热食 + 路餐，荒野也能吃上一顿像样的高原宴。</div></div>
+      <div class="card outline"><div class="am">PERMIT</div><div class="t">合规与许可</div><div class="d">边境通行证 / 无人区许可 / 保护区管理费，全程代办。</div></div>
+    </div></div>
+  </div>
+  <div class="chrome-bottom"><span>专业 · 私密 · 安全</span><span class="pg">17 / 23</span></div>
+</section>
+
+<!-- 18 CAMP -->
+<section class="slide dark hero" style="padding:0">
+  <div class="bg" style="background-image:url(images/camp-night.jpg)"></div>
+  <div class="scrim"></div>
+  <div class="chrome-top"><span class="brand">在路上</span><span class="sec">CAMP · 营地</span></div>
+  <div class="inner" style="padding:0 7vw">
+    <div class="kick" data-anim><span class="n">ON THE ROAD /</span> 无人区的夜</div>
+    <h2 class="display" data-anim>把营地点亮在<br>星星之下。</h2>
+    <div class="meta" style="margin-top:3vh" data-anim>私享营地 · 篝火 · 银河 · 一次关于星空的晚安</div>
+  </div>
+  <div class="chrome-bottom"><span>WHERE WE CAMP</span><span class="pg">18 / 23</span></div>
+</section>
+
+<!-- 19 WHAT WE ARE -->
+<section class="slide dark">
+  <div class="chrome-top"><span class="brand">荒原之上</span><span class="sec">WHAT WE ARE</span></div>
+  <div class="inner">
+    <div class="kick" data-anim><span class="n">05 /</span> 我们只做</div>
+    <h2 class="display" style="font-size:clamp(40px,6.2vw,116px)" data-anim>私人定制。<br>永不跟团。</h2>
+    <div style="margin-top:4.8vh" data-anim>
+      <div class="grid g2" style="gap:1.2vw">
+        <div class="card accent"><div class="am">WE DO</div><div class="t">一价全包 · 一对一专属定制</div><div class="d">独立车队与私享营地 · 随行摄影与医生 · 一次一案 · 全程记录。</div></div>
+        <div class="card"><div class="am" style="color:var(--muted)">WE DON'T</div><div class="t">绝不拼团 · 绝不购物 · 绝不凑人数</div><div class="d">拒绝常规打卡 · 拒绝网红机位 · 拒绝任何形式的购物店与流量景点。</div></div>
+      </div>
+    </div>
+    <div style="margin-top:3vh" data-anim><span class="tag ghost">只做深度 · 只做少数</span> <span class="tag ghost">每季限量承接</span></div>
+  </div>
+  <div class="chrome-bottom"><span>藏地边缘 · PRIVATE</span><span class="pg">19 / 23</span></div>
+</section>
+
+<!-- 20 PRICING -->
+<section class="slide dark" style="padding:6vh 7vw">
+  <div class="chrome-top" style="padding-top:2vh"><span class="brand">荒原之上</span><span class="sec">PRICING · 定价</span></div>
+  <div class="inner" style="animation:none">
+    <div class="kick" data-anim><span class="n">06 /</span> 三种抵达方式 · 真实定价</div>
+    <h2 class="display" style="font-size:clamp(36px,4.6vw,86px)" data-anim>为不同抵达，<br>定三套<span class="accent">方案</span>。</h2>
+    <div style="margin-top:3vh;display:grid;grid-template-columns:repeat(3,1fr);gap:1.2vw" data-anim>
+      <div class="price-card pc">
+        <div class="pname">荒原经典</div><div class="pdim">WILD CLASSIC · 共享编队</div>
+        <div class="amount"><span class="cur">¥</span>128,000<span class="per">/人</span></div>
+        <ul>
+          <li>双车编队 · 共享领队</li>
+          <li>星级酒店 + 精选客栈 + 荒野营地</li>
+          <li>标准保障 · 全程热食</li>
+          <li>全程摄影记录</li>
+          <li>2 人起订 · 4 人成行</li>
+        </ul>
+        <div class="foot">起价 · 视季节与定制浮动</div>
+      </div>
+      <div class="price-card tb">
+        <div class="pname">王座定制</div><div class="pdim">THRONE BESPOKE · 独立车队</div>
+        <div class="amount"><span class="cur">¥</span>228,000<span class="per">/人</span></div>
+        <ul>
+          <li>独立车队 + 专属后勤保障车</li>
+          <li>全程高端酒店 + 私享营地</li>
+          <li>专属领队 + 随队医生 + 摄影师</li>
+          <li>卫星通讯 · 每日健康监测</li>
+          <li>2 人起订 · 优先私享</li>
+        </ul>
+        <div class="foot">起价 · 视季节与定制浮动</div>
+      </div>
+      <div class="price-card sv">
+        <div class="pname">封神巅峰</div><div class="pdim">SUMMIT SOVEREIGN · 顶配私享</div>
+        <div class="amount"><span class="cur">¥</span>428,000<span class="per">/人</span></div>
+        <ul>
+          <li>私人定制 · 随行纪录片团队</li>
+          <li>直升机穿越羌塘 / 珠峰航拍</li>
+          <li>全程顶级酒店 + 移动营地</li>
+          <li>专属管家 · 全程一价全包</li>
+          <li>2 人起订 · 每季仅 1 团</li>
+        </ul>
+        <div class="foot">起价 · 视季节与定制浮动</div>
+      </div>
+    </div>
+    <div class="meta" style="margin-top:2.6vh;font-size:.82vw;color:var(--muted)" data-anim>费用包含：全程用车与保障 · 专业领队与司机 · 全程食宿 · 门票与许可 · 保险 · 安全与医疗预案。不含：往返大交通 · 个人消费 · 单房差。以上为参考起价，具体以最终定制方案为准。</div>
+  </div>
+  <div class="chrome-bottom" style="padding-top:2vh"><span>一价全包 · 只做私人定制</span><span class="pg">20 / 23</span></div>
+</section>
+
+<!-- 21 CREW -->
+<section class="slide dark">
+  <div class="chrome-top"><span class="brand">荒原之上</span><span class="sec">THE CREW · 我们</span></div>
+  <div class="inner">
+    <div class="kick" data-anim><span class="n">07 /</span> 为什么信任我们</div>
+    <h2 class="display" style="font-size:clamp(40px,6.2vw,116px)" data-anim>十年，<br>只做一件事。</h2>
+    <div style="margin-top:4.8vh" data-anim><div class="grid g4" style="gap:1.4vw">
+      <div class="stat"><div class="v">2016<span class="u"></span></div><div class="l">深耕藏地越野</div></div>
+      <div class="stat"><div class="v">200<span class="u">+</span></div><div class="l">已执行私人远征</div></div>
+      <div class="stat"><div class="v">100<span class="u">%</span></div><div class="l">领队双认证</div></div>
+      <div class="stat"><div class="v">0<span class="u"></span></div><div class="l">安全事故</div></div>
+    </div></div>
+    <div style="margin-top:3.6vh" data-anim>
+      <div class="sub" style="max-width:52vw;font-size:clamp(14px,1.4vw,22px)">全部领队通过高原急救 + 越野驾驶双认证，与当地保护区、测绘、救援体系常年协作。一次一案，私密、随行、可托付。</div>
+    </div>
+  </div>
+  <div class="chrome-bottom"><span>藏地边缘 · WILD TIBET</span><span class="pg">21 / 23</span></div>
+</section>
+
+<!-- 22 BOOKING -->
+<section class="slide dark">
+  <div class="chrome-top"><span class="brand">荒原之上</span><span class="sec">HOW TO BOOK · 预订</span></div>
+  <div class="inner">
+    <div class="kick" data-anim><span class="n">08 /</span> 预订流程</div>
+    <h2 class="display" style="font-size:clamp(40px,6.2vw,116px)" data-anim>从一次<span class="accent">通话</span>开始。</h2>
+    <div style="margin-top:4.6vh" data-anim><div class="grid g6" style="grid-template-columns:repeat(6,1fr);gap:1vw">
+      <div class="seg"><div class="d">01</div><div class="meta">沟通需求</div></div>
+      <div class="seg"><div class="d">02</div><div class="meta">定制方案</div></div>
+      <div class="seg"><div class="d">03</div><div class="meta">锁定档期</div></div>
+      <div class="seg"><div class="d">04</div><div class="meta">签约付定</div></div>
+      <div class="seg"><div class="d">05</div><div class="meta">行前准备</div></div>
+      <div class="seg"><div class="d">06</div><div class="meta">出发</div></div>
+    </div></div>
+    <div style="margin-top:3.6vh" data-anim><span class="tag">仅接受私人咨询</span> <span class="tag ghost">请提前 3 个月预约</span> <span class="tag ghost">每季限量承接</span></div>
+  </div>
+  <div class="chrome-bottom"><span>藏地边缘 · PRIVATE EXPEDITION</span><span class="pg">22 / 23</span></div>
+</section>
+
+<!-- 23 END -->
+<section class="slide dark hero" style="padding:0">
+  <div class="bg" style="background-image:url(images/wilderness.jpg)"></div>
+  <div class="scrim"></div>
+  <div class="chrome-top"><span class="brand">藏地边缘</span><span class="sec">PRIVATE EXPEDITION · 2026</span></div>
+  <div class="inner" style="padding:0 7vw">
+    <div class="kick" data-anim><span class="n">结束 /</span> THE END</div>
+    <h2 class="display" data-anim>把世界屋脊，<br>留给你一个人。</h2>
+    <div class="sub" data-anim>藏南秘境 × 藏北无人区 · 30 天私人自驾远征</div>
+    <div style="margin-top:4.4vh" data-anim>
+      <div class="meta" style="color:var(--paper-dim)">私享定制 · 微信 / 电话 · 一对一咨询</div>
+    </div>
+  </div>
+  <div class="chrome-bottom" style="justify-content:space-between"><span>WILD TIBET · 只做私人定制</span><span class="pg">23 / 23</span></div>
+</section>
+
+</div>
+<div id="nav"></div>
+<script>
+(function(){
+  var deck=document.getElementById('deck');
+  var slides=deck.querySelectorAll('.slide');
+  var nav=document.getElementById('nav');
+  var total=slides.length;
+  var idx=0,lock=false;
+  deck.style.width=(total*100)+'vw';
+  slides.forEach(function(s,i){
+    var b=document.createElement('button'); b.className='dot'; b.dataset.i=i; b.setAttribute('aria-label','Page '+(i+1));
+    b.onclick=function(){go(i)}; nav.appendChild(b);
+  });
+  function go(n){
+    if(lock)return;
+    idx=Math.max(0,Math.min(total-1,n));
+    window.__currentSlideIndex=idx;
+    deck.style.transform='translateX('+(-idx*100)+'vw)'; if(history.replaceState){history.replaceState(null,'','#'+idx);}
+    nav.querySelectorAll('.dot').forEach(function(d,i){ d.classList.toggle('active',i===idx) });
+    if(window.__playSlide) setTimeout(function(){window.__playSlide(idx)},430);
+    lock=true; setTimeout(function(){lock=false},720);
+  }
+  window.__go=go;
+  function fromHash(){var m=(location.hash||'').match(/\d+/); if(m) go(parseInt(m[0],10));}
+  addEventListener('hashchange',fromHash);
+  fromHash();
+  addEventListener('keydown',function(e){
+    var k=(e.key||'').toLowerCase();
+    if(k==='b' && !e.metaKey && !e.ctrlKey && !e.altKey){ e.preventDefault(); if(window.__setLowPowerMode) window.__setLowPowerMode(!window.__lowPowerMode); return; }
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '||e.key==='ArrowDown'){ if(window.__pipeAdvance && window.__pipeAdvance()) return; go(idx+1); return; }
+    if(e.key==='ArrowLeft'||e.key==='PageUp'||e.key==='ArrowUp'){ go(idx-1); return; }
+    if(e.key==='Home')go(0); if(e.key==='End')go(total-1);
+  });
+  var wheelTO=null,wheelAcc=0;
+  addEventListener('wheel',function(e){ wheelAcc+=e.deltaY+e.deltaX; if(Math.abs(wheelAcc)>50){ if(wheelAcc>0 && window.__pipeAdvance && window.__pipeAdvance()){wheelAcc=0;} else { go(idx+(wheelAcc>0?1:-1)); wheelAcc=0; } } clearTimeout(wheelTO); wheelTO=setTimeout(function(){wheelAcc=0},150); },{passive:true});
+  var tx=0,ty=0;
+  addEventListener('touchstart',function(e){tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+  addEventListener('touchend',function(e){ var dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty; if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)){ if(dx<0 && window.__pipeAdvance && window.__pipeAdvance()) return; go(idx+(dx<0?1:-1)); } },{passive:true});
+  go(0);
+})();
+</script>
+<script>
+window.__lowPowerMode = false;
+window.__setLowPowerMode = function(on){ window.__lowPowerMode=!!on; document.body.classList.toggle('low-power',window.__lowPowerMode); document.querySelectorAll('[data-anim]').forEach(function(el){el.style.opacity='1';el.style.transform='none';}); if(window.__playSlide) window.__playSlide(window.__currentSlideIndex||0); };
+</script>
+<script type="module">
+let motion;
+try { motion = await import('./assets/motion.min.js'); }
+catch(e1){ try { motion = await import('https://cdn.jsdelivr.net/npm/motion@11.11.17/+esm'); } catch(e2){ console.warn('motion failed',e1,e2); document.querySelectorAll('[data-anim]').forEach(function(el){el.style.opacity='1';el.style.transform='none';}); } }
+if(motion){
+  var animate=motion.animate, stagger=motion.stagger;
+  var EASE=[.22,1,.36,1];
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  function resetAnims(s){ s.querySelectorAll('[data-anim]').forEach(function(el){el.style.opacity='';el.style.transform='';}); }
+  function revealStatic(s){ resetAnims(s); if(document.getAnimations)document.getAnimations().forEach(function(a){a.cancel();}); s.querySelectorAll('[data-anim]').forEach(function(el){el.style.opacity='1';el.style.transform='none';}); }
+  function playSlide(i){ var s=slides[i]; if(!s)return; window.__currentSlideIndex=i; if(window.__lowPowerMode){revealStatic(s);return;} resetAnims(s); var all=[].slice.call(s.querySelectorAll('[data-anim]')); if(!all.length)return; animate(all,{opacity:[0,1],y:[18,0]},{duration:.78,delay:stagger(.09,{start:.16}),easing:EASE}); }
+  window.__playSlide=playSlide;
+  playSlide(0);
+}
+</script>
+</body>
+</html>
