@@ -2,6 +2,8 @@
 
 AI 生成案例集合 · 推送到 main 分支后由 GitHub Actions 自动部署到 [case.youyongai.com](https://case.youyongai.com)
 
+首页：[index.html](./index.html) · 案例库入口
+
 ## 目录
 
 | 案例 | 说明 | 访问 |
