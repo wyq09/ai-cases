@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MetalForge — Progress</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050505;
+  --panel-bg:#131313;
+  --line:rgba(255,255,255,.07);
+  --txt-hi:#f2f3f5;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --sans:'Archivo','Helvetica Neue',Helvetica,Arial,sans-serif;
+  --panel-w:387px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+html,body{height:100%;}
+body{
+  background:var(--bg);
+  background-image:radial-gradient(circle,rgba(255,255,255,.048) 1px,transparent 1.1px);
+  background-size:27px 27px;background-position:8px 12px;
+  color:var(--txt-hi);font-family:var(--sans);overflow:hidden;user-select:none;
+}
+#app{position:relative;width:100vw;height:100vh;}
+
+/* ---------- header ---------- */
+.brand{position:absolute;top:12px;left:32px;display:flex;align-items:center;gap:0;z-index:5;}
+.brand .ring{width:21px;height:21px;border-radius:50%;position:relative;flex:0 0 auto;}
+.brand .ring::before{content:"";position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 0deg,#e8442e 0deg 250deg,rgba(232,68,46,.15) 250deg 360deg);
+  -webkit-mask:radial-gradient(closest-side,transparent 52%,#000 54%);
+          mask:radial-gradient(closest-side,transparent 52%,#000 54%);
+  animation:spin 1.1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.brand span{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:#5d5d66;text-transform:uppercase;margin-left:-7px;}
+h1{position:absolute;top:29px;left:31px;font-size:27px;font-weight:700;letter-spacing:-.015em;z-index:5;}
+
+/* ---------- stage ---------- */
+#stage{position:absolute;top:0;bottom:44px;left:0;right:calc(var(--panel-w) + 74px);
+  display:flex;align-items:center;justify-content:center;}
+#zoomer{transform-origin:center center;transition:transform .15s ease;}
+.bar-wrap{position:relative;}
+canvas.fx{display:block;width:100%;height:100%;}
+.bar-overlay{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;transition:opacity .25s;}
+.bar-overlay.hidden{opacity:0;}
+.bo-title-block{position:absolute;left:6.4%;top:50%;transform:translateY(-54%);}
+.bo-title{font-weight:800;letter-spacing:.004em;line-height:1.02;color:#fff;text-transform:uppercase;white-space:nowrap;}
+.bo-sub{font-weight:700;color:rgba(228,220,240,.66);text-transform:uppercase;line-height:1;letter-spacing:.36em;margin-top:.5em;white-space:nowrap;}
+.bo-pct{position:absolute;top:50%;transform:translateY(-52%);right:10.6%;font-weight:800;letter-spacing:-.02em;color:#fff;line-height:.9;white-space:nowrap;}
+
+/* ---------- floating controls ---------- */
+.pill{position:absolute;display:flex;align-items:center;height:42px;background:rgba(13,13,14,.86);
+  backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.085);border-radius:999px;z-index:6;}
+.playpill{top:106px;right:calc(var(--panel-w) + 91px);}
+.icon-btn{width:48px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:0;color:#b9bdc6;cursor:pointer;border-radius:999px;}
+.icon-btn:hover{color:#fff;}
+.sep-v{width:1px;height:17px;background:rgba(255,255,255,.14);margin-right:8px;}
+.timecode{font-family:var(--mono);font-size:12.5px;color:#e8eaee;padding:0 18px 0 2px;min-width:70px;text-align:center;}
+.eye{left:44px;bottom:64px;width:47px;height:47px;border-radius:50%;}
+.zoomctl{bottom:58px;right:calc(var(--panel-w) + 74px);padding:0 4px;}
+.zoomctl button{background:none;border:0;color:#aeb2bb;font-size:19px;width:30px;height:36px;cursor:pointer;font-family:inherit;}
+.zoomctl button:hover{color:#fff;}
+.zoomctl .zval{font-family:var(--mono);font-size:12.5px;color:#e8eaee;min-width:56px;text-align:center;}
+
+/* ---------- right panel ---------- */
+#panel{position:absolute;top:12px;right:17px;bottom:44px;width:var(--panel-w);
+  background:var(--panel-bg);border:1px solid rgba(255,255,255,.055);border-radius:14px;
+  display:flex;flex-direction:column;overflow:hidden;z-index:8;}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:19px 17px 4px;}
+.panel-head .ph-title{font-family:var(--mono);font-size:11.5px;letter-spacing:.26em;color:#b9bec8;font-weight:500;}
+.ph-actions{display:flex;gap:7px;}
+.sq-btn{width:34px;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.03);
+  display:flex;align-items:center;justify-content:center;color:#c3c7cf;cursor:pointer;}
+.sq-btn:hover{background:rgba(255,255,255,.08);color:#fff;}
+.panel-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 14px 12px;}
+.panel-body::-webkit-scrollbar{width:5px;}
+.panel-body::-webkit-scrollbar-thumb{background:#242427;border-radius:4px;}
+.sec-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.3em;color:#8e939d;margin:22px 6px 13px;font-weight:500;}
+
+/* style cards */
+.card-wrap{margin-bottom:4px;cursor:pointer;}
+.card{position:relative;height:97px;border-radius:11px;overflow:hidden;border:1.5px solid rgba(255,255,255,.07);
+  transition:border-color .12s ease;}
+.card-wrap.sel .card{border-color:#828af8;box-shadow:0 0 0 1px rgba(130,138,248,.4);}
+.card-wrap:not(.sel):hover .card{border-color:rgba(255,255,255,.18);}
+.card-wrap:not(.sel) canvas.mini{opacity:.88;}
+.card canvas.mini{position:absolute;inset:0;width:100%;height:100%;display:block;}
+.card .card-txt{position:absolute;left:0;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;padding-left:27px;pointer-events:none;z-index:2;}
+.card .ct-t{font-size:11.5px;font-weight:700;letter-spacing:.07em;color:#fff;text-transform:uppercase;}
+.card .ct-s{font-size:4.8px;font-weight:700;letter-spacing:.32em;color:rgba(230,225,240,.55);text-transform:uppercase;margin-top:3px;}
+.card .ct-pct{position:absolute;right:21px;top:50%;transform:translateY(-50%);font-size:24px;font-weight:700;color:#fff;letter-spacing:-.01em;z-index:2;}
+.card-name{font-family:var(--mono);font-size:11px;color:#8a8f99;margin:7px 2px 9px;}
+
+/* parameter controls */
+.seg{display:flex;background:#1b1b1d;border-radius:11px;margin-top:10px;border:1px solid rgba(255,255,255,.05);}
+.seg button{flex:1;height:38px;border:0;background:transparent;color:#85878f;font-family:var(--sans);font-size:14.5px;font-weight:600;border-radius:10px;cursor:pointer;}
+.seg button.on{background:#eceded;color:#111;font-weight:700;}
+.grp-head{display:flex;align-items:center;gap:9px;padding:15px 5px;cursor:pointer;}
+.grp-chev{width:11px;height:11px;color:#82868f;transition:transform .15s;flex:0 0 auto;}
+.grp.open .grp-chev{transform:rotate(90deg);}
+.grp-name{font-family:var(--mono);font-size:10.5px;letter-spacing:.24em;color:#c9ccd3;font-weight:500;flex:1;}
+.grp-badge{font-family:var(--mono);font-size:11px;color:#7c8089;}
+.grp-dot{width:6px;height:6px;border-radius:50%;background:#6b79f7;box-shadow:0 0 7px #6b79f7;margin-right:2px;}
+.grp-body{padding:6px 2px 12px;display:none;}
+.grp.open .grp-body{display:block;}
+
+.prow{margin:14px 3px 16px;}
+.prow .pr-lab{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.prow .pr-name{font-size:15px;color:#eceef2;font-weight:500;}
+.chip{font-family:var(--mono);font-size:11.5px;color:#dfe2e8;background:#232326;border-radius:7px;padding:4px 9px;min-width:46px;text-align:center;}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:27px;background:transparent;cursor:pointer;display:block;}
+input[type=range]::-webkit-slider-runnable-track{height:27px;border-radius:13.5px;background:#212123;border:1px solid rgba(255,255,255,.04);}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:41px;height:25px;border-radius:9px;background:#ececef;margin-top:0;border:0;box-shadow:0 1px 5px rgba(0,0,0,.55);}
+input[type=range]::-moz-range-track{height:27px;border-radius:13.5px;background:#212123;}
+input[type=range]::-moz-range-thumb{width:41px;height:25px;border-radius:9px;background:#ececef;border:0;}
+
+.crow{display:flex;align-items:center;justify-content:space-between;margin:12px 3px;}
+.crow .cr-n{font-size:15px;color:#e4e6eb;font-weight:500;display:flex;align-items:center;gap:11px;}
+.swatch{width:31px;height:23px;border-radius:6px;border:1px solid rgba(255,255,255,.16);cursor:pointer;padding:0;background:none;}
+.swatch::-webkit-color-swatch-wrapper{padding:0;}
+.swatch::-webkit-color-swatch{border:0;border-radius:5px;}
+.hexlab{font-family:var(--mono);font-size:11px;color:#8b8f99;}
+
+/* footer */
+.panel-foot{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-top:1px solid var(--line);background:#131313;}
+.copybtn{display:flex;align-items:center;gap:9px;background:none;border:0;color:#dfe2e8;font-family:var(--sans);font-size:15px;font-weight:500;cursor:pointer;}
+.copybtn:hover{color:#fff;}
+.copybtn svg{color:#9ba0aa;}
+.changed{font-family:var(--mono);font-size:11.5px;color:#74787f;}
+.changed b{color:#e8eaee;font-weight:500;}
+
+/* status bar */
+#statusbar{position:absolute;left:0;right:calc(var(--panel-w) + 17px);bottom:0;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;z-index:5;}
+.sb-l,.sb-r{display:flex;align-items:center;gap:11px;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#5b67ee;box-shadow:0 0 8px #5b67ee;}
+.sb-txt{font-size:13.5px;color:#d8dbe1;font-weight:500;}
+.sb-mono{font-family:var(--mono);font-size:12px;color:#63666e;}
+.sb-sep{color:#4a4d54;font-size:11px;}
+
+/* error note */
+#gerr{position:absolute;left:calc((100vw - var(--panel-w))/2);top:45%;transform:translate(-50%,-50%);text-align:center;display:none;z-index:20;}
+#gerr .gt{font-family:var(--mono);font-size:13px;color:#ff8d7a;letter-spacing:.08em;}
+#gerr .gs{font-family:var(--mono);font-size:12px;color:#777c87;margin-top:10px;line-height:1.8;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="brand"><div class="ring"></div><span>Color</span></div>
+  <h1>Progress</h1>
+
+  <div id="stage"><div id="zoomer"><div class="bar-wrap" id="barwrap">
+    <canvas class="fx" id="cv-main"></canvas>
+    <div class="bar-overlay" id="overlay">
+      <div class="bo-title-block">
+        <div class="bo-title">Syncing Library</div>
+        <div class="bo-sub">Preparing your files</div>
+      </div>
+      <div class="bo-pct" id="ovPct">0%</div>
+    </div>
+  </div></div></div>
+
+  <div class="pill playpill">
+    <button class="icon-btn" id="btnPlay" title="Pause / play">
+      <svg id="icoPause" width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="1.5" y="1" width="3.2" height="10" rx="1.1"/><rect x="7.3" y="1" width="3.2" height="10" rx="1.1"/></svg>
+      <svg id="icoPlay" width="12" height="12" viewBox="0 0 12 12" fill="currentColor" style="display:none"><path d="M2.8 1.2 L10.6 6 L2.8 10.8 Z"/></svg>
+    </button>
+    <button class="icon-btn" id="btnReset" title="Reset">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.6 8 A5.6 5.6 0 1 1 11 3.1"/><path d="M11 0.8 L11 3.4 L8.4 3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="sep-v"></div>
+    <div class="timecode" id="tc">0.0 s</div>
+  </div>
+
+  <button class="icon-btn pill eye" id="btnEye" title="Toggle labels">
+    <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.3 8 C2.8 4.9 5.2 3.3 8 3.3 C10.8 3.3 13.2 4.9 14.7 8 C13.2 11.1 10.8 12.7 8 12.7 C5.2 12.7 2.8 11.1 1.3 8 Z"/><circle cx="8" cy="8" r="2"/></svg>
+  </button>
+
+  <div class="pill zoomctl">
+    <button id="zOut">–</button><div class="zval" id="zVal">100%</div><button id="zIn">+</button>
+  </div>
+
+  <aside id="panel">
+    <div class="panel-head">
+      <div class="ph-title">PARAMETERS</div>
+      <div class="ph-actions">
+        <button class="sq-btn" id="btnSwapViews" title="Switch view">
+          <svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.3" fill="none"><path d="M1.2 3.2h7.2M6.6 1.4L8.6 3.2 6.6 5" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.8 8.8H3.6M5.4 7L3.4 8.8l2 1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="sq-btn" id="btnResetAll" title="Reset all parameters">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.6 8 A5.6 5.6 0 1 1 11 3.1"/><path d="M11 0.8 L11 3.4 L8.4 3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body" id="pvStyles">
+      <div class="sec-label">STYLE</div>
+    </div>
+    <div class="panel-body" id="pvParams" style="display:none;"></div>
+    <div class="panel-foot">
+      <button class="copybtn" id="btnShare">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.5 9.5 a3.2 3.2 0 0 0 4.6 0 l2.6-2.6 a3.25 3.25 0 0 0 -4.6-4.6 L7.7 3.7"/><path d="M9.5 6.5 a3.2 3.2 0 0 0 -4.6 0 l-2.6 2.6 a3.25 3.25 0 0 0 4.6 4.6 l1.4-1.4"/></svg>
+        <span id="shareLabel">Copy share link</span>
+      </button>
+      <div class="changed"><b id="chgN">0</b>&nbsp;changed</div>
+    </div>
+  </aside>
+
+  <div id="statusbar">
+    <div class="sb-l"><div class="live-dot"></div><span class="sb-txt">Live preview</span><span class="sb-mono" id="sbParams"></span></div>
+    <div class="sb-r"><span class="sb-mono" id="sbApi">WebGPU</span><span class="sb-sep">•</span><span class="sb-mono" id="sbFx">progress</span></div>
+  </div>
+
+  <div id="gerr">
+    <div class="gt">WebGPU is not available</div>
+    <div class="gs" id="gErrDetail">This editor requires a WebGPU-capable browser.<br>Chrome / Edge 113+, or Safari 18+.</div>
+  </div>
+</div>
+
+<script type="module">
+/* ================================================================
+   Recreation of the metalforge.xyz progress editor (WebGPU)
+   ================================================================ */
+
+/* ---------------- parameter table ---------------- */
+const DEF = {
+  effect:'progress', style:'hex', autoplay:'auto',
+  progress:60, speed:1,
+  scale:9.5, amount:0.105, lag:0.42, echo:0.055,
+  bloom:1, jitter:0.3, frontIn:-0.15, frontOut:0.25,
+  churn:1, feather:1, stagger:0.18, pulse:0.28, pulseRate:3,
+  cellSize:1, fill:1, density:1, turbulence:1, sparkle:1, ripple:1,
+  falloff:1, trails:3, trailGlow:1, haze:1, vignette:1, grain:0.01,
+  aspect:3.6, corner:0.144,
+  background:'#131020',
+  color1:'#1A0F47', color2:'#4C3399', color3:'#A88CFF', color4:'#FF7A24',
+  color5:'#FFD69E', color6:'#AD3308', color7:'#FF7A24'
+};
+const NUM_KEYS = Object.keys(DEF).filter(k=>typeof DEF[k]==='number');
+const HASH_ORDER = ['effect','style','autoplay','progress','speed','scale','amount','lag','echo','bloom','frontIn','frontOut','churn','feather','stagger','pulse','pulseRate','cellSize','fill','density','turbulence','sparkle','ripple','falloff','trails','trailGlow','haze','vignette','grain','aspect','corner','background','color1','color2','color3','color4','color5','color6','color7'];
+
+const SLIDERS = [
+  {k:'progress', name:'Progress',   min:0, max:100,  step:1,    fmt:v=>Math.round(v)+'%',   group:null},
+  {k:'speed',    name:'Speed',      min:0, max:3,    step:0.01, fmt:v=>(+v).toFixed(2),     group:null},
+  {k:'churn',    name:'Churn',      min:0, max:1,    step:0.01, fmt:v=>(+v).toFixed(2),     group:'MOTION'},
+  {k:'lag',      name:'Lag',        min:0, max:1,    step:0.01, fmt:v=>(+v).toFixed(2),     group:'MOTION'},
+  {k:'stagger',  name:'Stagger',    min:0, max:0.6,  step:0.005,fmt:v=>(+v).toFixed(3),     group:'MOTION'},
+  {k:'pulse',    name:'Pulse',      min:0, max:1,    step:0.01, fmt:v=>(+v).toFixed(2),     group:'MOTION'},
+  {k:'pulseRate',name:'Pulse rate', min:0, max:8,    step:0.1,  fmt:v=>(+v).toFixed(1),     group:'MOTION'},
+  {k:'trails',   name:'Trails',     min:0, max:5,    step:1,    fmt:v=>String(Math.round(v)),group:'MOTION'},
+  {k:'trailGlow',name:'Trail glow', min:0, max:2,    step:0.01, fmt:v=>(+v).toFixed(2),     group:'MOTION'},
+  {k:'frontIn',  name:'Front in',   min:-1,max:0,    step:0.01, fmt:v=>(+v).toFixed(2),     group:'FRONT'},
+  {k:'frontOut', name:'Front out',  min:0, max:1,    step:0.01, fmt:v=>(+v).toFixed(2),     group:'FRONT'},
+  {k:'jitter',   name:'Jitter',     min:0, max:1,    step:0.01, fmt:v=>(+v).toFixed(2),     group:'FRONT'},
+  {k:'feather',  name:'Feather',    min:0, max:2,    step:0.01, fmt:v=>(+v).toFixed(2),     group:'FRONT'},
+  {k:'scale',    name:'Scale',      min:4, max:16,   step:0.1,  fmt:v=>(+v).toFixed(1),     group:'PATTERN'},
+  {k:'amount',   name:'Amount',     min:0.03,max:0.2,step:0.001,fmt:v=>(+v).toFixed(3),     group:'PATTERN'},
+  {k:'cellSize', name:'Cell size',  min:0.5,max:2,   step:0.01, fmt:v=>(+v).toFixed(2),     group:'PATTERN'},
+  {k:'density',  name:'Density',    min:0.2,max:2,   step:0.01, fmt:v=>(+v).toFixed(2),     group:'PATTERN'},
+  {k:'ripple',   name:'Ripple',     min:0, max:1,    step:0.01, fmt:v=>(+v).toFixed(2),     group:'PATTERN'},
+  {k:'bloom',    name:'Bloom',      min:0, max:2,    step:0.01, fmt:v=>(+v).toFixed(2),     group:'FINISH'},
+  {k:'echo',     name:'Echo',       min:0, max:0.2,  step:0.005,fmt:v=>(+v).toFixed(3),     group:'FINISH'},
+  {k:'sparkle',  name:'Sparkle',    min:0, max:1,    step:0.01, fmt:v=>(+v).toFixed(2),     group:'FINISH'},
+  {k:'falloff',  name:'Falloff',    min:0.2,max:3,   step:0.01, fmt:v=>(+v).toFixed(2),     group:'FINISH'},
+  {k:'turbulence',name:'Turbulence',min:0, max:1,    step:0.01, fmt:v=>(+v).toFixed(2),     group:'FINISH'},
+  {k:'haze',     name:'Haze',       min:0, max:1,    step:0.01, fmt:v=>(+v).toFixed(2),     group:'FINISH'},
+  {k:'vignette', name:'Vignette',   min:0, max:1,    step:0.01, fmt:v=>(+v).toFixed(2),     group:'FINISH'},
+  {k:'grain',    name:'Grain',      min:0, max:0.06, step:0.001,fmt:v=>(+v).toFixed(3),     group:'FINISH'},
+];
+const GROUP_ORDER = ['MOTION','FRONT','PATTERN','FINISH','BAR','COLOURS'];
+const COLOR_KEYS = ['background','color1','color2','color3','color4','color5','color6','color7'];
+
+const STYLES = [
+  {key:'hex',   name:'Hex',   spd:0.62, off:0.86},
+  {key:'slosh', name:'Slosh', spd:0.55, off:0.41},
+  {key:'smoke', name:'Smoke', spd:0.30, off:0.06},
+  {key:'spring',name:'Spring',spd:0.47, off:0.55},
+  {key:'drops', name:'Drops', spd:0.50, off:0.28},
+  {key:'grid',  name:'Grid',  spd:0.68, off:0.65},
+];
+/* per-style fixed palettes [darkest .. mid .. key .. bright .. highlight] for non-hex styles */
+const STYLE_PAL = {
+  slosh: ['#04102E','#14459E','#4F8FF0','#AFD4FF','#7FB4FA'],
+  smoke: ['#100D18','#3A3054','#8D80B8','#C9C1DF','#6E5F98'],
+  spring:['#1A0400','#5A1600','#C33B00','#FF7A24','#FFD69E'],
+  drops: ['#141208','#3E4A12','#7E9A1E','#BFE84F','#E4F58C'],
+  grid:  ['#101216','#30343B','#8E99AA','#DFE7F2','#AAB6C4'],
+};
+
+/* ---------------- state ---------------- */
+const S = {...DEF};
+function parseHash(){
+  if(!location.hash || location.hash.length<3) return;
+  const h = new URLSearchParams(location.hash.slice(1));
+  for(const k of NUM_KEYS){ if(h.has(k)){ const v=parseFloat(h.get(k)); if(!Number.isNaN(v)) S[k]=v; } }
+  for(const k of [...COLOR_KEYS,'style','autoplay','effect']){
+    if(h.has(k)) S[k]=h.get(k);
+  }
+}
+parseHash();
+const WANT_PARAMS_VIEW = location.hash.includes('view=params');
+function hexToRgb(hx){
+  hx=hx.replace('#','');
+  if(hx.length===3) hx=hx.split('').map(c=>c+c).join('');
+  const n=parseInt(hx,16);
+  return [((n>>16)&255)/255, ((n>>8)&255)/255, (n&255)/255];
+}
+function serializeHash(){
+  const p=new URLSearchParams();
+  for(const k of HASH_ORDER){
+    const v=S[k];
+    // URLSearchParams percent-encodes values itself ('#'→%23); no manual encode — double-encoding broke colours on reload
+    p.set(k, typeof v==='number' ? String(Math.round(v*10000)/10000) : v);
+  }
+  return '#'+p.toString();
+}
+function changedKeys(){
+  const m={};
+  for(const k of Object.keys(DEF)){
+    if(k==='effect') continue;
+    if(typeof DEF[k]==='number' ? Math.abs(DEF[k]-S[k])>1e-9 : DEF[k]!==S[k]) m[k]=true;
+  }
+  return m;
+}
+
+/* ================= WGSL ================= */
+const SHADER = /* wgsl */`
+struct U { c : array<vec4<f32>, 18>, }
+@group(0) @binding(0) var<uniform> u : U;
+
+fn hash11(n: f32) -> f32 {
+  var p = fract(n * 0.1031);
+  p = p * (p + 33.45);
+  return fract(p * (p + p));
+}
+fn hash21(p: vec2<f32>) -> f32 {
+  var q = fract(p * vec2(0.1031, 0.1030));
+  q = q + dot(q, q + vec2(33.33, 33.33));
+  return fract((q.x + q.y) * q.x);
+}
+fn vnoise(p: vec2<f32>) -> f32 {
+  let i = floor(p); let f = fract(p);
+  let w = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(hash21(i), hash21(i + vec2(1.0, 0.0)), w.x),
+    mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), w.x), w.y);
+}
+fn fbm(p0: vec2<f32>) -> f32 {
+  var s = 0.0; var a = 0.5; var p = p0;
+  for (var i = 0; i < 4; i = i + 1) {
+    s = s + a * vnoise(p);
+    p = p * 2.03 + vec2(19.7, 9.2);
+    a = a * 0.5;
+  }
+  return s;
+}
+fn sdRoundBox(p: vec2<f32>, b: vec2<f32>, r: f32) -> f32 {
+  let q = abs(p) - b + vec2(r);
+  return min(max(q.x, q.y), 0.0) + length(max(q, vec2(0.0))) - r;
+}
+fn sdHexPt(p0: vec2<f32>, r: f32) -> f32 {
+  let k = vec3(-0.866025404, 0.5, 0.577350269);
+  var p = abs(vec2(p0.y, p0.x));
+  p = p - 2.0 * min(dot(k.xy, p), 0.0) * k.xy;
+  p = p - vec2(clamp(p.x, -k.z * r, k.z * r), r);
+  return length(p) * sign(p.y);
+}
+fn hexCell(px: vec2<f32>, s: f32) -> vec4<f32> {
+  let qf = (0.577350269 * px.x - 0.333333333 * px.y) / s;
+  let rf = (0.666666667 * px.y) / s;
+  let yf = -qf - rf;
+  var rx = round(qf); var rz = round(rf); let ry = round(yf);
+  let dx = abs(rx - qf); let dy = abs(ry - yf); let dz = abs(rz - rf);
+  if (dx > dy && dx > dz) { rx = -ry - rz; }
+  else { if (dz > dy) { rz = -rx - ry; } }
+  let cx = s * 1.73205081 * (rx + rz * 0.5);
+  let cy = s * 1.5 * rz;
+  return vec4(cx, cy, rx, rz);
+}
+
+@vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4<f32> {
+  var p = array<vec2<f32>, 3>(vec2(-1.0, 3.0), vec2(3.0, -1.0), vec2(-1.0, -1.0));
+  return vec4(p[vi], 0.0, 1.0);
+}
+
+struct Out { @location(0) col: vec4<f32>, }
+
+@fragment fn fs(@builtin(position) pos: vec4<f32>) -> Out {
+  var out: Out;
+
+  /* uniforms: see JS packU for slot map */
+  let tim   = u.c[0].x;
+  let prog  = u.c[0].y;
+  let sty   = i32(u.c[0].w + 0.5);
+  let res   = u.c[1].xy;
+  let corner= u.c[2].z;
+  let scl   = u.c[3].x;
+  let amt   = u.c[3].y;
+  let lag   = u.c[3].z;
+  let echo  = u.c[3].w;
+  let bloom = u.c[4].x;
+  let jit   = u.c[4].y;
+  let fin   = u.c[4].z;
+  let fout  = u.c[4].w;
+  let churn = u.c[5].x;
+  let feath = u.c[5].y;
+  let stag  = u.c[5].z;
+  let pulse = u.c[5].w;
+  let prate = u.c[6].x;
+  let cellSz= u.c[6].y;
+  let density=u.c[6].w;
+  let turb  = u.c[7].x;
+  let spark = u.c[7].y;
+  let rip   = u.c[7].z;
+  let falloff=u.c[7].w;
+  let trailGl=u.c[8].y;
+  let haze  = u.c[8].z;
+  let vig   = u.c[8].w;
+  let grain = u.c[9].x;
+  /* palette slots 10..14 = pal0(darkest)..pal3(key) plus pal4(highlight) at c[14]; bg at c[17] */
+  let pal0 = u.c[10].rgb;
+  let pal1 = u.c[11].rgb;
+  let pal2 = u.c[12].rgb;
+  let pal3 = u.c[13].rgb;
+  let pal4 = u.c[14].rgb;
+
+  let pix = pos.xy;
+  /* bar rect = full canvas with 1px AA inset */
+  let bmin = vec2(1.0, 1.0);
+  let bmax = res - vec2(1.0, 1.0);
+  let bw = bmax.x - bmin.x;
+  let bh = bmax.y - bmin.y;
+  let rad = corner * bh;
+  let q = pix - (bmin + bmax) * 0.5;
+  let half_ = vec2(bw, bh) * 0.5;
+  let dBox = sdRoundBox(q, half_, rad);
+
+  let aaPx = max(fwidth(pix).x, fwidth(pix).y) * 1.2 + 0.0001;
+  let cov = 1.0 - smoothstep(-aaPx, aaPx, dBox);
+
+  if (cov <= 0.002) {
+    out.col = vec4(0.0);
+    return out;
+  }
+
+  let bp = (pix - bmin) / vec2(bw, bh);
+  let xn = clamp(bp.x, 0.0, 1.0);
+  // front pixel-x: linear w/ small entry/exit bias from frontIn/frontOut
+  let fxp = bmin.x + (prog * (1.0 + fout * 0.30) + min(fin, 0.0) * 0.30) * bw;   // front pixel-x
+  let ahead = (fxp - pix.x) / bh;                              // >0 inside filled side
+
+  var col = vec3(0.0);
+
+  if (sty == 0) {
+    /* ================= HEX ================= */
+    let sCell = bh / (scl * 2.0) * cellSz;
+    let pitchX = 1.7320508 * sCell;
+    let hc = hexCell(pix - bmin, sCell);
+    let cen = hc.xy + bmin;
+    let idv = hc.zw;
+
+    let h0 = hash21(idv * vec2(127.13, 311.71));
+    let h1 = hash21(idv * vec2(269.5, 183.3) + 4.7);
+    let h2 = hash21(idv * vec2(419.2, 371.9) + 9.1);
+
+    // depth in cells (>0 behind the front)
+    let jWave = (vnoise(vec2(idv.y * 0.52, tim * 0.30)) * 2.0 - 1.0) * jit * churn * 0.85;
+    let dRaw = (fxp - cen.x) / pitchX + jWave + (h1 - 0.5) * stag * 11.0;
+    let fwid = feath * 2.4 + 0.05;
+    let f = smoothstep(-fwid * 0.5, fwid * 0.5, dRaw);
+
+    // entrance bounce while a cell lights up
+    let osc = sin(clamp(max(dRaw, 0.0), 0.0, 6.28) * 1.35) * exp(-max(dRaw, 0.0) * 0.9);
+    let rScale = 1.0 + osc * lag * 0.38 * step(0.0, dRaw);
+
+    let hexR = sCell * 0.8660254 * clamp(amt * 8.4, 0.0, 0.985) * rScale;
+    let sd = sdHexPt(pix - cen, hexR);
+    let inDot = 1.0 - smoothstep(-aaPx, aaPx, sd);
+
+    // brightness modulation
+    let band  = sin(cen.x / pitchX * 0.62 + h0 * 6.2832) * echo * 3.2;
+    let stepT = floor(tim * (0.9 + prate * 0.95) + h0 * 11.0);
+    let flick = mix(0.84, 1.20, hash11(stepT * 5.71 + h2 * 37.7)) * mix(0.94, 1.07, h1);
+    let pwave = 1.0 + pulse * 0.30 * sin(tim * prate * 6.2832 + cen.x / pitchX * 0.42 + idv.y * 0.53);
+    let ripl  = 1.0 + rip * 0.14 * sin(max(dRaw, -2.0) * 1.9 - tim * 3.6) * exp(-max(dRaw, 0.0) * 0.33);
+
+    let sparkWhiten = spark * smoothstep(0.74, 1.0, hash11(stepT * 13.3 + h0 * 51.1));
+
+    var fc = mix(pal1 * 1.05, pal2 * 1.12, pow(xn, 0.75));
+    let whiten = mix(0.34, 0.015, pow(xn, 2.2));                 // pink-white wash toward left
+    fc = mix(fc, vec3(1.0, 0.94, 1.0), whiten);
+    fc = fc * ((mix(0.84, 1.09, h1)) * (1.04 + band) * flick * pwave * ripl);
+    fc = fc + exp(-max(dRaw - fwid * 0.5, 0.0) * 0.6) * pal2 * 0.30;          // leading-edge lift
+    fc = mix(fc, vec3(1.0, 0.97, 1.0), sparkWhiten * 0.38);
+
+    // unfilled cells + gaps
+    let darkBase = mix(pal1, pal0, 0.56);
+    var darkC = darkBase * mix(1.02, 0.62, pow(xn, 1.1)) * mix(0.92, 1.10, h2);
+    darkC = darkC + exp(-abs(dRaw + fwid * 0.8) * 0.9) * pal2 * 0.035 * step(dRaw, 0.0); // pre-glow
+    let gapC = mix(pal0 * 0.46, pal0 * 0.36, xn);
+
+    var bodyCol = mix(gapC, darkC, inDot);
+    bodyCol = mix(bodyCol, fc, f * inDot);
+    // subtle bevel: darken a thin ring just inside each dot's edge
+    let bev = smoothstep(-3.0, 0.4, sd) * 0.16 * inDot;
+    bodyCol = bodyCol * (1.0 - bev);
+    col = bodyCol;
+
+    // faint ambient wash near the front across the gaps
+    col = col + exp(-abs(fxp - pix.x) / (bh * 0.22)) * pal2 * 0.028;
+  }
+  else if (sty == 1) {
+    /* ================= SLOSH (blue liquid) ================= */
+    let surfY = 0.56
+      + 0.13 * churn * sin(xn * 6.5 - tim * 1.3 + 1.1)
+      + 0.20 * churn * turb * (fbm(vec2(xn * 2.2 - tim * 0.22, 3.7)) - 0.5)
+      + 0.26 * pow(1.0 - xn, 1.75);
+    let edgeF = 0.028 + feath * 0.028;
+    let liquid = 1.0 - smoothstep(surfY - edgeF, surfY + edgeF, bp.y);
+    let dep = clamp(0.35 + (surfY - bp.y) * 1.5 + xn * 0.3, 0.0, 1.0);
+    var cc = mix(pal0 * 1.8, pal1 * 1.5, clamp(dep - xn * 0.25 + 0.2, 0.0, 1.0));
+    cc = mix(cc, pal2 * 1.18, smoothstep(0.16, 0.0, abs(bp.y - surfY)) * 0.85);   // crest
+    cc = mix(cc, pal3,         smoothstep(0.05, 0.0, abs(bp.y - surfY)) * 0.8);   // foam line
+    cc = cc * (0.94 + 0.10 * sin(tim * 1.5 + xn * 11.0) * (echo * 8.0 + 0.4));
+    let gapC = pal0 * 0.55;
+    col = mix(gapC, cc, liquid);
+  }
+  else if (sty == 2) {
+    /* ================= SMOKE ================= */
+    let drifting = fbm(bp * vec2(2.3, 3.4) + vec2(-tim * 0.09, tim * 0.05));
+    let thresh = mix(-0.15, 0.62, clamp(prog, 0.0, 1.0));
+    let soft = 0.14 + feath * 0.10 + turb * 0.04;
+    let fillF = smoothstep(thresh, thresh + soft, drifting + (1.0 - xn) * 0.62);
+    let smk = pow(clamp(drifting * 0.75 + 0.30, 0.0, 1.0), 1.35);
+    var sc = mix(pal0 * 1.3, pal1 * 1.2, smk);
+    sc = mix(sc, pal2, pow(smk, 2.6) * 0.8);
+    sc = sc * (0.86 + 0.28 * hash21(floor(pix * 0.9)));
+    let gapC = pal0 * 0.36;
+    let sparkle2 = spark * step(0.985, hash21(floor(pix * 0.5) + floor(tim * 2.0))) * 0.9;
+    col = mix(gapC, sc, fillF) + sparkle2 * pal3 * fillF;
+  }
+  else if (sty == 3) {
+    /* ================= SPRING (orange tongue) ================= */
+    let wob = (0.30 * churn * sin(bp.y * 3.3 - tim * 0.85 + 0.7)
+             + 0.16 * churn * turb * (fbm(vec2(bp.y * 3.0, tim * 0.28)) - 0.5));
+    let lick = 0.05 + 0.11 * pow(abs(sin(bp.y * 2.1 + 0.55)), 3.0);
+    let edge2 = fxp + wob * bh + lick * bw * 0.13;
+    let soft = 0.012 + feath * 0.012;
+    let f = smoothstep(edge2 + soft, edge2 - soft, pix.x);
+    let heat = clamp((edge2 - pix.x) / (bh * 0.9), 0.0, 1.0);
+    var fc = mix(pal4, pal3, smoothstep(0.0, 0.22, heat));       // yellow rim -> orange
+    fc = mix(fc, pal2 * 0.95, smoothstep(0.16, 0.62, heat));     // -> deep red-orange
+    fc = mix(fc, pal1 * 1.05, smoothstep(0.55, 1.0, heat) * 0.8);// -> maroon back
+    let gapC = pal0 * 0.6;
+    col = mix(gapC, fc, f);
+  }
+  else {
+    /* ================= DROPS (green speckle) / GRID ================= */
+    let isGrid = (sty == 5);
+    var dens = 0.0;
+    let gx = select(3.2, bh / scl / 1.15, isGrid) / max(cellSz, 0.4);
+    let gid = floor(pix / gx);
+    // jitter each speckle inside its cell so the field looks organic
+    let jx = (hash21(gid * 1.31 + 3.7) - 0.5) * 0.9;
+    let jy = (hash21(gid * 1.73 + 9.1) - 0.5) * 0.9;
+    let fr = vec2(fract(pix.x / gx) - jx, fract(pix.y / gx) - jy);
+    let gr = hash21(gid * 0.173 + 11.3);
+    let behindFront = clamp((fxp - pix.x) / bw / max(falloff, 0.2), 0.0, 1.0);
+    let fall = pow(behindFront, 0.8);
+    let clumpV = fbm(pix / (bh * 0.4) + vec2(tim * 0.04, 0.0));
+    dens = step(gr, clamp(density * (select(0.85, 1.05, isGrid)) * fall * (select(0.30, 0.55, isGrid) + select(0.7, 0.45, isGrid) * clumpV), 0.0, 1.0));
+    let fu = fract(pix.x / gx); let fv = fract(pix.y / gx);
+    let inDrop = step(abs(fr.x), 0.34) * step(abs(fr.y), 0.34);
+    let inCross = 1.0 - step(0.13, abs(fu - 0.5)) * step(0.13, abs(fv - 0.5));
+    let inSq = select(inDrop, inCross, isGrid);
+    dens = dens * inSq;
+    var dc = pal3 * (0.62 + 0.85 * hash21(gid + 7.77));
+    dc = mix(dc, pal4, step(0.93, gr) * 0.8);
+    let base = mix(pal0 * 1.25, pal0 * 0.8, xn);
+    col = base + dc * dens + pal2 * fall * 0.045;
+  }
+
+  /* --------------- finish passes --------------- */
+  let cd = (bp - vec2(0.5)) * vec2(1.15, 2.6);
+  col = col + haze * 0.05 * exp(-dot(cd, cd) * 1.5) * pal3;
+
+  let vn = clamp(length(q / half_), 0.0, 1.4);
+  col = col * (1.0 - vig * 0.46 * smoothstep(0.55, 1.03, vn));
+
+  col = col * (1.0 + (bloom - 1.0) * 0.22 * clamp(dot(col, vec3(0.45)) - 0.35, 0.0, 1.0));
+
+  // lingering glow just behind the front
+  col = col + trailGl * 0.06 * exp(-max(ahead, 0.0) * -0.0 - max(bh * 0.9 - ahead * bh, 0.0) / (bh * 2.2))
+              * step(pix.x, fxp) * pal3 * step(ahead, 1.0);
+
+  let gn = hash21(pix + vec2(fract(tim * 13.7) * 91.0, fract(tim * 7.31) * 57.0)) - 0.5;
+  col = col + gn * grain * 2.4;
+
+  col = clamp(col, vec3(0.0), vec3(1.0));
+  out.col = vec4(col * cov, cov);
+  return out;
+}
+`;
+
+/* ================= WebGPU ================= */
+const FLOATS = 18 * 4;
+let device=null, pipeline=null;
+const targets=[];
+async function initGPU(){
+  if(!navigator.gpu) throw new Error('navigator.gpu missing');
+  const adapter = await navigator.gpu.requestAdapter();
+  if(!adapter) throw new Error('no adapter');
+  device = await adapter.requestDevice();
+  device.addEventListener?.('uncapturederror',(e)=>console.error('GPU:', e.error?.message||e.error));
+  const module = device.createShaderModule({code:SHADER});
+  pipeline = device.createRenderPipeline({
+    layout:'auto',
+    vertex:{module, entryPoint:'vs'},
+    fragment:{module, entryPoint:'fs', targets:[{format:navigator.gpu.getPreferredCanvasFormat()}]},
+    primitive:{topology:'triangle-list'}
+  });
+}
+
+function paletteForStyle(key){
+  if(key==='hex'){
+    return [S.color1,S.color2,S.color3,S.color4,S.color5];
+  }
+  return STYLE_PAL[key] || [S.color1,S.color2,S.color3,S.color4,S.color5];
+}
+
+function packU(t, styleIdx, styleKey, prog, tim){
+  const f=new Float32Array(FLOATS);
+  const put=(slot,x,y,z,w)=>{f[slot*4]=x;f[slot*4+1]=y;f[slot*4+2]=z;f[slot*4+3]=w;};
+  put(0, tim, prog, S.speed, styleIdx);
+  put(1, t.w, t.h, 0, 0);
+  put(2, t.w, t.h, S.corner, 0);
+  put(3, S.scale, S.amount, S.lag, S.echo);
+  put(4, S.bloom, S.jitter, S.frontIn, S.frontOut);
+  put(5, S.churn, S.feather, S.stagger, S.pulse);
+  put(6, S.pulseRate, S.cellSize, S.fill, S.density);
+  put(7, S.turbulence, S.sparkle, S.ripple, S.falloff);
+  put(8, S.trails, S.trailGlow, S.haze, S.vignette);
+  put(9, S.grain, 0, 0, 0);
+  const pal=paletteForStyle(styleKey);
+  for(let i=0;i<5;i++){
+    const c=hexToRgb(pal[i]);
+    put(10+i, c[0], c[1], c[2], 1);
+  }
+  const bg=hexToRgb(S.background);
+  put(17, bg[0], bg[1], bg[2], 1);
+  return f;
+}
+
+function registerTarget(canvas){
+  const ctx=canvas.getContext('webgpu');
+  const format=navigator.gpu.getPreferredCanvasFormat();
+  const ubuf=device.createBuffer({size:FLOATS*4, usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});
+  const t={
+    canvas, ctx, w:2, h:2,
+    ensure(wCss,hCss,dprCap){
+      const dpr=Math.min(window.devicePixelRatio||1, dprCap);
+      const W=Math.max(2, Math.round(wCss*dpr)), H=Math.max(2, Math.round(hCss*dpr));
+      if(t.w!==W||t.h!==H||!t._cfgd){
+        canvas.width=W; canvas.height=H;
+        ctx.configure({device, format, alphaMode:'premultiplied'});
+        t._cfgd=true; t.w=W; t.h=H;
+      }
+    },
+    frame(arr){
+      device.queue.writeBuffer(ubuf,0,arr);
+      const bg=device.createBindGroup({
+        layout:pipeline.getBindGroupLayout(0),
+        entries:[{binding:0, resource:{buffer:ubuf}}]
+      });
+      const enc=device.createCommandEncoder();
+      const pass=enc.beginRenderPass({
+        colorAttachments:[{view:t.ctx.getCurrentTexture().createView(),
+          clearValue:{r:0,g:0,b:0,a:0}, loadOp:'clear', storeOp:'store'}]
+      });
+      pass.setPipeline(pipeline);
+      pass.setBindGroup(0,bg);
+      pass.draw(3);
+      pass.end();
+      device.queue.submit([enc.finish()]);
+    }
+  };
+  targets.push(t);
+  return t;
+}
+
+/* ================= layout ================= */
+const cvMain=document.getElementById('cv-main');
+const barwrap=document.getElementById('barwrap');
+let mainTarget=null, barCssW=100, barCssH=40;
+function layout(){
+  const stage=document.getElementById('stage');
+  const availW=stage.clientWidth-110, availH=stage.clientHeight*0.52;
+  let h=Math.min(availH, availW/S.aspect);
+  h=Math.max(120, h);
+  const w=h*S.aspect;
+  barwrap.style.width=w+'px'; barwrap.style.height=h+'px';
+  barCssW=w; barCssH=h;
+  document.getElementById('overlay').querySelector('.bo-title').style.fontSize=(h*0.118)+'px';
+  document.getElementById('overlay').querySelector('.bo-sub').style.fontSize=(h*0.049)+'px';
+  document.getElementById('ovPct').style.fontSize=(h*0.19)+'px';
+}
+window.addEventListener('resize', layout);
+
+/* ================= UI: style cards ================= */
+const pvStyles=document.getElementById('pvStyles');
+const pvParams=document.getElementById('pvParams');
+const cards=[];
+for(const st of STYLES){
+  const wrapEl=document.createElement('div');
+  wrapEl.className='card-wrap';
+  wrapEl.innerHTML=`<div class="card"><canvas class="mini"></canvas>
+    <div class="card-txt"><div class="ct-t">Syncing Library</div><div class="ct-s">Preparing your files</div></div>
+    <div class="ct-pct">0%</div></div>
+    <div class="card-name">${st.name}</div>`;
+  wrapEl.addEventListener('click',()=>{ S.style=st.key; refreshSel(); writeHash(); });
+  pvStyles.appendChild(wrapEl);
+  cards.push({el:wrapEl, canvas:wrapEl.querySelector('canvas'), pct:wrapEl.querySelector('.ct-pct'), st, target:null});
+}
+function refreshSel(){
+  for(const c of cards) c.el.classList.toggle('sel', c.st.key===S.style);
+}
+
+/* ================= UI: params view ================= */
+const ctlRefs={};
+let segAuto=null, segMan=null;
+function chipText(sl,v){ return sl.fmt(v); }
+function addSlider(parent,keyMap,sl){
+  const row=document.createElement('div'); row.className='prow';
+  row.dataset.k=sl.k;
+  row.innerHTML=`<div class="pr-lab"><span class="pr-name">${sl.name}</span><span class="chip">${sl.fmt(S[sl.k])}</span></div>`;
+  const inp=document.createElement('input'); inp.type='range';
+  inp.min=sl.min; inp.max=sl.max; inp.step=sl.step; inp.value=S[sl.k];
+  row.appendChild(inp); parent.appendChild(row);
+  const chip=row.querySelector('.chip');
+  inp.addEventListener('input',()=>{
+    S[sl.k]=parseFloat(inp.value);
+    chip.textContent=sl.fmt(S[sl.k]);
+    if(sl.k==='aspect'||sl.k==='corner') layout();
+    if(sl.k==='progress'&&S.autoplay!=='manual') setFillMode('manual',true);
+    writeHash(); markMods();
+  });
+  keyMap[sl.k]={inp, chip, sl};
+}
+function addColourRow(parent,keyMap,k,nm){
+  const row=document.createElement('div'); row.className='crow';
+  row.dataset.k=k;
+  row.innerHTML=`<span class="cr-n"><input type="color" class="swatch"> ${nm}</span><span class="hexlab">#FFF</span>`;
+  parent.appendChild(row);
+  const sw=row.querySelector('.swatch'), hl=row.querySelector('.hexlab');
+  sw.value=S[k]; hl.textContent='#'+S[k].toUpperCase();
+  sw.addEventListener('input',()=>{
+    S[k]=sw.value.toUpperCase(); hl.textContent='#'+S[k].toUpperCase();
+    writeHash(); markMods();
+  });
+  keyMap[k]={sw,hl};
+}
+function buildParamsView(){
+  pvParams.innerHTML='';
+  const lab=document.createElement('div'); lab.className='sec-label'; lab.textContent='PROGRESS';
+  pvParams.appendChild(lab);
+
+  const fr=document.createElement('div'); fr.className='prow';
+  fr.dataset.k='autoplay';
+  fr.innerHTML='<div class="pr-lab"><span class="pr-name">Fill</span></div>';
+  const seg=document.createElement('div'); seg.className='seg';
+  segAuto=document.createElement('button'); segAuto.textContent='Auto';
+  segMan=document.createElement('button'); segMan.textContent='Manual';
+  seg.append(segAuto,segMan); fr.appendChild(seg);
+  pvParams.appendChild(fr);
+  segAuto.onclick=()=>setFillMode('auto');
+  segMan.onclick=()=>setFillMode('manual');
+
+  const groups=[
+    {name:'PROGRESS SETTINGS', open:true, ks:['progress','speed']},
+  ];
+  for(const g of GROUP_ORDER){
+    const ks=[];
+    if(g==='BAR'){ ks.push('aspect','corner','background'); }
+    else if(g==='COLOURS'){ ks.push('color1','color2','color3','color4','color5','color6','color7'); }
+    else { for(const sl of SLIDERS) if(sl.group===g) ks.push(sl.k); }
+    groups.push({name:g, open:false, ks});
+  }
+  for(const gd of groups){
+    const g=document.createElement('div'); g.className='grp'+(gd.open?' open':'');
+    const head=document.createElement('div'); head.className='grp-head';
+    head.innerHTML=`<svg class="grp-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 1.5 L8.5 6 L4 10.5"/></svg>
+      <span class="grp-name">${gd.name}</span><span class="grp-dot" style="display:none"></span><span class="grp-badge">${gd.ks.length}</span>`;
+    const body=document.createElement('div'); body.className='grp-body';
+    head.addEventListener('click',()=>g.classList.toggle('open'));
+    g.append(head,body);
+    pvParams.appendChild(g);
+    for(const k of gd.ks){
+      if(COLOR_KEYS.includes(k)){
+        addColourRow(body,ctlRefs,k, k==='background'?'Background':'Colour '+k.replace('color',''));
+      }else{
+        const sl=SLIDERS.find(s=>s.k===k)|| {k,name:k[0].toUpperCase()+k.slice(1),
+          ...(k==='aspect'?{min:2,max:6,step:0.05}:{min:0,max:0.35,step:0.002}),fmt:v=>(+v).toFixed(2)};
+        addSlider(body,ctlRefs,sl);
+      }
+    }
+  }
+  syncSegUI();
+}
+function syncSegUI(){
+  if(!segAuto) return;
+  segAuto.classList.toggle('on', S.autoplay==='auto');
+  segMan.classList.toggle('on', S.autoplay!=='auto');
+}
+function setFillMode(mode, skipHash){
+  if(mode==='manual' && S.autoplay==='manual' && !skipHash) return;
+  S.autoplay=mode;
+  syncSegUI();
+  if(!skipHash) writeHash();
+}
+
+let lastSer='';
+function writeHash(){
+  const ser=serializeHash();
+  if(ser!==lastSer){
+    history.replaceState(null,'',location.pathname+location.search+ser);
+    lastSer=ser;
+  }
+  document.getElementById('chgN').textContent=Object.keys(changedKeys()).length;
+}
+function markMods(){
+  const mod=changedKeys();
+  pvParams.querySelectorAll('.grp').forEach(g=>{
+    const dot=g.querySelector('.grp-dot'); if(!dot) return;
+    const has=[...g.querySelectorAll('[data-k]')].some(r=>mod[r.dataset.k]);
+    dot.style.display=has?'block':'none';
+  });
+}
+
+/* ================= controls ================= */
+let playing=true, elapsed=0;
+const LAP=24;
+document.getElementById('btnPlay').onclick=()=>{
+  playing=!playing;
+  document.getElementById('icoPause').style.display=playing?'':'none';
+  document.getElementById('icoPlay').style.display=playing?'none':'';
+};
+document.getElementById('btnReset').onclick=()=>{ elapsed=0; };
+const zoomer=document.getElementById('zoomer');
+let zoom=1;
+function applyZoom(){ zoomer.style.transform=`scale(${zoom})`; document.getElementById('zVal').textContent=Math.round(zoom*100)+'%'; }
+document.getElementById('zIn').onclick=()=>{ zoom=Math.min(1.6, Math.round(zoom*10+1)/10); applyZoom(); };
+document.getElementById('zOut').onclick=()=>{ zoom=Math.max(0.4, Math.round(zoom*10-1)/10); applyZoom(); };
+document.getElementById('btnEye').onclick=()=>{
+  document.getElementById('overlay').classList.toggle('hidden');
+};
+document.getElementById('btnSwapViews').onclick=()=>{
+  const showing=pvStyles.style.display!=='none';
+  pvStyles.style.display=showing?'none':'block';
+  pvParams.style.display=showing?'block':'none';
+  if(showing&&!pvParams.childElementCount) buildParamsView();
+};
+document.getElementById('btnResetAll').onclick=()=>{
+  for(const k of Object.keys(DEF)) S[k]=DEF[k];
+  layout(); refreshSel();
+  if(pvParams.childElementCount) buildParamsView();
+  markMods(); writeHash();
+};
+document.getElementById('btnShare').onclick=async()=>{
+  writeHash();
+  try{ await navigator.clipboard.writeText(location.href); }catch(e){}
+  const lab=document.getElementById('shareLabel'); lab.textContent='Link copied!';
+  setTimeout(()=>lab.textContent='Copy share link',1400);
+};
+
+/* ================= boot ================= */
+document.getElementById('sbParams').textContent=HASH_ORDER.length+' parameters';
+try{
+  await initGPU();
+}catch(err){
+  console.error(err);
+  document.getElementById('gerr').style.display='block';
+  document.getElementById('gErrDetail').innerHTML=
+    'This editor requires a WebGPU-capable browser.<br>'+String(err&&err.message||err);
+}
+layout();
+refreshSel();
+
+if(device){
+  mainTarget=registerTarget(cvMain);
+  for(const c of cards){ c.target=registerTarget(c.canvas); }
+}
+
+/* ================= frame loop ================= */
+let prevT=performance.now(), lastPctShown=-1;
+function frame(now){
+  requestAnimationFrame(frame);
+  let dt=(now-prevT)/1000; prevT=now;
+  if(dt>0.1) dt=0.1;
+  if(playing){
+    elapsed+=dt;
+    if(S.autoplay==='auto'){
+      S.progress+=dt*S.speed/LAP*100;
+      if(S.progress>=100) S.progress-=100;
+      const r=Math.round(S.progress);
+      if(r!==lastPctShown){
+        lastPctShown=r;
+        if(ctlRefs.progress){ ctlRefs.progress.inp.value=r; ctlRefs.progress.chip.textContent=r+'%'; }
+      }
+    }
+  }
+  document.getElementById('tc').textContent=elapsed.toFixed(1)+' s';
+  document.getElementById('ovPct').textContent=Math.floor(S.progress)+'%';
+
+  if(!device) return;
+
+  const idxMain=Math.max(0, STYLES.findIndex(s=>s.key===S.style));
+  mainTarget.ensure(barCssW,barCssH,2);
+  mainTarget.frame(packU(mainTarget, idxMain, S.style, S.progress/100, elapsed));
+
+  for(const c of cards){
+    const cw=c.canvas.clientWidth, ch=c.canvas.clientHeight;
+    if(!cw||!ch) continue;
+    const cycLen=9+(c.st.off*7)%6;
+    const cyc=((elapsed*c.st.spd)/cycLen+c.st.off)%1;
+    const idx=c.st.key===S.style?idxMain:STYLES.indexOf(c.st);
+    c.target.ensure(cw,ch,1);
+    c.target.frame(packU(c.target, idx, c.st.key, cyc, elapsed*c.st.spd+c.st.off*10));
+    const tick=Math.floor(elapsed*8);
+    if(tick!==c._tick){ c._tick=tick; c.pct.textContent=Math.floor(cyc*100)+'%'; }
+  }
+}
+requestAnimationFrame(frame);
+writeHash(); markMods();
+if(!pvParams.childElementCount) buildParamsView();
+if(WANT_PARAMS_VIEW){
+  pvStyles.style.display='none';
+  pvParams.style.display='block';
+}
+</script>
+</body>
+</html>
