@@ -42,6 +42,10 @@ img{display:block;max-width:100%}
 .nav .brand{color:var(--amber);font-weight:600;letter-spacing:.32em}
 .nav .right{display:flex;gap:34px;align-items:center}
 .nav .dot{color:var(--muted)}
+.nav .nav-new{display:inline-flex;align-items:center;gap:8px;color:var(--amber);border:1px solid rgba(226,162,74,.45);padding:7px 14px;border-radius:2px}
+.nav .nav-new:hover{border-color:var(--amber);background:rgba(226,162,74,.08)}
+.nav .nav-new .new-dot{font-size:8px;animation:newpulse 2.2s ease-in-out infinite}
+@keyframes newpulse{0%,100%{opacity:.35}50%{opacity:1}}
 
 /* ===== hero ===== */
 .hero{position:relative;min-height:100vh;display:flex;align-items:flex-end;padding:0 5vw 10vh;overflow:hidden}
@@ -149,6 +153,7 @@ img{display:block;max-width:100%}
 <nav class="nav">
   <a href="#top" class="brand">CASE<span class="dot">·</span>LIB</a>
   <div class="right">
+    <a href="living-grove/index.html" target="_blank" class="nav-new">林间<span class="new-dot">●</span>NEW</a>
     <a href="#cases">案例库</a>
     <a href="#about">关于</a>
     <a href="#top" class="dot">TOP</a>
@@ -169,7 +174,7 @@ img{display:block;max-width:100%}
       <span class="tag ghost">持续更新</span>
     </div>
     <div class="stats">
-      <div class="stat"><div class="v">08<span class="u">个</span></div><div class="l">已收录案例</div></div>
+      <div class="stat"><div class="v">09<span class="u">个</span></div><div class="l">已收录案例</div></div>
       <div class="stat"><div class="v">23<span class="u">页</span></div><div class="l">单案例最多</div></div>
       <div class="stat"><div class="v">H5<span class="u">PPT</span></div><div class="l">交付形态</div></div>
       <div class="stat"><div class="v">100<span class="u">%</span></div><div class="l">离线可用</div></div>
@@ -301,6 +306,18 @@ img{display:block;max-width:100%}
         <div class="foot">
           <span class="view">进入 <span class="arr">→</span></span>
           <span class="view" style="color:var(--muted)">WEB · DASHBOARD</span>
+        </div>
+      </div>
+    </a>
+    <a class="case-card" data-cat="品牌表达" href="living-grove/index.html" target="_blank">
+      <div class="bg" style="background-image:linear-gradient(160deg,#565b4a 0%,#3b4034 45%,#23271d 78%,#151810 100%)"></div>
+      <div class="in">
+        <div class="cat">CASE 09 · 品牌表达</div>
+        <h3>林间 · 走进活着的世界</h3>
+        <div class="meta">活世界 Three.js 根茎场景 · 液态金属按钮 · 玻璃坞导航 · 单屏叙事</div>
+        <div class="foot">
+          <span class="view">进入 <span class="arr">→</span></span>
+          <span class="view" style="color:var(--muted)">WEB · 3D</span>
         </div>
       </div>
     </a>

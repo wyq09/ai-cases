@@ -11,6 +11,7 @@ AI 辅助产出的案例集合 —— 方案 · 演示 · 视觉作品。
 - [prediction-market](./prediction-market) — 预测市场首页 1:1 复刻：黑白双主题、Canvas 点阵地球自转、像素马赛克背景与实时倒计时微动效（[在线预览](https://case.youyongai.com/prediction-market/)）
 - [solcard-carousel](./solcard-carousel) — solcard 加密卡功能轮播：无限居中轮播、雪花冻结动效、数字滚动与辉光仪表盘（[在线预览](https://case.youyongai.com/solcard-carousel/)）
 - [metalforge-editor](./metalforge-editor) — MetalForge 进度特效编辑器复刻：WebGPU/WGSL 蜂窝进度条，六种渲染风格实时切换、参数面板、自动播放与可分享状态链接（[在线预览](https://case.youyongai.com/metalforge-editor/)）
+- [living-grove](./living-grove) — 林间 · 走进活着的世界：程序化苔藓根茎活世界 Three.js 场景、液态金属色散按钮、玻璃坞导航与逐层揭幕入场（[在线预览](https://case.youyongai.com/living-grove/)）
 
 ## 本地运行
 
