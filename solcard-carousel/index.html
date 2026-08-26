@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>solcard. — Spend crypto everywhere</title>
+<style>
+  :root {
+    --bg: #000;
+    --panel: #131316;
+    --panel-hi: #19191d;
+    --text: #f5f5f7;
+    --muted: #9a9aa3;
+    --faint: #6d6d76;
+    --violet: #a678f0;
+    --violet-soft: #c9aefc;
+    --ring-track: #232329;
+    --card-w: 360px;
+    --card-h: 500px;
+    --gap: 72px;
+    font-size: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* faint film grain, like the source video */
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    opacity: .05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .stage {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .track-wrap {
+    position: relative;
+    width: var(--card-w);
+    height: var(--card-h);
+  }
+
+  .slide {
+    position: absolute;
+    left: 0; top: 0;
+    width: var(--card-w);
+    height: var(--card-h);
+    border-radius: 28px;
+    background:
+      radial-gradient(120% 90% at 50% -10%, #1c1c21 0%, rgba(28,28,33,0) 55%),
+      linear-gradient(180deg, var(--panel) 0%, #0e0e11 100%);
+    border: 1px solid rgba(255,255,255,.06);
+    padding: 30px 30px 28px;
+    display: flex;
+    flex-direction: column;
+    will-change: transform, filter, opacity;
+    user-select: none;
+    cursor: default;
+  }
+  .slide.side { cursor: pointer; }
+
+  .badge {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: #212127;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 4px 14px rgba(0,0,0,.5);
+    display: grid;
+    place-items: center;
+    margin-bottom: 26px;
+  }
+  .badge svg { width: 20px; height: 20px; display: block; }
+
+  h2 {
+    font-size: 20px;
+    line-height: 1.32;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    margin-bottom: 8px;
+  }
+  p.copy {
+    font-size: 15.5px;
+    line-height: 1.5;
+    font-weight: 400;
+    color: var(--muted);
+    letter-spacing: -.005em;
+  }
+  p.copy b { color: #cfcfd6; font-weight: 500; }
+
+  .visual-zone {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  /* ============ Card 1 — the physical bank card ============ */
+  .bank-card-holder { position: relative; padding-bottom: 14px; }
+
+  .bank-card-glow {
+    position: absolute;
+    left: 50%; bottom: -10px;
+    width: 260px; height: 160px;
+    transform: translateX(-50%);
+    background: radial-gradient(55% 60% at 50% 65%, rgba(163,92,246,.85) 0%, rgba(140,70,220,.4) 45%, transparent 75%);
+    filter: blur(20px);
+    opacity: .55;
+    transition: opacity .5s ease;
+    pointer-events: none;
+  }
+  .bank-card-holder.frozen .bank-card-glow { opacity: 1; }
+
+  .bank-card {
+    position: relative;
+    width: 264px; height: 164px;
+    border-radius: 20px;
+    overflow: hidden;
+    background: linear-gradient(128deg, #d9cdf7 0%, #c1a2ee 22%, #ab82e4 48%, #9268d8 68%, #7e52cf 88%, #6f46bd 100%);
+    box-shadow:
+      0 24px 60px rgba(0,0,0,.65),
+      0 0 34px rgba(154,102,230,.28);
+    transition: filter .55s ease;
+  }
+  /* cloudy texture */
+  .bank-card::before {
+    content: "";
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(42% 65% at 18% 12%, rgba(255,255,255,.75), transparent 70%),
+      radial-gradient(50% 70% at 80% 30%, rgba(233,214,255,.5), transparent 72%),
+      radial-gradient(60% 85% at 62% 95%, rgba(94,44,178,.55), transparent 75%),
+      radial-gradient(40% 55% at 38% 58%, rgba(255,225,250,.25), transparent 70%);
+    transition: opacity .55s ease;
+  }
+  .bank-card-holder.frozen .bank-card { filter: brightness(1.16) saturate(.72); }
+  .bank-card-holder.frozen .bank-card::before { opacity: .5; }
+
+  .bc-logo {
+    position: absolute;
+    top: 16px; left: 18px;
+    display: flex; align-items: center; gap: 6px;
+    color: rgba(255,255,255,.92);
+    font-weight: 600; font-size: 15px; letter-spacing: -.01em;
+  }
+  .bc-logo svg { width: 15px; height: 15px; }
+  .bc-chip {
+    position: absolute;
+    right: 18px; bottom: 40px;
+    width: 30px; height: 22px;
+    border-radius: 6px;
+    background: rgba(120,120,135,.75);
+    box-shadow: inset 0 1px 2px rgba(255,255,255,.35);
+  }
+  .bc-num {
+    position: absolute;
+    left: 18px; bottom: 15px;
+    font-size: 13px; letter-spacing: .12em;
+    color: rgba(255,255,255,.85);
+  }
+
+  .frost {
+    position: absolute; inset: 0;
+    background: linear-gradient(150deg, rgba(240,234,255,.42), rgba(212,192,255,.32));
+    backdrop-filter: blur(2.5px);
+    -webkit-backdrop-filter: blur(2.5px);
+    opacity: 0;
+    transition: opacity .55s ease;
+  }
+  .bank-card-holder.frozen .frost { opacity: 1; }
+
+  .snowflake {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(.4) rotate(-40deg);
+    opacity: 0;
+    transition: transform .55s cubic-bezier(.2,1.4,.4,1), opacity .4s ease;
+    filter: drop-shadow(0 0 12px rgba(255,255,255,.85));
+  }
+  .bank-card-holder.frozen .snowflake {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+  .snowflake svg { width: 70px; height: 70px; display: block; fill: #fff; }
+  .bank-card-holder.frozen .snowflake svg { stroke-width: 1.15; }
+
+  /* ============ Card 2 — top-up stepper ============ */
+  .topup-box { width: 100%; padding-bottom: 26px; display: flex; flex-direction: column; align-items: center; }
+
+  .tu-label { font-size: 13px; color: var(--faint); margin-bottom: 14px; }
+
+  .tu-row { display: flex; align-items: center; gap: 12px; }
+
+  .tu-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: #1d1d22;
+    color: #b9b9c1;
+    font-size: 17px; line-height: 1;
+    display: grid; place-items: center;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    transition: background .2s ease, color .2s ease;
+  }
+  .tu-btn:hover { background: #27272e; color: #fff; }
+  .tu-btn:active { transform: scale(.93); }
+
+  .tu-amount {
+    min-width: 176px;
+    height: 64px;
+    padding: 0 22px;
+    border-radius: 999px;
+    background: #0b0b0e;
+    border: 1px solid rgba(174,120,244,.36);
+    box-shadow:
+      0 0 0 4px rgba(148,84,235,.08),
+      0 8px 30px rgba(120,60,210,.22),
+      inset 0 0 18px rgba(150,90,240,.12);
+    display: flex; align-items: baseline; justify-content: center; gap: 8px;
+    animation: pulseGlow 2.4s ease-in-out infinite;
+  }
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(148,84,235,.07), 0 8px 26px rgba(120,60,210,.16), inset 0 0 14px rgba(150,90,240,.09); }
+    50%      { box-shadow: 0 0 0 5px rgba(148,84,235,.14), 0 10px 38px rgba(130,66,226,.34), inset 0 0 24px rgba(158,96,248,.2); }
+  }
+  .tu-value {
+    font-size: 28px; font-weight: 600; letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+    align-self: center;
+  }
+  .tu-currency { font-size: 16px; font-weight: 500; color: #c9c9d2; letter-spacing: -.01em; align-self: center; }
+
+  /* ============ Card 3 — spend gauge ============ */
+  .gauge-holder { width: 100%; display: flex; justify-content: center; padding-bottom: 8px; }
+  .gauge { position: relative; width: 218px; height: 200px; }
+  .gauge svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+  .gauge-center {
+    position: absolute;
+    top: 74px; left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    white-space: nowrap;
+  }
+  .gauge-value {
+    font-size: 34px; font-weight: 600; letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .gauge-sub { font-size: 12.5px; color: var(--faint); margin-top: 3px; }
+
+  .g-holder-glow {
+    position: absolute;
+    left: 50%; bottom: -24px;
+    width: 260px; height: 170px;
+    transform: translateX(-50%);
+    background: radial-gradient(55% 62% at 50% 68%, rgba(168,104,248,.6) 0%, transparent 72%);
+    filter: blur(22px);
+    opacity: .5;
+    pointer-events: none;
+  }
+
+  .hint {
+    position: fixed;
+    bottom: 26px; left: 0; right: 0;
+    text-align: center;
+    font-size: 12px;
+    color: #3d3d44;
+    letter-spacing: .04em;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="track-wrap" id="track"></div>
+</div>
+
+<div class="hint">‹ drag or click to explore ›</div>
+
+<template id="tpl-freeze">
+  <div class="badge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#e8e8ee" stroke-width="1.6" stroke-linecap="round">
+      <path d="M12 2v20M12 2l-2.2 2.2M12 2l2.2 2.2M12 22l-2.2-2.2M12 22l2.2-2.2M2 12h20M2 12l2.2-2.2M2 12l2.2 2.2M22 12l-2.2-2.2M22 12l-2.2 2.2M4.9 4.9l14.2 14.2M19.1 4.9L4.9 19.1"/>
+    </svg>
+  </div>
+  <h2>Freeze or unfreeze your card</h2>
+  <p class="copy">Instantly with a single tap — pause it anytime and reactivate in seconds</p>
+  <div class="visual-zone">
+    <div class="bank-card-holder frozen" data-freeze-holder>
+      <div class="bank-card-glow"></div>
+      <div class="bank-card">
+        <div class="bc-logo">
+          <svg viewBox="0 0 24 24" fill="#fff"><path d="M12 1l2.6 6.7L21 9.4l-5.2 4.4L17.4 21 12 17.2 6.6 21l1.6-7.2L3 9.4l6.4-1.7z" transform="rotate(18 12 12) scale(.86) translate(2 2)"/></svg>
+          solcard.
+        </div>
+        <div class="bc-chip"></div>
+        <div class="bc-num">&bull;&bull;&bull;&bull; 2330</div>
+        <div class="frost"></div>
+        <div class="snowflake">
+          <svg viewBox="0 0 24 24" stroke="#fff" fill="none" stroke-width="1.4" stroke-linecap="round">
+            <path d="M12 1v22M12 1l-2.4 2.4M12 1l2.4 2.4M12 23l-2.4-2.4M12 23l2.4-2.4M1 12h22M1 12l2.4-2.4M1 12l2.4 2.4M23 12l-2.4-2.4M23 12l-2.4 2.4M4.6 4.6l14.8 14.8M19.4 4.6L4.6 19.4"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-topup">
+  <div class="badge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#e8e8ee" stroke-width="1.6">
+      <circle cx="12" cy="12" r="8.4"/>
+      <circle cx="12" cy="12" r="4.4"/>
+      <circle cx="12" cy="12" r="1" fill="#e8e8ee" stroke="none"/>
+    </svg>
+  </div>
+  <h2>Instant top-ups from any wallet</h2>
+  <p class="copy"><b>— add funds</b> in seconds and start spending immediately</p>
+  <div class="visual-zone">
+    <div class="topup-box">
+      <div class="tu-label">Top up amount</div>
+      <div class="tu-row">
+        <button class="tu-btn" data-step="-500" aria-label="decrease">&minus;</button>
+        <div class="tu-amount">
+          <span class="tu-value" data-counter>0</span>
+          <span class="tu-currency">USD</span>
+        </div>
+        <button class="tu-btn" data-step="500" aria-label="increase">+</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-controls">
+  <div class="badge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#e8e8ee" stroke-width="1.6">
+      <path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z"/>
+      <circle cx="12" cy="12" r="2.6" fill="#e8e8ee" stroke="none"/>
+    </svg>
+  </div>
+  <h2>Smart controls for safer spending</h2>
+  <p class="copy"><b>— set limits,</b> manage categories, and stay in control of every transaction.</p>
+  <div class="visual-zone" style="align-items:flex-end;">
+    <div class="g-holder-glow"></div>
+    <div class="gauge-holder">
+      <div class="gauge">
+        <svg viewBox="0 0 218 200">
+          <defs>
+            <linearGradient id="arcGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#5e37a8"/>
+              <stop offset="55%" stop-color="#9a63ea"/>
+              <stop offset="100%" stop-color="#e4d3ff"/>
+            </linearGradient>
+            <filter id="headGlow" x="-120%" y="-120%" width="340%" height="340%">
+              <feGaussianBlur stdDeviation="4" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <circle cx="109" cy="109" r="78" fill="none" stroke="#232329" stroke-width="11"
+                  pathLength="100" stroke-dasharray="81.4 18.6"
+                  transform="rotate(126 109 109)" stroke-linecap="round"/>
+          <circle cx="109" cy="109" r="78" fill="none" stroke="url(#arcGrad)" stroke-width="11"
+                  pathLength="100" stroke-dasharray="0 100" data-arc
+                  transform="rotate(126 109 109)" stroke-linecap="round"/>
+          <circle cx="109" cy="31" r="5" fill="#efe4ff" filter="url(#headGlow)" data-head/>
+        </svg>
+        <div class="gauge-center">
+          <div class="gauge-value" data-spend>$0</div>
+          <div class="gauge-sub">Spent this month</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+(() => {
+  const N = 3;
+  const urlHold = parseInt(new URLSearchParams(location.search).get('hold'));
+  // ?hold=0 pauses autoplay for inspection; ?hold=<ms> slows it down
+  const HOLD_MS  = urlHold === 0 ? Infinity
+                 : Number.isFinite(urlHold) && urlHold > 0 ? urlHold
+                 : 2100;
+  const SLIDE_MS = 900;             // slide duration
+  const USER_PAUSE_MS = 7000;       // extra quiet time after manual navigation
+  const track = document.getElementById('track');
+
+  /* ---------- build slides (one extra copy on each side) ---------- */
+  const tplIds = ['tpl-freeze', 'tpl-topup', 'tpl-controls'];
+  const slides = [];
+  for (let c = -1; c <= 1; c++) {
+    for (let i = 0; i < N; i++) {
+      const wrap = document.createElement('article');
+      wrap.className = 'slide';
+      wrap.dataset.kind = String(i);
+      wrap.appendChild(document.importNode(document.getElementById(tplIds[i]).content, true));
+      track.appendChild(wrap);
+      slides.push(wrap);
+    }
+  }
+  // logical position p maps to real index p + N  →  real range [0 .. 2N]
+  const POS0 = N;
+
+  function stepPx() {
+    return slides[1].offsetWidth + parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap'));
+  }
+
+  /* ---------- per-slide widgets (each clone runs its own loop) ---------- */
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  slides.forEach((s, idx) => {
+    if (s.dataset.kind === '0') {                       // freeze / unfreeze
+      const h = s.querySelector('[data-freeze-holder]');
+      setInterval(() => h.classList.toggle('frozen'), 2600);
+      setTimeout(() => h.classList.toggle('frozen'), rand(800, 2200)); // desync copies
+
+    } else if (s.dataset.kind === '1') {                // rolling top-up counter
+      const el = s.querySelector('[data-counter]');
+      let value = 10500;
+      const roll = (to, dur) => {
+        const from = parseInt(el.textContent.replace(/,/g, '')) || 0;
+        const t0 = performance.now();
+        (function fr(now) {
+          const t = Math.min(1, (now - t0) / dur);
+          const v = Math.round(from + (to - from) * (1 - Math.pow(1 - t, 4)));
+          el.textContent = v.toLocaleString('en-US');
+          if (t < 1 && !Number.isNaN(v)) requestAnimationFrame(fr);
+        })(performance.now());
+      };
+      roll(value, 1800);
+      setInterval(() => { roll(0, 250); setTimeout(() => roll(value, 1700), 380); }, 5000);
+      s.querySelectorAll('.tu-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          value = Math.max(0, Math.min(99999, value + parseInt(btn.dataset.step)));
+          roll(value, 450);
+        });
+      });
+
+    } else {                                            // spend gauge
+      const arc = s.querySelector('[data-arc]');
+      const head = s.querySelector('[data-head]');
+      const out = s.querySelector('[data-spend]');
+      const SWEEP = 81.4;                               // % of circle drawn as arc
+      const maxV = () => Math.round(rand(1200, 2400));
+      const draw = to => {
+        const t0 = performance.now(), dur = 1900;
+        const from = parseInt(out.textContent.replace(/[$,]/g, '')) || 0;
+        (function fr(now) {
+          const t = Math.min(1, (now - t0) / dur);
+          const e = 1 - Math.pow(1 - t, 3);
+          const r = t ? e : 0;                          // never regress below current anim
+          arc.setAttribute('stroke-dasharray', `${SWEEP * (e)} 100`);
+          const ang = (126 + 360 * 0.814 * e) * Math.PI / 180;
+          head.setAttribute('cx', 109 + 78 * Math.cos(ang));
+          head.setAttribute('cy', 109 + 78 * Math.sin(ang));
+          out.textContent = '$' + Math.round(from + (to - from) * e).toLocaleString('en-US');
+          if (t < 1) requestAnimationFrame(fr);
+        })(performance.now());
+      };
+      draw(rand(1400, 2300));
+      setInterval(() => draw(maxV()), 5400);
+      setTimeout(draw, rand(1000, 2000));               // desync copies
+    }
+  });
+
+  /* ---------- carousel engine ---------- */
+  let pos = POS0;
+  let animFrom = pos, animTo = pos, animT0 = 0, sliding = false;
+  let holdTimer = 0;
+
+  const easeInOutQuart = t => t < .5 ? 8*t*t*t*t : 1 - Math.pow(-2*t + 2, 4)/2;
+
+  let lastStep = 0;
+  function render(step) {
+    const center = pos + N;                 // logical pos -> real clone index
+    for (let k = 0; k < slides.length; k++) {
+      const s = slides[k];
+      const d = k - center;
+      if (Math.abs(d) > 1.6) { s.style.visibility = 'hidden'; continue; }
+      s.style.visibility = 'visible';
+      const f = Math.pow(Math.max(0, 1 - Math.abs(d)), 1.35);   // 1 = focused
+      s.style.transform = `translateX(${d * step}px) scale(${0.94 + 0.06 * f})`;
+      s.style.opacity   = String(0.22 + 0.78 * f);
+      s.style.filter    = `brightness(${0.3 + 0.7 * f}) blur(${(1 - f) * 2.2}px)`;
+      s.style.zIndex    = String(10 + Math.round(f * 10));
+      s.classList.toggle('side', Math.abs(k - center) > 0.5);
+    }
+  }
+
+  function normalizeIfNeeded() {
+    // fold logical position back into [POS0, POS0+N); contents repeat every N,
+    // so the hop is invisible once the ease has fully settled
+    while (pos >= POS0 + N) pos -= N;
+    while (pos <  POS0)     pos += N;
+    render(lastStep);
+  }
+
+  function goTo(next) {
+    if (sliding) return;
+    animFrom = pos;
+    animTo = next;
+    animT0 = performance.now();
+    sliding = true;
+  }
+
+  function scheduleHold(delay = HOLD_MS) {
+    clearTimeout(holdTimer);
+    holdTimer = setTimeout(() => goTo(pos + 1), delay);
+  }
+
+  function tick(now) {
+    const step = lastStep || stepPx();
+    lastStep = step;
+    if (sliding) {
+      const t = Math.min(1, (now - animT0) / SLIDE_MS);
+      pos = animFrom + (animTo - animFrom) * easeInOutQuart(t);
+      lastStep = step;
+      if (t >= 1) {
+        pos = animTo;
+        sliding = false;
+        normalizeIfNeeded();
+        const pauseExtra = manualPause;
+        manualPause = 0;
+        scheduleHold(HOLD_MS + pauseExtra);
+      }
+    }
+    render(step);
+    requestAnimationFrame(tick);
+  }
+
+  /* ---------- interaction ---------- */
+  let manualPause = 0;
+  let lastShiftAt = 0;
+  function shift(dir) {
+    const now = performance.now();
+    if (sliding || now - lastShiftAt < 350) return;   // debounce key repeat
+    lastShiftAt = now;
+    clearTimeout(holdTimer);
+    manualPause = USER_PAUSE_MS;      // quiet time before autoplay resumes
+    goTo(pos + dir);
+  }
+  const stageEl = document.querySelector('.stage');
+  stageEl.addEventListener('click', e => {
+    const slideEl = e.target.closest('.slide');
+    if (!slideEl || !slideEl.classList.contains('side')) return;
+    const centerNode = slides[Math.round(pos) + N];
+    shift(slides.indexOf(slideEl) > slides.indexOf(centerNode) ? +1 : -1);
+  });
+
+  let startX = null;
+  stageEl.addEventListener('pointerdown', e => { startX = e.clientX; });
+  window.addEventListener('pointerup', e => {
+    if (startX == null) return;
+    const dx = e.clientX - startX;
+    startX = null;
+    if (Math.abs(dx) > 36 && !sliding) shift(dx < 0 ? 1 : -1);
+  });
+  window.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') shift(1);
+    if (e.key === 'ArrowLeft')  shift(-1);
+  });
+  window.addEventListener('resize', () => { render(stepPx()); });
+
+  render(stepPx());
+  scheduleHold(HOLD_MS + 600);
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
