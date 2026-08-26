@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ONEROOM Motion Reel — 网页复刻</title>
+<meta name="description" content="@studio_oneroom 原始动效的宣传片网页复刻：kinetic typography / 动态排版练习">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23e84a08'/%3E%3Ccircle cx='32' cy='32' r='17' fill='%23f1efe6'/%3E%3C/svg%3E">
+<link rel="preload" href="assets/fonts/archivo-black-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="stage" data-palette="dark">
+
+  <!-- ══ 全局底层：描边水印墙 ══ -->
+  <div class="watermark" id="watermark" aria-hidden="true"></div>
+
+  <!-- ══ 全局条形码噪点层（差值混合，深浅场景自动反色）══ -->
+  <div class="barcodes" id="barcodes" aria-hidden="true"></div>
+
+  <!-- ══ 场景层 ══ -->
+  <main id="scenes">
+
+    <!-- S1 黑场刮痕 -->
+    <section class="scene s-dark" id="sc-intro" data-end="0.62"></section>
+
+    <!-- S2 橙色圆盘 + 粒子漩涡 -->
+    <section class="scene s-dark" id="sc-disc">
+      <div class="disc" id="bigDisc"></div>
+      <canvas class="fx" id="cvVortexA"></canvas>
+      <div class="vortex-dot" id="vortexDot"></div>
+    </section>
+
+    <!-- S3 MiniM 打字机 -->
+    <section class="scene s-dark" id="sc-minim">
+      <div class="minim-wrap">
+        <h2 class="minim-type" id="minimType">MiniM</h2>
+      </div>
+      <canvas class="fx" id="cvVortexB"></canvas>
+      <div class="vortex-dot sm" id="vortexDotSm"></div>
+    </section>
+
+    <!-- S4 米白 MiniMax H3 字标，结尾急速放大 -->
+    <section class="scene s-light" id="sc-lockup">
+      <div class="big-ellipse"></div>
+      <div class="lockup" id="lockup">
+        <span class="lk-minimax">MiniMax</span><span class="lk-h3">H3</span>
+      </div>
+    </section>
+
+    <!-- S5 竖条擦除 -->
+    <section class="scene s-light" id="sc-bars">
+      <div class="bars" id="barsWipe"></div>
+    </section>
+
+    <!-- S6 MOTION 双行跑马灯 -->
+    <section class="scene s-light" id="sc-motion">
+      <div class="mo-row mo-top"><div class="mo-track" id="moTop"></div></div>
+      <div class="mo-row mo-bot"><div class="mo-track" id="moBot"></div></div>
+    </section>
+
+    <!-- S7 单行 MOTION 定格 -->
+    <section class="scene s-light" id="sc-motion-one">
+      <h2 class="motion-one" id="motionOne">MOTION</h2>
+    </section>
+
+    <!-- S8 GRAPHICS 透视海（暗） -->
+    <section class="scene s-dark" id="sc-gfx">
+      <div class="gfx-room">
+        <div class="gfx-plane gfx-ceiling" id="gfxCeil"><div class="gfx-stack"></div></div>
+        <div class="gfx-horizon"><div class="hz-scroll" id="hzScroll"></div></div>
+        <div class="gfx-plane gfx-floor" id="gfxFloor"><div class="gfx-stack"></div></div>
+      </div>
+      <canvas class="fx front" id="cvSpeed"></canvas>
+    </section>
+
+    <!-- S9 标签卡序列 NO EDIT / ONE SHOT / 滑入对卡 -->
+    <section class="scene s-light" id="sc-tags">
+      <article class="tag-card" id="tagNoedit"  style="left:27%;top:31%;width:34%"><i>MOTION&nbsp;LABEL_01</i><b>NO<br>EDIT</b></article>
+      <article class="tag-card" id="tagOneshot" style="left:56%;top:35%;width:36%"><i>MOTION&nbsp;LABEL_02</i><b>ONE<br>SHOT</b></article>
+      <div class="pair" id="pairCards">
+        <article class="tag-card paper-card pair-paper" id="pairPaper"><i>COPY_PASTE_00</i><b>&nbsp;</b></article>
+        <article class="tag-card pair-black" id="pairBlack"><i>MOTION&nbsp;LABEL_02</i><b>ONE<br>SHOT</b></article>
+      </div>
+    </section>
+
+    <!-- S10 日文双卡 -->
+    <section class="scene s-light" id="sc-jp">
+      <article class="jp-card jp-left" id="jpLeft"><i>PASTE_DE</i><p><span>コピペ</span><span class="jp-small">で</span></p><u>T133-A09</u></article>
+      <article class="jp-card jp-right" id="jpRight"><i>KANTAN_MODE</i><p>超簡単<span class="bang">!</span></p><u>T133-B17</u></article>
+    </section>
+
+    <!-- S11 橙色接管 + 玻璃碎裂 -->
+    <section class="scene s-orange" id="sc-shatter">
+      <div class="disc shatter-disc" id="shatterDisc"></div>
+      <svg class="rings" id="ringsSvg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice"></svg>
+      <canvas class="fx front" id="cvShards"></canvas>
+      <h2 class="shatter-word" id="shatterWord">ONEROOM</h2>
+      <div class="crack-flash" id="crackFlash"></div>
+    </section>
+
+    <!-- S12 暗场 ONEROOM -->
+    <section class="scene s-dark" id="sc-hero">
+      <h2 class="hero-word" id="heroWord">ONEROOM</h2>
+    </section>
+
+    <!-- S13 片尾定版 -->
+    <section class="scene s-light" id="sc-end">
+      <div class="end-wrap" id="endWrap">
+        <div class="end-top meta-row"><span>1049’29·1033′2&nbsp;&nbsp;&nbsp;SG·NM&nbsp;REEL</span><span>IC·1027-03»»»»&nbsp;&nbsp;TYPE_900</span></div>
+        <div class="end-label">AI&nbsp;STUDIO<i id="endRule"></i></div>
+        <h2 class="end-word">ONEROOM</h2>
+        <div class="end-bot meta-row"><span>DG.047&nbsp;/&nbsp;OMO#2-GM</span><span>CT-CVC61-DG·DG1&nbsp;&nbsp;&nbsp;©ONEROOM</span></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ══ 全局前层 ══ -->
+  <canvas class="fx front" id="cvLines"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="flash" id="flash"></div>
+
+  <!-- ══ 控件 ══ -->
+  <footer class="hud">
+    <button id="soundBtn" title="声音开关" aria-label="声音开关">
+      <svg viewBox="0 0 24 24" width="17" height="17"><path d="M3 9v6h4l5 4V5L7 9H3z" fill="currentColor"/><path class="waves" d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+      <em id="soundState">开声</em>
+    </button>
+    <a class="credit" href="https://x.com/studio_oneroom/status/2092220604309205341" target="_blank" rel="noopener">原片 Re-creation · OG © @studio_oneroom</a>
+    <button id="replayBtn" title="重播"><b>↻</b> REPLAY</button>
+  </footer>
+  <div class="progress"><i id="progressBar"></i></div>
+
+  <!-- ══ 自动播放拦截遮罩 ══ -->
+  <div class="gate" id="gate">
+    <div class="gate-card">
+      <b>▶ 点击播放</b>
+      <span>带音效观看 15 秒复刻动画</span>
+    </div>
+  </div>
+</div>
+
+<audio id="reelAudio" src="assets/audio.m4a" preload="auto" playsinline loop></audio>
+<script>
+/* 轻量调试探针：收集运行时错误（控制台未开启时也能看到） */
+window.__errs=[];window.addEventListener('error',e=>__errs.push(e.message+' @'+String(e.filename).split('/').pop()+':'+e.lineno));
+window.addEventListener('unhandledrejection',e=>__errs.push('rej:'+e.reason));
+</script>
+<script src="js/main.js"></script>
+</body>
+</html>
