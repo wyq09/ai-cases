@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ATELIER · 腕表自定义工坊</title>
+<meta name="description" content="3D 腕表自定义工坊 —— 拖拽旋转、PBR 材质实时预览、背带动画换装、本地时间实时扫秒、复杂功能悬停辉光、摄像头 AR 试戴。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;900&family=Noto+Sans+SC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0b0b0d;--ink2:#131317;--paper:#f2efe8;--paper-dim:#c8c3b8;--muted:#8f8b80;--muted2:#5f5c54;--amber:#e2a24a;--gold:#d8b878;--hairline:rgba(242,239,232,.16);--hairline2:rgba(242,239,232,.08);--serif:"Noto Serif SC",serif;--sans:"Noto Sans SC",sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--ink);color:var(--paper);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden}
+body{position:relative;width:100vw;height:100vh}
+canvas#viewer{position:fixed;inset:0;width:100%;height:100%;z-index:2;display:block;touch-action:none}
+::selection{background:rgba(226,162,74,.4)}
+button{font-family:inherit;border:none;background:none;color:inherit;cursor:pointer}
+a{color:inherit;text-decoration:none}
+header{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:18px 26px;pointer-events:none}
+header>*{pointer-events:auto}
+.brand{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:13px;letter-spacing:.28em;text-transform:uppercase;color:var(--amber)}
+.brand .dot{width:9px;height:9px;background:var(--amber);border-radius:50%;box-shadow:0 0 12px var(--amber)}
+.brand .sub{color:var(--muted);letter-spacing:.16em;font-size:11px}
+.title-wrap{position:absolute;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none}
+.title-wrap h1{font-family:var(--serif);font-weight:900;font-size:clamp(16px,1.6vw,24px);letter-spacing:.06em;color:var(--paper)}
+.title-wrap p{font-family:var(--mono);font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.top-right{display:flex;gap:10px;align-items:center}
+.hbtn{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--paper-dim);background:rgba(242,239,232,.06);border:1px solid var(--hairline);border-radius:3px;padding:9px 16px;transition:all .3s;backdrop-filter:blur(10px)}
+.hbtn:hover{color:var(--amber);border-color:rgba(226,162,74,.5)}
+.hbtn .ico{font-size:13px;line-height:1}
+#clock{font-family:var(--mono);font-size:12px;letter-spacing:.12em;color:var(--paper-dim);background:rgba(242,239,232,.06);border:1px solid var(--hairline);border-radius:3px;padding:8px 12px;backdrop-filter:blur(10px);min-width:118px;text-align:center}
+#clock .sec{color:var(--amber)}
+.panel{position:fixed;left:20px;top:50%;transform:translateY(-50%);z-index:10;width:min(340px,92vw);max-height:calc(100vh - 140px);overflow-y:auto;background:rgba(15,15,17,.62);border:1px solid var(--hairline);border-radius:10px;padding:20px;backdrop-filter:blur(18px) saturate(1.2);box-shadow:0 30px 90px rgba(0,0,0,.5);scrollbar-width:thin;scrollbar-color:rgba(226,162,74,.4) transparent}
+.panel::-webkit-scrollbar{width:6px}.panel::-webkit-scrollbar-thumb{background:rgba(226,162,74,.3);border-radius:3px}
+.ptitle{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--amber);margin-bottom:16px}
+.ptitle::before{content:"";width:22px;height:1px;background:var(--amber)}
+.sec{margin-bottom:20px}
+.sec .lab{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.sec .lab .val{color:var(--paper-dim)}
+.swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sw{position:relative;aspect-ratio:1/1;border-radius:8px;border:1px solid var(--hairline);overflow:hidden;transition:all .25s;background:var(--ink2)}
+.sw:hover{transform:translateY(-2px);border-color:rgba(226,162,74,.5)}
+.sw.active{border-color:var(--amber);box-shadow:0 0 0 2px rgba(226,162,74,.35),0 12px 30px rgba(0,0,0,.4)}
+.sw .fill{position:absolute;inset:0;background-size:cover;background-position:center}
+.sw .cap{position:absolute;left:0;right:0;bottom:0;padding:5px 4px;font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;text-align:center;color:var(--paper);background:linear-gradient(0deg,rgba(0,0,0,.7),transparent)}
+.sw .tip{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--amber);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;opacity:0;transform:scale(.5);transition:all .2s}
+.sw:hover .tip{opacity:1;transform:scale(1)}
+.actions{display:flex;gap:8px;margin-top:4px}
+.abtn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--paper-dim);background:rgba(242,239,232,.05);border:1px solid var(--hairline);border-radius:6px;padding:10px 12px;transition:all .25s}
+.abtn:hover{color:var(--amber);border-color:rgba(226,162,74,.5)}
+.abtn.primary{color:var(--ink);background:var(--amber);border-color:var(--amber)}
+.abtn.primary:hover{background:var(--gold)}
+.hint{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:10;font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--paper-dim);background:rgba(15,15,17,.5);border:1px solid var(--hairline);border-radius:20px;padding:9px 20px;backdrop-filter:blur(10px);display:flex;align-items:center;gap:10px;pointer-events:none;transition:opacity .4s}
+.hint .pulse{width:7px;height:7px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px var(--amber);animation:pulse 1.8s infinite}
+@keyframes pulse{0%,100%{opacity:.4;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
+#tooltip{position:fixed;z-index:40;pointer-events:none;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);background:var(--amber);padding:7px 12px;border-radius:4px;box-shadow:0 10px 30px rgba(0,0,0,.4);opacity:0;transform:translateY(4px);transition:opacity .18s,transform .18s;white-space:nowrap}
+#tooltip.show{opacity:1;transform:translateY(0)}
+#ar-video{display:none;position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.ar-guide{position:fixed;left:50%;top:54%;transform:translate(-50%,-50%);width:min(46vw,300px);height:min(46vw,300px);border:2px dashed rgba(226,162,74,.75);border-radius:50%;z-index:6;pointer-events:none;opacity:0;transition:opacity .4s;box-shadow:0 0 0 9999px rgba(11,11,13,.15) inset}
+.ar-guide::before{content:"将手腕对准此圆";position:absolute;left:50%;bottom:-36px;transform:translateX(-50%);font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--amber);white-space:nowrap}
+.ar-guide::after{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;background:var(--amber);transform:translate(-50%,-50%);box-shadow:0 0 12px var(--amber)}
+body.ar-active #ar-video{display:block}
+body.ar-active .ar-guide{opacity:1}
+body.ar-active header,body.ar-active .panel,body.ar-active .hint{display:none}
+body.ar-active canvas#viewer{background:transparent}
+body.ar-active .ar-back{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:30;display:inline-flex!important;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--paper);background:rgba(15,15,17,.6);border:1px solid var(--hairline);border-radius:3px;padding:9px 18px;backdrop-filter:blur(10px)}
+.ar-back{display:none}
+#loading{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--ink);transition:opacity .6s}
+#loading.hide{opacity:0;pointer-events:none}
+#loading .ldot{width:12px;height:12px;border-radius:50%;background:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{0%{transform:scale(.4);opacity:.4}50%{transform:scale(1);opacity:1}100%{transform:scale(.4);opacity:.4}}
+#loading p{font-family:var(--mono);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
+@media (max-width:760px){.panel{left:50%;top:auto;bottom:0;transform:translateX(-50%);width:min(520px,96vw);max-height:42vh;border-radius:14px 14px 0 0;padding:16px}.title-wrap{display:none}.brand .sub{display:none}.swatches{grid-template-columns:repeat(4,1fr)}.hint{bottom:calc(42vh + 16px)}}
+</style>
+</head>
+<body>
+<div id="loading"><div class="ldot"></div><p>LOADING ATELIER</p></div>
+<canvas id="viewer"></canvas>
+<header>
+  <a class="brand" href="../index.html" title="返回案例库"><span class="dot"></span><span>ATELIER<span class="sub"> · 腕表工坊</span></span></a>
+  <div class="title-wrap"><h1>3D 腕表自定义工坊</h1><p>DRAG-ORBIT · PBR · STRAP SWAP · REAL-TIME SWEEP · COMPLICATION GLOW · WEB AR</p></div>
+  <div class="top-right"><div id="clock">--:--:--</div><button class="hbtn" id="arBtn"><span class="ico">◉</span><span>AR 试戴</span></button></div>
+</header>
+<aside class="panel">
+  <div class="ptitle">MATERIAL LAB · 材质实验室</div>
+  <div class="sec"><div class="lab"><span>表壳 CASE</span><span class="val" id="caseVal">精钢</span></div><div class="swatches" id="caseSwatches"></div></div>
+  <div class="sec"><div class="lab"><span>表盘 DIAL</span><span class="val" id="dialVal">曜石黑</span></div><div class="swatches" id="dialSwatches"></div></div>
+  <div class="sec"><div class="lab"><span>表带 STRAP</span><span class="val" id="strapVal">黑色皮革</span></div><div class="swatches" id="strapSwatches"></div></div>
+  <div class="sec"><div class="lab"><span>指针 HANDS</span><span class="val" id="handVal">银色</span></div><div class="swatches" id="handSwatches"></div></div>
+  <div class="actions"><button class="abtn" id="timeBtn">⏱ 切换秒表</button><button class="abtn" id="resetBtn">↺ 重置</button><button class="abtn primary" id="arBtn2">◉ AR 试戴</button></div>
+</aside>
+<div class="hint"><span class="pulse"></span> 拖拽旋转 · 滚轮缩放 · 悬停复杂功能查看辉光</div>
+<div id="tooltip"></div>
+<video id="ar-video" playsinline muted></video>
+<div class="ar-guide"></div>
+<button class="ar-back" id="arBack">← 退出试戴</button>
+<script>
+window.addEventListener('error', function(e){
+  var lo = document.getElementById('loading');
+  if (lo) {
+    var p = lo.querySelector('p');
+    if (p) p.textContent = 'LOADING ERROR · 请使用支持 WebGL 的现代浏览器';
+  }
+});
+</script>
+<script src="./assets/app.bundle.js"></script>
+</body>
+</html>
