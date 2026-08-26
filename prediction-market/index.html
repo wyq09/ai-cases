@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Markets — Prediction Exchange</title>
+<link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600&display=swap" rel="stylesheet">
+<style>
+/* ---------------------------------- tokens ---------------------------------- */
+:root[data-theme="dark"]{
+  --bg:#0a0a0a;
+  --card:#161616;
+  --inner:#212121;
+  --line:#262626;
+  --line-strong:#333;
+  --text:#f2f1ed;
+  --muted:#87867f;
+  --faint:#5b5a55;
+  --blue:#2433e0;
+  --blue-bright:#3346ff;
+  --green:#37d67a;
+  --red:#ff5436;
+  --pill-active-bg:#f2f1ed;
+  --pill-active-fg:#111;
+  --yn-bg:#232323;
+  --card-shadow:none;
+  --illu-ring:none;
+}
+:root[data-theme="light"]{
+  --bg:#f6f5f2;
+  --card:#ffffff;
+  --inner:#f2f1ec;
+  --line:#e8e6df;
+  --line-strong:#d8d6cd;
+  --text:#141413;
+  --muted:#77756d;
+  --faint:#a3a19a;
+  --blue:#2735e8;
+  --blue-bright:#2735e8;
+  --green:#2fbf68;
+  --red:#f04b2b;
+  --pill-active-bg:#141413;
+  --pill-active-fg:#fff;
+  --yn-bg:#141413;
+  --card-shadow:0 1px 2px rgba(20,20,19,.04);
+  --illu-ring:inset 0 0 0 1px rgba(20,20,19,.06);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Switzer','Helvetica Neue',Helvetica,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  transition:background-color .45s ease,color .45s ease;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--blue);color:#fff}
+
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+
+.wrap{padding:0 clamp(20px,4.5vw,64px)}
+
+/* ---------------------------------- nav ---------------------------------- */
+.nav{
+  display:flex;align-items:center;gap:clamp(24px,3vw,44px);
+  padding-top:26px;
+}
+.logo{display:flex;align-items:center;cursor:pointer;background:none;border:none;padding:0}
+.logo svg{display:block;width:38px;height:38px}
+.logo .stroke-a{transition:stroke .45s ease}
+.logo .stroke-b{transition:stroke .45s ease}
+.nav-links{display:flex;gap:clamp(20px,2.6vw,38px)}
+.nav-links a{
+  position:relative;color:var(--muted);text-decoration:none;
+  font-size:17px;font-weight:450;letter-spacing:-.01em;
+  transition:color .25s ease;padding:4px 0;
+}
+.nav-links a:hover{color:var(--text)}
+.nav-links a::after{
+  content:"";position:absolute;left:0;bottom:0;height:1.5px;width:100%;
+  background:var(--text);transform:scaleX(0);transform-origin:left;
+  transition:transform .3s cubic-bezier(.6,0,.2,1);
+}
+.nav-links a:hover::after{transform:scaleX(1)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:18px}
+.balance{
+  display:flex;align-items:center;gap:14px;
+  background:var(--card);border:1px solid var(--line);
+  border-radius:999px;padding:7px 7px 7px 20px;
+  box-shadow:var(--card-shadow);
+}
+.balance .label{
+  font-size:9.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);line-height:1;margin-bottom:3px;
+}
+.balance .amount{font-size:21px;font-weight:550;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.topup{
+  display:flex;align-items:center;gap:8px;
+  background:var(--blue);color:#fff;border:none;cursor:pointer;
+  border-radius:999px;padding:11px 18px;
+  font-family:inherit;font-size:15px;font-weight:520;letter-spacing:-.01em;
+  transition:background-color .25s ease,transform .2s ease;
+}
+.topup:hover{background:var(--blue-bright)}
+.topup svg{width:17px;height:17px;transition:transform .3s cubic-bezier(.5,0,.3,1.6)}
+.topup:hover svg{transform:rotate(90deg)}
+.icon-btn{
+  position:relative;background:none;border:none;cursor:pointer;color:var(--muted);
+  width:38px;height:38px;display:grid;place-items:center;border-radius:50%;
+  transition:color .25s ease,background-color .25s ease;
+}
+.icon-btn:hover{color:var(--text);background:var(--card)}
+.icon-btn svg{width:21px;height:21px;display:block}
+.bell-dot{
+  position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;
+  background:var(--red);opacity:0;transform:scale(0);
+  transition:all .3s cubic-bezier(.5,0,.3,1.6);
+}
+.bell-dot.on{opacity:1;transform:scale(1)}
+.ring-shake{animation:shake .5s ease}
+@keyframes shake{
+  0%,100%{transform:rotate(0)}
+  20%{transform:rotate(14deg)}40%{transform:rotate(-12deg)}
+  60%{transform:rotate(8deg)}80%{transform:rotate(-6deg)}
+}
+.theme-toggle{overflow:hidden}
+.theme-toggle svg{transition:transform .5s cubic-bezier(.5,0,.3,1.4),opacity .3s ease}
+.theme-toggle .icon-sun{display:none}
+:root[data-theme="light"] .theme-toggle .icon-sun{display:block}
+:root[data-theme="light"] .theme-toggle .icon-moon{display:none}
+
+/* ---------------------------------- headings ---------------------------------- */
+.giant{
+  font-size:clamp(54px,7vw,102px);
+  font-weight:500;letter-spacing:-.038em;line-height:.98;
+  margin:clamp(44px,6vh,72px) 0 clamp(28px,4vh,44px);
+}
+.giant.rise{animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
+
+/* ---------------------------------- trending grid ---------------------------------- */
+.trending-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,2.07fr);
+  gap:26px;
+}
+.market-col{display:flex;flex-direction:column;min-width:0;animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
+.market-col:hover{z-index:2}
+
+.market-card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:20px 20px 18px;
+  box-shadow:var(--card-shadow);
+  transition:transform .35s cubic-bezier(.2,.7,.2,1),border-color .35s ease,box-shadow .35s ease;
+}
+.market-body{padding:18px 4px 0}
+.market-card:hover{
+  transform:translateY(-6px);
+  border-color:var(--line-strong);
+  box-shadow:0 18px 40px -18px rgba(0,0,0,var(--lift,0));
+}
+:root[data-theme="dark"]{--lift:.55}
+:root[data-theme="light"]{--lift:.09}
+
+.badges{display:flex;gap:10px;flex-wrap:wrap}
+.badge{
+  display:inline-flex;align-items:center;gap:9px;
+  background:var(--inner);border-radius:999px;
+  padding:8px 15px;font-size:15px;font-weight:480;letter-spacing:-.01em;
+  font-variant-numeric:tabular-nums;
+}
+.badge .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.badge .dot-green{background:var(--green);animation:pulse 2.2s ease-in-out infinite}
+.badge .dot-red{background:var(--red)}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--green) 45%,transparent)}
+  50%{box-shadow:0 0 0 5px transparent}
+}
+
+.illu{
+  margin:26px auto 24px;
+  width:min(79%,300px);aspect-ratio:1;
+  border-radius:18px;overflow:hidden;
+  box-shadow:var(--illu-ring);
+  transition:transform .45s cubic-bezier(.2,.7,.2,1);
+}
+.market-card:hover .illu{transform:rotate(-1.2deg) scale(1.025)}
+.illu svg{display:block;width:100%;height:100%}
+
+.author-row{display:flex;justify-content:flex-end}
+.author-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1px solid var(--line);border-radius:999px;
+  padding:7px 14px 7px 8px;font-size:14.5px;font-weight:450;color:var(--text);
+}
+.pfp{
+  width:20px;height:20px;border-radius:50%;flex:none;
+  background:radial-gradient(circle at 32% 28%,#8fb0ff 0%,#2b47c8 55%,#0c1a5e 100%);
+  box-shadow:inset -2px -2px 3px rgba(0,0,20,.5);
+}
+
+.question{
+  font-size:clamp(19px,1.55vw,22px);font-weight:520;letter-spacing:-.02em;line-height:1.28;
+  max-width:22ch;
+}
+.yn-row{display:flex;gap:10px;margin-top:18px}
+.yn{
+  background:var(--yn-bg);color:#fff;border:none;cursor:pointer;
+  border-radius:999px;padding:12px 27px;
+  font-family:inherit;font-size:16px;font-weight:510;letter-spacing:-.01em;
+  transition:transform .22s cubic-bezier(.3,0,.3,1.4),opacity .2s ease,background-color .3s ease;
+}
+:root[data-theme="dark"] .yn{border:1px solid var(--line-strong)}
+.yn:hover{transform:translateY(-3px)}
+.yn:active{transform:translateY(0) scale(.95)}
+
+/* ---------------------------------- live card ---------------------------------- */
+.live-col{
+  animation:rise .8s cubic-bezier(.2,.7,.2,1) both;animation-delay:.14s;
+  display:flex;flex-direction:column;min-width:0;
+}
+.live-card{
+  position:relative;border-radius:22px;overflow:hidden;
+  background:#2634da;flex:1;min-height:420px;
+  cursor:pointer;
+}
+.live-card canvas{position:absolute;inset:0;width:100%;height:100%}
+.live-globe{z-index:2}
+.live-glow{
+  position:absolute;z-index:3;pointer-events:none;inset:0;
+  background:
+    radial-gradient(58% 78% at 53% 48%,transparent 62%,rgba(10,16,80,.28) 100%),
+    radial-gradient(120% 100% at 50% 118%,rgba(8,12,64,.4),transparent 55%);
+}
+.live-meta{position:relative;z-index:4;padding:24px 28px}
+.live-tag{
+  display:flex;align-items:center;gap:9px;
+  font-size:17px;font-weight:480;color:rgba(255,255,255,.82);letter-spacing:-.01em;
+}
+.live-tag .dot{width:7px;height:7px;border-radius:50%;background:var(--red);animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.live-count{
+  margin-top:10px;color:#fff;
+  font-size:clamp(24px,1.8vw,27px);font-weight:560;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;
+  display:inline-block;transition:transform .18s ease,opacity .18s ease;
+}
+.live-count.tick{transform:translateY(9px);opacity:0}
+
+.region-filter{
+  display:flex;justify-content:flex-end;gap:11px;margin-top:24px;flex-wrap:wrap;
+}
+.filter-pill{
+  background:transparent;color:var(--muted);
+  border:1px solid var(--line);cursor:pointer;
+  border-radius:999px;padding:11px 26px;
+  font-family:inherit;font-size:16px;font-weight:500;letter-spacing:-.01em;
+  transition:all .25s ease;
+}
+.filter-pill:hover{color:var(--text);border-color:var(--line-strong);transform:translateY(-2px)}
+.filter-pill.active{
+  background:var(--pill-active-bg);color:var(--pill-active-fg);
+  border-color:var(--pill-active-bg);
+}
+
+/* ---------------------------------- top markets toolbar ---------------------------------- */
+.toolbar{
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  margin-bottom:30px;flex-wrap:wrap;
+}
+.toolbar-pills{display:flex;gap:11px;flex-wrap:wrap}
+.search{
+  position:relative;width:min(380px,100%);
+}
+.search input{
+  width:100%;height:51px;
+  background:var(--card);border:1px solid var(--line);border-radius:999px;
+  padding:0 52px 0 24px;
+  font-family:inherit;font-size:16px;color:var(--text);
+  outline:none;letter-spacing:-.01em;
+  transition:border-color .25s ease,box-shadow .25s ease;
+}
+.search input::placeholder{color:var(--faint)}
+.search input:focus{border-color:var(--muted);box-shadow:0 0 0 4px color-mix(in srgb,var(--blue) 12%,transparent)}
+.search svg{
+  position:absolute;right:20px;top:50%;transform:translateY(-50%);
+  width:20px;height:20px;color:var(--muted);pointer-events:none;
+}
+
+/* ---------------------------------- top markets grid ---------------------------------- */
+.top-grid{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;
+}
+.small-card .illu{margin:22px auto 20px;width:min(82%,260px)}
+.small-card .question{font-size:clamp(17px,1.25vw,19px);max-width:none}
+
+/* top-market illustration panels */
+.panel{aspect-ratio:16/10;width:min(82%,260px);margin:22px auto 20px;border-radius:16px;overflow:hidden;position:relative;
+  transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+.market-card:hover .panel{transform:rotate(-1.2deg) scale(1.025)}
+.panel svg{display:block;width:100%;height:100%}
+
+.p-crypto{background:linear-gradient(135deg,#0d1548 0%,#2036d8 78%,#3a4bff 100%)}
+.p-fed{background:linear-gradient(160deg,#ece7d6 0%,#ddd5bd 100%)}
+.p-space{background:radial-gradient(130% 120% at 22% 8%,#1c2352 0%,#0b102e 52%,#05081c 100%)}
+.p-pitch{background:linear-gradient(155deg,#1f8046 0%,#155f33 100%)}
+
+/* ---------------------------------- rise animation ---------------------------------- */
+.d1{animation-delay:.05s}.d2{animation-delay:.13s}.d3{animation-delay:.21s}
+.d4{animation-delay:.1s}.d5{animation-delay:.2s}.d6{animation-delay:.3s}
+@keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+
+/* ---------------------------------- responsive ---------------------------------- */
+@media (max-width:1160px){
+  .trending-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .live-col{grid-column:span 2}
+  .live-card{min-height:340px}
+  .top-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:720px){
+  .trending-grid{grid-template-columns:minmax(0,1fr)}
+  .live-col{grid-column:auto}
+  .top-grid{grid-template-columns:minmax(0,1fr)}
+  .nav-links{display:none}
+  .balance .label+br{display:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
+}
+</style>
+</head>
+<body>
+
+<header class="nav wrap d0">
+  <button class="logo" aria-label="Home">
+    <svg viewBox="0 0 44 44" fill="none">
+      <path d="M13 5C24 12 28 26 23 41" stroke="currentColor" style="color:var(--muted)" stroke-width="6.5" stroke-linecap="round"/>
+      <path d="M34 7C22 14 17 27 22 41" stroke="currentColor" style="color:var(--text)" stroke-width="6.5" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <nav class="nav-links">
+    <a href="#">Markets</a>
+    <a href="#">Crowdfeed</a>
+    <a href="#">Leaderboard</a>
+  </nav>
+
+  <div class="nav-right">
+    <div class="balance">
+      <div>
+        <div class="label">Balance</div>
+        <div class="amount">$15,000</div>
+      </div>
+      <button class="topup">Top Up
+        <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8.4" stroke="currentColor" stroke-width="1.6"/><path d="M10 6.6v6.8M6.6 10h6.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <button class="icon-btn theme-toggle" aria-label="Toggle theme">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none"><path d="M20.2 14.2A8.3 8.3 0 0 1 9.8 3.8a8.3 8.3 0 1 0 10.4 10.4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.7"/><path d="M12 2.8v2M12 19.2v2M2.8 12h2M19.2 12h2M5.5 5.5l1.4 1.4M17.1 17.1l1.4 1.4M18.5 5.5l-1.4 1.4M6.9 17.1l-1.4 1.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+    </button>
+
+    <button class="icon-btn" id="bellBtn" aria-label="Notifications">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M18 10.2c0-2.4-.9-4.2-2.3-5.4A5.3 5.3 0 0 0 12 3.5c-2.9 0-6 2.1-6 6.7 0 3.6-1 4.8-1.9 5.7-.4.4-.1 1.1.5 1.1h14.8c.6 0 .9-.7.5-1.1-.9-.9-1.9-2.1-1.9-5.7Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9.8 20a2.4 2.4 0 0 0 4.4 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span class="bell-dot on"></span>
+    </button>
+
+    <button class="icon-btn" aria-label="Profile">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.4" r="3.6" stroke="currentColor" stroke-width="1.7"/><path d="M4.8 19.6c1.1-3.2 3.9-4.9 7.2-4.9s6.1 1.7 7.2 4.9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ================================ TRENDING ================================ -->
+  <h1 class="giant">Trending</h1>
+
+  <section class="trending-grid">
+
+    <!-- market 1 -->
+    <div class="market-col d1">
+      <article class="market-card">
+      <div class="badges">
+        <span class="badge"><span class="dot dot-green"></span>Active</span>
+        <span class="badge"><span class="countdown">09:02:00</span><span class="dot dot-red"></span></span>
+      </div>
+      <div class="illu">
+        <svg viewBox="0 0 280 280" fill="none">
+          <rect width="280" height="280" fill="#EDECE2"/>
+          <defs>
+            <pattern id="strings" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(48)">
+              <line x1="0" y1="0" x2="0" y2="5" stroke="#2e44c4" stroke-width="1.15" opacity=".9"/>
+            </pattern>
+          </defs>
+          <!-- sun -->
+          <circle cx="196" cy="52" r="23" fill="#F59D20" opacity=".18"/>
+          <circle cx="196" cy="52" r="14.5" fill="#F59D20"/>
+          <!-- ground shadow -->
+          <ellipse cx="124" cy="253" rx="62" ry="6.5" fill="#2e44c4" opacity=".1"/>
+          <!-- player line art -->
+          <g stroke="#2E44C4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+            <circle cx="117" cy="110" r="21"/>
+            <path d="M100 96q10-11 27-7M98 105q6-10 15-12"/>
+            <path d="M100 133c-8 22-10 43-6 69h52c4-26 3-48-5-66"/>
+            <path d="M107 202l-2 39M131 202l3 39M97 241h16M128 241h16"/>
+            <path d="M141 143c14 4 24 5 35 3M100 146c9 8 20 12 34 11"/>
+            <path d="M175 149l58 6"/>
+          </g>
+          <ellipse cx="237" cy="157" rx="31" ry="42" transform="rotate(-52 237 157)" fill="url(#strings)" stroke="#2E44C4" stroke-width="3"/>
+        </svg>
+      </div>
+      <div class="author-row">
+        <span class="author-tag"><span class="pfp"></span>@moguzbulbul</span>
+      </div>
+    </article>
+    <div class="market-body">
+      <p class="question">Will Alcaraz win the French Open in 2026?</p>
+      <div class="yn-row">
+        <button class="yn">Yes</button>
+        <button class="yn">No</button>
+      </div>
+    </div>
+    </div>
+
+    <!-- market 2 -->
+    <div class="market-col d2">
+      <article class="market-card">
+      <div class="badges">
+        <span class="badge"><span class="dot dot-green"></span>Active</span>
+        <span class="badge"><span class="countdown">09:02:00</span><span class="dot dot-red"></span></span>
+      </div>
+      <div class="illu">
+        <svg viewBox="0 0 280 280" fill="none">
+          <rect width="280" height="280" fill="#E6EAE1"/>
+          <!-- specimen frame -->
+          <rect x="30" y="40" width="220" height="200" fill="#F5F5ED" stroke="#2C2E33" stroke-width="1.5"/>
+          <g font-family="'Switzer',sans-serif" font-size="11.5" font-weight="500" fill="#2C2E33" letter-spacing=".4">
+            <text x="38" y="58">C3</text>
+            <text x="242" y="58" text-anchor="end">#2044</text>
+            <text x="38" y="228">/ Cat</text>
+            <text x="242" y="228" text-anchor="end">/ Mons.trous</text>
+          </g>
+          <!-- cat silhouette -->
+          <g fill="#2B2D33">
+            <polygon points="115,90 106,48 134,72"/>
+            <polygon points="165,90 174,48 146,72"/>
+            <ellipse cx="140" cy="104" rx="35" ry="30"/>
+            <path d="M110 122c-11 34-13 62-9 96h78c4-34 2-62-9-96Z"/>
+          </g>
+          <path d="M168 206c26-6 36-24 29-46" stroke="#2B2D33" stroke-width="15" stroke-linecap="round" fill="none"/>
+          <!-- engraved details -->
+          <g stroke="#F5F5ED" fill="none" stroke-linecap="round">
+            <path d="M120 97q9-8 18 0q-9 7-18 0Z" stroke-width="2.4"/>
+            <path d="M142 97q9-8 18 0q-9 7-18 0Z" stroke-width="2.4"/>
+            <polygon points="136,112 144,112 140,118" fill="#F5F5ED" stroke="none"/>
+            <path d="M140 118q-4 5-10 3M140 118q4 5 10 3" stroke-width="2"/>
+            <path d="M132 72q3 9 0 15M140 70v19M148 72q-3 9 0 15" stroke-width="2.2" opacity=".55"/>
+            <path d="M122 192v22M136 188v28M150 188v28M164 192v22" stroke-width="2.2" opacity=".35"/>
+            <path d="M116 108 84 99M117 115l-33 1M119 121l-30 8M164 108l32-9M163 115h33M161 121l30 8" stroke-width="1.6" opacity=".95"/>
+          </g>
+        </svg>
+      </div>
+      <div class="author-row">
+        <span class="author-tag"><span class="pfp"></span>@moguzbulbul</span>
+      </div>
+    </article>
+    <div class="market-body">
+      <p class="question">Will cats take over the internet by 2025?</p>
+      <div class="yn-row">
+        <button class="yn">Yes</button>
+        <button class="yn">No</button>
+      </div>
+    </div>
+    </div>
+
+    <!-- live action -->
+    <div class="live-col d3">
+      <div class="live-card" id="liveCard">
+        <canvas id="pixelCanvas"></canvas>
+        <canvas class="live-globe" id="globeCanvas"></canvas>
+        <div class="live-glow"></div>
+        <div class="live-meta">
+          <div class="live-tag"><span class="dot"></span>Live Action</div>
+          <span class="live-count" id="liveCount">44 Active</span>
+        </div>
+      </div>
+      <div class="region-filter">
+        <button class="filter-pill active">All</button>
+        <button class="filter-pill">US</button>
+        <button class="filter-pill">EU</button>
+        <button class="filter-pill">JP</button>
+        <button class="filter-pill">All</button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ================================ TOP MARKETS ================================ -->
+  <h2 class="giant d4">Top markets</h2>
+
+  <div class="toolbar d5">
+    <div class="toolbar-pills">
+      <button class="filter-pill active">New</button>
+      <button class="filter-pill">Closing Soon</button>
+      <button class="filter-pill">Crypto</button>
+      <button class="filter-pill">JP</button>
+      <button class="filter-pill">All</button>
+    </div>
+    <div class="search">
+      <input type="text" placeholder="Type anything to search...">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="m16.2 16.2 4.3 4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+
+  <section class="top-grid">
+
+    <!-- crypto -->
+    <article class="market-card small-card d5">
+      <div class="badges">
+        <span class="badge"><span class="dot dot-green"></span>Active</span>
+        <span class="badge"><span class="countdown">09:02:00</span><span class="dot dot-red"></span></span>
+      </div>
+      <div class="panel p-crypto">
+        <svg viewBox="0 0 260 162" fill="none">
+          <g opacity=".28" fill="#fff">
+            <rect x="26" y="96" width="13" height="48" rx="2"/>
+            <rect x="52" y="76" width="13" height="68" rx="2"/>
+            <rect x="78" y="86" width="13" height="58" rx="2"/>
+            <rect x="104" y="56" width="13" height="88" rx="2" fill="#ffb43a"/>
+            <rect x="130" y="66" width="13" height="78" rx="2"/>
+            <rect x="156" y="40" width="13" height="104" rx="2"/>
+          </g>
+          <circle cx="196" cy="72" r="40" stroke="#fff" stroke-width="3.5" opacity=".95"/>
+          <text x="196" y="88" text-anchor="middle" font-family="'Switzer',sans-serif" font-size="46" font-weight="600" fill="#fff">&#8383;</text>
+          <path d="M22 132c40 4 66-10 88-24s46-30 128-34" stroke="#ffb43a" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>
+          <circle cx="238" cy="22" r="7" fill="#fff" opacity=".85"/>
+        </svg>
+      </div>
+      <div class="market-body">
+        <p class="question">Will Bitcoin hit $150K before October?</p>
+        <div class="yn-row">
+          <button class="yn">Yes</button>
+          <button class="yn">No</button>
+        </div>
+      </div>
+    </article>
+
+    <!-- fed rates -->
+    <article class="market-card small-card d5">
+      <div class="badges">
+        <span class="badge"><span class="dot dot-green"></span>Active</span>
+        <span class="badge"><span class="countdown">09:02:00</span><span class="dot dot-red"></span></span>
+      </div>
+      <div class="panel p-fed">
+        <svg viewBox="0 0 260 162" fill="none">
+          <g fill="#cdc4a7">
+            <rect x="30" y="104" width="22" height="44" rx="3"/>
+            <rect x="66" y="88" width="22" height="60" rx="3"/>
+            <rect x="102" y="70" width="22" height="78" rx="3"/>
+            <rect x="138" y="56" width="22" height="92" rx="3"/>
+            <rect x="174" y="38" width="22" height="110" rx="3" fill="#1c4a3a"/>
+          </g>
+          <path d="M18 134C60 128 88 108 118 86s68-52 126-62" stroke="#1c4a3a" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="244" cy="24" r="9" fill="#1c4a3a"/>
+          <circle cx="244" cy="24" r="9" stroke="#ece7d6" stroke-width="1.5"/>
+          <text x="244" y="29" text-anchor="middle" font-family="'Switzer',sans-serif" font-size="12" font-weight="600" fill="#ece7d6">$</text>
+        </svg>
+      </div>
+      <div class="market-body">
+        <p class="question">Will the Fed cut rates in September 2026?</p>
+        <div class="yn-row">
+          <button class="yn">Yes</button>
+          <button class="yn">No</button>
+        </div>
+      </div>
+    </article>
+
+    <!-- starship -->
+    <article class="market-card small-card d6">
+      <div class="badges">
+        <span class="badge"><span class="dot dot-green"></span>Active</span>
+        <span class="badge"><span class="countdown">09:02:00</span><span class="dot dot-red"></span></span>
+      </div>
+      <div class="panel p-space">
+        <svg viewBox="0 0 260 162" fill="none">
+          <g fill="#fff" opacity=".8">
+            <circle cx="28" cy="30" r="1.4"/><circle cx="66" cy="58" r="1"/><circle cx="96" cy="22" r="1.2"/>
+            <circle cx="180" cy="130" r="1"/><circle cx="230" cy="50" r="1.3"/><circle cx="206" cy="18" r="1"/>
+            <circle cx="46" cy="120" r="1"/><circle cx="120" cy="140" r="1.2"/><circle cx="244" cy="104" r="1.1"/>
+          </g>
+          <path d="M156 158a88 88 0 0 1 84-118" stroke="#8ea2ff" stroke-width="1.5" stroke-dasharray="2 7" opacity=".65"/>
+          <g stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M92 128c22-6 40-20 52-38 8-13 14-28 15-45-17 1-32 7-45 15-18 12-32 30-38 52l16 16Z"/>
+            <path d="M76 128c-8 3-15 10-18 20 10-3 17-10 20-20Z" fill="#fff" opacity=".95"/>
+          </g>
+          <circle cx="150" cy="52" r="5.5" fill="#8ea2ff"/>
+          <path d="M60 156c10-4 18-10 24-18" stroke="#ffb43a" stroke-width="3" stroke-linecap="round" opacity=".95"/>
+          <path d="M46 160c7-3 12-6 17-11" stroke="#f04b2b" stroke-width="2.4" stroke-linecap="round" opacity=".8"/>
+        </svg>
+      </div>
+      <div class="market-body">
+        <p class="question">Will Starship complete orbital refueling in 2026?</p>
+        <div class="yn-row">
+          <button class="yn">Yes</button>
+          <button class="yn">No</button>
+        </div>
+      </div>
+    </article>
+
+    <!-- football -->
+    <article class="market-card small-card d6">
+      <div class="badges">
+        <span class="badge"><span class="dot dot-green"></span>Active</span>
+        <span class="badge"><span class="countdown">09:02:00</span><span class="dot dot-red"></span></span>
+      </div>
+      <div class="panel p-pitch">
+        <svg viewBox="0 0 260 162" fill="none">
+          <g stroke="#fff" stroke-width="2" opacity=".7">
+            <rect x="18" y="14" width="224" height="134" rx="4"/>
+            <path d="M130 14v134"/>
+            <circle cx="130" cy="81" r="26"/>
+            <path d="M18 46h30v70H18M242 46h-30v70h30"/>
+          </g>
+          <circle cx="130" cy="81" r="21" fill="#fff"/>
+          <g fill="#155f33">
+            <polygon points="130,68 141,76 137,89 123,89 119,76"/>
+            <path d="M130 89v13M137 89l11 8M123 89l-11 8M141 76l12-5M119 76l-12-5" stroke="#155f33" stroke-width="2.4"/>
+          </g>
+          <circle cx="205" cy="34" r="5" fill="#ffb43a"/>
+        </svg>
+      </div>
+      <div class="market-body">
+        <p class="question">Will Real Madrid win La Liga this season?</p>
+        <div class="yn-row">
+          <button class="yn">Yes</button>
+          <button class="yn">No</button>
+        </div>
+      </div>
+    </article>
+
+  </section>
+</main>
+
+<script src="land-mask.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------------- theme toggle with circular reveal ---------------- */
+const root = document.documentElement;
+const savedTheme = localStorage.getItem('pm-theme');
+if (savedTheme) root.dataset.theme = savedTheme;
+
+$('.theme-toggle').addEventListener('click', e => {
+  const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  const apply = () => { root.dataset.theme = next; localStorage.setItem('pm-theme', next); };
+  if (!document.startViewTransition || reduceMotion) { apply(); return; }
+  const x = e.clientX || innerWidth - 60, y = e.clientY || 40;
+  const vt = document.startViewTransition(apply);
+  vt.ready.then(() => {
+    const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    document.documentElement.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+      { duration: 650, easing: 'ease-in-out', pseudoElement: '::view-transition-new(root)' }
+    );
+  }).catch(() => {});
+});
+
+/* ---------------- shared countdown ---------------- */
+let deadline = Date.now() + ((9 * 60 + 2) * 60 + 0) * 1000;
+const pad = n => String(n).padStart(2, '0');
+function tickClock() {
+  let s = Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+  if (s === 0) deadline = Date.now() + 9 * 3600e3;
+  const out = `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`;
+  $$('.countdown').forEach(el => el.textContent = out);
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+/* ---------------- bell shake + badge toggle ---------------- */
+$('#bellBtn').addEventListener('click', function () {
+  const dot = $('.bell-dot');
+  dot.classList.toggle('on');
+  const icon = this.querySelector('svg');
+  icon.classList.remove('ring-shake');
+  void icon.offsetWidth;
+  icon.classList.add('ring-shake');
+});
+
+/* ---------------- filter pills (visual only) ---------------- */
+$$('.toolbar-pills, .region-filter').forEach(group => {
+  group.addEventListener('click', e => {
+    const btn = e.target.closest('.filter-pill');
+    if (!btn) return;
+    group.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+/* ---------------- live count drift ---------------- */
+let liveN = 44;
+const liveEl = $('#liveCount');
+setInterval(() => {
+  if (reduceMotion) return;
+  if (Math.random() > .55) return;
+  const delta = Math.random() > .5 ? 1 : -1;
+  liveN = Math.min(49, Math.max(41, liveN + delta));
+  liveEl.classList.add('tick');
+  setTimeout(() => { liveEl.textContent = liveN + ' Active'; liveEl.classList.remove('tick'); }, 180);
+}, 3800);
+
+/* ================= pixel mosaic backdrop ================= */
+const pxCanvas = $('#pixelCanvas'), pxCtx = pxCanvas.getContext('2d');
+const CELL = 46, PALETTE = ['#1e2cb2', '#3040f0', '#182194'];
+let cells = [], colsPx = 0, rowsPx = 0, cellAlpha = [];
+
+function buildPixels() {
+  const card = $('#liveCard');
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const w = card.clientWidth, h = card.clientHeight;
+  pxCanvas.width = w * dpr; pxCanvas.height = h * dpr;
+  pxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  colsPx = Math.ceil(w / CELL); rowsPx = Math.ceil(h / CELL);
+  cellAlpha = Array.from({ length: colsPx * rowsPx },
+    () => Math.random() < .3 ? Math.random() * .45 : 0);
+  drawPixels(w, h);
+}
+function drawPixels(w, h) {
+  pxCtx.clearRect(0, 0, w, h);
+  for (let r = 0; r < rowsPx; r++) for (let c = 0; c < colsPx; c++) {
+    const a = cellAlpha[r * colsPx + c];
+    if (!a) continue;
+    // vignette: denser toward edges, sparser under the globe
+    const dc = (c - colsPx * .55) / colsPx, dr = (r - rowsPx * .5) / rowsPx;
+    const falloff = Math.max(0, 1.1 - Math.hypot(dc * 1.3, dr * 2.1));
+    pxCtx.globalAlpha = a * falloff;
+    pxCtx.fillStyle = PALETTE[(r * 7 + c * 13) % PALETTE.length];
+    pxCtx.fillRect(c * CELL, r * CELL, CELL - 2, CELL - 2);
+  }
+  pxCtx.globalAlpha = 1;
+}
+if (!reduceMotion) setInterval(() => {
+  for (let i = 0; i < Math.ceil(cellAlpha.length * .07); i++) {
+    const idx = Math.floor(Math.random() * cellAlpha.length);
+    cellAlpha[idx] = cellAlpha[idx] ? 0 : Math.random() * .45;
+  }
+  drawPixels($('#liveCard').clientWidth, $('#liveCard').clientHeight);
+}, 300);
+
+/* ================= dotted globe ================= */
+const gCanvas = $('#globeCanvas'), gCtx = gCanvas.getContext('2d');
+
+// build point cloud from land mask (rows of '#'/' ', lon -180..180 step 2, lat 84..-84 step 2)
+const maskRows = window.LAND_MASK.split(' ');
+const RAD = Math.PI / 180;
+const cloud = [];
+for (let r = 0; r < maskRows.length; r++) {
+  const lat = 84 - r * 2;
+  const cosL = Math.cos(lat * RAD);
+  const n = Math.max(1, Math.round(250 * cosL));     // even spacing along the parallel
+  const row = maskRows[r];
+  for (let i = 0; i < n; i++) {
+    const lon = -180 + (i + .5) * 360 / n;
+    let c = Math.floor((lon + 180) / 2);
+    c = Math.max(0, Math.min(179, c));
+    if (row[c] === '#') {
+      const f = lat * RAD, l = lon * RAD;
+      cloud.push([Math.cos(f) * Math.cos(l), Math.sin(f), Math.cos(f) * Math.sin(l)]);
+    }
+  }
+}
+
+let gW = 0, gH = 0, gDpr = 1;
+function sizeGlobe() {
+  const card = $('#liveCard');
+  gDpr = Math.min(devicePixelRatio || 1, 2);
+  gW = card.clientWidth; gH = card.clientHeight;
+  gCanvas.width = gW * gDpr; gCanvas.height = gH * gDpr;
+}
+sizeGlobe();
+
+const TILT = -0.32;                       // radians, north pole leaning back
+const sinT = Math.sin(TILT), cosT = Math.cos(TILT);
+
+function frame(t) {
+  gCtx.setTransform(gDpr, 0, 0, gDpr, 0, 0);
+  gCtx.clearRect(0, 0, gW, gH);
+  const R = Math.min(gH * .435, gW * .30);
+  const cx = gW * .53, cy = gH * .51;
+  const rot = t * 0.00007;                // one revolution ≈ 90s
+  const sinR = Math.sin(rot), cosR = Math.cos(rot);
+
+  for (let i = 0; i < cloud.length; i++) {
+    const [x, y, z] = cloud[i];
+    const x1 = x * cosR + z * sinR;
+    const z1 = -x * sinR + z * cosR;
+    const y2 = y * cosT - z1 * sinT;
+    const z2 = y * sinT + z1 * cosT;
+    if (z2 <= -0.02) continue;             // far hemisphere hidden
+    const shade = 0.28 + 0.72 * Math.pow(Math.max(z2, 0), 0.85);
+    gCtx.globalAlpha = shade * (z2 < 0 ? .12 : 1);
+    const sz = gDpr * (z2 > 0 ? 1.15 + z2 * .75 : 0.8);
+    gCtx.fillStyle = '#fff';
+    gCtx.fillRect(cx + x1 * R - sz / 2, cy - y2 * R - sz / 2, sz, sz);
+  }
+  gCtx.globalAlpha = 1;
+  requestAnimationFrame(frame);
+}
+if (!reduceMotion) requestAnimationFrame(frame);
+else frame(0);
+
+addEventListener('resize', () => { buildPixels(); sizeGlobe(); });
+buildPixels();
+})();
+</script>
+</body>
+</html>
