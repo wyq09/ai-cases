@@ -43,10 +43,12 @@ body{
     radial-gradient(120% 90% at 50% 46%,transparent 55%,rgba(4,18,64,.5) 100%);
 }
 #frame{position:fixed;inset:10px;border:1px solid rgba(170,200,255,.5);z-index:1;pointer-events:none}
-#gl{position:fixed;inset:0;z-index:2;display:block;cursor:grab;touch-action:none}
+/* replaced element: without explicit CSS size the canvas falls back to its
+   intrinsic size (attr width = css px × dpr) and renders 2× on retina */
+#gl{position:fixed;inset:0;z-index:2;display:block;width:100%;height:100%;cursor:grab;touch-action:none}
 #gl.drag{cursor:grabbing}
 #wires{position:fixed;inset:0;z-index:5;pointer-events:none;width:100%;height:100%}
-#dots,#labels{position:fixed;inset:0;z-index:6;pointer-events:none}
+#dots,#labels{position:fixed;inset:0;z-index:15;pointer-events:none}
 
 /* ---------- callout dots & labels ---------- */
 .cdot{position:absolute;width:24px;height:24px;border-radius:50%;
@@ -116,7 +118,7 @@ body{
 
 /* ---------- right column ---------- */
 #rcol{position:fixed;right:40px;top:46.2vh;width:368px;z-index:10;display:flex;flex-direction:column;gap:12px}
-#tip{right:40px;z-index:12;background:rgba(6,28,92,.92);border:1px solid var(--bd2);width:368px;
+#tip{right:40px;z-index:18;background:rgba(6,28,92,.92);border:1px solid var(--bd2);width:368px;
   padding:12px 14px;position:fixed;display:none}
 #tip.show{display:block}
 #tip .thd{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.2em;color:var(--tx3)}
