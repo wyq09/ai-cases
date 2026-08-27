@@ -441,11 +441,12 @@ function stadiumShape(L,H,inset=0){
   s.lineTo(-sl/2,-r); s.absarc(-sl/2,0,r,-Math.PI/2,-Math.PI*1.5,true);
   return s;
 }
-/* one track assembly, centered at origin in XY, offset in Z by caller */
+/* one track assembly, offset sideways by o.z (per side) */
 function buildTrack(grp, o){
+  const side = new THREE.Group(); side.position.z = o.z; grp.root.add(side);
   const ring = new THREE.ExtrudeGeometry(stadiumShape(o.L,o.H),
     {depth:o.w*0.85, bevelEnabled:false, curveSegments:10});
-  const rm = edge(ring, grp.mats); rm.position.z = -o.w*0.425; grp.root.add(rm); grp.fills.push(rm);
+  const rm = edge(ring, grp.mats); rm.position.z = -o.w*0.425; side.add(rm); grp.fills.push(rm);
   /* flowing treads */
   const n = o.nT || Math.round((o.L+o.H)*10);
   const tg = new THREE.BoxGeometry(0.18, o.H*0.13, o.w*1.12);
@@ -455,7 +456,7 @@ function buildTrack(grp, o){
     const p0=stadPt(o.L,o.H,i/n);
     m.position.set(p0.x,p0.y,0); m.rotation.z=p0.a;
     tgGrp.add(m); treads.push({m, s:i/n}); grp.fills.push(m); }
-  grp.root.add(tgGrp);
+  side.add(tgGrp);
   /* road wheels with spokes */
   const wheels=[]; const pad=o.L*0.13;
   const cg=new THREE.CylinderGeometry(o.r,o.r,o.w,18);
@@ -467,7 +468,7 @@ function buildTrack(grp, o){
     const c = edge(cg, grp.mats, 20); c.rotation.x=Math.PI/2; wg.add(c); grp.fills.push(c);
     const h = edge(hg, grp.mats, 20); h.rotation.x=Math.PI/2; wg.add(h);
     for(let s2=0;s2<3;s2++){ const sp=edge(sg,grp.mats); sp.rotation.z=s2*Math.PI/3; wg.add(sp); }
-    wg.position.set(x, o.r+0.04, 0); grp.root.add(wg); wheels.push(wg);
+    wg.position.set(x, o.r+0.04, 0); side.add(wg); wheels.push(wg);
   }
   grp.anim = grp.anim || [];
   let off = Math.random();
