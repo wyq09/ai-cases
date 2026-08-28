@@ -52,39 +52,6 @@ svg{display:block}
   .stage{background:#f4f5f9}
 }
 
-/* ========== 状态栏 / 胶囊 ========== */
-.statusbar{
-  position:absolute;top:0;left:0;right:0;height:44px;z-index:60;
-  display:flex;justify-content:space-between;align-items:center;
-  padding:10px 26px 0;pointer-events:none;
-  color:var(--ink);font-size:14.5px;font-weight:600;
-  transition:color .3s;
-}
-.phone.on-hero .statusbar{color:#fff}
-.sb-right{display:flex;align-items:center;gap:5px}
-.sb-ico{width:16px;height:12px;fill:currentColor}
-.sb-batt{width:23px;height:11.5px;border:1px solid currentColor;border-radius:3.5px;position:relative;opacity:.95}
-.sb-batt::after{content:"";position:absolute;right:-3.5px;top:3px;width:2px;height:5px;background:currentColor;border-radius:0 2px 2px 0}
-.sb-batt i{position:absolute;inset:1.5px;width:70%;background:currentColor;border-radius:2px}
-.capsule{
-  position:absolute;top:52px;right:14px;z-index:60;height:32px;
-  display:flex;align-items:center;padding:0 11px;gap:10px;
-  border-radius:17px;background:rgba(255,255,255,.6);
-  border:.5px solid rgba(0,0,0,.06);
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  box-shadow:0 2px 10px rgba(20,30,80,.08);cursor:pointer;
-}
-.phone.on-hero .capsule{background:rgba(20,30,60,.22);border-color:rgba(255,255,255,.25)}
-.cap-dots{display:flex;gap:3.5px}
-.cap-dots i{width:4.5px;height:4.5px;border-radius:50%;background:var(--ink)}
-.phone.on-hero .cap-dots i{background:#fff}
-.cap-line{width:.5px;height:17px;background:rgba(0,0,0,.14)}
-.phone.on-hero .cap-line{background:rgba(255,255,255,.35)}
-.cap-target{width:17px;height:17px;border:1.6px solid var(--ink);border-radius:50%;position:relative}
-.phone.on-hero .cap-target{border-color:#fff}
-.cap-target i{position:absolute;inset:4.5px;border-radius:50%;background:var(--ink)}
-.phone.on-hero .cap-target i{background:#fff}
-
 /* ========== 屏幕容器 ========== */
 .screens{position:absolute;inset:0}
 .screen{
@@ -108,13 +75,13 @@ svg{display:block}
 
 /* 子页顶部导航 */
 .navbar{
-  position:relative;z-index:5;height:96px;flex:none;min-height:96px;
-  display:flex;align-items:flex-end;padding:0 56px 10px;
+  position:relative;z-index:5;height:76px;flex:none;min-height:76px;
+  display:flex;align-items:flex-end;padding:0 16px 10px;
   background:rgba(246,247,250,.86);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
 }
-.nb-back{position:absolute;left:10px;bottom:6px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.nb-back{position:absolute;left:10px;bottom:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .nb-back svg{width:11px;height:19px;color:var(--ink)}
-.nb-title{position:absolute;left:0;right:0;bottom:13px;text-align:center;font-size:17px;font-weight:600;color:var(--ink);pointer-events:none}
+.nb-title{position:absolute;left:0;right:0;bottom:15px;text-align:center;font-size:17px;font-weight:600;color:var(--ink);pointer-events:none}
 
 /* ============================================================
    玻璃质感底部导航
@@ -154,7 +121,6 @@ svg{display:block}
 .home-banner{
   position:relative;height:372px;overflow:hidden;background:#3a55c0;
 }
-.phone.on-hero .home-scroll{padding-top:0}
 .slides{display:flex;height:100%;transition:transform .5s cubic-bezier(.3,.8,.3,1)}
 .slide{flex:none;width:100%;height:100%;position:relative;overflow:hidden}
 /* slide 1 —— 全冰去水 */
@@ -206,7 +172,7 @@ svg{display:block}
 .dots .dot{width:5.5px;height:5.5px;border-radius:4px;background:rgba(255,255,255,.45);transition:all .3s}
 .dots .dot.on{width:15px;background:#fff}
 .scan-ico{
-  position:absolute;left:16px;top:56px;z-index:5;width:38px;height:38px;border-radius:12px;
+  position:absolute;left:16px;top:16px;z-index:5;width:38px;height:38px;border-radius:12px;
   display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;
   background:rgba(20,30,60,.28);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
 }
@@ -331,8 +297,8 @@ svg{display:block}
 .page-menu{background:var(--bg-menu);display:flex;flex-direction:column;padding-bottom:0}
 .page-menu .tab-page-pad{flex:1}
 .menu-head{
-  position:relative;z-index:8;height:96px;flex:none;
-  display:flex;align-items:flex-end;padding:0 104px 10px 22px;
+  position:relative;z-index:8;height:76px;flex:none;
+  display:flex;align-items:flex-end;padding:0 16px 10px 20px;
   background:linear-gradient(180deg,#f3f6fb 62%,rgba(243,246,251,0));
 }
 .type-tabs{display:flex;align-items:center;gap:14px}
@@ -388,7 +354,7 @@ svg{display:block}
   font-size:10px;color:#6b728a;background:#f1f3f8;border-radius:5px;padding:2.5px 6px;width:max-content;cursor:pointer;
 }
 .sc-tag.on{color:#fff;background:var(--blue)}
-.prod-wrap{flex:1;height:100%;overflow-y:auto;background:#fff;border-radius:14px 0 0 0;padding:12px 12px 90px;scrollbar-width:none}
+.prod-wrap{flex:1;height:100%;overflow-y:auto;background:#fff;border-radius:14px 0 0 0;padding:12px 12px 90px;scrollbar-width:none;position:relative}
 .prod-wrap::-webkit-scrollbar{display:none}
 .cat-block{margin-bottom:6px}
 .cat-title{padding:8px 2px 10px}
@@ -453,7 +419,7 @@ svg{display:block}
    ============================================================ */
 .page-instant{background:var(--bg);display:flex;flex-direction:column}
 .inst-title{
-  flex:none;height:96px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px;
+  flex:none;height:76px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px;
   font-size:17.5px;font-weight:700;position:relative;
 }
 .inst-scroll{padding:0 14px}
@@ -536,7 +502,7 @@ svg{display:block}
    ============================================================ */
 .page-card{background:#f1f3f8}
 .card-topbar{
-  height:96px;flex:none;display:flex;align-items:flex-end;padding:0 108px 14px 18px;justify-content:space-between;
+  height:76px;flex:none;display:flex;align-items:flex-end;padding:0 18px 14px;justify-content:space-between;
 }
 .ct-title{font-size:19px;font-weight:800}
 .ct-more{font-size:12.5px;color:#6b728a;cursor:pointer}
@@ -638,7 +604,7 @@ svg{display:block}
    ============================================================ */
 .page-mine{background:linear-gradient(180deg,#dfe4f6 0%,#e9edf9 34%,#f2f4fa 70%,#f4f5f9 100%)}
 .mine-scroll{padding:0 14px 110px}
-.mine-head{position:relative;padding:64px 4px 0}
+.mine-head{position:relative;padding:24px 4px 0}
 .mh-top{display:flex;justify-content:flex-end}
 .set-ico{width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#3c4152}
 .set-ico svg{width:20px;height:20px}
@@ -657,7 +623,7 @@ svg{display:block}
 }
 .lv-tags i{font-style:normal;opacity:.5}
 .expiring{
-  position:absolute;right:0;top:52px;font-size:9.5px;color:#fff;font-weight:600;
+  position:absolute;right:0;top:2px;font-size:9.5px;color:#fff;font-weight:600;
   background:linear-gradient(120deg,#ff8a3d,#fa5a1e);border-radius:9px 2px 9px 9px;padding:3.5px 9px;
 }
 .stats-row{

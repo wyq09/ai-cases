@@ -242,29 +242,22 @@ function goTab(tab){
   $$('.tab-page').forEach(p=>p.classList.toggle('active', p.id === 'page-'+tab));
   $$('.tab-item').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
   $('#tabbar').classList.remove('hide');
-  const phone = $('#phone');
-  phone.classList.toggle('on-hero', tab==='home' && window.scrollY===0);
   if(tab==='order' || tab==='mine') renderMine();
 }
 function pushPage(id){
   S.stack.push(id);
   $('#tabbar').classList.add('hide');
-  $('#phone').classList.remove('on-hero');
   $('#'+id).classList.add('active');
 }
 function popPage(){
   const id = S.stack.pop();
   if(id) $('#'+id).classList.remove('active');
-  if(!S.stack.length){
-    $('#tabbar').classList.remove('hide');
-    $('#phone').classList.toggle('on-hero', S.tab==='home');
-  }
+  if(!S.stack.length) $('#tabbar').classList.remove('hide');
 }
 function resetStack(){
   $$('.stack-page.active').forEach(p=>p.classList.remove('active'));
   S.stack = [];
   $('#tabbar').classList.remove('hide');
-  $('#phone').classList.toggle('on-hero', S.tab==='home');
 }
 
 /* ============================================================
@@ -371,7 +364,7 @@ function renderProdList(scrollTo){
     </div>`).join('');
   if(scrollTo){
     const block = $(`#prodWrap [data-block="${scrollTo}"]`);
-    if(block) $('#prodWrap').scrollTo({top:block.offsetTop-8, behavior:'smooth'});
+    if(block) $('#prodWrap').scrollTop = Math.max(0, block.offsetTop - 8);
   }
 }
 function prodRow(p){
@@ -389,13 +382,40 @@ function prodRow(p){
     <span class="add-btn" data-add="${p.id}">＋</span>
   </div>`;
 }
-/* 侧栏滚动联动 */
+/* 侧栏滚动联动：程序滚动期间锁定 spy，点击分类直接落位高亮 */
+let spyLock = false, listAnim = null;
+function smoothScrollList(target){
+  const wrap = $('#prodWrap');
+  const top = Math.max(0, Math.min(target, wrap.scrollHeight - wrap.clientHeight));
+  const from = wrap.scrollTop, dist = top - from;
+  if(Math.abs(dist) < 2) return;
+  spyLock = true;
+  if(listAnim) cancelAnimationFrame(listAnim);
+  const t0 = performance.now();
+  const dur = Math.min(500, 240 + Math.abs(dist) * .22);   // 固定时长缓动，长距离不扫屏
+  const ease = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+  const step = now => {
+    const p = Math.min(1, (now - t0) / dur);
+    wrap.scrollTop = from + dist * ease(p);
+    if(p < 1) listAnim = requestAnimationFrame(step);
+    else { listAnim = null; spyLock = false; }
+  };
+  listAnim = requestAnimationFrame(step);
+}
 function bindScrollSpy(){
   const wrap = $('#prodWrap');
+  const cancelAnim = () => {
+    if(listAnim){ cancelAnimationFrame(listAnim); listAnim = null; spyLock = false; }
+  };
+  wrap.addEventListener('wheel', cancelAnim, {passive:true});
+  wrap.addEventListener('touchstart', cancelAnim, {passive:true});
   wrap.addEventListener('scroll', ()=>{
+    if(spyLock) return;
     const blocks = $$('#prodWrap [data-block]');
-    let curId = blocks[0]?.dataset.block;
+    if(!blocks.length) return;
+    let curId = blocks[0].dataset.block;
     for(const b of blocks){ if(b.offsetTop - wrap.scrollTop <= 40) curId = b.dataset.block; }
+    if(wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 4) curId = blocks[blocks.length-1].dataset.block;
     $$('#sideCats .side-cat').forEach(c=>c.classList.toggle('on', c.dataset.cat===curId));
   }, {passive:true});
 }
@@ -1083,7 +1103,7 @@ function bindEvents(){
     if(sc){
       $$('#sideCats .side-cat').forEach(x=>x.classList.toggle('on',x===sc));
       const block = $(`#prodWrap [data-block="${sc.dataset.cat}"]`);
-      if(block) $('#prodWrap').scrollTo({top:block.offsetTop-8, behavior:'smooth'});
+      if(block) smoothScrollList(block.offsetTop - 8);
       return;
     }
     const sct = e.target.closest('.sc-tag');
@@ -1192,10 +1212,6 @@ function bindEvents(){
   $('#fAddrRow').addEventListener('click', openAddrPick);
   $('#aeSave').addEventListener('click', saveAddress);
   $('#aeDel').addEventListener('click', deleteAddress);
-
-  /* 手机窗口失焦模拟 */
-  $('#phone').addEventListener('scroll', ()=>{}, {passive:true});
-  window.addEventListener('scroll', ()=>{ $('#phone').classList.toggle('on-hero', S.tab==='home' && window.scrollY===0); }, {passive:true});
 }
 
 function openOrdersSheet(){
@@ -1233,7 +1249,6 @@ function syncMenuType(){
    初始化
    ============================================================ */
 function init(){
-  $('.sb-time').textContent = new Date().toTimeString().slice(0,5);
   renderBanner(); renderRecomm(); renderChipCoupons(); renderSideCats(); renderProdList();
   renderInstant(); renderCardPage(); renderMine(); renderAddress();
   bindScrollSpy(); bindEvents(); initLucky();
