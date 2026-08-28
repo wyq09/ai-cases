@@ -1249,13 +1249,19 @@ function syncMenuType(){
    初始化
    ============================================================ */
 function init(){
-  renderBanner(); renderRecomm(); renderChipCoupons(); renderSideCats(); renderProdList();
-  renderInstant(); renderCardPage(); renderMine(); renderAddress();
-  bindScrollSpy(); bindEvents(); initLucky();
-  refreshBadges();
-  goTab('home');
-  setTimeout(()=>{ const b=$('#menuBubble'); if(b && !FREEZE) b.style.opacity='0', setTimeout(()=>b.style.display='none',400); }, 8000);
-  $('#menuBubble').style.opacity = '1';
-  if(S.cart.length) refreshBadges();
+  try{
+    renderBanner(); renderRecomm(); renderChipCoupons(); renderSideCats(); renderProdList();
+    renderInstant(); renderCardPage(); renderMine(); renderAddress();
+    bindScrollSpy(); bindEvents(); initLucky();
+    refreshBadges();
+    goTab('home');
+    setTimeout(()=>{ const b=$('#menuBubble'); if(b && !FREEZE) b.style.opacity='0', setTimeout(()=>b.style.display='none',400); }, 8000);
+    $('#menuBubble').style.opacity = '1';
+    if(S.cart.length) refreshBadges();
+  }catch(err){
+    // 任何初始化异常都不允许白屏：保底点亮首页
+    console.error('init failed:', err);
+    goTab('home');
+  }
 }
 init();
