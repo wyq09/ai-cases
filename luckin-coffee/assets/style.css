@@ -1110,32 +1110,98 @@ svg{display:block}
 .gen-row b{font-size:13.5px;font-weight:700;display:block}
 .gen-row span{font-size:10.5px;color:#9aa1b2}
 .gen-row .gr-arrow{color:#c2c7d3}
-/* 成功弹层 */
-#sheet-success{background:#fff;max-height:none;top:0;bottom:auto;height:100%;border-radius:0;transform:translateY(100%)}
+/* 成功弹层 —— 小票打印机出票 */
+#sheet-success{
+  background:radial-gradient(120% 90% at 50% 0%,#eef1f8 0%,#e2e6f1 100%);
+  max-height:none;top:0;bottom:auto;height:100%;border-radius:0;transform:translateY(100%);
+}
 #sheet-success.open{transform:translateY(0)}
-.success-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 30px;text-align:center}
-.suc-check{
-  width:74px;height:74px;border-radius:50%;background:linear-gradient(140deg,#3ecf72,#22a854);color:#fff;
-  display:flex;align-items:center;justify-content:center;margin-bottom:20px;animation:pop .5s cubic-bezier(.3,1.6,.4,1);
-  box-shadow:0 12px 30px rgba(34,168,84,.35);
+.rc-wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:26px 0 34px;min-height:0;overflow:hidden}
+/* 深色终端机 */
+.term{
+  width:302px;position:relative;z-index:3;cursor:pointer;
+  background:linear-gradient(165deg,#2a2c33 0%,#1a1b20 70%);
+  border-radius:20px;box-shadow:0 20px 44px rgba(10,15,40,.35),inset 0 1px 0 rgba(255,255,255,.06);
+}
+.term:active{transform:scale(.99)}
+.term-top{display:flex;justify-content:space-between;align-items:center;padding:14px 14px 0}
+.term-logo{
+  width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;
+  background:linear-gradient(140deg,#3a72ec,#2440b8);box-shadow:0 4px 10px rgba(36,64,184,.45);
+}
+.term-home{
+  font-size:11px;color:#cfd3dc;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.13);
+  border-radius:999px;padding:5px 13px;cursor:pointer;
+}
+.term-panel{margin:12px 12px 0;background:#101116;border-radius:14px;padding:13px 14px 14px}
+.term-row1{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.term-row1 b{font-size:15px;color:#fff;font-weight:700}
+.term-row1>div:first-child span{display:block;font-size:10.5px;color:#8d93a3;margin-top:4px;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.term-total{text-align:right;flex:none}
+.term-total span{font-size:10px;color:#8d93a3;display:block}
+.term-total b{font-size:17px;color:#fff;font-weight:800}
+.term-status{display:flex;align-items:center;gap:8px;margin-top:13px;min-height:16px}
+.tspin{
+  width:15px;height:15px;border-radius:50%;flex:none;
+  border:2px solid rgba(255,255,255,.22);border-top-color:#fff;
+  animation:tpinspin .8s linear infinite;
+}
+@keyframes tpinspin{to{transform:rotate(360deg)}}
+.term-status em{font-style:normal;font-size:12.5px;color:#b9bec9}
+.tok{
+  width:16px;height:16px;border-radius:50%;flex:none;background:#31c463;position:relative;
+  box-shadow:0 0 0 3px rgba(49,196,99,.18);animation:pop .45s cubic-bezier(.3,1.6,.4,1);
+}
+.tok::after{
+  content:"";position:absolute;left:4.5px;top:3.5px;width:4px;height:7px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(42deg);
 }
 @keyframes pop{from{transform:scale(.3);opacity:0}}
-.suc-check svg{width:34px;height:34px}
-.success-body h2{font-size:21px;font-weight:800}
-.success-body .suc-sub{font-size:13px;color:#8a90a0;margin-top:8px;line-height:1.7}
-.suc-code{
-  margin-top:22px;padding:16px 40px;border-radius:16px;background:#f5f6fa;border:1px dashed #d8dce8;
+.term-slot{
+  height:13px;margin:14px 20px 11px;border-radius:7px;position:relative;z-index:4;
+  background:#0a0b0e;box-shadow:inset 0 3px 6px rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.05);
 }
-.suc-code .t{font-size:11px;color:#9aa1b2}
-.suc-code .v{font-size:34px;font-weight:900;letter-spacing:6px;color:var(--ink);margin-top:4px;font-family:"SF Mono",Menlo,monospace}
-.suc-meta{display:flex;gap:26px;margin-top:18px}
-.suc-meta div{text-align:center}
-.suc-meta b{display:block;font-size:15px;font-weight:800}
-.suc-meta span{font-size:10.5px;color:#9aa1b2}
-.suc-btns{margin-top:34px;display:flex;gap:12px}
+/* 出票口下方：小票滑出窗口 */
+.rcw{width:262px;height:0;overflow:hidden;position:relative;z-index:1;margin-top:-3px}
+.receipt{
+  background:#fbfaf6;color:#23252c;position:relative;
+  padding:18px 16px 15px;
+  font-family:"SF Mono",ui-monospace,Menlo,Consolas,"Courier New",monospace;
+  font-size:11px;line-height:1.55;
+  box-shadow:0 16px 34px rgba(15,20,50,.16);
+}
+.receipt::after{
+  content:"";position:absolute;left:0;right:0;top:100%;height:9px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M0 0h14L7 9z' fill='%23fbfaf6'/%3E%3C/svg%3E") repeat-x;
+  background-size:14px 9px;
+}
+.rc-head{text-align:center;padding-bottom:10px}
+.rc-head .rc-deer{font-size:24px;line-height:1}
+.rc-head b{display:block;font-size:13px;letter-spacing:3px;margin-top:5px}
+.rc-head i{font-style:normal;display:block;font-size:9px;color:#a09b8e;letter-spacing:4px;margin-top:3px}
+.rc-dash{border-top:1.5px dashed #d9d4c6;margin:9px 0 3px}
+.rli{display:flex;justify-content:space-between;gap:10px;margin-top:6px}
+.rli-n{flex:1;min-width:0}
+.rli-n i{display:block;font-style:normal;font-size:9.5px;color:#a09b8e;margin-top:1px}
+.rli-p{font-weight:700;flex:none}
+.rli.total{font-size:13px;font-weight:800;margin-top:9px}
+.rli-more{font-size:9.5px;color:#a09b8e;margin-top:5px}
+.rc-code{display:flex;justify-content:space-between;align-items:center;margin-top:11px}
+.rc-code span{font-size:10px;color:#a09b8e}
+.rc-code b{font-size:27px;letter-spacing:7px;font-weight:800;margin-right:-7px}
+.rc-bar{text-align:center;margin-top:10px;padding:0 6px}
+.rc-bar svg{width:100%;height:34px;display:block}
+.rc-bar u{display:block;text-decoration:none;font-size:9px;letter-spacing:5px;color:#6d6a60;margin-top:3px}
+.rc-meta{font-size:9.5px;color:#7d7a70;margin-top:6px;display:flex;justify-content:space-between;gap:8px}
+.rc-meta i{font-style:normal;flex:none;color:#a09b8e}
+.rc-meta span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sheet-success .suc-btns{margin-top:26px;display:flex;gap:12px;opacity:0;transform:translateY(12px);transition:all .45s cubic-bezier(.3,.9,.3,1);pointer-events:none}
+#sheet-success .suc-btns.on{opacity:1;transform:none;pointer-events:auto}
 .suc-btns .s1,.suc-btns .s2{padding:12px 30px;border-radius:999px;font-size:14.5px;font-weight:700;cursor:pointer}
-.suc-btns .s1{background:#f1f2f7;color:var(--ink-2)}
+.suc-btns .s1{background:#fff;color:var(--ink-2);box-shadow:0 4px 14px rgba(30,50,110,.08)}
 .suc-btns .s2{background:var(--blue);color:#fff;box-shadow:0 8px 20px rgba(36,64,184,.3)}
+.rc-hint{font-size:10px;color:#b3b9c8;margin-top:14px;letter-spacing:1px;opacity:0;transition:opacity .5s}
+.rc-hint.on{opacity:1}
 
 /* 手势抽奖 */
 .lucky-sheet{

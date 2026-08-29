@@ -752,7 +752,20 @@ function renderOrder(){
   $('#page-order .order-scroll').scrollTop = 0;
 }
 
-/* ---------- 提交订单 ---------- */
+/* ---------- 小票条形码（确定性伪随机条纹） ---------- */
+function barcodeSVG(code){
+  let seed=7; for(const c of code) seed=(seed*131+c.charCodeAt(0))>>>0;
+  const rnd=()=>((seed=(seed*1103515245+12345)>>>0),((seed>>>16)%100)/100);
+  let x=0, bars='';
+  while(x<230){
+    const w=1+Math.floor(rnd()*3);
+    bars+=`<rect x="${x}" width="${w}" height="30" fill="#191b21"/>`;
+    x+=w+1+Math.floor(rnd()*3);
+  }
+  return `<svg viewBox="0 0 ${Math.ceil(x)} 30" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
+}
+
+/* ---------- 提交订单 → 小票打印机出票 ---------- */
 function submitOrder(){
   const { total, saved, pay } = calcOrder();
   const st = storeById(S.orderStoreId);
@@ -770,19 +783,82 @@ function submitOrder(){
   S.cart=[]; S.rwkSel=false;
   store.save(); refreshBadges(); renderMine();
   const it0 = order.items[0];
+  const itemsHtml = order.items.slice(0,3).map(i=>`
+      <div class="rli"><span class="rli-n">${esc(i.name)}<i>${esc(i.spec)} x${i.qty}</i></span><span class="rli-p">¥${yuan(i.price*i.qty)}</span></div>`).join('')
+    + (order.items.length>3?`\n      <div class="rli-more">……另有 ${order.items.length-3} 件商品</div>`:'');
+  const codeLabel = order.type==='pickup' ? '取餐码' : '收货码';
   $('#sheet-success').innerHTML = `
-    <div class="success-body">
-      <span class="suc-check"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.2 5.2L20 6.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      <h2>订单提交成功</h2>
-      <p class="suc-sub">${order.type==='pickup'?'请前往 '+esc(order.place)+' 取餐':'骑手将送至您的收货地址'}<br>${order.no} · 实付 ¥${yuan(order.total)}</p>
-      <div class="suc-code"><span class="t">${order.type==='pickup'?'取餐码':'收货码'}</span><div class="v">${order.code}</div></div>
-      <div class="suc-meta">
-        <div><b>${order.eta}</b><span>${order.type==='pickup'?'预计可取餐':'预计送达'}</span></div>
-        <div><b>${esc(it0.name.replace(/（.*/,''))}</b><span>${order.items.length>1?'等多件':esc(it0.spec)}</span></div>
+    <div class="rc-wrap">
+      <div class="term" data-replay title="点击重播">
+        <div class="term-top">
+          <span class="term-logo">🦌</span>
+          <span class="term-home" data-sback>完成 ✕</span>
+        </div>
+        <div class="term-panel">
+          <div class="term-row1">
+            <div><b>${order.type==='pickup'?'门店自提':'外送订单'}</b><span>${esc(it0.name.replace(/（.*/,''))}${order.items.length>1?' 等 '+order.items.length+' 件':''}</span></div>
+            <div class="term-total"><span>实付</span><b>¥${yuan(order.total)}</b></div>
+          </div>
+          <div class="term-status" id="termStatus"><i class="tspin"></i><em>正在处理订单…</em></div>
+        </div>
+        <div class="term-slot"></div>
       </div>
-      <div class="suc-btns"><span class="s1" data-sback>完成</span><span class="s2" data-smine>查看订单</span></div>
+      <div class="rcw" id="rcw">
+        <div class="receipt" id="rcPaper">
+          <div class="rc-head"><span class="rc-deer">🦌</span><b>luckin coffee</b><i>瑞幸收银小票 RECEIPT</i></div>
+          <div class="rc-dash"></div>
+          ${itemsHtml}
+          <div class="rc-dash"></div>
+          <div class="rli"><span>已优惠</span><span class="rli-p">-¥${yuan(order.saved)}</span></div>
+          <div class="rli total"><span>实付 TOTAL</span><span class="rli-p">¥${yuan(order.total)}</span></div>
+          <div class="rc-dash"></div>
+          <div class="rc-code"><span>${codeLabel}</span><b>${order.code}</b></div>
+          <div class="rc-bar">${barcodeSVG(order.code)}<u>${order.no.replace('NO.','ORD-')}</u></div>
+          <div class="rc-meta"><i>门店</i><span>${esc(order.place)}</span></div>
+          <div class="rc-meta"><i>时间</i><span>${order.time} · 预计${order.type==='pickup'?'取餐':'送达'} ${order.eta}</span></div>
+          <div class="rc-meta"><i>支付</i><span>瑞幸钱包（演示）</span></div>
+        </div>
+      </div>
+      <div class="suc-btns" id="sucBtns"><span class="s1" data-sback>完成</span><span class="s2" data-smine>查看订单</span></div>
+      <div class="rc-hint">— 点按终端可重播出票 —</div>
     </div>`;
   openSheet('#sheet-success');
+  /* 出票时序：处理中 → 打印小票(滑出) → 订单完成 */
+  const termEl = $('#sheet-success .term');
+  const rcw = $('#rcw'), paper = $('#rcPaper'), stEl = $('#termStatus'), btns = $('#sucBtns');
+  const H = paper.offsetHeight;
+  const setState = (mode, text) => {
+    stEl.innerHTML = mode==='ok'
+      ? '<i class="tok"></i><em>订单完成</em>'
+      : `<i class="tspin"></i><em>${text}</em>`;
+  };
+  const runPrint = () => {
+    btns.classList.remove('on');
+    rcw.style.transition = 'none'; rcw.style.height = '0px';
+    void rcw.offsetHeight;
+    setState('spin', '正在处理订单…');
+    setTimeout(() => {
+      setState('spin', '正在打印小票…');
+      rcw.style.transition = 'height 1.9s steps(22, end)';
+      requestAnimationFrame(() => { rcw.style.height = H + 'px'; });
+      setTimeout(() => {
+        rcw.style.transition = 'none';
+        setState('ok');
+        btns.classList.add('on');
+        const hint = document.querySelector('#sheet-success .rc-hint');
+        if(hint) hint.classList.add('on');
+      }, 2050);
+    }, 1100);
+  };
+  termEl._replay = runPrint;
+  if(FREEZE){
+    rcw.style.transition = 'none'; rcw.style.height = H + 'px';
+    setState('ok'); btns.classList.add('on');
+    const hint = document.querySelector('#sheet-success .rc-hint');
+    if(hint) hint.classList.add('on');
+  } else {
+    runPrint();
+  }
 }
 
 /* ============================================================
@@ -1182,6 +1258,9 @@ function bindEvents(){
     if(wf){ toast(wf.dataset.wf); return; }
     const cp = e.target.closest('[data-cp]');
     if(cp){ S['cp'+cp.dataset.cp]=true; openCoupons(); toast('已核销（演示）'); return; }
+    /* 出票重播（终端本体，不含右上角完成钮） */
+    const rp = e.target.closest('[data-replay]');
+    if(rp && !e.target.closest('[data-sback]') && rp._replay){ rp._replay(); return; }
     /* 成功页按钮 */
     if(e.target.closest('[data-sback]')){ closeSheets(); resetStack(); goTab('home'); return; }
     if(e.target.closest('[data-smine]')){ closeSheets(); resetStack(); goTab('mine'); return; }
