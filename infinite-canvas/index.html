@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>无限画布 · Infinite Canvas</title>
+<meta name="description" content="无限画布：随意粘贴图片 / 视频，写文字，连线想法。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23131318'/%3E%3Ctext x='32' y='45' font-size='40' text-anchor='middle' fill='%23ffb454' font-family='Georgia,serif' font-style='italic'%3E%E2%88%9E%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;900&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-tool="select">
+
+<div id="viewport">
+  <div id="grid"></div>
+  <div id="world">
+    <svg id="edges" aria-hidden="true"></svg>
+    <!-- nodes appended here by JS -->
+  </div>
+  <div id="marquee" hidden></div>
+
+  <div id="empty-hint">
+    <div class="mark">∞</div>
+    <div class="t">画布是空的，从这里开始</div>
+    <div class="chips">
+      <span class="chip"><kbd>双击</kbd>写文字</span>
+      <span class="chip"><kbd>Cmd V</kbd>粘贴图片 / 视频</span>
+      <span class="chip"><kbd>拖入</kbd>本地文件</span>
+      <span class="chip"><kbd>拖圆点</kbd>连线</span>
+    </div>
+  </div>
+
+  <div id="drop-hint" hidden>
+    <div class="frame"></div>
+    <div class="label">松手，放到画布上</div>
+  </div>
+</div>
+
+<!-- ===== top bar ===== -->
+<header id="topbar">
+  <div class="cluster">
+    <div class="brand">
+      <span class="mark">∞</span>
+      <span class="name">无限画布</span>
+      <span class="sub">INFINITE CANVAS</span>
+    </div>
+    <span class="vline"></span>
+    <span id="save-state" class="mono">—</span>
+  </div>
+  <div class="cluster">
+    <button class="btn" id="btn-undo" data-tip="撤销 Cmd Z" disabled>
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+    </button>
+    <button class="btn" id="btn-redo" data-tip="重做 Cmd Shift Z" disabled>
+      <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    </button>
+    <span class="vline"></span>
+    <button class="btn" id="btn-help" data-tip="快捷键 ?"><span class="qm">?</span></button>
+  </div>
+</header>
+
+<!-- ===== toolbar ===== -->
+<div id="toolbar">
+  <button class="tool active" data-tool="select" data-tip="选择 V">
+    <svg viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><line x1="13" y1="13" x2="19" y2="19"/></svg>
+  </button>
+  <button class="tool" data-tool="hand" data-tip="抓手 · 空格 H">
+    <svg viewBox="0 0 24 24"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+  </button>
+  <span class="sep"></span>
+  <button class="tool" data-tool="text" data-tip="文字 T">
+    <svg viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+  </button>
+  <button class="tool" data-tool="note" data-tip="便签 N">
+    <svg viewBox="0 0 24 24"><path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3z"/><polyline points="15 3 15 9 21 9"/></svg>
+  </button>
+  <span class="sep"></span>
+  <button class="tool" id="btn-image" data-tip="插入图片">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+  </button>
+  <button class="tool" id="btn-video" data-tip="插入视频">
+    <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M10 9l5 3-5 3z"/></svg>
+  </button>
+</div>
+
+<!-- ===== zoom & status ===== -->
+<div id="zoombar">
+  <button class="btn" id="btn-zoom-out" data-tip="缩小 −"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+  <button class="pct mono" id="zoom-pct" data-tip="重置为 100%">100%</button>
+  <button class="btn" id="btn-zoom-in" data-tip="放大 +"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+  <span class="vline"></span>
+  <button class="btn" id="btn-fit" data-tip="适应全部 0">
+    <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+  </button>
+</div>
+
+<div id="statusbar" class="mono">节点 0 · 连线 0<span id="coords"></span></div>
+
+<!-- ===== file inputs ===== -->
+<input type="file" id="file-image" accept="image/*" multiple hidden>
+<input type="file" id="file-video" accept="video/*" multiple hidden>
+
+<!-- ===== help modal ===== -->
+<div id="help-mask" hidden>
+  <div id="help-panel">
+    <div class="hp-head">
+      <div class="hp-title"><span class="mark">∞</span>操作速查</div>
+      <button class="btn" id="btn-help-close" data-tip="关闭"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+    </div>
+    <div class="hp-grid">
+      <div class="hp-sec">
+        <h4>素材</h4>
+        <p><kbd>Cmd V</kbd>直接粘贴剪贴板里的图片 / 视频文件，或复制的图片 URL</p>
+        <p><kbd>拖入</kbd>把本地图片、视频文件拖到画布任意位置</p>
+        <p><kbd>双击</kbd>空白处新建文字，<kbd>N</kbd> 放置彩色便签</p>
+      </div>
+      <div class="hp-sec">
+        <h4>连线</h4>
+        <p><kbd>圆点</kbd>悬停节点，从边缘圆点拖到另一个节点</p>
+        <p><kbd>双击连线</kbd>删除该连线，或选中后按 Delete</p>
+      </div>
+      <div class="hp-sec">
+        <h4>视图</h4>
+        <p><kbd>滚轮</kbd>平移画布，<kbd>Cmd+滚轮</kbd>以光标为中心缩放</p>
+        <p><kbd>空格</kbd>按住空格拖动，或中键拖动，或 <kbd>H</kbd> 抓手工具</p>
+        <p><kbd>0</kbd>适应全部内容，<kbd>1</kbd>回到 100%</p>
+      </div>
+      <div class="hp-sec">
+        <h4>编辑</h4>
+        <p><kbd>Cmd Z</kbd>撤销 · <kbd>Cmd Shift Z</kbd>重做 · <kbd>Delete</kbd>删除选中</p>
+        <p><kbd>Cmd D</kbd>复制一份 · <kbd>Cmd A</kbd>全选 · <kbd>方向键</kbd>微调位置</p>
+        <p><kbd>拖框</kbd>空白处拖拽框选多个节点</p>
+      </div>
+    </div>
+    <div class="hp-foot">
+      <span class="mono dim">快捷键以 macOS 为准 · Windows 下 Cmd = Ctrl<br>内容自动保存在本机浏览器（IndexedDB）</span>
+      <button class="danger" id="btn-clear">清空画布</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="mono" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
