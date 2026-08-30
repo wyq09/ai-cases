@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="dark">
+<title>我的女友景甜 · 关系图谱与时序图 · 无限画布</title>
+<meta name="description" content="基于同名虚构小说的无限画布可视化：一张十九年的关系网，一条停在 2026 年 3 月的时间线。发光流线 · 粒子 · 时间轴。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23090a12'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23ffc555' font-family='Georgia,serif'%3E%E7%94%9C%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="viewport">
+  <div id="grid"></div>
+
+  <div id="world">
+    <svg id="edges" aria-hidden="true"></svg>
+    <div id="nodes"><!-- cards injected --></div>
+  </div>
+
+  <canvas id="fx"></canvas>
+  <div id="vignette"></div>
+</div>
+
+<!-- ===== top bar ===== -->
+<header id="topbar">
+  <div class="cluster">
+    <div class="brand">
+      <span class="mark">甜</span>
+      <span class="name">我的女友景甜</span>
+      <span class="sub">关系图谱 × 时序图</span>
+    </div>
+    <span class="vline"></span>
+    <nav id="chips">
+      <button class="chip" data-jump="hero">序章</button>
+      <button class="chip" data-jump="web">关系图</button>
+      <button class="chip" data-jump="timeline">时序图</button>
+      <button class="chip" data-jump="ledger">账单</button>
+      <button class="chip" data-jump="finale">尾声</button>
+      <button class="chip ghost" data-jump="all">全览 0</button>
+    </nav>
+  </div>
+  <div class="cluster">
+    <span id="zoom-pct" class="mono dim">100%</span>
+    <span class="vline"></span>
+    <span class="mono dim hint-desktop">拖拽平移 · 滚轮缩放 · 悬停高亮</span>
+    <span class="mono dim hint-touch">单指平移 · 双指缩放 · 点按聚焦</span>
+  </div>
+</header>
+
+<!-- ===== legend ===== -->
+<div id="legend" class="mono">
+  <span class="lg"><i style="--c:#ff6b8d"></i>情感</span>
+  <span class="lg"><i style="--c:#ffc555"></i>金钱</span>
+  <span class="lg"><i style="--c:#8fa8ff"></i>服务 / 流水</span>
+  <span class="lg"><i style="--c:#57d7ff"></i>机器 / AI</span>
+  <span class="lg"><i style="--c:#ff4d4d"></i>停住的线</span>
+</div>
+
+<!-- ===== intro gate ===== -->
+<div id="intro">
+  <div class="i-card">
+    <div class="i-kick mono">INFINITE CANVAS · 关系图谱 × 时序图</div>
+    <h1>我的女友<span>景甜</span></h1>
+    <p class="i-line">一颗卵子的重量，三点五微克。<br>五千万美元现金的重量，两点五吨。</p>
+    <p class="i-sub">基于同名网络虚构小说整理的可视化 · 人物、情节、金额均为虚构<br>图片来自公开网络与 Wikimedia Commons，仅作氛围示意</p>
+    <button id="btn-enter" class="mono">进入画布 <span>→</span></button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
