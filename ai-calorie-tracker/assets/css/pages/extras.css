@@ -1,0 +1,161 @@
+/* ============================================================
+   extras.css — 收藏页 / 设置页（两页共用，ex- 前缀）
+   ============================================================ */
+
+.ex-page {
+  min-height: 100%;
+  background: var(--cream);
+  padding: 62px 22px 150px;
+}
+
+.ex-h1 { font-size: 26px; font-weight: 800; letter-spacing: .01em; }
+.ex-sub { font-size: 13px; color: var(--ink-2); margin-top: 5px; }
+
+/* ---------------- 收藏页 ---------------- */
+@keyframes ex-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.ex-fav-list { margin-top: 18px; display: flex; flex-direction: column; }
+
+.ex-fav-card {
+  background: var(--card);
+  border-radius: 28px;
+  padding: 14px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  max-height: 360px;
+  cursor: pointer;
+  animation: ex-fade-up .5s cubic-bezier(.22, 1, .32, 1) both;
+  transition:
+    max-height .26s ease, opacity .26s ease,
+    margin-top .26s ease, padding .26s ease, box-shadow .26s ease;
+}
+.ex-fav-card + .ex-fav-card { margin-top: 16px; }
+.ex-fav-list .ex-fav-card.ex-out {
+  max-height: 0; opacity: 0; margin-top: 0;
+  padding-top: 0; padding-bottom: 0; box-shadow: none;
+}
+
+.ex-fav-media { position: relative; }
+.ex-fav-img {
+  width: 100%; aspect-ratio: 16 / 10;
+  object-fit: cover; border-radius: 20px;
+}
+.ex-fav-like {
+  position: absolute; top: 10px; right: 10px;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255, 253, 248, .92);
+  box-shadow: 0 6px 16px rgba(72, 56, 30, .16);
+  color: var(--orange);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .15s;
+}
+.ex-fav-like:active { transform: scale(.85); }
+.ex-fav-like svg { fill: currentColor; }
+
+.ex-fav-meta { display: flex; align-items: baseline; margin-top: 12px; }
+.ex-fav-name { font-size: 16px; font-weight: 800; }
+.ex-fav-kcal { margin-left: auto; font-size: 14px; font-weight: 800; }
+.ex-fav-info { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
+
+/* 空状态 */
+.ex-empty { margin-top: 110px; display: flex; flex-direction: column; align-items: center; animation: ex-fade-up .5s cubic-bezier(.22, 1, .32, 1) both; }
+.ex-empty-ic {
+  width: 96px; height: 96px; border-radius: 50%;
+  background: var(--orange-bg); color: var(--orange);
+  display: flex; align-items: center; justify-content: center;
+}
+.ex-empty-ic svg { fill: currentColor; }
+.ex-empty-title { font-size: 17px; font-weight: 800; margin-top: 20px; }
+.ex-empty-sub { font-size: 13.5px; color: var(--ink-2); margin-top: 6px; }
+.ex-empty .btn { width: auto; padding: 0 32px; margin: 24px auto 0; }
+
+/* ---------------- 设置页 ---------------- */
+.ex-user {
+  margin-top: 18px;
+  background: var(--card); border-radius: 26px; padding: 18px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: var(--shadow-card);
+}
+.ex-avatar {
+  width: 54px; height: 54px; border-radius: 50%; flex: none;
+  background: var(--orange-bg); font-size: 28px;
+  display: flex; align-items: center; justify-content: center;
+}
+.ex-user-name { font-size: 16px; font-weight: 800; }
+.ex-user-sub { font-size: 12.5px; color: var(--ink-2); margin-top: 3px; }
+
+.ex-group {
+  margin-top: 16px;
+  background: var(--card); border-radius: 26px; overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.ex-row { display: flex; align-items: center; gap: 12px; padding: 15px 16px; }
+.ex-row + .ex-row { border-top: 1px solid var(--line); }
+.ex-row-ic {
+  width: 36px; height: 36px; border-radius: 12px; flex: none;
+  background: var(--orange-bg); color: var(--orange);
+  display: flex; align-items: center; justify-content: center;
+}
+.ex-row-label { font-size: 14.5px; font-weight: 600; flex: 1; }
+.ex-row-right { display: flex; align-items: center; gap: 6px; flex: none; }
+.ex-row-val { font-size: 13.5px; font-weight: 700; color: var(--ink-2); }
+.ex-next { display: flex; color: var(--ink-3); }
+
+.ex-row.ex-tap { cursor: pointer; }
+.ex-row.ex-tap:active { background: rgba(72, 56, 30, .045); }
+.ex-row.ex-tap:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+.ex-row.danger .ex-row-ic { background: #FBE7DC; color: #DD5433; }
+.ex-row.danger .ex-row-label { color: #DD5433; }
+
+/* 目标热量弹层 */
+.ex-goal-preview { text-align: center; padding: 8px 0 2px; }
+.ex-goal-num { font-size: 38px; font-weight: 800; color: var(--orange); }
+.ex-goal-unit { font-size: 12px; color: var(--ink-2); margin-top: 4px; }
+.ex-range { width: 100%; accent-color: var(--orange); margin-top: 18px; height: 30px; }
+.ex-range-scale {
+  display: flex; justify-content: space-between;
+  font-size: 11.5px; color: var(--ink-3); margin-top: 2px;
+}
+
+/* 关于弹层 */
+.ex-about { display: flex; flex-direction: column; align-items: center; padding-top: 4px; }
+.ex-about-emoji { font-size: 34px; line-height: 1; }
+.ex-about-name { font-size: 20px; font-weight: 800; margin-top: 8px; }
+.ex-about-ver { font-size: 12.5px; color: var(--ink-3); margin-top: 4px; }
+.ex-about-desc {
+  font-size: 13.5px; color: var(--ink-2); line-height: 1.8;
+  margin-top: 12px; text-align: left;
+}
+
+/* 弹层内通用按钮 */
+.ex-btn-plain {
+  width: 100%; height: 50px; border-radius: 16px;
+  background: var(--card-2); color: var(--ink);
+  font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .15s;
+}
+.ex-btn-plain:active { transform: scale(.97); }
+
+/* 清除数据弹层 */
+.ex-clear-desc { font-size: 13.5px; color: var(--ink-2); line-height: 1.7; padding-top: 2px; }
+.ex-btn-row { display: flex; gap: 10px; margin-top: 16px; }
+.ex-btn-row .ex-btn-plain { flex: 1; width: auto; height: 52px; }
+.ex-btn-danger {
+  flex: 1; height: 52px; border-radius: 16px;
+  background: #DD5433; color: #FFF6E9;
+  font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 12px 26px rgba(221, 84, 51, .28);
+  transition: transform .15s;
+}
+.ex-btn-danger:active { transform: scale(.97); }
+
+/* 页脚 */
+.ex-foot {
+  margin-top: 28px; text-align: center;
+  font-size: 11.5px; color: var(--ink-3); letter-spacing: .05em;
+}

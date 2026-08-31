@@ -1,0 +1,241 @@
+/* ============================================================
+   食光 AI · 设计体系（1:1 复刻参考稿）
+   暖奶油底 / 珊瑚橙强调 / 炭黑导航 / 大圆角卡片
+   ============================================================ */
+
+@font-face {
+  font-family: 'PJS';
+  src: url('../fonts/pjs-500.woff2') format('woff2');
+  font-weight: 500; font-display: swap;
+}
+@font-face {
+  font-family: 'PJS';
+  src: url('../fonts/pjs-700.woff2') format('woff2');
+  font-weight: 700; font-display: swap;
+}
+@font-face {
+  font-family: 'PJS';
+  src: url('../fonts/pjs-800.woff2') format('woff2');
+  font-weight: 800; font-display: swap;
+}
+
+:root {
+  --cream:      #F4EFE6;  /* 手机内底色 */
+  --card:       #FBF8F1;  /* 卡片 */
+  --card-2:     #F0EADD;  /* 次级卡片 / 内嵌块 */
+  --inset:      #ECE6D8;  /* + 添加条 / 仪表盘空段 */
+  --line:       #E8E1D2;
+
+  --ink:        #23211B;  /* 主文字 */
+  --ink-2:      #8F887B;  /* 次级文字 */
+  --ink-3:      #B9B2A3;  /* 弱文字 / 占位 */
+
+  --orange:     #EF8E52;  /* 主橙 */
+  --orange-2:   #F6AE7C;  /* 浅橙 */
+  --orange-3:   #FAD2AF;  /* 极浅橙 */
+  --orange-bg:  #FBEEDF;  /* 橙色淡底 */
+
+  --dark:       #26241E;  /* 深色导航 / 深色按钮 */
+  --dark-2:     #3A372F;
+  --paper:      #FFFDF8;
+
+  --r-xl: 32px; --r-lg: 26px; --r-md: 18px; --r-sm: 14px;
+  --shadow-card: 0 12px 28px rgba(72, 56, 30, .07);
+  --shadow-float: 0 18px 44px rgba(72, 56, 30, .16);
+  --font: 'PJS', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  font-family: var(--font);
+  background: #E7E0D1;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+button { font-family: inherit; border: 0; background: none; cursor: pointer; color: inherit; }
+input { font-family: inherit; border: 0; outline: none; background: transparent; color: var(--ink); }
+img { display: block; max-width: 100%; }
+::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+/* ---------- 舞台 & 手机壳 ---------- */
+.stage {
+  min-height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; padding: 34px 16px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, #EFE9DB 0%, #E5DECE 58%, #DDD5C2 100%);
+}
+.stage-note { font-size: 12px; color: #A79E8B; letter-spacing: .12em; }
+
+.phone {
+  position: relative;
+  width: 393px; height: 852px;
+  background: var(--cream);
+  border-radius: 54px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 10px #F8F5EC,
+    0 0 0 11px rgba(60, 48, 24, .08),
+    0 46px 90px rgba(58, 45, 20, .35);
+}
+.island {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  width: 122px; height: 36px; border-radius: 20px;
+  background: #100F0C; z-index: 60;
+}
+
+/* 视图容器：各页面的滚动容器 */
+#view {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: clip; overscroll-behavior: contain;
+  z-index: 10;
+}
+
+/* ---------- 底部导航 ---------- */
+#nav {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 50;
+  height: 108px;
+  background: var(--dark);
+  border-radius: 30px 30px 0 0;
+  display: flex; align-items: center; justify-content: space-around;
+  padding: 0 18px;
+  transition: transform .34s cubic-bezier(.22, 1, .32, 1);
+}
+#nav.nav-hidden { transform: translateY(115%); }
+.nav-item {
+  display: flex; align-items: center; justify-content: center;
+  width: 46px; height: 46px; border-radius: 14px;
+  color: #6E695D; transition: color .2s, transform .15s;
+}
+.nav-item:active { transform: scale(.88); }
+.nav-item.active { color: var(--orange); }
+.nav-scan {
+  width: 66px; height: 66px; margin-top: -30px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #F5A46F, #EC8347);
+  color: #FFF8EE;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 12px 26px rgba(239, 142, 82, .45), 0 0 0 6px var(--dark);
+  transition: transform .15s;
+}
+.nav-scan:active { transform: scale(.9); }
+
+/* ---------- 通用元件 ---------- */
+.icon-btn {
+  width: 46px; height: 46px; border-radius: 16px;
+  background: var(--paper);
+  box-shadow: var(--shadow-card);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink); position: relative; transition: transform .15s;
+}
+.icon-btn:active { transform: scale(.9); }
+.icon-btn .dot {
+  position: absolute; top: 11px; right: 12px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #F2643C; border: 2px solid var(--paper);
+}
+
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  height: 58px; border-radius: 19px;
+  font-size: 16px; font-weight: 700; letter-spacing: .02em;
+  width: 100%; transition: transform .15s, opacity .2s;
+}
+.btn:active { transform: scale(.97); }
+.btn-dark  { background: var(--dark); color: #FFF6E9; box-shadow: 0 14px 30px rgba(38, 36, 30, .28); }
+.btn-orange{ background: linear-gradient(160deg, #F49E66, #EC8141); color: #FFF8EE; box-shadow: 0 14px 30px rgba(239, 142, 82, .4); }
+
+.page-pad { padding: 62px 22px 150px; }   /* 常规页面留出岛屿与导航 */
+
+/* 区块标题 */
+.sec { display: flex; align-items: center; gap: 8px; }
+.sec h2 { font-size: 20px; font-weight: 800; letter-spacing: .01em; }
+.sec .badge {
+  min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px;
+  background: var(--orange); color: #FFF8EE;
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.sec .more { margin-left: auto; font-size: 13px; color: var(--ink-2); font-weight: 500; }
+
+/* 三大营养素 */
+.macro-row { display: flex; gap: 26px; }
+.macro .k { font-size: 12px; color: var(--ink-2); margin-bottom: 3px; }
+.macro .v { font-size: 14px; font-weight: 700; }
+
+/* 难度条（4 格） */
+.dif { display: inline-flex; gap: 4px; }
+.dif i { width: 11px; height: 20px; border-radius: 5px; background: #E7E0CE; }
+.dif i.on { background: var(--orange); }
+
+/* 步进器 */
+.stepper { display: flex; align-items: center; gap: 14px; }
+.stepper button {
+  width: 40px; height: 40px; border-radius: 14px;
+  background: var(--card-2); color: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+}
+.stepper b { min-width: 46px; text-align: center; font-size: 16px; font-weight: 800; }
+
+/* 开关 */
+.switch {
+  width: 50px; height: 30px; border-radius: 15px; position: relative;
+  background: #DED7C6; transition: background .2s; flex: none;
+}
+.switch::after {
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #FFFDF8; box-shadow: 0 2px 6px rgba(0,0,0,.18);
+  transition: transform .22s cubic-bezier(.22, 1, .32, 1);
+}
+.switch.on { background: var(--orange); }
+.switch.on::after { transform: translateX(20px); }
+
+/* ---------- 底部弹层 ---------- */
+.sheet-overlay {
+  position: absolute; inset: 0; z-index: 80;
+  background: rgba(32, 26, 14, .38);
+  opacity: 0; transition: opacity .28s;
+}
+.sheet-overlay.show { opacity: 1; }
+.sheet {
+  position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 81;
+  background: var(--card); border-radius: 34px;
+  padding: 12px 22px calc(22px + 6px);
+  max-height: 82%; overflow-y: auto;
+  transform: translateY(112%);
+  transition: transform .36s cubic-bezier(.22, 1, .3, 1);
+  box-shadow: var(--shadow-float);
+}
+.sheet.show { transform: translateY(0); }
+.sheet .grabber { width: 44px; height: 5px; border-radius: 3px; background: #DDD5C2; margin: 4px auto 14px; }
+.sheet h3 { font-size: 19px; font-weight: 800; margin-bottom: 4px; }
+.sheet .sub { font-size: 13px; color: var(--ink-2); margin-bottom: 16px; }
+
+/* ---------- Toast ---------- */
+#toast-root { position: absolute; inset: 0; z-index: 95; pointer-events: none; }
+.toast {
+  position: absolute; left: 50%; bottom: 132px; transform: translateX(-50%) translateY(16px);
+  background: var(--dark); color: #FFF6E9;
+  padding: 13px 22px; border-radius: 999px;
+  font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 16px 36px rgba(20, 16, 8, .35);
+  opacity: 0; transition: opacity .25s, transform .25s;
+  max-width: 82%;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast svg { color: #F6AE7C; }
+
+/* ---------- 手机端全屏适配 ---------- */
+@media (max-width: 520px), (max-height: 900px) and (pointer: coarse) {
+  .stage { padding: 0; gap: 0; }
+  .stage-note { display: none; }
+  .phone {
+    width: 100vw; height: 100vh; height: 100dvh;
+    border-radius: 0; box-shadow: none;
+  }
+  .island { display: none; }   /* 真机自带灵动岛 */
+}

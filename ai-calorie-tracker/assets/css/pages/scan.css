@@ -1,0 +1,186 @@
+/* ============================================================
+   scan · 扫描识别页（深色相机取景风格）
+   深底取景框 + 橙色四角 + 往返扫描线 + 识别闪光 + 结果弹层
+   ============================================================ */
+
+.sc-page {
+  min-height: 100%;
+  display: flex; flex-direction: column;
+  background: #171511;
+}
+
+/* ---------- 顶栏 ---------- */
+.sc-top {
+  display: flex; align-items: center;
+  padding: 64px 20px 0;
+}
+.sc-ibtn {
+  background: rgba(255, 255, 255, .12);
+  color: #F5EFE2;
+  box-shadow: none;
+  flex: none;
+}
+.sc-title {
+  flex: 1; text-align: center;
+  font-size: 15.5px; font-weight: 700;
+  color: #F7F1E3; letter-spacing: .02em;
+}
+
+/* ---------- 取景框 ---------- */
+.sc-viewer {
+  position: relative;
+  width: 300px; height: 300px;
+  margin: 30px auto 0;
+  border-radius: 34px;
+  overflow: hidden;
+  background: #0D0C09;
+}
+.sc-photo {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  filter: brightness(.88) saturate(1.05);
+}
+.sc-photo.sc-fade { transition: opacity .3s ease; }
+
+.sc-vignette {
+  position: absolute; inset: 0; z-index: 2;
+  background: radial-gradient(120% 120% at 50% 45%, transparent 55%, rgba(10, 8, 4, .5) 100%);
+  pointer-events: none;
+}
+
+/* 四角橙色 L 形边框 */
+.sc-corner {
+  position: absolute; z-index: 3;
+  width: 26px; height: 26px;
+  border: 0 solid var(--orange);
+}
+.sc-corner.tl { top: 14px; left: 14px;    border-top-width: 3px;    border-left-width: 3px;    border-top-left-radius: 10px; }
+.sc-corner.tr { top: 14px; right: 14px;   border-top-width: 3px;    border-right-width: 3px;   border-top-right-radius: 10px; }
+.sc-corner.bl { bottom: 14px; left: 14px; border-bottom-width: 3px; border-left-width: 3px;    border-bottom-left-radius: 10px; }
+.sc-corner.br { bottom: 14px; right: 14px;border-bottom-width: 3px; border-right-width: 3px;   border-bottom-right-radius: 10px; }
+
+/* 往返扫描线（识别中加速为 .55s） */
+.sc-line {
+  position: absolute; z-index: 3;
+  left: 10%; right: 10%; top: 10%;
+  height: 3px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #F8B98B 30%, #F6AE7C 50%, #F8B98B 70%, transparent);
+  box-shadow: 0 0 18px 2px rgba(246, 174, 124, .55);
+  animation: sc-sweep 2.6s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+.sc-viewer.sc-fast .sc-line { animation-duration: .55s; }
+@keyframes sc-sweep {
+  from { top: 10%; }
+  to   { top: 86%; }
+}
+
+/* 识别瞬间白色闪光 */
+.sc-flash {
+  position: absolute; inset: 0; z-index: 4;
+  background: #fff; opacity: 0;
+  pointer-events: none;
+}
+.sc-flash.sc-on { animation: sc-flash .5s ease-out both; }
+@keyframes sc-flash {
+  0%   { opacity: 0; }
+  38%  { opacity: .85; }
+  100% { opacity: 0; }
+}
+
+/* ---------- 状态文案 ---------- */
+.sc-status {
+  margin-top: 20px; padding: 0 24px;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(247, 241, 227, .66);
+  letter-spacing: .02em;
+  transition: opacity .15s ease;
+}
+
+/* ---------- 底部操作区 ---------- */
+.sc-actions {
+  margin-top: auto;
+  display: flex; align-items: center; justify-content: center;
+  gap: 46px;
+  padding: 26px 20px calc(54px + env(safe-area-inset-bottom, 0px));
+}
+.sc-side {
+  width: 54px; height: 54px; border-radius: 50%;
+  background: rgba(255, 255, 255, .1);
+  color: #F5EFE2;
+  display: flex; align-items: center; justify-content: center;
+  flex: none;
+  transition: transform .15s, opacity .2s;
+}
+.sc-side:active { transform: scale(.9); }
+.sc-shutter {
+  width: 84px; height: 84px; border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, .85);
+  padding: 5px;
+  flex: none;
+  transition: transform .15s, opacity .2s;
+}
+.sc-shutter:active { transform: scale(.92); }
+.sc-shutter-core {
+  display: block; width: 100%; height: 100%;
+  border-radius: 50%;
+  background: #FFF6E9;
+}
+
+/* 识别进行中：操作锁定 */
+.sc-busy .sc-shutter,
+.sc-busy .sc-side,
+.sc-busy .sc-ibtn { opacity: .5; pointer-events: none; }
+
+/* ---------- 识别结果弹层内容 ---------- */
+.sc-res { display: flex; gap: 14px; align-items: center; }
+.sc-res-img {
+  width: 86px; height: 86px;
+  border-radius: 20px; object-fit: cover;
+  flex: none;
+}
+.sc-res-name { font-size: 17px; font-weight: 800; letter-spacing: .01em; }
+.sc-res-conf {
+  margin-top: 6px;
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--ink-2);
+}
+.sc-res-conf svg { color: var(--orange); flex: none; }
+
+.sc-kcal-row {
+  margin-top: 14px;
+  background: var(--paper);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex; align-items: center;
+}
+.sc-kcal-label { font-size: 13px; color: var(--ink-2); }
+.sc-kcal-right { margin-left: auto; display: flex; align-items: baseline; gap: 4px; }
+.sc-kcal { font-size: 24px; font-weight: 800; color: var(--orange); line-height: 1; }
+.sc-kcal-unit { font-size: 12px; color: var(--ink-2); }
+
+.sc-macros { margin-top: 10px; display: flex; gap: 10px; }
+.sc-macro {
+  flex: 1;
+  background: var(--card-2);
+  border-radius: 14px;
+  padding: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.sc-macro-v { font-size: 14.5px; font-weight: 800; }
+.sc-macro-k { font-size: 11.5px; color: var(--ink-2); }
+
+.sc-step-row { margin-top: 14px; display: flex; justify-content: center; }
+.sc-add { margin-top: 16px; }
+
+/* ---- 结果弹层：餐次选择 ---- */
+.sc-meal-chips { display: flex; gap: 8px; justify-content: center; margin-top: 14px; }
+.sc-meal-chip {
+  padding: 9px 16px; border-radius: 999px;
+  background: var(--card-2); color: var(--ink-2);
+  font-size: 13px; font-weight: 600;
+  transition: background .2s, color .2s, transform .15s;
+}
+.sc-meal-chip:active { transform: scale(.93); }
+.sc-meal-chip.on { background: var(--orange-bg); color: var(--orange); font-weight: 800; }

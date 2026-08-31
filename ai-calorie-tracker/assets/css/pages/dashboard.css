@@ -1,0 +1,171 @@
+/* ============================================================
+   仪表盘页（应用主页）
+   弧形卡路里仪表（视觉主角）+ 添加/编辑记录 + 本周概览
+   ============================================================ */
+
+.db-page { min-height: 100%; padding: 56px 22px 150px; background: var(--cream); }
+
+/* ---------- 顶栏 ---------- */
+.db-top { display: flex; align-items: center; justify-content: space-between; }
+.db-title { flex: 1; text-align: center; font-size: 16px; font-weight: 700; letter-spacing: .02em; }
+
+/* ---------- 弧形卡路里仪表 ---------- */
+.db-gauge { position: relative; width: 322px; max-width: 100%; margin: 8px auto 0; }
+.db-gauge svg { display: block; width: 100%; height: auto; }
+.db-seg {
+  stroke: var(--inset); stroke-width: 30; stroke-linecap: round; fill: none;
+  transition: stroke .55s ease;
+}
+/* 圆心在 viewBox y=170/300 处，内容覆盖层对准圆心 */
+.db-center {
+  position: absolute; left: 0; right: 0; top: 56.7%; transform: translateY(-50%);
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  pointer-events: none;
+}
+.db-zap { display: flex; color: var(--orange); }
+.db-date { font-size: 13px; color: var(--ink-2); margin-top: 5px; }
+.db-num {
+  display: flex; align-items: baseline; gap: 4px; margin-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.db-num b { font-size: 40px; font-weight: 800; line-height: 1.15; letter-spacing: -.01em; }
+.db-num span { font-size: 15px; font-weight: 700; }
+.db-goal { font-size: 13px; font-weight: 700; color: var(--orange); margin-top: 5px; }
+
+/* ---------- 「+」添加条 ---------- */
+.db-add {
+  margin-top: 4px; width: 100%; height: 50px; border-radius: 18px;
+  background: var(--inset); color: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .15s;
+}
+.db-add:active { transform: scale(.98); }
+
+/* ---------- 进度提示条 ---------- */
+.db-tip {
+  margin-top: 10px; padding: 10px 14px; border-radius: 16px;
+  background: var(--orange-bg);
+  display: flex; align-items: center; gap: 8px;
+}
+.db-tip-ic { display: flex; flex: none; color: var(--orange); }
+.db-tip p { flex: 1; font-size: 13px; font-weight: 600; line-height: 1.5; }
+
+/* ---------- 餐次卡片列表 ---------- */
+.db-list { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+.db-card {
+  background: var(--card); border-radius: 26px; padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+  animation: db-up .55s cubic-bezier(.22, 1, .32, 1) both;
+}
+@keyframes db-up { from { opacity: 0; transform: translateY(18px); } }
+
+.db-card-top { display: flex; align-items: center; }
+.db-meal-img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; flex: none; }
+.db-meal-emoji {
+  width: 52px; height: 52px; border-radius: 50%; flex: none;
+  background: var(--orange-bg); font-size: 24px;
+  display: flex; align-items: center; justify-content: center;
+}
+.db-card-info { margin-left: 12px; min-width: 0; }
+.db-card-info h3 { font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-card-info p { font-size: 12.5px; color: var(--ink-2); margin-top: 3px; }
+.db-card-kcal { margin-left: auto; text-align: right; flex: none; }
+.db-card-num { display: flex; align-items: baseline; justify-content: flex-end; gap: 3px; }
+.db-card-num b { font-size: 21px; font-weight: 800; }
+.db-card-num span { font-size: 12px; color: var(--ink-2); }
+.db-card-kcal > p { font-size: 12px; font-weight: 700; color: var(--orange); margin-top: 2px; }
+
+.db-card-macros {
+  margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--line);
+  display: flex; align-items: center;
+}
+.db-edit {
+  margin-left: auto; width: 36px; height: 36px; border-radius: 12px; flex: none;
+  background: var(--card-2); color: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .15s;
+}
+.db-edit:active { transform: scale(.88); }
+
+/* ---------- 空状态 ---------- */
+.db-empty {
+  text-align: center; background: var(--card); border-radius: 26px;
+  padding: 42px 24px 38px; box-shadow: var(--shadow-card);
+  animation: db-up .55s cubic-bezier(.22, 1, .32, 1) both;
+}
+.db-empty-em { font-size: 40px; line-height: 1.2; }
+.db-empty h3 { font-size: 16px; font-weight: 800; margin-top: 14px; }
+.db-empty p { font-size: 13px; color: var(--ink-2); margin-top: 6px; }
+.db-empty-btn { width: auto; display: inline-flex; padding: 0 30px; margin: 18px auto 0; }
+
+/* ---------- 弹层：添加记录 ---------- */
+.db-entries { display: flex; flex-direction: column; gap: 10px; }
+.db-entry {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  background: var(--paper); border-radius: 18px; padding: 14px;
+  text-align: left; transition: transform .15s;
+}
+.db-entry:active { transform: scale(.98); }
+.db-entry-ic {
+  width: 40px; height: 40px; border-radius: 13px; flex: none;
+  background: var(--orange-bg); color: var(--orange);
+  display: flex; align-items: center; justify-content: center;
+}
+.db-entry-tx { min-width: 0; }
+.db-entry-tx b { display: block; font-size: 15px; font-weight: 800; }
+.db-entry-tx span { display: block; font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
+.db-entry-next { margin-left: auto; display: flex; flex: none; color: var(--ink-3); }
+
+.db-quick-title { font-size: 13px; font-weight: 700; color: var(--ink-2); margin: 18px 2px 10px; }
+.db-quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.db-quick-item {
+  background: var(--paper); border-radius: 16px; padding: 12px 6px;
+  text-align: center; transition: transform .15s;
+}
+.db-quick-item:active { transform: scale(.94); }
+.db-quick-item .em { display: block; font-size: 26px; line-height: 1.2; }
+.db-quick-item b { display: block; font-size: 12.5px; font-weight: 700; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-quick-item .kc { display: block; font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+
+/* ---------- 弹层：本周概览 ---------- */
+.db-week { display: flex; gap: 10px; }
+.db-week-col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.db-week-track { height: 110px; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
+.db-week-bar {
+  display: block; width: 22px; border-radius: 8px; background: var(--inset);
+  transform-origin: bottom;
+  animation: db-bar .6s cubic-bezier(.22, 1, .32, 1) both;
+}
+@keyframes db-bar { from { transform: scaleY(0); } }
+.db-week-col.today .db-week-bar { background: var(--orange); }
+.db-week-day { font-size: 11px; color: var(--ink-2); }
+.db-week-col.today .db-week-day { color: var(--ink); font-weight: 800; }
+.db-week-sum { font-size: 13px; color: var(--ink-2); text-align: center; margin-top: 16px; }
+
+/* ---------- 弹层：编辑记录 ---------- */
+.db-edit-row { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 14px; }
+.db-edit-label { font-size: 14px; font-weight: 700; }
+
+.db-edit-preview {
+  display: flex; align-items: center;
+  background: var(--paper); border-radius: 16px; padding: 12px 14px;
+  margin-bottom: 16px;
+}
+.db-prev-kcal { display: flex; align-items: baseline; gap: 4px; font-variant-numeric: tabular-nums; }
+.db-prev-kcal b { font-size: 22px; font-weight: 800; }
+.db-prev-kcal span { font-size: 12px; color: var(--ink-2); }
+.db-prev-macros { margin-left: auto; display: flex; gap: 16px; }
+.db-prev-item { text-align: right; }
+.db-prev-item i { display: block; font-style: normal; font-size: 11px; color: var(--ink-2); }
+.db-prev-item b { display: block; font-size: 13.5px; font-weight: 800; margin-top: 2px; }
+
+.db-edit-actions { display: flex; gap: 10px; }
+.db-del {
+  flex: 1; height: 52px; border-radius: 16px;
+  background: #FBE7DC; color: #DD5433;
+  font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: transform .15s;
+}
+.db-del:active { transform: scale(.97); }
+.db-save { flex: 1.4; width: auto; height: 52px; }
