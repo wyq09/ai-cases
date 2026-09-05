@@ -161,7 +161,28 @@
     state.won = !state.vehicles.length && state.slots.every((v) => !v) && !state.queue.length;
     return departed;
   }
-  function move(state, id) {
+  function nextPassenger(state) {
+    if (!state.queue.length) return null;
+    const slot = state.slots.findIndex((v) => v && v.color === state.queue[0] && v.loaded < v.capacity);
+    return slot < 0 ? null : { slot, color: state.queue[0], id: state.slots[slot].id };
+  }
+  function loadPassenger(state) {
+    const passenger = nextPassenger(state);
+    if (!passenger) return null;
+    state.queue.shift();
+    state.slots[passenger.slot].loaded++;
+    state.delivered++;
+    return passenger;
+  }
+  function releaseFull(state, slot) {
+    const v = state.slots[slot];
+    if (!v || v.loaded !== v.capacity) return null;
+    state.slots[slot] = null;
+    state.cleared++;
+    state.won = !state.vehicles.length && state.slots.every((v) => !v) && !state.queue.length;
+    return { ...v, slot };
+  }
+  function move(state, id, options = {}) {
     const v = state.vehicles.find((v) => v.id === id);
     if (!v) return { type: "none" };
     const p = path(v, state.vehicles, state.cols, state.rows);
@@ -176,9 +197,9 @@
     const slot = state.slots.indexOf(null);
     state.vehicles = state.vehicles.filter((v) => v.id !== id);
     state.slots[slot] = v;
-    return { type: "exit", before, slot, departed: board(state) };
+    return { type: "exit", before, slot, departed: options.deferBoarding ? [] : board(state) };
   }
-  function sortQueue(state) {
+  function sortQueue(state, options = {}) {
     const waiting = state.slots.find(Boolean);
     const target = waiting || state.vehicles.find((v) => path(v, state.vehicles, state.cols, state.rows).clear);
     if (!target) return false;
@@ -190,9 +211,9 @@
       else rest.push(color);
     }
     state.queue = [...Array(taken).fill(target.color), ...rest];
-    return { target: target.id, departed: board(state) };
+    return { target: target.id, departed: options.deferBoarding ? [] : board(state) };
   }
-  function remove(state, id) {
+  function remove(state, id, options = {}) {
     const v = state.vehicles.find((v) => v.id === id) || state.slots.find((v) => v && v.id === id);
     if (!v) return false;
     let remain = v.capacity - v.loaded;
@@ -207,16 +228,17 @@
     state.vehicles = state.vehicles.filter((o) => o.id !== id);
     state.slots = state.slots.map((o) => (o && o.id === id ? null : o));
     state.cleared++;
-    return { departed: board(state) };
+    state.won = !state.vehicles.length && state.slots.every((v) => !v) && !state.queue.length;
+    return { departed: options.deferBoarding ? [] : board(state) };
   }
-  function shuffle(state) {
+  function shuffle(state, options = {}) {
     const l = generate(state.n, ++state.salt, state.vehicles);
     state.vehicles = l.vehicles;
     state.queue = [
       ...state.slots.filter(Boolean).flatMap((v) => Array(v.capacity - v.loaded).fill(v.color)),
       ...l.queue,
     ];
-    return { departed: board(state) };
+    return { departed: options.deferBoarding ? [] : board(state) };
   }
   function hint(state) {
     if (state.slots.every(Boolean)) return null;
@@ -253,6 +275,9 @@
     generate,
     create,
     board,
+    nextPassenger,
+    loadPassenger,
+    releaseFull,
     move,
     sortQueue,
     remove,

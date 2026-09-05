@@ -11,6 +11,7 @@
     <meta name="description" content="挪挪车：驶出拥堵，接上好心情。无限关卡、彩色接客与五种道具，手机上轻点即玩。" />
     <title>挪挪车 · PARK & GO — gpt-6-Astra</title>
     <link rel="stylesheet" href="styles-gpt-6-Astra.css" />
+    <link rel="stylesheet" href="station-gpt-6-Astra.css" />
   </head>
   <body>
     <aside class="desktop-intro" aria-hidden="true">
@@ -52,7 +53,7 @@
         </div>
         <canvas id="station-canvas" aria-label="乘客队列和候车位"></canvas>
         <div class="station-bottom">
-          <span><i></i> 同色上车 · 满员出发</span
+          <span><i></i><span id="station-status">同色上车 · 满员出发</span></span
           ><button id="expand">＋ 增加车位 <b>60</b><span class="coin small">✦</span></button>
         </div>
       </section>
@@ -129,6 +130,7 @@
         </section>
       </div>
       <div id="celebration" aria-hidden="true"></div>
+      <canvas id="journey" aria-hidden="true"></canvas>
     </main>
     <aside class="desktop-guide">
       <span class="guide-num">01 / HOW TO PLAY</span>
@@ -138,8 +140,10 @@
       <div class="color-swatches"><i></i><i></i><i></i><i></i></div>
       <span class="guide-bottom">无需下载 · 点开就玩</span>
     </aside>
-    <script src="engine-gpt-6-Astra.js"></script>
-    <script src="render-gpt-6-Astra.js"></script>
-    <script src="game-gpt-6-Astra.js"></script>
+    <script src="engine-gpt-6-Astra.js?v=2"></script>
+    <script src="render-gpt-6-Astra.js?v=2"></script>
+    <script src="cars-gpt-6-Astra.js?v=2"></script>
+    <script src="station-gpt-6-Astra.js?v=2"></script>
+    <script src="game-gpt-6-Astra.js?v=2"></script>
   </body>
 </html>

@@ -1,0 +1,31 @@
+/* More room for physical parking and a visible boarding aisle. */
+.station canvas {
+  height: 159px;
+}
+#journey {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+}
+#station-status {
+  font-size: 9px;
+}
+.station-bottom > span {
+  min-width: 0;
+}
+@media (max-width: 760px) {
+  .station canvas {
+    height: 149px;
+  }
+}
+@media (max-height: 740px) {
+  .station canvas {
+    height: 127px;
+  }
+  .playfield {
+    min-height: 170px;
+  }
+}

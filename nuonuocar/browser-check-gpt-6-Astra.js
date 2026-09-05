@@ -29,7 +29,7 @@ async (page) => {
         v = parkingDebug.state.vehicles.find((v) => v.id === id);
       const x = v.x + (v.dir % 2 === 0 ? v.len / 2 : 0.5),
         y = v.y + (v.dir % 2 ? v.len / 2 : 0.5);
-      const p = r.project(x, y, Math.max(7, r.u * 0.36));
+      const p = r.project(x, y, r.roofHeight());
       const rect = document.querySelector("#board").getBoundingClientRect();
       return { x: rect.x + p[0], y: rect.y + p[1], hit: r.hit(...p) };
     }, id);
@@ -68,9 +68,11 @@ async (page) => {
   assert(after.save.props.remove === before.save.props.remove - 1, "remove consumption");
   assert(!after.state.vehicles.some((v) => v.id === safeId), "remove vehicle");
   await page.locator('[data-prop="sort"]').click();
+  await page.waitForFunction(() => !parkingDebug.busy);
   assert((await read()).save.props.sort === before.save.props.sort - 1, "sort consumption");
   await page.locator('[data-prop="shuffle"]').click();
   await page.locator("#confirm-action").click();
+  await page.waitForFunction(() => !parkingDebug.busy);
   after = await read();
   assert(after.save.props.shuffle === before.save.props.shuffle - 1, "shuffle consumption");
   assert(await page.evaluate(() => parkingDebug.engine.solve(parkingDebug.state).solvable), "shuffle solvability");
@@ -95,6 +97,7 @@ async (page) => {
   });
   assert(await page.getByRole("heading", { name: "候车位有点挤" }).isVisible(), "full-slot modal");
   await page.locator("#rescue").click();
+  await page.waitForFunction(() => !parkingDebug.busy);
   assert(
     (await read()).state.slots.some((v) => v === null),
     "sort rescues full slots",
@@ -115,10 +118,12 @@ async (page) => {
   const coins = (await read()).save.coins;
   await page.locator('[data-buy="hint"]').click();
   assert(
-    await page.evaluate(() =>
-      Number(getComputedStyle(document.querySelector('#toast')).zIndex) >
-      Number(getComputedStyle(document.querySelector('#overlay')).zIndex)),
-    'purchase feedback obscured by shop dialog',
+    await page.evaluate(
+      () =>
+        Number(getComputedStyle(document.querySelector("#toast")).zIndex) >
+        Number(getComputedStyle(document.querySelector("#overlay")).zIndex),
+    ),
+    "purchase feedback obscured by shop dialog",
   );
   assert((await read()).save.coins === coins - 30, "shop debit");
   await page.evaluate(() => {

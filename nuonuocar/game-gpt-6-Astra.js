@@ -225,6 +225,7 @@
     $("confirm-cancel").onclick = closeModal;
   }
   function help() {
+    if (busy) return toast("乘客正在上车，稍等一下");
     openModal(
       "help",
       `${heading("A LITTLE GUIDE", "出发前，看这里")}<div class="help-step"><span>1</span><p><b>轻点小车，沿箭头出发</b><br>前方有车时会停下，先挪开挡路的车。</p></div><div class="help-step"><span>2</span><p><b>看队首颜色，再安排发车</b><br>乘客依次上同色车，满员自动离开。车身符号也可以帮你辨认颜色。</p></div><div class="help-step"><span>3</span><p><b>留一个空位，别着急</b><br>只有 4 个候车位。堵住时用排序、刷新或消除，金币还能增加车位。</p></div><button class="primary" id="help-close">明白，出发！</button><p class="kbd">电脑也能玩：方向键选车，回车出发，Esc 取消道具。</p>`,
@@ -283,13 +284,16 @@
     if (focus) setTimeout(() => document.querySelector(`[data-buy="${focus}"]`)?.focus(), 50);
   }
   function start(n) {
+    clearTimeout(toastTimer);
+    clearTimeout(highlightTimer);
+    $("toast").classList.remove("show");
     state = E.create(n);
     history = [];
     busy = false;
     renderer.motion = null;
-    renderer.departures = [];
     renderer.highlight = null;
     renderer.selected = null;
+    renderer.resetStation();
     forceClose();
     setMode(null);
     persist();
@@ -358,6 +362,31 @@
       $("rescue-back").onclick = closeModal;
     }
   }
+  async function resolveStation() {
+    busy = true;
+    update();
+    while (true) {
+      const full = state.slots.findIndex((v) => v && v.loaded === v.capacity);
+      if (full >= 0) {
+        await renderer.departVehicle(full);
+        E.releaseFull(state, full);
+        sound("exit");
+      } else {
+        const passenger = E.nextPassenger(state);
+        if (!passenger) break;
+        await renderer.boardPassenger(passenger);
+        E.loadPassenger(state);
+        sound("tap");
+      }
+      persist();
+      update();
+    }
+    renderer.resetStation();
+    busy = false;
+    persist();
+    update();
+    check();
+  }
   async function select(id) {
     if (busy || !$("overlay").hidden || state.won) return;
     if (id === null) {
@@ -369,14 +398,13 @@
     if (mode === "remove") {
       if (!consume("remove")) return;
       history = [];
-      const result = E.remove(state, id);
-      renderer.depart(result.departed);
+      E.remove(state, id, { deferBoarding: true });
       setMode(null);
       sound("exit");
       toast("专车已接走乘客");
       persist();
       update();
-      check();
+      await resolveStation();
       return;
     }
     if (mode === "flip") {
@@ -399,7 +427,7 @@
       return;
     }
     snapshot();
-    const result = E.move(state, id);
+    const result = E.move(state, id, { deferBoarding: true });
     busy = true;
     renderer.highlight = null;
     persist();
@@ -407,11 +435,15 @@
     sound(result.type);
     if (result.type === "blocked") toast("前面有车，先帮它腾个位置");
     await renderer.animate(result);
+    if (result.type === "exit") {
+      await resolveStation();
+      return;
+    }
     busy = false;
     update();
     check();
   }
-  function useProp(k) {
+  async function useProp(k) {
     if (!guard()) return;
     if (mode === k) {
       setMode(null);
@@ -442,27 +474,29 @@
       }, 4200);
       toast(`让这辆${E.COLORS[v.color].name}小车先出发`);
     } else if (k === "sort") {
-      const result = E.sortQueue(state);
+      const result = E.sortQueue(state, { deferBoarding: true });
       if (!result) return toast("暂时没有合适的车辆，试试刷新");
       consume(k);
       history = [];
-      renderer.depart(result.departed);
       toast("同色乘客已优先安排");
     } else if (k === "shuffle") {
-      confirm("重新排个队？", "消耗 1 次刷新，重排剩余小车和乘客队列，恢复一条可通关的路线。", () => {
+      confirm("重新排个队？", "消耗 1 次刷新，重排剩余小车和乘客队列，恢复一条可通关的路线。", async () => {
         consume(k);
         history = [];
-        const result = E.shuffle(state);
-        renderer.depart(result.departed);
+        E.shuffle(state, { deferBoarding: true });
         persist();
         update();
         toast("道路通了，重新出发");
-        check();
+        await resolveStation();
       });
       return;
     }
     persist();
     update();
+    if (k === "sort") {
+      await resolveStation();
+      return;
+    }
     check();
   }
   $("board").addEventListener("pointerdown", (e) => {
@@ -499,7 +533,6 @@
     state = history.pop();
     state.used = used;
     renderer.highlight = null;
-    renderer.departures = [];
     setMode(null);
     persist();
     update();
@@ -554,6 +587,7 @@
   update();
   persist();
   if (state.won) finish();
+  else if (E.nextPassenger(state) || state.slots.some((v) => v && v.loaded === v.capacity)) resolveStation();
   if (renderer.debug) {
     window.parkingDebug = {
       get state() {
