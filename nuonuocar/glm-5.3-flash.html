@@ -119,6 +119,13 @@ function seedOf(n){let x=(n*2654435761)>>>0;x^=x>>>13;x=(x*1274126177)>>>0;retur
 function shuffleArr(arr,rng){for(let i=arr.length-1;i>0;i--){const j=(rng()*(i+1))|0;[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
 const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const dur=ms=>REDUCE?Math.min(ms,90):ms;
+/* roundRect 兜底（iOS 15 及以下无原生实现） */
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+    r=Math.min(r,Math.abs(w)/2,Math.abs(h)/2);
+    this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);this.arcTo(x+w,y+h,x,y+h,r);
+    this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);this.closePath();return this;};
+}
 
 /* ---------------- 调试探针 ---------------- */
 window.__errs=[];window.__win=false;window.__state={};
@@ -167,7 +174,7 @@ function levelParams(n){
   const cols=Math.min(6+Math.floor(n/4),9);
   const rows=Math.min(7+Math.floor(n/3),12);
   const hard=n%10===0;
-  let density=Math.min(0.36+n*0.025,0.55)+(hard?0.04:0);
+  let density=Math.min(0.42+n*0.02,0.58)+(hard?0.04:0);
   density=Math.min(density,0.58);
   const cells=cols*rows;
   const nVeh=clamp(Math.round(cells*density/2.4),5,34);
@@ -268,7 +275,7 @@ let propsH=96,hdrH=0;
 function computeLayout(){
   const stage=document.getElementById('stage');
   W=stage.clientWidth;H=stage.clientHeight;
-  DPR=Math.min(window.devicePixelRatio||1,2.5);
+  DPR=Math.min(window.devicePixelRatio||1,2);
   cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
   cv.style.width=W+'px';cv.style.height=H+'px';
   const hud=document.getElementById('hud');
@@ -277,11 +284,11 @@ function computeLayout(){
   propsH=(bar?bar.offsetHeight:92)+8;
   // 车站卡片
   L.cardX=10;L.cardY=hdrH+4;L.cardW=W-20;
-  L.cardH=148;
-  L.queueY=L.cardY+52;
-  L.slotsY=L.cardY+66;
+  L.cardH=158;
+  L.queueY=L.cardY+58;
+  L.slotsY=L.cardY+80;
   L.slotW=(L.cardW-24-5*8)/6;
-  L.slotH=62;
+  L.slotH=60;
   L.cardBot=L.cardY+L.cardH;
   // 马路
   L.roadY=L.cardBot+8;L.roadH=36;L.roadMid=L.roadY+L.roadH/2;
@@ -291,6 +298,7 @@ function computeLayout(){
   L.boardTop=L.progY+8;
   L.boardBot=H-propsH-6;
   if(G.level)layoutBoard();
+  invalidateStatic();
 }
 function layoutBoard(){
   const {cols,rows}=G.level.params;
@@ -392,6 +400,7 @@ function startLevel(n){
   layoutBoard();
   buildQueueSeq();
   G.total=G.vehicles.reduce((s,v)=>s+capOf(v.len),0);
+  invalidateStatic();
   save.cur=n;persist();
   updateHud();
   banner('第 '+n+' 关'+(G.level.params.hard?' · 困难':''));
@@ -776,16 +785,37 @@ function box(c,x,y,w,h,z,top,side,front){
   polygon(c,[p(x,y+h,1),p(x+w,y+h,1),p(x+w,y+h,z),p(x,y+h,z)],front);
   return plane(c,x,y,w,h,z,top);
 }
+/* ---- 静态层缓存：车站/马路/棋盘地台只画一次 ---- */
+let topCv=null,boardCv=null,staticDirty=true;
+function invalidateStatic(){staticDirty=true;}
 function render(now){
+  if(staticDirty||!topCv||!boardCv||topCv.width!==cv.width)buildStatic();
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.drawImage(topCv,0,0);
+  ctx.drawImage(boardCv,0,0);
   ctx.setTransform(DPR,0,0,DPR,0,0);
-  ctx.clearRect(0,0,W,H);
-  drawStationCard(now);
-  drawRoad(now);
-  drawBoard(now);
+  drawStationDynamic(ctx,now);
+  drawRoadDynamic(ctx,now);
+  drawBoardDynamic(ctx,now);
 }
-/* ---- 车站卡片 ---- */
-function drawStationCard(now){
-  const c=ctx,x=L.cardX,y=L.cardY,w=L.cardW,h=L.cardH;
+function buildStatic(){
+  if(!topCv)topCv=document.createElement('canvas');
+  topCv.width=cv.width;topCv.height=cv.height;
+  const c=topCv.getContext('2d');
+  c.setTransform(DPR,0,0,DPR,0,0);
+  c.fillStyle='#eef0e2';c.fillRect(0,0,W,H);
+  drawStationCardStatic(c);
+  if(!boardCv)boardCv=document.createElement('canvas');
+  boardCv.width=cv.width;boardCv.height=cv.height;
+  const b=boardCv.getContext('2d');
+  b.setTransform(DPR,0,0,DPR,0,0);
+  drawBoardStatic(b);
+  staticDirty=false;
+}
+/* ---- 车站卡片（静态壳） ---- */
+function drawStationCardStatic(c){
+  const x=L.cardX,y=L.cardY,w=L.cardW,h=L.cardH;
   c.save();
   c.shadowColor='#4a5a4220';c.shadowBlur=10;c.shadowOffsetY=3;
   c.fillStyle='#fdfef8';
@@ -793,35 +823,16 @@ function drawStationCard(now){
   c.restore();
   c.strokeStyle='#e0e4d2';c.lineWidth=1.2;
   c.beginPath();c.roundRect(x,y,w,h,16);c.stroke();
-  // 标题行
   c.fillStyle='#7d9078';c.beginPath();c.arc(x+18,y+17,3,0,7);c.fill();
   c.fillStyle='#2f3b32';c.font='800 13px system-ui';c.textAlign='left';c.textBaseline='alphabetic';
-  c.fillText('好心情接客站',x+27,y+21);
+  c.fillText('\u597d\u5fc3\u60c5\u63a5\u5ba2\u7ad9',x+27,y+21);
   c.fillStyle='#9aa58e';c.font='800 8px system-ui';
-  c.fillText('B U S   S T O P',x+27+c.measureText('好心情接客站').width+34,y+20);
-  const remain=demandSum();
-  c.textAlign='right';
-  c.fillStyle='#2f3b32';c.font='900 17px system-ui';
-  c.fillText(String(remain),x+w-56,y+22);
-  c.font='600 10px system-ui';c.fillStyle='#9aa58e';
-  c.fillText('人等车',x+w-12,y+22);
-  // 队列小人
-  const cap=Math.floor((w-96)/13);
-  const qn=Math.min(G.queueSeq.length,cap);
-  c.fillStyle='#9aa58e';c.font='700 8px system-ui';c.textAlign='left';
-  c.fillText('队首',x+14,L.queueY+5);
-  c.strokeStyle='#b9c2a8';c.lineWidth=1;
-  c.beginPath();c.moveTo(x+22,L.queueY-4);c.lineTo(x+22,L.queueY+7);c.stroke();
-  c.beginPath();c.moveTo(x+19,L.queueY-1);c.lineTo(x+22,L.queueY-4);c.lineTo(x+25,L.queueY-1);c.stroke();
-  for(let i=0;i<qn;i++)drawPerson(c,x+38+i*13,L.queueY-2,G.queueSeq[i],0.72,0);
-  if(G.queueSeq.length>qn){
-    c.fillStyle='#9aa58e';c.font='800 10px system-ui';
-    c.fillText('…',x+38+qn*13,L.queueY+2);
-  }
-  // 分隔线
+  c.fillText('B U S   S T O P',x+27+c.measureText('\u597d\u5fc3\u60c5\u63a5\u5ba2\u7ad9').width+34,y+20);
+  c.font='600 10px system-ui';c.fillStyle='#9aa58e';c.textAlign='right';
+  c.fillText('\u4eba\u7b49\u8f66',x+w-12,y+22);
+  c.textAlign='left';
   c.strokeStyle='#e8ebdb';c.lineWidth=1;
-  c.beginPath();c.moveTo(x+12,L.slotsY-8);c.lineTo(x+w-12,L.slotsY-8);c.stroke();
-  // 车位卡
+  c.beginPath();c.moveTo(x+12,L.slotsY-10);c.lineTo(x+w-12,L.slotsY-10);c.stroke();
   for(let i=0;i<6;i++){
     const sx=x+12+i*(L.slotW+8),sy=L.slotsY;
     const unlocked=i<save.slots;
@@ -831,20 +842,61 @@ function drawStationCard(now){
     c.beginPath();c.roundRect(sx,sy,L.slotW,L.slotH,9);c.stroke();
     if(!unlocked){
       c.strokeStyle='#aab39a';c.lineWidth=2.4;
-      c.beginPath();c.arc(sx+L.slotW/2,sy+19,6,Math.PI,0);c.stroke();
+      c.beginPath();c.arc(sx+L.slotW/2,sy+17,6,Math.PI,0);c.stroke();
       c.fillStyle='#aab39a';
-      c.beginPath();c.roundRect(sx+L.slotW/2-8.5,sy+19,17,13,3);c.fill();
-      c.fillStyle='#fdfef8';c.beginPath();c.arc(sx+L.slotW/2,sy+25.5,2,0,7);c.fill();
+      c.beginPath();c.roundRect(sx+L.slotW/2-8.5,sy+17,17,13,3);c.fill();
+      c.fillStyle='#fdfef8';c.beginPath();c.arc(sx+L.slotW/2,sy+23.5,2,0,7);c.fill();
       c.fillStyle='#8f987f';c.font='700 9px system-ui';c.textAlign='center';
-      c.fillText(i===4?'150 金币':'300 金币',sx+L.slotW/2,sy+L.slotH-8);
+      c.fillText(i===4?'150 \u91d1\u5e01':'300 \u91d1\u5e01',sx+L.slotW/2,sy+L.slotH-8);
     }
   }
-  // 停靠中的 miniCar / 驶入 / 驶离
+  c.fillStyle='#7d9078';c.beginPath();c.arc(x+16,y+h-12,2.5,0,7);c.fill();
+  c.fillStyle='#5c685a';c.font='600 10px system-ui';c.textAlign='left';
+  c.fillText('\u540c\u8272\u4e0a\u8f66 \u00b7 \u6ee1\u5458\u51fa\u53d1',x+24,y+h-8);
+  if(save.slots<6){
+    c.textAlign='right';c.fillStyle='#9aa58e';
+    c.fillText('+ \u589e\u52a0\u8f66\u4f4d '+(save.slots===4?'150':'300')+' \u25cf',x+w-12,y+h-8);
+  }
+  // \u9a6c\u8def
+  c.fillStyle='#b6c5ab';c.fillRect(0,L.roadY,W,L.roadH);
+  c.fillStyle='#a3b497';c.fillRect(0,L.roadY+L.roadH-3,W,3);
+  c.fillStyle='rgba(255,255,255,.75)';
+  for(let rx2=10;rx2<W;rx2+=34)c.fillRect(rx2,L.roadMid-1.4,16,2.8);
+  c.fillStyle='rgba(255,255,255,.9)';
+  c.font='800 8px system-ui';c.textAlign='center';
+  c.fillText('O N E   C O L O R  \u00b7  O N E   H A P P Y   R I D E .',W/2,L.roadY+12);
+  // \u8fdb\u5ea6\u884c\u58f3
+  c.fillStyle='#7d9078';c.beginPath();c.arc(18,L.progY,2.5,0,7);c.fill();
+  const bw=W*0.28;
+  c.fillStyle='#dde1cf';
+  c.beginPath();c.roundRect(W-bw-50,L.progY-3.5,bw,7,3.5);c.fill();
+  c.textAlign='left';
+}
+/* ---- 车站动态元素 ---- */
+function drawStationDynamic(c,now){
+  const x=L.cardX,y=L.cardY,w=L.cardW;
+  c.textAlign='right';
+  c.fillStyle='#2f3b32';c.font='900 18px system-ui';
+  c.fillText(String(demandSum()),x+w-56,y+22);
+  // 队列小人（大号）
+  const capN=Math.floor((w-96)/16);
+  const qn=Math.min(G.queueSeq.length,capN);
+  c.fillStyle='#9aa58e';c.font='700 8px system-ui';c.textAlign='left';
+  c.fillText('\u961f\u9996',x+12,L.queueY+6);
+  c.strokeStyle='#b9c2a8';c.lineWidth=1;
+  c.beginPath();c.moveTo(x+21,L.queueY-5);c.lineTo(x+21,L.queueY+8);c.stroke();
+  c.beginPath();c.moveTo(x+18,L.queueY-2);c.lineTo(x+21,L.queueY-5);c.lineTo(x+24,L.queueY-2);c.stroke();
+  for(let i=0;i<qn;i++)drawPerson(c,x+36+i*16,L.queueY-2,G.queueSeq[i],1,0);
+  if(G.queueSeq.length>qn){
+    c.fillStyle='#9aa58e';c.font='800 11px system-ui';
+    c.fillText('\u2026',x+36+qn*16,L.queueY+2);
+  }
+  // 停靠 miniCar / 驶入 / 驶离
   for(const v of G.vehicles){
     if(v.slot<0)continue;
     if(!['arriving','parked','boarding','departing'].includes(v.state))continue;
     const ct=slotCenter(v.slot);
-    const cw=L.slotW*0.84,ch=26;
+    const cw=L.slotW*0.86,ch=28;
     if(v.state==='arriving'&&v.arrive){
       const t=clamp((now-v.arrive.start)/v.arrive.dur,0,1);
       const ease=1-Math.pow(1-t,1.6);
@@ -859,35 +911,26 @@ function drawStationCard(now){
       drawMiniCar(c,v.color,-cw/2,-ch/2,cw,ch,{});
       c.restore();
     }else{
-      const boardingDoor=v.state==='boarding'&&G.walks.has('s'+v.slot);
-      drawMiniCar(c,v.color,ct.x-cw/2,ct.y-ch/2,cw,ch,{door:boardingDoor});
+      const doorOpen=v.state==='boarding'&&G.walks.has('s'+v.slot);
+      drawMiniCar(c,v.color,ct.x-cw/2,ct.y-ch/2,cw,ch,{door:doorOpen});
       c.fillStyle='#5c685a';c.font='700 9px system-ui';c.textAlign='center';
-      const sx=L.cardX+12+v.slot*(L.slotW+8)+L.slotW/2;
-      const stTxt=v.state==='boarding'?('上客中 '+v.boarded+'/'+capOf(v.len)):'停靠中';
+      const sx=x+12+v.slot*(L.slotW+8)+L.slotW/2;
+      const stTxt=v.state==='boarding'?('\u4e0a\u5ba2\u4e2d '+v.boarded+'/'+capOf(v.len)):'\u505c\u9760\u4e2d';
       c.fillText(stTxt,sx,L.slotsY+L.slotH-7);
     }
   }
-  // 行走中的乘客
+  // 行走中的乘客（大号）
   for(const wk of G.walks.values()){
     const t=clamp((now-wk.start)/wk.dur,0,1);
-    const pts=walkPath(wk.slot);
-    const pos=alongPath(pts,t);
-    drawPerson(c,pos[0],pos[1],wk.color,0.88,Math.sin(t*Math.PI*8));
-  }
-  // 底部注释
-  c.fillStyle='#7d9078';c.beginPath();c.arc(x+16,y+h-12,2.5,0,7);c.fill();
-  c.fillStyle='#5c685a';c.font='600 10px system-ui';c.textAlign='left';
-  c.fillText('同色上车 · 满员出发',x+24,y+h-8);
-  if(save.slots<6){
-    c.textAlign='right';c.fillStyle='#9aa58e';
-    c.fillText('+ 增加车位 '+(save.slots===4?'150':'300')+' ●',x+w-12,y+h-8);
+    const pos=alongPath(walkPath(wk.slot),t);
+    drawPerson(c,pos[0],pos[1],wk.color,1.08,Math.sin(t*Math.PI*8));
   }
   c.textAlign='left';
 }
-function walkPath(slot){ // 队首 → 车位卡门口
+function walkPath(slot){
   const ct=slotCenter(slot);
-  const sx=L.cardX+40;
-  return [[sx,L.queueY-2],[sx+34,L.queueY+8],[ct.x-8,L.slotsY+L.slotH+2],[ct.x-4,ct.y+10]];
+  const sx=L.cardX+38;
+  return [[sx,L.queueY-2],[sx+36,L.queueY+10],[ct.x-8,L.slotsY+L.slotH+4],[ct.x-4,ct.y+12]];
 }
 function alongPath(points,t){
   const lengths=points.slice(1).map((p,i)=>Math.hypot(p[0]-points[i][0],p[1]-points[i][1]));
@@ -905,42 +948,27 @@ function alongPath(points,t){
   }
   return [points[0][0],points[0][1],0];
 }
-/* ---- 马路 + 进度 ---- */
-function drawRoad(now){
-  const c=ctx;
-  c.fillStyle='#b6c5ab';
-  c.fillRect(0,L.roadY,W,L.roadH);
-  c.fillStyle='#a3b497';
-  c.fillRect(0,L.roadY+L.roadH-3,W,3);
-  c.fillStyle='rgba(255,255,255,.75)';
-  for(let x=10;x<W;x+=34)c.fillRect(x,L.roadMid-1.4,16,2.8);
-  c.fillStyle='rgba(255,255,255,.9)';
-  c.font='800 8px system-ui';c.textAlign='center';
-  c.fillText('O N E   C O L O R  ·  O N E   H A P P Y   R I D E .',W/2,L.roadY+12);
-  // 等待上路的车（马路左侧排队）
+/* ---- 马路动态 ---- */
+function drawRoadDynamic(c,now){
   let wi=0;
   for(const v of G.vehicles){
     if(v.state!=='waiting')continue;
-    drawMiniCar(c,v.color,-52-wi*54,L.roadY+5,L.slotW*0.78,24,{});
+    drawMiniCar(c,v.color,-52-wi*54,L.roadY+6,L.slotW*0.78,24,{});
     wi++;
   }
-  // 进度行
   const leftCount=G.vehicles.filter(v=>v.state==='idle').length;
-  c.fillStyle='#7d9078';c.beginPath();c.arc(18,L.progY,2.5,0,7);c.fill();
   c.fillStyle='#3c4a3a';c.font='800 12px system-ui';c.textAlign='left';
-  c.fillText(leftCount+' 辆待出发',28,L.progY+4);
+  c.fillText(leftCount+' \u8f86\u5f85\u51fa\u53d1',28,L.progY+4);
   const served=G.total?1-demandSum()/G.total:0;
   const bw=W*0.28;
-  c.fillStyle='#dde1cf';
-  c.beginPath();c.roundRect(W-bw-50,L.progY-3.5,bw,7,3.5);c.fill();
   if(served>0){c.fillStyle='#7d9078';c.beginPath();c.roundRect(W-bw-50,L.progY-3.5,bw*clamp(served,0,1),7,3.5);c.fill();}
   c.fillStyle='#3c4a3a';c.font='800 11px system-ui';c.textAlign='right';
   c.fillText(Math.round(served*100)+'%',W-14,L.progY+4);
   c.textAlign='left';
 }
-/* ---- 等距棋盘 ---- */
-function drawBoard(now){
-  const c=ctx,s=G.level.params;
+/* ---- 棋盘静态地台 ---- */
+function drawBoardStatic(c){
+  const s=G.level.params;
   plane(c,-0.35,-0.35,s.cols+0.7,s.rows+0.7,-7,'#bed0b953');
   box(c,-0.18,-0.18,s.cols+0.36,s.rows+0.36,0,'#d3ddce','#b7c8b1','#becfb7');
   plane(c,0,0,s.cols,s.rows,1,'#dce3d5','#eef2e6');
@@ -975,6 +1003,10 @@ function drawBoard(now){
     c.fillStyle='#efe4d2';
     c.beginPath();c.roundRect(p[0]-L.u*0.19,p[1]-L.u*0.3,L.u*0.38,L.u*0.14,3);c.fill();
   }
+}
+/* ---- 棋盘动态：车辆/动画 ---- */
+function drawBoardDynamic(c,now){
+  const s=G.level.params;
   for(const v of G.vehicles){
     if(v.state!=='idle')continue;
     const horizontal=v.orient==='h';
@@ -1032,30 +1064,25 @@ function drawTree(c,x,y,size){
   c.beginPath();c.ellipse(-4*size,-25*size,7*size,10*size,-0.2,0,7);c.fill();
   c.restore();
 }
-/* ---- 等距车辆 ---- */
+/* ---- 等距车辆（加高座舱，无 shadowBlur） ---- */
 function drawCarIso(v,options={}){
   const c=ctx,color=COLORS[v.color],horizontal=v.orient==='h';
   const x=v.x+0.12,y=v.y+0.12;
   const w=horizontal?v.len-0.24:0.76,h=horizontal?0.76:v.len-0.24;
-  const z=Math.max(5,L.u*0.27),roof=Math.max(10,L.u*0.55);
+  const z=Math.max(6,L.u*0.36),roof=Math.max(13,L.u*0.92);
   const p=(a,b,hh)=>project(a,b,hh);
-  c.save();
-  c.shadowColor='#31463755';c.shadowBlur=5;c.shadowOffsetY=4;
-  plane(c,x+0.09,y+0.09,w,h,0,'#47594435');
-  c.restore();
+  // 软阴影（不用 shadowBlur，手机性能友好）
+  plane(c,x+0.1,y+0.16,w,h,0,'#3c554038');
   if(options.highlight){
-    c.save();
-    c.shadowColor='#ffe89e';c.shadowBlur=15;
     plane(c,x-0.06,y-0.06,w+0.12,h+0.12,1,'#fff0a8','#fffbd5');
-    c.restore();
   }
   box(c,x,y,w,h,z,color.top,color.dark,color.body);
   polygon(c,[p(x,y+h,1),p(x+w,y+h,1),p(x+w,y+h,3),p(x,y+h,3)],color.dark);
   const forward=v.dir<2;
-  const baseX=horizontal?x+w*0.2:x+0.06,baseY=horizontal?y+0.06:y+h*0.2;
-  const baseW=horizontal?w*0.6:w-0.12,baseH=horizontal?h-0.12:h*0.6;
-  const rx=baseX+(horizontal?w*0.08:0.08),ry=baseY+(horizontal?0.08:h*0.08);
-  const rw=baseW-(horizontal?w*0.16:0.16),rh=baseH-(horizontal?0.16:h*0.16);
+  const baseX=horizontal?x+w*0.16:x+0.05,baseY=horizontal?y+0.05:y+h*0.16;
+  const baseW=horizontal?w*0.68:w-0.1,baseH=horizontal?h-0.1:h*0.68;
+  const rx=baseX+(horizontal?w*0.06:0.05),ry=baseY+(horizontal?0.05:h*0.06);
+  const rw=baseW-(horizontal?w*0.12:0.1),rh=baseH-(horizontal?0.1:h*0.12);
   const bottom=[p(baseX,baseY,z),p(baseX+baseW,baseY,z),p(baseX+baseW,baseY+baseH,z),p(baseX,baseY+baseH,z)];
   const top=[p(rx,ry,roof),p(rx+rw,ry,roof),p(rx+rw,ry+rh,roof),p(rx,ry+rh,roof)];
   polygon(c,[bottom[1],bottom[2],top[2],top[1]],'#355963');
@@ -1100,7 +1127,7 @@ function drawCarIso(v,options={}){
   c.strokeStyle='#fffef5';c.lineWidth=1.8;arrow();
   c.restore();
 }
-/* ---- 侧视 miniCar ---- */
+/* ---- 侧视 miniCar（无 shadowBlur） ---- */
 function drawMiniCar(c,ci,x,y,w,h,opt={}){
   const color=COLORS[ci];
   c.save();
@@ -1109,10 +1136,7 @@ function drawMiniCar(c,ci,x,y,w,h,opt={}){
     c.fillStyle=fill;
     c.beginPath();c.roundRect(a,b,ww,hh,r);c.fill();
   };
-  c.save();
-  c.shadowColor='#324d3b50';c.shadowBlur=7;c.shadowOffsetY=5;
-  rrd(x+2,y+5,w,h,7,'#38564320');
-  c.restore();
+  rrd(x+2,y+5,w,h,7,'#38564322');
   rrd(x-2,y+h*0.17,5,11,2,'#293e42');
   rrd(x+w-3,y+h*0.17,5,11,2,'#293e42');
   rrd(x-2,y+h*0.7,5,10,2,'#293e42');
@@ -1144,25 +1168,25 @@ function drawMiniCar(c,ci,x,y,w,h,opt={}){
   }
   c.restore();
 }
-/* ---- 小人 ---- */
+/* ---- 小人（默认更大） ---- */
 function drawPerson(c,x,y,ci,scale=1,walk=0){
   const palette=COLORS[ci];
   c.save();
   c.translate(x,y);
   c.scale(scale,scale);
   c.fillStyle='#516d5725';
-  c.beginPath();c.ellipse(1,8,5,2,0,0,7);c.fill();
-  c.strokeStyle=palette.dark;c.lineWidth=2.6;c.lineCap='round';
+  c.beginPath();c.ellipse(1,8,5.5,2.2,0,0,7);c.fill();
+  c.strokeStyle=palette.dark;c.lineWidth=2.8;c.lineCap='round';
   c.beginPath();
-  c.moveTo(-2,3);c.lineTo(-2-walk*2,7);
-  c.moveTo(2,3);c.lineTo(2+walk*2,7);
+  c.moveTo(-2.2,3);c.lineTo(-2.2-walk*2.4,7.5);
+  c.moveTo(2.2,3);c.lineTo(2.2+walk*2.4,7.5);
   c.stroke();
   c.fillStyle=palette.body;
-  c.beginPath();c.roundRect(-4,-3,8,8,3);c.fill();
+  c.beginPath();c.roundRect(-4.6,-3.5,9.2,9,3.6);c.fill();
   c.fillStyle=palette.top;
-  c.beginPath();c.arc(0,-7,4,0,7);c.fill();
+  c.beginPath();c.arc(0,-7.6,4.4,0,7);c.fill();
   c.fillStyle=palette.dark;
-  c.fillRect(0,-9,1.4,1.4);
+  c.fillRect(0,-9.8,1.6,1.6);
   c.restore();
 }
 
@@ -1192,7 +1216,7 @@ function buySlot(i){
 }
 window.doBuySlot=function(i,price){
   if(save.coins<price){toast('金币不足');return;}
-  save.coins-=price;save.slots=Math.max(save.slots,i+1);persist();
+  save.coins-=price;save.slots=Math.max(save.slots,i+1);persist();invalidateStatic();
   SFX.coin();hideModal();updateHud();toast('新车位解锁！');promoteWaiting(performance.now());
 };
 document.getElementById('btnPause').addEventListener('click',()=>{SFX.click();showPause();});
