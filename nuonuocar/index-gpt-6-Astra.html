@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#e6eee5" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2352775c'/%3E%3Ctext x='16' y='24' text-anchor='middle' font-size='24' fill='%23faf9f3'%3EP%3C/text%3E%3C/svg%3E"
+    />
+    <meta name="description" content="挪挪车：驶出拥堵，接上好心情。无限关卡、彩色接客与五种道具，手机上轻点即玩。" />
+    <title>挪挪车 · PARK & GO — gpt-6-Astra</title>
+    <link rel="stylesheet" href="styles-gpt-6-Astra.css" />
+  </head>
+  <body>
+    <aside class="desktop-intro" aria-hidden="true">
+      <div class="edition">A LITTLE BREAK, A LITTLE PLAY.</div>
+      <h1>PARK<br /><span>&</span> GO<span class="period">.</span></h1>
+      <p class="intro-cn">挪开拥堵，<br />接上好心情。</p>
+      <div class="intro-line"></div>
+      <p class="intro-detail">一座小小停车场，一场色彩大调度。<br />动动脑筋，让每个人都有座位。</p>
+      <div class="infinite-label"><b>∞</b> 无尽关卡 · 随时来一局</div>
+      <div class="credit">DESIGNED TO PLAY / gpt-6-Astra</div>
+    </aside>
+
+    <main class="game" aria-label="挪挪车游戏">
+      <header class="topbar">
+        <button class="icon-button" id="pause" aria-label="暂停游戏">
+          <svg viewBox="0 0 24 24"><path d="M8 6v12M16 6v12" /></svg>
+        </button>
+        <div class="wordmark">挪挪车<span>PARK & GO</span></div>
+        <button id="wallet" class="wallet" aria-label="金币商店">
+          <span class="coin">✦</span><b id="coins">200</b><span class="plus">+</span>
+        </button>
+      </header>
+      <section class="levelbar">
+        <div>
+          <span class="eyebrow">LET’S CLEAR THE WAY</span>
+          <h2>第 <span id="level">1</span> 关 <span id="hard" hidden>挑战</span></h2>
+        </div>
+        <div class="level-tools">
+          <button id="help" class="tiny-button" aria-label="玩法说明">?</button
+          ><button id="undo" class="tiny-button" aria-label="撤销上次操作">
+            <svg viewBox="0 0 24 24"><path d="m8 5-4 4 4 4M4 9h10a6 6 0 0 1 0 12" /></svg>
+          </button>
+        </div>
+      </section>
+      <section class="station" aria-label="接客站">
+        <div class="station-top">
+          <div><span class="live-dot"></span> 好心情接客站 <span class="station-en">BUS STOP</span></div>
+          <div><b id="remaining">48</b><span> 人等车</span></div>
+        </div>
+        <canvas id="station-canvas" aria-label="乘客队列和候车位"></canvas>
+        <div class="station-bottom">
+          <span><i></i> 同色上车 · 满员出发</span
+          ><button id="expand">＋ 增加车位 <b>60</b><span class="coin small">✦</span></button>
+        </div>
+      </section>
+      <div class="road" aria-hidden="true">
+        <div class="road-dash"></div>
+        <span class="road-label">ONE COLOR. ONE HAPPY RIDE.</span><span class="road-arrow">➜</span>
+      </div>
+      <section class="playfield" aria-label="停车场">
+        <div class="board-heading">
+          <span><i class="green-dot"></i> <b id="cars-left">12</b> 辆待出发</span>
+          <div class="progress"><div id="progress-fill"></div></div>
+          <b id="percent">0%</b>
+        </div>
+        <canvas
+          id="board"
+          tabindex="0"
+          role="application"
+          aria-label="停车场：轻点车辆按箭头驶出。键盘方向键选择车辆，回车发车。"
+        ></canvas>
+        <div id="mode-banner" hidden><span></span><button id="cancel-mode">取消</button></div>
+        <div class="board-hint" id="board-hint"><span>↗</span> 轻点小车，沿箭头驶出停车场</div>
+      </section>
+      <footer class="bottom">
+        <div class="tool-heading">
+          <span>堵住了？搭把手</span><button id="shop">道具补给 <span>↗</span></button>
+        </div>
+        <div class="props">
+          <button class="prop" data-prop="hint">
+            <span class="prop-count">3</span
+            ><span class="prop-icon hint-icon"
+              ><svg viewBox="0 0 32 32">
+                <path d="M11 23h10M12 27h8M11 19c0-3-4-4-4-9a9 9 0 0 1 18 0c0 5-4 6-4 9Z" />
+                <path d="m14 12 2 3 3-5" /></svg></span
+            ><span>提示</span>
+          </button>
+          <button class="prop" data-prop="shuffle">
+            <span class="prop-count">1</span
+            ><span class="prop-icon shuffle-icon"
+              ><svg viewBox="0 0 32 32">
+                <path d="M25 12A10 10 0 0 0 7 8L4 12m0-7v7h7M7 20a10 10 0 0 0 18 4l3-4m0 7v-7h-7" /></svg></span
+            ><span>刷新</span>
+          </button>
+          <button class="prop" data-prop="remove">
+            <span class="prop-count">2</span
+            ><span class="prop-icon remove-icon"
+              ><svg viewBox="0 0 32 32">
+                <path
+                  d="M4 22v-9h12v9H4Zm12-5h6l5 5H16M8 13V6h15v10M8 24a2 2 0 1 0 0 .1M23 24a2 2 0 1 0 0 .1"
+                /></svg></span
+            ><span>消除</span>
+          </button>
+          <button class="prop" data-prop="sort">
+            <span class="prop-count">2</span
+            ><span class="prop-icon sort-icon"
+              ><svg viewBox="0 0 32 32">
+                <circle cx="10" cy="7" r="3" />
+                <path d="M5 23v-9h10v9m-5-7v11M20 7h9m-3-3 3 3-3 3M29 21h-9m3-3-3 3 3 3" /></svg></span
+            ><span>排序</span>
+          </button>
+          <button class="prop" data-prop="flip">
+            <span class="prop-count">2</span
+            ><span class="prop-icon flip-icon"
+              ><svg viewBox="0 0 32 32"><path d="M5 10h22m-5-5 5 5-5 5M27 23H5m5-5-5 5 5 5" /></svg></span
+            ><span>翻转</span>
+          </button>
+        </div>
+        <div class="footer-note"><span>慢慢来，每一辆都有出路</span><span>∞ 无尽模式</span></div>
+      </footer>
+      <div id="toast" role="status" aria-live="polite"></div>
+      <div id="overlay" hidden>
+        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+          <button id="close-modal" class="close-modal" aria-label="关闭弹窗">×</button>
+          <div id="modal-content"></div>
+        </section>
+      </div>
+      <div id="celebration" aria-hidden="true"></div>
+    </main>
+    <aside class="desktop-guide">
+      <span class="guide-num">01 / HOW TO PLAY</span>
+      <div class="guide-arrow">↗</div>
+      <h3>方向对了，<br />就出发吧。</h3>
+      <p>点击车辆，沿箭头驶出。<br />留意队首颜色和空余车位。</p>
+      <div class="color-swatches"><i></i><i></i><i></i><i></i></div>
+      <span class="guide-bottom">无需下载 · 点开就玩</span>
+    </aside>
+    <script src="engine-gpt-6-Astra.js"></script>
+    <script src="render-gpt-6-Astra.js"></script>
+    <script src="game-gpt-6-Astra.js"></script>
+  </body>
+</html>
