@@ -1,0 +1,31 @@
+const assert = require('node:assert/strict');
+(async () => {
+  const T = await import('./vendor/three.module-gpt-6-Astra.min.js');
+  const { box, group } = await import('./models-gpt-6-Astra.js');
+  const { SceneBatcher } = await import('./batching-gpt-6-Astra.js');
+  const scene = new T.Scene();
+  // Thin bevelled road slabs must never bulge above the painted parking lines.
+  const road = box(scene, 10, .04, 10, '#667d73', 0, 0, 0, .16);
+  road.geometry.computeBoundingBox();
+  assert.ok(road.geometry.boundingBox.max.y <= .020001);
+  assert.ok(road.geometry.boundingBox.min.y >= -.020001);
+  assert.ok([...road.geometry.attributes.position.array].every(Number.isFinite));
+  const body = group(); body.userData.id = 7; body.position.set(2, 0, 1); scene.add(body);
+  const source = box(body, 1, 1, 1, '#ee786b', 0, 1, 0, .1);
+  const door = group(); door.visible = false; body.add(door);
+  const flap = box(door, 1, 1, 1, '#ee786b', 0, 1, 0, .1);
+  const batcher = new SceneBatcher(scene); batcher.update();
+  const batch = batcher.batches.find(b => b.sources.includes(source));
+  assert.equal(batch.sources.length, 2);
+  assert.equal(batch.mesh.count, 1, 'A hidden door must not create a phantom body');
+  assert.equal(source.visible, false, 'Source geometry must not be drawn twice');
+  door.visible = true; body.position.x = 4; batcher.update();
+  assert.equal(batch.mesh.count, 2);
+  const matrix = new T.Matrix4(); batch.mesh.getMatrixAt(0, matrix);
+  assert.ok(new T.Vector3().setFromMatrixPosition(matrix).distanceTo(new T.Vector3(4, 1, 1)) < 1e-6);
+  const ray = new T.Raycaster(new T.Vector3(4, 5, 1), new T.Vector3(0, -1, 0));
+  assert.ok(ray.intersectObjects([body], true).some(hit => hit.object === source), 'Hidden instancing sources must remain pickable');
+  door.remove(flap); batcher.dirty = true; batcher.update();
+  assert.equal(batcher.batches.find(b => b.sources.includes(source)).mesh.count, 1);
+  console.log('PASS: thin slab geometry, hidden doors, dynamic instancing, translated ray picking and batch rebuild.');
+})().catch(error => { console.error(error); process.exitCode = 1; });

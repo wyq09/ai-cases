@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#e7eee3" />
+    <meta
+      name="description"
+      content="挪挪车 3D，一座可以旋转的微缩停车场。无限关卡、五种道具、真实停车和乘客上车，手机轻点即玩。"
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%232c6652'/%3E%3Ctext x='16' y='24' text-anchor='middle' font-size='24' fill='white'%3EP%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="styles-gpt-6-Astra.css" />
+    <title>挪挪车 3D · PARK A LITTLE — gpt-6-Astra</title>
+  </head>
+  <body>
+    <aside class="intro">
+      <div class="edition"><i></i> THE MINIATURE SERIES / 003</div>
+      <h1>PARK<br />A LITTLE<span>.</span></h1>
+      <p class="intro-cn">转个角度，<br />接上好心情。</p>
+      <p class="intro-note">一座掌心里的停车场。<br />一点耐心，一路畅通。</p>
+      <div class="intro-rule"></div>
+      <div class="intro-how"><b>01</b><span>看车头，轻点出发</span></div>
+      <div class="intro-how"><b>02</b><span>同色上车，坐满开走</span></div>
+      <div class="intro-how"><b>03</b><span>拖动场景，换个视角</span></div>
+      <div class="intro-bottom">
+        REAL 3D. ENDLESS LITTLE JOURNEYS.<br /><span
+          >gpt-6-Astra / 独立 3D 版</span
+        >
+      </div>
+    </aside>
+    <main class="game" aria-label="挪挪车 3D 游戏">
+      <header class="topbar">
+        <button class="icon-button" id="pause" aria-label="暂停游戏">Ⅱ</button>
+        <div class="wordmark">挪挪车 <em>3D</em><span>PARK A LITTLE</span></div>
+        <button id="wallet" class="wallet" aria-label="金币商店">
+          <span>✦</span> <b id="coins">200</b> ＋
+        </button>
+      </header>
+      <section class="dashboard" aria-label="关卡与进度">
+        <h2>
+          第 <span id="level">1</span> 关 <small id="hard" hidden>挑战</small>
+        </h2>
+        <span class="car-count"><b id="cars-left">11</b> 辆待出发</span>
+        <div class="progress"><i id="progress-fill"></i></div>
+        <b id="percent">0%</b>
+        <button id="undo" class="tiny-button" aria-label="撤销上次操作">
+          ↶
+        </button>
+        <button id="help" class="tiny-button" aria-label="玩法说明">?</button>
+      </section>
+      <section class="world" aria-label="可旋转的立体停车场">
+        <canvas
+          id="board"
+          tabindex="0"
+          role="application"
+          aria-label="3D 停车场：轻点车辆发车，拖动旋转，双指缩放；方向键选择，回车发车。"
+        ></canvas>
+        <div class="station-hud">
+          <div class="station-title">
+            <i></i> 好心情接客站 <span><b id="remaining">48</b> 人等车</span>
+          </div>
+          <div
+            class="queue-preview"
+            id="queue-preview"
+            aria-label="队首乘客颜色"
+          ></div>
+          <div class="station-sub">
+            <span id="station-status">同色上车 · 满员出发</span
+            ><button id="expand">＋ 增加车位</button>
+          </div>
+        </div>
+        <div class="view-label">MINIATURE PARK <span>01</span></div>
+        <div class="camera-tools" aria-label="视角控制">
+          <button id="zoom-in" aria-label="放大场景">＋</button
+          ><button id="zoom-out" aria-label="缩小场景">−</button
+          ><button id="camera-reset" aria-label="恢复默认视角">⌖</button>
+        </div>
+        <div id="mode-banner" hidden>
+          <span></span><button id="cancel-mode">取消</button>
+        </div>
+        <div id="board-hint">
+          轻点出发 <span>·</span> 拖动旋转 <span>·</span> 双指缩放
+        </div>
+        <div id="loading">
+          <span class="loader"></span><b>正在搭建小小停车场</b
+          ><small>好心情即将出发</small>
+        </div>
+      </section>
+      <footer class="bottom">
+        <div class="tool-heading">
+          <span>堵住了？搭把手</span><button id="shop">道具补给 ↗</button>
+        </div>
+        <div class="props">
+          <button class="prop" data-prop="hint">
+            <span class="prop-count">3</span><span class="prop-icon">☼</span
+            ><span>提示</span>
+          </button>
+          <button class="prop" data-prop="shuffle">
+            <span class="prop-count">1</span><span class="prop-icon">⟳</span
+            ><span>刷新</span>
+          </button>
+          <button class="prop" data-prop="remove">
+            <span class="prop-count">2</span><span class="prop-icon">♧</span
+            ><span>消除</span>
+          </button>
+          <button class="prop" data-prop="sort">
+            <span class="prop-count">2</span><span class="prop-icon">⇄</span
+            ><span>排序</span>
+          </button>
+          <button class="prop" data-prop="flip">
+            <span class="prop-count">2</span><span class="prop-icon">⇆</span
+            ><span>翻转</span>
+          </button>
+        </div>
+        <div class="footer-note">
+          <span>慢慢来，每一辆都有出路</span><span>∞ 无尽关卡</span>
+        </div>
+      </footer>
+      <div id="toast" role="status" aria-live="polite"></div>
+      <div id="overlay" hidden>
+        <section
+          class="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+        >
+          <button id="close-modal" class="close-modal" aria-label="关闭弹窗">
+            ×
+          </button>
+          <div id="modal-content"></div>
+        </section>
+      </div>
+      <div id="celebration" aria-hidden="true"></div>
+    </main>
+    <script src="engine-gpt-6-Astra.js"></script>
+    <script src="traffic-gpt-6-Astra.js"></script>
+    <script type="module" src="boot-gpt-6-Astra.js"></script>
+  </body>
+</html>
