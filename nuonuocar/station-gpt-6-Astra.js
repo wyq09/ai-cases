@@ -188,15 +188,16 @@
       const count = this.arrivalIds.size;
       const boarding = this.phases.has("boarding");
       const departing = [...this.phases.values()].some((p) => p.kind === "departing");
+      const hasSpace = this.getState().slots.includes(null);
       const status = document.querySelector("#station-status");
       const text = boarding
         ? count
           ? `乘客上车中 · ${count} 辆驶入`
-          : "乘客上车中 · 可继续发车"
+          : hasSpace ? "乘客上车中 · 可继续发车" : "乘客上车中 · 满员后腾位"
         : count
           ? `${count} 辆正在停入车位`
           : departing
-            ? "满员出发 · 可继续发车"
+            ? hasSpace ? "满员出发 · 可继续发车" : "满员出发 · 即将腾出车位"
             : "同色上车 · 满员出发";
       if (status.textContent !== text) status.textContent = text;
     },
