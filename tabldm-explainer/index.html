@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Xiaomi-TabLDM 导读：开启表格数据的 Scaling Law</title>
+<meta name="description" content="一篇读懂小米通用表格数据基础大模型 Xiaomi-TabLDM：为什么表格预测正在从「一表一模型」走向「一次预训练、跨任务通用」，以及它交出的基准与工业成绩单。">
+<meta name="theme-color" content="#F6F1E7">
+<meta property="og:title" content="Xiaomi-TabLDM 导读：开启表格数据的 Scaling Law">
+<meta property="og:description" content="一个 70M 参数的预训练模型，分类回归开箱即用；四大公开基准第一梯队，工业场景精度 +130%。">
+<meta property="og:image" content="https://case.youyongai.com/tabldm-explainer/assets/benchmark-ranks.jpg">
+<link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;rect width='100' height='100' rx='22' fill='%234A5F8C'/&gt;&lt;rect x='22' y='26' width='56' height='10' rx='5' fill='%23E8B4A2'/&gt;&lt;rect x='22' y='45' width='36' height='10' rx='5' fill='%23F6F1E7'/&gt;&lt;rect x='22' y='64' width='48' height='10' rx='5' fill='%23F6F1E7' opacity='.65'/&gt;&lt;/svg&gt;">
+<style>
+:root{
+  --paper:#F6F1E7;
+  --paper-2:#EFE7D6;
+  --card:#FFFDF8;
+  --ink:#32405C;          /* 黛蓝 */
+  --body:#4A5568;
+  --blue:#4A5F8C;         /* 暮山蓝 */
+  --blue-soft:#7C93B1;    /* 雾霾蓝 */
+  --peach:#E8B4A2;        /* 晚桃粉 */
+  --peach-soft:#F7E6DC;
+  --persimmon:#D87A4A;    /* 柿橙 */
+  --teal:#5D7E7A;         /* 远山青 */
+  --gold:#D9A441;         /* 琥珀金 */
+  --line:#E4DAC6;
+  --shadow:0 10px 30px rgba(74,95,140,.10);
+  --serif:"Songti SC","Noto Serif SC","STSong",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--body);
+  line-height:1.75;
+  font-size:16px;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+::selection{background:var(--peach);color:#fff}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+section{padding:56px 0}
+.eyebrow{
+  display:flex;align-items:baseline;gap:12px;
+  margin-bottom:18px;
+}
+.eyebrow .no{
+  font-family:var(--serif);font-size:15px;color:var(--persimmon);
+  letter-spacing:.1em;
+}
+.eyebrow .label{
+  font-size:13px;letter-spacing:.28em;color:var(--blue-soft);
+  font-weight:600;
+}
+h2{
+  font-family:var(--serif);color:var(--ink);
+  font-size:clamp(24px,5.4vw,32px);line-height:1.35;
+  font-weight:700;margin-bottom:14px;
+}
+h2 .hl{color:var(--blue)}
+p.lede{font-size:16.5px}
+.prose p+p{margin-top:12px}
+strong{color:var(--ink)}
+
+/* ---------- hero ---------- */
+.hero{
+  position:relative;
+  padding:64px 0 48px;
+  background:
+    radial-gradient(120% 90% at 85% -10%, var(--peach-soft) 0%, transparent 55%),
+    radial-gradient(100% 80% at -10% 20%, #E9EDF4 0%, transparent 50%),
+    var(--paper);
+  border-bottom:1px solid var(--line);
+  overflow:hidden;
+}
+.hero-chip{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--card);border:1px solid var(--line);
+  border-radius:999px;padding:6px 14px;
+  font-size:12.5px;color:var(--blue);letter-spacing:.05em;
+  box-shadow:0 2px 8px rgba(74,95,140,.06);
+}
+.hero-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--persimmon);animation:blink 2.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+h1{
+  font-family:var(--serif);color:var(--ink);
+  font-size:clamp(30px,7.4vw,46px);
+  line-height:1.28;font-weight:700;
+  margin:18px 0 6px;
+}
+h1 .accent{
+  color:var(--blue);
+  background:linear-gradient(transparent 68%, var(--peach) 68%);
+  padding:0 2px;
+}
+.hero .sub{
+  font-size:clamp(15px,4vw,17.5px);color:var(--body);
+  max-width:560px;margin-top:10px;
+}
+.meta-row{
+  display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;
+}
+.meta-row span{
+  font-size:12.5px;color:var(--blue);
+  background:rgba(74,95,140,.08);
+  border:1px solid rgba(74,95,140,.14);
+  padding:4px 11px;border-radius:999px;
+}
+.cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  text-decoration:none;font-size:14.5px;font-weight:600;
+  padding:11px 20px;border-radius:12px;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.btn:active{transform:scale(.97)}
+.btn-primary{
+  background:var(--blue);color:#FDF9F2;
+  box-shadow:0 6px 18px rgba(74,95,140,.28);
+}
+.btn-primary:hover{box-shadow:0 8px 24px rgba(74,95,140,.36);transform:translateY(-1px)}
+.btn-ghost{
+  background:var(--card);color:var(--blue);
+  border:1px solid var(--line);
+}
+.btn-ghost:hover{border-color:var(--blue-soft);transform:translateY(-1px)}
+
+/* hero pipeline diagram */
+.pipe{
+  margin-top:40px;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:22px 14px 18px;
+  box-shadow:var(--shadow);
+  display:flex;align-items:center;justify-content:space-between;gap:4px;
+}
+.node{display:flex;flex-direction:column;align-items:center;gap:7px;flex:0 0 auto}
+.node .cap{font-size:11px;color:var(--blue-soft);letter-spacing:.08em;white-space:nowrap}
+.node .cap b{color:var(--ink);font-weight:600}
+
+/* mini table */
+.mini-table{
+  width:74px;border-radius:10px;border:1.5px solid var(--blue-soft);
+  background:#fff;padding:5px;display:grid;
+  grid-template-columns:repeat(3,1fr);gap:3px;
+}
+.mini-table i{display:block;height:11px;border-radius:3px;background:#E7ECF3}
+.mini-table i:nth-child(1){background:var(--peach);animation:cell 4.8s infinite}
+.mini-table i:nth-child(5){background:var(--blue-soft);animation:cell 4.8s .9s infinite}
+.mini-table i:nth-child(9){background:var(--gold);animation:cell 4.8s 1.8s infinite}
+.mini-table i:nth-child(4){background:#DCE4EE}
+.mini-table i:nth-child(7){background:#DCE4EE;animation:cell 4.8s 2.7s infinite}
+@keyframes cell{0%,20%,100%{opacity:1}10%{opacity:.35}}
+
+/* flow arrows with moving dots */
+.flow{position:relative;flex:1 1 0;min-width:34px;height:38px}
+.flow .rail{
+  position:absolute;top:50%;left:0;right:0;height:0;
+  border-top:1.5px dashed #C9BFA9;
+}
+.flow i{
+  position:absolute;top:50%;left:0;width:6px;height:6px;margin-top:-3px;
+  border-radius:50%;background:var(--persimmon);opacity:0;
+  animation:dash 2.4s infinite;
+}
+.flow i:nth-child(3){animation-delay:.8s;background:var(--blue)}
+.flow i:nth-child(4){animation-delay:1.6s;background:var(--gold)}
+@keyframes dash{0%{left:0;opacity:0}15%{opacity:1}85%{opacity:1}100%{left:calc(100% - 6px);opacity:0}}
+
+/* model node */
+.model-box{
+  width:104px;border-radius:12px;padding:10px 6px 8px;text-align:center;
+  background:linear-gradient(160deg,#4A5F8C,#32405C);
+  color:#F5EFE2;box-shadow:0 8px 20px rgba(50,64,92,.30);
+  animation:breathe 3.6s ease-in-out infinite;
+}
+@keyframes breathe{0%,100%{box-shadow:0 8px 20px rgba(50,64,92,.30)}50%{box-shadow:0 8px 30px rgba(74,95,140,.55)}}
+.model-box .t{font-size:11.5px;font-weight:700;letter-spacing:.03em}
+.model-box .s{font-size:9.5px;opacity:.72;margin-top:2px}
+
+/* output node */
+.out{
+  width:78px;border-radius:10px;border:1.5px solid var(--teal);
+  background:#fff;padding:8px 8px;display:flex;flex-direction:column;gap:5px;
+}
+.out .bar{height:9px;border-radius:3px;background:#E9EFEA;position:relative;overflow:hidden}
+.out .bar::after{
+  content:"";position:absolute;inset:0;border-radius:3px;background:var(--teal);
+  transform-origin:left;animation:grow 4.8s infinite;
+}
+.out .bar:nth-child(2)::after{animation-delay:.5s;background:var(--peach)}
+.out .bar:nth-child(3)::after{animation-delay:1s;background:var(--blue-soft)}
+@keyframes grow{0%{transform:scaleX(0)}45%,80%{transform:scaleX(1)}100%{transform:scaleX(1);opacity:0}}
+
+/* ---------- tldr ---------- */
+.tldr-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:26px}
+@media(min-width:640px){.tldr-grid{grid-template-columns:repeat(3,1fr)}}
+.tldr-card{
+  background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:22px 20px;position:relative;overflow:hidden;
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+.tldr-card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.tldr-card::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--peach),var(--blue));
+}
+.tldr-card .en{
+  font-family:var(--serif);font-size:13px;color:var(--persimmon);
+  letter-spacing:.14em;margin-bottom:6px;
+}
+.tldr-card h3{font-family:var(--serif);color:var(--ink);font-size:19px;margin-bottom:8px}
+.tldr-card p{font-size:14px;line-height:1.7}
+.tldr-card p b{color:var(--blue)}
+
+/* ---------- paradigm compare ---------- */
+.compare{display:grid;grid-template-columns:1fr;gap:16px;margin-top:26px}
+@media(min-width:640px){.compare{grid-template-columns:1fr 1fr}}
+.track{
+  background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:20px 18px;
+}
+.track.old{border-top:4px solid #B9B2A2}
+.track.new{border-top:4px solid var(--persimmon)}
+.track h3{
+  font-family:var(--serif);font-size:17px;color:var(--ink);
+  display:flex;align-items:center;gap:8px;margin-bottom:4px;
+}
+.track .note{font-size:12.5px;color:var(--blue-soft);margin-bottom:14px}
+.steps{list-style:none;display:flex;flex-direction:column;gap:8px}
+.steps li{
+  display:flex;align-items:center;gap:10px;
+  background:var(--paper);border:1px solid var(--line);
+  border-radius:10px;padding:9px 12px;font-size:13.5px;color:var(--body);
+  animation:stepGlow 7s infinite;
+}
+.track.old .steps li:nth-child(1){animation-delay:0s}
+.track.old .steps li:nth-child(2){animation-delay:.7s}
+.track.old .steps li:nth-child(3){animation-delay:1.4s}
+.track.old .steps li:nth-child(4){animation-delay:2.1s}
+.track.old .steps li:nth-child(5){animation-delay:2.8s}
+.track.new .steps li:nth-child(1){animation-delay:4.2s}
+.track.new .steps li:nth-child(2){animation-delay:4.9s}
+.track.new .steps li:nth-child(3){animation-delay:5.6s}
+@keyframes stepGlow{
+  0%,12%,100%{background:var(--paper);border-color:var(--line);color:var(--body)}
+  5%{background:var(--peach-soft);border-color:var(--peach);color:var(--ink)}
+}
+.steps li .ic{
+  flex:0 0 22px;height:22px;border-radius:7px;
+  display:grid;place-items:center;
+  font-size:11.5px;font-weight:700;color:#fff;background:var(--blue-soft);
+}
+.track.new .steps li .ic{background:var(--persimmon)}
+.track.new .steps li.final{
+  background:#EDF2EE;border-color:var(--teal);color:var(--teal);font-weight:600;
+}
+.track.new .steps li.final .ic{background:var(--teal)}
+.quote{
+  margin-top:26px;
+  border-left:3px solid var(--peach);
+  background:linear-gradient(90deg,var(--peach-soft),transparent 75%);
+  border-radius:0 14px 14px 0;
+  padding:16px 18px;
+  font-family:var(--serif);color:var(--ink);
+  font-size:clamp(15.5px,4.2vw,18px);line-height:1.7;
+}
+.quote .arrow{color:var(--persimmon);font-weight:700}
+
+/* ---------- three directions ---------- */
+.dir{display:flex;flex-direction:column;gap:16px;margin-top:26px}
+.dir-card{
+  background:var(--card);border:1px solid var(--line);border-radius:18px;
+  padding:24px 20px;box-shadow:0 4px 14px rgba(74,95,140,.05);
+}
+.dir-head{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.dir-ic{
+  flex:0 0 46px;height:46px;border-radius:14px;display:grid;place-items:center;
+  font-size:22px;background:var(--paper-2);
+}
+.dir-card:nth-child(1) .dir-ic{background:var(--peach-soft)}
+.dir-card:nth-child(2) .dir-ic{background:#E8EDF5}
+.dir-card:nth-child(3) .dir-ic{background:#EAF0ED}
+.dir-head h3{font-family:var(--serif);font-size:19px;color:var(--ink);line-height:1.4}
+.dir-head .en{display:block;font-family:var(--sans);font-size:11.5px;color:var(--blue-soft);letter-spacing:.12em;font-weight:600;margin-top:2px}
+.dir-card p{font-size:14.5px}
+.dir-card p b{color:var(--blue)}
+.tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.tags span{
+  font-size:12px;color:var(--blue);background:rgba(74,95,140,.07);
+  border:1px solid rgba(74,95,140,.13);border-radius:999px;padding:3px 10px;
+}
+
+/* synthetic grid animation */
+.syn{display:flex;gap:16px;align-items:center;margin-top:16px;background:var(--paper);border:1px dashed var(--line);border-radius:14px;padding:14px}
+.syn-grid{flex:0 0 92px;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.syn-grid i{height:19px;border-radius:4px;animation:shade 4s infinite}
+.syn-grid i:nth-child(4n+1){background:var(--blue-soft);animation-delay:.0s}
+.syn-grid i:nth-child(4n+2){background:var(--peach);animation-delay:.5s}
+.syn-grid i:nth-child(4n+3){background:var(--gold);animation-delay:1.0s}
+.syn-grid i:nth-child(4n+4){background:var(--teal);animation-delay:1.5s}
+@keyframes shade{0%,100%{opacity:.9}50%{opacity:.25}}
+.syn .txt{font-size:12.5px;color:var(--blue-soft);line-height:1.7}
+.syn .txt b{color:var(--ink)}
+
+/* tts merge visual */
+.tts{display:flex;align-items:center;gap:6px;margin-top:16px;background:var(--paper);border:1px dashed var(--line);border-radius:14px;padding:14px;flex-wrap:wrap}
+.tts .pill{
+  font-size:12px;color:var(--ink);background:#fff;border:1px solid var(--line);
+  border-radius:999px;padding:5px 11px;white-space:nowrap;
+  animation:float 3s ease-in-out infinite;
+}
+.tts .pill:nth-child(2){animation-delay:.4s}
+.tts .pill:nth-child(3){animation-delay:.8s}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.tts .arr{color:var(--blue-soft);font-size:14px}
+.tts .merge{
+  font-size:12.5px;font-weight:600;color:#fff;background:var(--teal);
+  border-radius:999px;padding:6px 13px;white-space:nowrap;
+}
+
+/* figures */
+figure{
+  margin:26px 0 0;
+  background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:12px;box-shadow:var(--shadow);
+}
+figure img{width:100%;height:auto;border-radius:10px;display:block}
+figcaption{
+  font-size:12px;color:var(--blue-soft);padding:10px 6px 4px;line-height:1.6;
+}
+figcaption b{color:var(--ink)}
+
+/* ---------- benchmark table ---------- */
+.bench-table{width:100%;border-collapse:separate;border-spacing:0;margin-top:24px;
+  background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  box-shadow:var(--shadow);font-size:14px}
+.bench-table th{
+  background:var(--blue);color:#F5EFE2;font-weight:600;
+  padding:11px 12px;text-align:left;font-size:13px;letter-spacing:.04em;
+}
+.bench-table th:first-child{width:34%}
+.bench-table td{padding:11px 12px;border-top:1px solid var(--line);color:var(--body)}
+.bench-table td.bench{font-weight:600;color:var(--ink)}
+.bench-table .task{font-size:13px}
+.bench-table .rank{
+  font-weight:700;white-space:nowrap;
+}
+.bench-table .rank .medal{margin-right:5px}
+.bench-table .r1{color:var(--persimmon)}
+.bench-table .r2{color:var(--blue)}
+.bench-table tr.first td{background:linear-gradient(90deg,var(--peach-soft),transparent 70%)}
+.table-note{font-size:12.5px;color:var(--blue-soft);margin-top:10px;line-height:1.7}
+
+/* efficiency bars */
+.eff{
+  margin-top:26px;background:var(--card);border:1px solid var(--line);
+  border-radius:18px;padding:24px 20px;box-shadow:var(--shadow);
+}
+.eff h3{font-family:var(--serif);font-size:18px;color:var(--ink);margin-bottom:4px}
+.eff .sub{font-size:13px;color:var(--blue-soft);margin-bottom:18px}
+.eff-row{display:grid;grid-template-columns:112px 1fr;align-items:center;gap:10px;margin-bottom:14px}
+.eff-row .name{font-size:13.5px;font-weight:600;color:var(--ink)}
+.eff-row .name small{display:block;font-weight:400;color:var(--blue-soft);font-size:11px}
+.eff-track{height:26px;background:var(--paper);border-radius:8px;overflow:hidden;position:relative}
+.eff-bar{
+  height:100%;border-radius:8px;transform:scaleX(0);transform-origin:left;
+  transition:transform 1.2s cubic-bezier(.22,.9,.3,1);
+  display:flex;align-items:center;justify-content:flex-end;padding-right:8px;
+}
+.in .eff-bar{transform:scaleX(1)}
+.eff-bar.fast{width:32%;background:linear-gradient(90deg,var(--teal),#7FA39E)}
+.eff-bar.slow{width:100%;background:linear-gradient(90deg,#C6BFAE,#B3AB98)}
+.eff-bar .val{font-size:12px;font-weight:700;color:#fff;white-space:nowrap}
+.eff-note{font-size:12.5px;color:var(--blue-soft);margin-top:6px}
+
+/* ---------- industry stats ---------- */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:26px}
+@media(min-width:640px){.stats{grid-template-columns:repeat(4,1fr)}}
+.stat{
+  background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:20px 16px;text-align:center;
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+.stat:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.stat .num{
+  font-family:var(--serif);font-size:clamp(26px,6.5vw,34px);font-weight:700;
+  color:var(--persimmon);line-height:1.15;
+}
+.stat:nth-child(2) .num,.stat:nth-child(4) .num{color:var(--blue)}
+.stat .cap{font-size:13px;color:var(--ink);font-weight:600;margin-top:6px}
+.stat .who{font-size:11.5px;color:var(--blue-soft);margin-top:3px;line-height:1.55}
+.highlight{
+  margin-top:16px;
+  background:linear-gradient(135deg,#3A4C72,#32405C);
+  border-radius:18px;padding:26px 22px;color:#EAE4D6;
+  box-shadow:0 12px 30px rgba(50,64,92,.25);
+}
+.highlight .t{
+  font-family:var(--serif);font-size:clamp(17px,4.6vw,20px);
+  color:#F5EFE2;margin-bottom:10px;
+}
+.highlight .t em{font-style:normal;color:var(--peach)}
+.highlight p{font-size:14px;line-height:1.85;color:#C9CEDD}
+.highlight p b{color:var(--peach);font-weight:700}
+.highlight .foot{
+  margin-top:12px;padding-top:12px;border-top:1px dashed rgba(232,180,162,.35);
+  font-size:13px;color:var(--peach);
+}
+
+/* ---------- links ---------- */
+.links{display:grid;grid-template-columns:1fr;gap:12px;margin-top:26px}
+@media(min-width:560px){.links{grid-template-columns:1fr 1fr}}
+.link-card{
+  display:flex;align-items:center;gap:14px;
+  background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:16px 18px;text-decoration:none;
+  transition:transform .18s ease, box-shadow .18s ease, border-color .18s;
+}
+.link-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--peach)}
+.link-card .ic{
+  flex:0 0 42px;height:42px;border-radius:12px;display:grid;place-items:center;
+  font-size:19px;background:var(--paper-2);
+}
+.link-card:nth-child(1) .ic{background:var(--peach-soft)}
+.link-card:nth-child(4) .ic{background:#EAF0ED}
+.link-card .tt{font-size:15px;font-weight:600;color:var(--ink)}
+.link-card .dd{font-size:12px;color:var(--blue-soft);margin-top:1px;word-break:break-all}
+.link-card .go{margin-left:auto;color:var(--blue-soft);font-size:16px}
+
+/* ---------- footer ---------- */
+footer{
+  border-top:1px solid var(--line);
+  background:var(--paper-2);
+  padding:34px 0 46px;
+  font-size:12.5px;color:#8B8FA3;line-height:1.9;
+}
+footer .wrap{max-width:760px}
+footer a{color:var(--blue);text-decoration:none;border-bottom:1px dashed var(--blue-soft)}
+
+/* reveal：仅在 JS 可用时启用隐藏态，内容不因脚本失效而丢失 */
+.js .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease, transform .7s ease}
+.js .reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.001s !important}
+  .reveal{opacity:1;transform:none}
+}
+@media print{.reveal{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="wrap">
+    <span class="hero-chip"><span class="dot"></span>文章导读 · 「小米技术」公众号 · 2026-09</span>
+    <h1>表格数据，迎来自己的<br><span class="accent">「大模型时刻」</span></h1>
+    <p class="sub">小米发布通用表格数据基础大模型 <strong>Xiaomi-TabLDM</strong>：一个 70M 参数的预训练模型、一套统一默认配置，分类与回归任务开箱即用 —— 不用再为每一张新表重新训练、调参、做集成。</p>
+    <div class="meta-row">
+      <span>70M 参数</span><span>零调整 Zero tuning</span><span>四大基准第一梯队</span><span>权重与代码已开源</span>
+    </div>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://mp.weixin.qq.com/s/wiY4rAg57zP8PiLmtqsr-A" target="_blank" rel="noopener">阅读原文 ↗</a>
+      <a class="btn btn-ghost" href="https://github.com/xiaomi-research/xiaomi-tabldm" target="_blank" rel="noopener">GitHub 仓库</a>
+    </div>
+
+    <!-- 一图看懂：表格 → 上下文 → 模型 → 预测 -->
+    <div class="pipe" aria-hidden="true">
+      <div class="node">
+        <div class="mini-table"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="cap">任意<b>新表格</b></div>
+      </div>
+      <div class="flow"><div class="rail"></div><i></i><i></i><i></i></div>
+      <div class="node">
+        <div class="model-box"><div class="t">Xiaomi-TabLDM</div><div class="s">70M · 一次预训练</div></div>
+        <div class="cap">标注样本作<b>上下文</b></div>
+      </div>
+      <div class="flow"><div class="rail"></div><i></i><i></i><i></i></div>
+      <div class="node">
+        <div class="out"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+        <div class="cap"><b>分类 / 回归</b>直出</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ TLDR ============ -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow reveal"><span class="no">00</span><span class="label">三句话看完</span></div>
+    <h2 class="reveal">它到底是个啥？</h2>
+    <p class="lede prose reveal">简单说：把语言模型领域的「基础模型」玩法搬到了表格数据上 —— <strong>在大规模合成任务上预训练一次，之后面对任何新表格数据集，把标注样本当作上下文喂给它，直接出预测</strong>，全程不碰模型参数。</p>
+    <div class="tldr-grid">
+      <div class="tldr-card reveal">
+        <div class="en">Zero</div>
+        <h3>零调整</h3>
+        <p>统一默认配置，<b>不重训、不调参、不做超参搜索</b>，接上数据即得结果，不必为每张表单独养一个模型。</p>
+      </div>
+      <div class="tldr-card reveal">
+        <div class="en">One</div>
+        <h3>一个模型</h3>
+        <p><b>70M 参数、一次预训练</b>，完全基于大规模合成表格任务，覆盖广泛的表格任务分布。</p>
+      </div>
+      <div class="tldr-card reveal">
+        <div class="en">All</div>
+        <h3>全任务通用</h3>
+        <p>分类、回归<b>开箱即用</b>，金融风控、医疗诊断、制造质检、物流预测跨行业直接迁移。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 背景 ============ -->
+<section style="background:var(--paper-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <div class="eyebrow reveal"><span class="no">01</span><span class="label">为什么要做这件事</span></div>
+    <h2 class="reveal">从「一表一模型」<br>到<span class="hl">「一次预训练、跨任务使用」</span></h2>
+    <div class="prose reveal">
+      <p>金融、医疗、制造、物流……真实世界的核心数据大多以<strong>表格</strong>形式存在。但长期以来，表格预测主要靠 XGBoost、LightGBM、CatBoost 这些传统机器学习方法：<strong>每来一个新数据集，就要重新训练、调超参，甚至做模型集成</strong>，多次训练、版本管理，生产和部署的代价都很重。</p>
+      <p>表格基础模型的思路是反过来：<strong>先在超大规模的任务分布上预训练好一个模型</strong>，用时把新数据集的标注样本作为上下文输入，模型理解当前任务后直接完成预测。</p>
+    </div>
+
+    <div class="compare">
+      <div class="track old reveal">
+        <h3>😴 传统方式</h3>
+        <div class="note">每张新表，整套流程重来一遍</div>
+        <ul class="steps">
+          <li><span class="ic">1</span>拿到新表格数据集</li>
+          <li><span class="ic">2</span>重新训练模型</li>
+          <li><span class="ic">3</span>反复调节超参数</li>
+          <li><span class="ic">4</span>多模型集成</li>
+          <li><span class="ic">5</span>部署 + 版本管理</li>
+        </ul>
+      </div>
+      <div class="track new reveal">
+        <h3>🚀 TabLDM 方式</h3>
+        <div class="note">预训练一次，新表直接适配</div>
+        <ul class="steps">
+          <li><span class="ic">1</span>拿到新表格数据集</li>
+          <li><span class="ic">2</span>标注样本作为上下文输入</li>
+          <li><span class="ic">3</span>模型理解任务</li>
+          <li class="final"><span class="ic">✓</span>直接输出预测，参数零改动</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="quote reveal">
+      表格预测正在从「一个数据集，训练一个模型」，<br>
+      走向 <span class="arrow">→</span> 「一次预训练，一个模型适配不同数据集」。
+    </div>
+  </div>
+</section>
+
+<!-- ============ 三个方向 ============ -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow reveal"><span class="no">02</span><span class="label">怎么做到的</span></div>
+    <h2 class="reveal">三个方向，撑起<span class="hl">表格基础模型</span>的能力</h2>
+    <p class="lede prose reveal">核心命题：表格数据能否像语言一样，通过基础模型获得<strong>跨数据集迁移能力</strong>，并随着模型、数据和推理计算的扩展持续变强？TabLDM 给出的答案是三条线一起推进。</p>
+
+    <div class="dir">
+      <div class="dir-card reveal">
+        <div class="dir-head">
+          <div class="dir-ic">🧪</div>
+          <h3>更丰富的合成数据预训练<span class="en">SYNTHETIC DATA PRETRAINING</span></h3>
+        </div>
+        <p>TabLDM <b>完全不依赖真实数据</b>，全部基于结构化生成的合成表格任务进行预训练：数据规模、变量类型、依赖关系、函数关系都可以程序化地变化，把预训练数据覆盖的任务分布铺得更开，让模型提前见过足够多样的表格结构。</p>
+        <div class="syn" aria-hidden="true">
+          <div class="syn-grid">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <div class="txt"><b>结构化生成</b>：数据规模 ⇄ 变量类型 ⇄ 依赖关系 ⇄ 函数关系，四种维度自由组合，合成出海量的「考题」。</div>
+        </div>
+      </div>
+
+      <div class="dir-card reveal">
+        <div class="dir-head">
+          <div class="dir-ic">🏗️</div>
+          <h3>更高效的模型 Scaling<span class="en">EFFICIENT MODEL SCALING</span></h3>
+        </div>
+        <p>三项结构设计，让<b>性能提升不必伴随计算量同比增长</b>：</p>
+        <div class="tags">
+          <span>双流 Feature Group · 不同粒度建模特征关系</span>
+          <span>轻量级 Attention Residual · 深网络中选择性复用历史信息</span>
+          <span>Sparse MoE · 稀疏专家扩容，算得多不如算得巧</span>
+        </div>
+        <figure>
+          <img src="assets/architecture.jpg" alt="Xiaomi-TabLDM 模型架构图：特征分组、行级特征聚合、上下文学习预测，右侧为 Attention Residual 与稀疏 MoE 结构" loading="lazy">
+          <figcaption><b>模型架构一图流</b>：输入表格按 Feature Group 分组、循环移位，列级特征嵌入后由轻量 AttentionRes Transformer 做行级聚合，最终以上下文学习（ICL）方式预测；右侧为 Attention Residual 与稀疏 MoE 细节。（图源：原文）</figcaption>
+        </figure>
+      </div>
+
+      <div class="dir-card reveal">
+        <div class="dir-head">
+          <div class="dir-ic">🧠</div>
+          <h3>进一步探索 Test-Time Scaling<span class="en">TEST-TIME SCALING</span></h3>
+        </div>
+        <p>预训练参数<b>保持不变</b>，靠增加推理阶段的计算继续涨点：用不同的特征排列、数据变换和预测视角分别给出互补的预测结果，再根据当前数据集<b>自适应地选择与组合</b> —— 想要更强的精度？多算几遍再投票。</p>
+        <div class="tts" aria-hidden="true">
+          <span class="pill">特征排列 A</span>
+          <span class="pill">数据变换 B</span>
+          <span class="pill">预测视角 C</span>
+          <span class="arr">→</span>
+          <span class="merge">自适应选择 + 组合 → 更强预测</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 基准成绩 ============ -->
+<section style="background:var(--paper-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <div class="eyebrow reveal"><span class="no">03</span><span class="label">成绩单</span></div>
+    <h2 class="reveal">四大公开基准，<span class="hl">全部第一梯队</span></h2>
+    <p class="lede prose reveal">在 TALENT、TabArena、BCCO、OpenML-CTR23 四套公开基准上系统评测，覆盖二分类、多分类、回归任务，样本量从小规模一直到 <strong>10 万级</strong>。回归能力尤其突出，并超过 TabPFN-3、AutoGluon 1.5 extreme、TabPFN-2.6、TabICL-v2 等强基线。</p>
+
+    <table class="bench-table reveal">
+      <thead><tr><th>基准</th><th>任务</th><th>排名</th></tr></thead>
+      <tbody>
+        <tr class="first"><td class="bench">TALENT</td><td class="task">二分类</td><td class="rank r1"><span class="medal">🥇</span>第 1 名</td></tr>
+        <tr class="first"><td class="bench">OpenML-CTR23</td><td class="task">回归</td><td class="rank r1"><span class="medal">🥇</span>第 1 名</td></tr>
+        <tr><td class="bench">TALENT</td><td class="task">回归</td><td class="rank r2">第 2 名</td></tr>
+        <tr><td class="bench">TabArena</td><td class="task">回归</td><td class="rank r2">第 2 名</td></tr>
+        <tr><td class="bench">BCCO</td><td class="task">回归</td><td class="rank r2">第 2 名</td></tr>
+        <tr><td class="bench">BCCO</td><td class="task">总体</td><td class="rank r2">第 2 名</td></tr>
+      </tbody>
+    </table>
+    <p class="table-note reveal">回归任务四项均值 1.75，稳定第一梯队（名次 1–2）；TALENT 二分类同样拿下第一。</p>
+
+    <figure class="reveal">
+      <img src="assets/benchmark-ranks.jpg" alt="回归任务在四大公开基准的排名热力表：Xiaomi-TabLDM 四项均值 1.75" loading="lazy">
+      <figcaption><b>回归任务 · 四大公开基准排名</b>：数值为平均名次（越小越好）。Xiaomi-TabLDM 四项均值 1.75，其中 OpenML-CTR23 单榜第一。（图源：原文）</figcaption>
+    </figure>
+
+    <div class="eff reveal" id="eff">
+      <h3>更强的预测，不必更贵的推理</h3>
+      <div class="sub">TabArena 回归任务 · 每 1K 样本验证时间（秒，越短越好）</div>
+      <div class="eff-row">
+        <div class="name">Xiaomi-TabLDM<small>1900 Elo</small></div>
+        <div class="eff-track"><div class="eff-bar fast"><span class="val" data-count="3.12" data-decimals="2">0</span></div></div>
+      </div>
+      <div class="eff-row">
+        <div class="name">TabFM<small>对照组</small></div>
+        <div class="eff-track"><div class="eff-bar slow"><span class="val" data-count="9.67" data-decimals="2">0</span></div></div>
+      </div>
+      <p class="eff-note">同样拿到 1900 Elo 的预测性能，验证耗时只有约 1/3 —— 性能与效率可以兼得。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 工业 ============ -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow reveal"><span class="no">04</span><span class="label">真实业务</span></div>
+    <h2 class="reveal">进了工厂，<span class="hl">数字说话</span></h2>
+    <p class="lede prose reveal">在真实工业场景的验证中，TabLDM 相比传统机器学习展现出更高的预测精度，以及更难得的<strong>跨工况适应能力</strong>。</p>
+
+    <div class="stats">
+      <div class="stat reveal">
+        <div class="num">+<span data-count="130">0</span>%</div>
+        <div class="cap">预测精度提升</div>
+        <div class="who">材料性能预测<br>无需任何微调</div>
+      </div>
+      <div class="stat reveal">
+        <div class="num">−<span data-count="90">0</span>%</div>
+        <div class="cap">无效试模与装机测试</div>
+        <div class="who">材料研发<br>少做九成白费实验</div>
+      </div>
+      <div class="stat reveal">
+        <div class="num">−<span data-count="31">0</span>%</div>
+        <div class="cap">失误样本比例</div>
+        <div class="who">注塑件重量预测<br>对比 XGBoost</div>
+      </div>
+      <div class="stat reveal">
+        <div class="num">−<span data-count="54">0</span>%</div>
+        <div class="cap">平均误差</div>
+        <div class="who">生产组分预测<br>对比 XGBoost</div>
+      </div>
+    </div>
+
+    <div class="highlight reveal">
+      <div class="t">最有意思的是<em>「工况变了」</em>这件事</div>
+      <p>产线工况一旦变化，传统模型基本要推倒重来。TabLDM 只需补充 <b>约 30 条</b>新工况样本作为上下文，平均误差就能<b>降低约 62%</b>。</p>
+      <p>更狠的是：传统机器学习模型就算补到 <b>200 条</b>新样本重新训练，平均误差仍然远高于 TabLDM —— 后者只用了约 <b>15%</b> 的样本量，且全程<b>无需微调</b>。</p>
+      <div class="foot">30 条新样本达成的精度，传统基线用 200 条仍未追平。</div>
+    </div>
+
+    <figure class="reveal">
+      <img src="assets/industry.jpg" alt="工业场景三组对比数据：失误样本减少31%、平均误差降低54%、新工况误差降低62%" loading="lazy">
+      <figcaption><b>三组产线实测</b>：注塑件重量预测失误率 0.93%→0.64%；脱脂炉油脂预测误差 8.13→3.72 mg/m²；跨工况泛化用 30 条新样本把误差压到 2.25g，传统方法补 200 条仍退平。（图源：原文）</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ 链接 ============ -->
+<section style="background:var(--paper-2);border-top:1px solid var(--line)">
+  <div class="wrap">
+    <div class="eyebrow reveal"><span class="no">05</span><span class="label">自己上手</span></div>
+    <h2 class="reveal">权重与代码，<span class="hl">都开源了</span></h2>
+    <p class="lede prose reveal">从公开基准到真实产线，TabLDM 走完了研究验证到实际应用的完整一环。感兴趣可以直接拉代码跑起来。</p>
+    <div class="links">
+      <a class="link-card reveal" href="https://mp.weixin.qq.com/s/wiY4rAg57zP8PiLmtqsr-A" target="_blank" rel="noopener">
+        <div class="ic">📰</div>
+        <div><div class="tt">微信原文</div><div class="dd">mp.weixin.qq.com/s/wiY4rAg57zP8PiLmtqsr-A</div></div>
+        <div class="go">→</div>
+      </a>
+      <a class="link-card reveal" href="https://github.com/xiaomi-research/xiaomi-tabldm" target="_blank" rel="noopener">
+        <div class="ic">⌨️</div>
+        <div><div class="tt">GitHub 代码</div><div class="dd">github.com/xiaomi-research/xiaomi-tabldm</div></div>
+        <div class="go">→</div>
+      </a>
+      <a class="link-card reveal" href="https://huggingface.co/occams/Xiaomi-TabLDM" target="_blank" rel="noopener">
+        <div class="ic">🤗</div>
+        <div><div class="tt">HuggingFace 权重</div><div class="dd">huggingface.co/occams/Xiaomi-TabLDM</div></div>
+        <div class="go">→</div>
+      </a>
+      <a class="link-card reveal" href="https://arxiv.org/abs/2609.03880" target="_blank" rel="noopener">
+        <div class="ic">📄</div>
+        <div><div class="tt">技术报告</div><div class="dd">arxiv.org/abs/2609.03880</div></div>
+        <div class="go">→</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    本页为个人整理的文章导读页，非小米官方页面。文中全部数据、图表引自「小米技术」公众号文章
+    《小米发布结构化数据大模型 Xiaomi-TabLDM：开启表格数据 Scaling Law》，版权归原发布方所有，请以原文为准。
+  </div>
+</footer>
+
+<script>
+(function(){
+  document.documentElement.classList.add('js');
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // 滚动显现
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  },{threshold:.18});
+  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+
+  // 数字滚动
+  function countUp(el){
+    var target = parseFloat(el.dataset.count);
+    var dec = parseInt(el.dataset.decimals || '0', 10);
+    if(reduced){ el.textContent = target.toFixed(dec); return; }
+    var t0 = null, dur = 1300;
+    function tick(t){
+      if(!t0) t0 = t;
+      var p = Math.min((t - t0)/dur, 1);
+      p = 1 - Math.pow(1 - p, 3);
+      el.textContent = (target * p).toFixed(dec);
+      if(p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  var io2 = new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){ countUp(e.target); io2.unobserve(e.target); }
+    });
+  },{threshold:.6});
+  document.querySelectorAll('[data-count]').forEach(function(el){ io2.observe(el); });
+
+  // 效率条：滚动到可见区域时触发
+  var eff = document.getElementById('eff');
+  if(eff){
+    var io3 = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ eff.classList.add('in'); io3.unobserve(eff); } });
+    },{threshold:.4});
+    io3.observe(eff);
+  }
+})();
+</script>
+</body>
+</html>
