@@ -91,14 +91,24 @@
       window.history.replaceState(null, "", url);
     } catch {}
   }
-  let busy = false,
-    mode = null,
+  let mode = null,
     history = [],
     modalKind = null,
     toastTimer,
     highlightTimer,
     previousFocus;
   const renderer = new window.ParkingRenderer($("board"), $("station-canvas"), () => state);
+  const traffic = new window.ParkingTraffic(E, renderer, () => state, {
+    changed() {
+      persist();
+      update();
+    },
+    settled() {
+      update();
+      check();
+    },
+    sound,
+  });
   renderer.debug = params.get("debug") === "1";
   function persist() {
     save.active = E.clone(state);
@@ -158,7 +168,7 @@
       b.setAttribute("aria-label", `${PROPS[k].name}，剩余 ${save.props[k]} 个`);
       b.setAttribute("aria-pressed", mode === k ? "true" : "false");
     });
-    $("undo").disabled = history.length === 0 || busy || state.won;
+    $("undo").disabled = history.length === 0 || traffic.busy || state.won;
     $("expand").disabled = state.slots.length >= 6;
     $("expand").innerHTML =
       state.slots.length >= 6
@@ -180,7 +190,7 @@
     if (history.length > 60) history.shift();
   }
   function guard() {
-    if (busy) {
+    if (traffic.busy) {
       toast("小车正在出发，稍等一下");
       return false;
     }
@@ -225,7 +235,7 @@
     $("confirm-cancel").onclick = closeModal;
   }
   function help() {
-    if (busy) return toast("乘客正在上车，稍等一下");
+    if (traffic.busy) return toast("乘客正在上车，稍等一下");
     openModal(
       "help",
       `${heading("A LITTLE GUIDE", "出发前，看这里")}<div class="help-step"><span>1</span><p><b>轻点小车，沿箭头出发</b><br>前方有车时会停下，先挪开挡路的车。</p></div><div class="help-step"><span>2</span><p><b>看队首颜色，再安排发车</b><br>乘客依次上同色车，满员自动离开。车身符号也可以帮你辨认颜色。</p></div><div class="help-step"><span>3</span><p><b>留一个空位，别着急</b><br>只有 4 个候车位。堵住时用排序、刷新或消除，金币还能增加车位。</p></div><button class="primary" id="help-close">明白，出发！</button><p class="kbd">电脑也能玩：方向键选车，回车出发，Esc 取消道具。</p>`,
@@ -233,7 +243,7 @@
     $("help-close").onclick = closeModal;
   }
   function pause() {
-    if (busy) return toast("等这辆小车停好就可以暂停");
+    if (traffic.busy) return toast("等这辆小车停好就可以暂停");
     if (state.won) return;
     openModal(
       "pause",
@@ -289,11 +299,9 @@
     $("toast").classList.remove("show");
     state = E.create(n);
     history = [];
-    busy = false;
-    renderer.motion = null;
+    traffic.reset();
     renderer.highlight = null;
     renderer.selected = null;
-    renderer.resetStation();
     forceClose();
     setMode(null);
     persist();
@@ -343,6 +351,7 @@
     setTimeout(() => el.replaceChildren(), 3200);
   }
   function check() {
+    if (traffic.busy) return;
     if (state.won) {
       finish();
       return;
@@ -362,33 +371,12 @@
       $("rescue-back").onclick = closeModal;
     }
   }
-  async function resolveStation() {
-    busy = true;
-    update();
-    while (true) {
-      const full = state.slots.findIndex((v) => v && v.loaded === v.capacity);
-      if (full >= 0) {
-        await renderer.departVehicle(full);
-        E.releaseFull(state, full);
-        sound("exit");
-      } else {
-        const passenger = E.nextPassenger(state);
-        if (!passenger) break;
-        await renderer.boardPassenger(passenger);
-        E.loadPassenger(state);
-        sound("tap");
-      }
-      persist();
-      update();
-    }
-    renderer.resetStation();
-    busy = false;
-    persist();
-    update();
-    check();
+  function resolveStation() {
+    return traffic.service();
   }
   async function select(id) {
-    if (busy || !$("overlay").hidden || state.won) return;
+    if (!$("overlay").hidden || state.won || traffic.moving.has(id)) return;
+    if (mode && traffic.busy) return toast("调度进行中，稍后再使用选车道具");
     if (id === null) {
       setMode(null);
       return;
@@ -423,26 +411,18 @@
       return;
     }
     if (E.path(v, state.vehicles, state.cols, state.rows).clear && state.slots.every(Boolean)) {
-      check();
+      if (traffic.busy) toast("车位暂满，等一辆车驶离即可继续");
+      else check();
       return;
     }
     snapshot();
     const result = E.move(state, id, { deferBoarding: true });
-    busy = true;
     renderer.highlight = null;
-    persist();
-    update();
     sound(result.type);
     if (result.type === "blocked") toast("前面有车，先帮它腾个位置");
-    await renderer.animate(result);
-    if (result.type === "exit") {
-      await resolveStation();
-      return;
-    }
-    busy = false;
-    update();
-    check();
+    await traffic.dispatch(result);
   }
+
   async function useProp(k) {
     if (!guard()) return;
     if (mode === k) {
@@ -531,6 +511,7 @@
     if (!guard() || !history.length) return;
     const used = state.used;
     state = history.pop();
+    traffic.reset();
     state.used = used;
     renderer.highlight = null;
     setMode(null);
@@ -538,6 +519,7 @@
     update();
     sound("tap");
     toast("已撤回上次操作");
+    traffic.service();
   };
   $("expand").onclick = () => {
     if (!guard() || state.slots.length >= 6) return;
@@ -556,7 +538,7 @@
   $("pause").onclick = pause;
   $("help").onclick = help;
   $("wallet").onclick = $("shop").onclick = () => {
-    if (!busy && !state.won) shop();
+    if (!traffic.busy && !state.won) shop();
   };
   $("close-modal").onclick = closeModal;
   document.addEventListener("keydown", (e) => {
@@ -598,12 +580,13 @@
       },
       engine: E,
       renderer,
+      traffic,
       select,
       useProp,
       start,
       check,
       get busy() {
-        return busy;
+        return traffic.busy;
       },
       get history() {
         return history;

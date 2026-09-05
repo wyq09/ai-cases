@@ -8,7 +8,10 @@
       this.getState = getState;
       this.ctx = board.getContext("2d");
       this.sc = station.getContext("2d");
-      this.motion = null;
+      this.motions = new Map();
+      this.phases = new Map();
+      this.arrivalIds = new Set();
+      this.animationEpoch = 0;
       this.highlight = null;
       this.mode = null;
       this.selected = null;
@@ -99,8 +102,8 @@
       if (!s || !this.w) return;
       c.clearRect(0, 0, this.w, this.h);
       this.hitAreas = [];
-      this.u = Math.min((this.w - 45) / (s.cols + s.rows + 1), (this.h - 32) / ((s.cols + s.rows) * 0.51 + 1.3));
-      this.v = this.u * 0.51;
+      this.u = Math.min((this.w - 25) / (s.cols + s.rows + 0.5), (this.h - 35) / ((s.cols + s.rows) * 0.82 + 1));
+      this.v = this.u * 0.82;
       this.ox = this.w / 2 + ((s.rows - s.cols) * this.u) / 2;
       this.oy = (this.h - (s.cols + s.rows) * this.v) / 2 + 3;
       this.plane(-0.35, -0.35, s.cols + 0.7, s.rows + 0.7, -7, "#bed0b953");
@@ -155,10 +158,7 @@
       c.textAlign = "center";
       c.fillText("P", 0, -21);
       c.restore();
-      const motion = this.motion;
-      const cars = s.vehicles
-        .filter((v) => !motion || v.id !== motion.before?.id)
-        .sort((a, b) => a.x + a.y - (b.x + b.y));
+      const cars = s.vehicles.filter((v) => !this.motions.has(v.id)).sort((a, b) => a.x + a.y - (b.x + b.y));
       for (const v of cars) {
         const active =
           this.highlight === v.id ||
@@ -168,7 +168,7 @@
           (this.debug && E.path(v, s.vehicles, s.cols, s.rows).clear);
         this.car(v, { highlight: active });
       }
-      if (motion) {
+      for (const motion of this.motions.values()) {
         const t = Math.min(1, (now - motion.start) / motion.duration),
           ease = 1 - Math.pow(1 - t, 3),
           v = E.clone(motion.before);

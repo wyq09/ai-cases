@@ -12,8 +12,8 @@
         carH = Math.min(58, height - 18);
       return { x, y, w: width, h: height, carX: x + (width - carW) / 2, carY: y + 6, carW, carH };
     },
-    phaseProgress(now) {
-      return this.stationPhase ? Math.min(1, (now - this.stationPhase.start) / this.stationPhase.duration) : 0;
+    phaseProgress(now, phase = this.phases.get("boarding")) {
+      return phase ? Math.min(1, (now - phase.start) / phase.duration) : 0;
     },
     drawStation(now) {
       const s = this.getState(),
@@ -23,7 +23,7 @@
       if (!s || !w) return;
       c.clearRect(0, 0, w, h);
       this.slotAreas = [];
-      const phase = this.stationPhase,
+      const phase = this.phases.get("boarding"),
         t = this.phaseProgress(now),
         boarding = phase?.kind === "boarding";
       c.fillStyle = "#e4ebd9";
@@ -71,7 +71,8 @@
         c.fillStyle = "#b8c6a6";
         c.fillRect(g.x + g.w * 0.3, g.y + 3, g.w * 0.4, 3);
         this.slotAreas.push({ index: i, id: v?.id, x: g.x, y: g.y, w: g.w, h: g.h });
-        const hidden = Boolean(v) && (this.arrivingId === v.id || (phase?.kind === "departing" && phase.slot === i));
+        const hidden =
+          Boolean(v) && (this.arrivalIds.has(v.id) || this.phases.get(`vehicle-${v.id}`)?.kind === "departing");
         if (v && !hidden) {
           this.miniCar(c, v, g.carX, g.carY, g.carW, g.carH, 1, active);
           const dots = Math.min(v.capacity, 6),
@@ -95,7 +96,11 @@
           c.font = "7px sans-serif";
           c.fillStyle = "#8b9d7c";
           c.fillText(
-            hidden ? (phase?.kind === "departing" ? "驶离中" : "驶入中") : `0${i + 1} · 空闲`,
+            hidden
+              ? this.phases.get(`vehicle-${v?.id}`)?.kind === "departing"
+                ? "驶离中"
+                : "驶入中"
+              : `0${i + 1} · 空闲`,
             g.x + g.w / 2,
             g.y + g.h - 5,
           );
@@ -117,6 +122,7 @@
         c.restore();
       }
       this.drawJourney(now);
+      this.updateStationStatus();
     },
     alongPath(points, t) {
       const lengths = points.slice(1).map((p, i) => Math.hypot(p[0] - points[i][0], p[1] - points[i][1]));
@@ -150,81 +156,101 @@
       const c = canvas.getContext("2d");
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.clearRect(0, 0, root.clientWidth, root.clientHeight);
-      const phase = this.stationPhase;
-      if (!phase || !["arriving", "departing"].includes(phase.kind)) return;
-      const station = this.station.getBoundingClientRect(),
-        board = this.canvas.getBoundingClientRect(),
-        road = document.querySelector(".road").getBoundingClientRect();
-      const sx = station.left - rect.left - root.clientLeft,
-        sy = station.top - rect.top - root.clientTop;
-      const roadY = road.top - rect.top - root.clientTop + road.height / 2,
-        g = this.slotGeometry(phase.slot);
-      const parked = [sx + g.carX + g.carW / 2, sy + g.carY + g.carH / 2];
-      let points;
-      if (phase.kind === "arriving") {
-        const end = phase.boardEnd,
-          x = Math.max(18, Math.min(root.clientWidth - 18, board.left - rect.left + end[0]));
-        const y = Math.max(roadY + 26, Math.min(board.bottom - rect.top - 20, board.top - rect.top + end[1]));
-        const side = x < root.clientWidth / 2 ? 17 : root.clientWidth - 17;
-        points = [[x, y], [side, y], [side, roadY], [parked[0], roadY], parked];
-      } else points = [parked, [parked[0], roadY], [root.clientWidth + 45, roadY]];
-      const t = this.phaseProgress(now),
-        ease = phase.kind === "arriving" ? 1 - Math.pow(1 - t, 1.6) : t * t;
-      const [x, y, angle] = this.alongPath(points, ease);
-      c.save();
-      c.translate(x, y);
-      c.rotate(angle);
-      this.miniCar(c, phase.vehicle, -g.carW / 2, -g.carH / 2, g.carW, g.carH);
-      c.restore();
+      for (const phase of this.phases.values()) {
+        if (!["arriving", "departing"].includes(phase.kind)) continue;
+        const station = this.station.getBoundingClientRect(),
+          board = this.canvas.getBoundingClientRect(),
+          road = document.querySelector(".road").getBoundingClientRect();
+        const sx = station.left - rect.left - root.clientLeft,
+          sy = station.top - rect.top - root.clientTop;
+        const roadY = road.top - rect.top - root.clientTop + road.height / 2,
+          g = this.slotGeometry(phase.slot);
+        const parked = [sx + g.carX + g.carW / 2, sy + g.carY + g.carH / 2];
+        let points;
+        if (phase.kind === "arriving") {
+          const end = phase.boardEnd,
+            x = Math.max(18, Math.min(root.clientWidth - 18, board.left - rect.left + end[0]));
+          const y = Math.max(roadY + 26, Math.min(board.bottom - rect.top - 20, board.top - rect.top + end[1]));
+          const side = x < root.clientWidth / 2 ? 17 : root.clientWidth - 17;
+          points = [[x, y], [side, y], [side, roadY], [parked[0], roadY], parked];
+        } else points = [parked, [parked[0], roadY], [root.clientWidth + 45, roadY]];
+        const t = this.phaseProgress(now, phase),
+          ease = phase.kind === "arriving" ? 1 - Math.pow(1 - t, 1.6) : t * t;
+        const [x, y, angle] = this.alongPath(points, ease);
+        c.save();
+        c.translate(x, y);
+        c.rotate(angle);
+        this.miniCar(c, phase.vehicle, -g.carW / 2, -g.carH / 2, g.carW, g.carH);
+        c.restore();
+      }
+    },
+    updateStationStatus() {
+      const count = this.arrivalIds.size;
+      const boarding = this.phases.has("boarding");
+      const departing = [...this.phases.values()].some((p) => p.kind === "departing");
+      const status = document.querySelector("#station-status");
+      const text = boarding
+        ? count
+          ? `乘客上车中 · ${count} 辆驶入`
+          : "乘客上车中 · 可继续发车"
+        : count
+          ? `${count} 辆正在停入车位`
+          : departing
+            ? "满员出发 · 可继续发车"
+            : "同色上车 · 满员出发";
+      if (status.textContent !== text) status.textContent = text;
     },
     playPhase(kind, duration, data = {}) {
+      const epoch = this.animationEpoch;
       const actual = this.reduce ? Math.min(duration, 90) : duration;
-      this.stationPhase = { kind, duration: actual, start: performance.now(), ...data };
-      const status = document.querySelector("#station-status");
-      status.textContent =
-        {
-          arriving: "小车正在停入车位",
-          parked: "已停稳，准备开门",
-          boarding: "车门已开，乘客上车中",
-          departing: "乘客已坐好，出发！",
-        }[kind] || "同色上车 · 满员出发";
+      const channel = kind === "boarding" ? "boarding" : `vehicle-${data.vehicle.id}`;
+      const phase = { kind, duration: actual, start: performance.now(), ...data };
+      this.phases.set(channel, phase);
       this.drawStation(performance.now());
       return new Promise((resolve) =>
         setTimeout(() => {
-          this.stationPhase = null;
+          if (epoch !== this.animationEpoch) {
+            resolve(false);
+            return;
+          }
+          if (this.phases.get(channel) === phase) this.phases.delete(channel);
           this.drawStation(performance.now());
-          resolve();
+          resolve(true);
         }, actual),
       );
     },
     async animate(result) {
+      const epoch = this.animationEpoch;
       const duration = this.reduce ? 80 : result.type === "blocked" ? 230 : 350;
-      this.arrivingId = result.type === "exit" ? result.before.id : null;
       const s = this.getState(),
         v = result.before;
+      if (result.type === "exit") this.arrivalIds.add(v.id);
       const distance = E.path(v, s.vehicles, s.cols, s.rows).steps + v.len + 0.4;
-      this.motion = { ...result, start: performance.now(), duration, distance };
+      this.motions.set(v.id, { ...result, start: performance.now(), duration, distance });
       await new Promise((resolve) => setTimeout(resolve, duration));
-      this.motion = null;
+      if (epoch !== this.animationEpoch) return false;
+      this.motions.delete(v.id);
       if (result.type === "exit") {
         const boardEnd = this.project(v.x + 0.5 + E.DIRS[v.dir][0] * distance, v.y + 0.5 + E.DIRS[v.dir][1] * distance);
-        await this.playPhase("arriving", 850, { slot: result.slot, vehicle: v, boardEnd });
-        this.arrivingId = null;
-        await this.playPhase("parked", 220, { slot: result.slot, vehicle: v });
+        if (!(await this.playPhase("arriving", 850, { slot: result.slot, vehicle: v, boardEnd }))) return false;
+        this.arrivalIds.delete(v.id);
+        if (!(await this.playPhase("parked", 220, { slot: result.slot, vehicle: v }))) return false;
       }
+      return true;
     },
     boardPassenger(passenger) {
       return this.playPhase("boarding", 340, passenger);
     },
     async departVehicle(slot) {
       const vehicle = E.clone(this.getState().slots[slot]);
-      await this.playPhase("parked", 180, { slot, vehicle });
-      await this.playPhase("departing", 550, { slot, vehicle });
+      if (!(await this.playPhase("parked", 180, { slot, vehicle }))) return false;
+      return this.playPhase("departing", 550, { slot, vehicle });
     },
     resetStation() {
-      this.stationPhase = null;
-      this.arrivingId = null;
-      document.querySelector("#station-status").textContent = "同色上车 · 满员出发";
+      this.animationEpoch++;
+      this.motions.clear();
+      this.phases.clear();
+      this.arrivalIds.clear();
       this.drawStation(performance.now());
     },
   });

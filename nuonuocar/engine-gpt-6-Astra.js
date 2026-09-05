@@ -161,14 +161,23 @@
     state.won = !state.vehicles.length && state.slots.every((v) => !v) && !state.queue.length;
     return departed;
   }
-  function nextPassenger(state) {
+  function nextPassenger(state, excludedIds = new Set()) {
     if (!state.queue.length) return null;
-    const slot = state.slots.findIndex((v) => v && v.color === state.queue[0] && v.loaded < v.capacity);
+    const slot = state.slots.findIndex(
+      (v) => v && !excludedIds.has(v.id) && v.color === state.queue[0] && v.loaded < v.capacity,
+    );
     return slot < 0 ? null : { slot, color: state.queue[0], id: state.slots[slot].id };
   }
-  function loadPassenger(state) {
-    const passenger = nextPassenger(state);
+  function loadPassenger(state, passenger = nextPassenger(state)) {
     if (!passenger) return null;
+    const vehicle = state.slots[passenger.slot];
+    if (
+      !vehicle ||
+      vehicle.id !== passenger.id ||
+      vehicle.color !== state.queue[0] ||
+      vehicle.loaded >= vehicle.capacity
+    )
+      return null;
     state.queue.shift();
     state.slots[passenger.slot].loaded++;
     state.delivered++;

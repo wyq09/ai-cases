@@ -1,0 +1,119 @@
+/* Reserve the viewport for the playable parking lot, while keeping tap targets usable. */
+.topbar {
+  padding: 10px 20px 3px;
+}
+.wordmark {
+  font-size: 20px;
+}
+.wordmark span {
+  font-size: 7px;
+  letter-spacing: 2px;
+}
+.icon-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+.levelbar {
+  padding: 3px 22px 7px;
+}
+.levelbar > div:first-child {
+  display: flex;
+  align-items: center;
+}
+.levelbar .eyebrow {
+  display: none;
+}
+.levelbar h2 {
+  font-size: 17px;
+  margin: 0;
+}
+.level-tools {
+  gap: 5px;
+}
+.tiny-button {
+  width: 32px;
+  height: 32px;
+}
+.station {
+  margin: 0 15px 9px;
+}
+.station-top {
+  padding: 7px 12px 0;
+}
+.station-top b {
+  font-size: 16px;
+}
+.station canvas {
+  height: 128px;
+}
+.station-bottom {
+  padding-bottom: 7px;
+}
+.road {
+  height: 27px;
+}
+.board-heading {
+  padding: 9px 19px 0;
+}
+.board-hint {
+  padding-bottom: 9px;
+  font-size: 10px;
+}
+.bottom {
+  padding: 7px 20px 9px;
+}
+.tool-heading {
+  margin-bottom: 7px;
+  font-size: 9px;
+}
+.prop {
+  font-size: 10px;
+  gap: 4px;
+}
+.prop-icon {
+  height: 36px;
+  max-width: 51px;
+  border-radius: 10px;
+}
+.prop-icon svg {
+  width: 23px;
+  height: 23px;
+}
+.prop-count {
+  top: -4px;
+  height: 17px;
+  min-width: 17px;
+  font-size: 9px;
+}
+.footer-note {
+  display: none;
+}
+#toast {
+  bottom: 107px;
+}
+@media (max-width: 760px) {
+  .topbar {
+    padding-top: 10px;
+  }
+  .game {
+    min-height: 580px;
+  }
+  .playfield {
+    min-height: 210px;
+  }
+}
+@media (max-height: 740px) {
+  .topbar {
+    padding-top: 7px;
+  }
+  .station canvas {
+    height: 113px;
+  }
+  .station-top {
+    padding-top: 5px;
+  }
+  .playfield {
+    min-height: 195px;
+  }
+}
