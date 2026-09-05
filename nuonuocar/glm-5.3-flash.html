@@ -3,82 +3,93 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#aebbf0">
+<meta name="theme-color" content="#a9b5ea">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>挪挪车 · 无限关卡</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-  html,body{width:100%;height:100%;overflow:hidden;position:fixed;background:#7b89c9;
+  html,body{width:100%;height:100%;overflow:hidden;position:fixed;background:#7583c2;
     font-family:-apple-system,"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",system-ui,sans-serif;
     touch-action:none;overscroll-behavior:none}
-  #stage{position:absolute;inset:0;margin:0 auto;width:100%;max-width:480px;overflow:hidden;background:#aebbf0;
-    box-shadow:0 0 40px rgba(20,30,70,.35)}
+  #stage{position:absolute;inset:0;margin:0 auto;width:100%;max-width:480px;overflow:hidden;background:#aab6ec;
+    box-shadow:0 0 44px rgba(20,30,70,.4)}
   #cv{position:absolute;inset:0;display:block;touch-action:none}
   /* ---------- HUD ---------- */
   #hud{position:absolute;inset:0;pointer-events:none;z-index:5}
-  #btnPause{position:absolute;top:calc(10px + env(safe-area-inset-top));left:12px;width:44px;height:44px;
-    border-radius:50%;border:none;background:linear-gradient(180deg,#7fb1ff,#3f7de0);color:#fff;
-    box-shadow:0 3px 0 #2b5cb0,0 4px 8px rgba(30,50,120,.35);pointer-events:auto;cursor:pointer;
+  #btnPause{position:absolute;top:calc(10px + env(safe-area-inset-top));left:12px;width:46px;height:46px;
+    border-radius:50%;border:3px solid rgba(255,255,255,.9);cursor:pointer;pointer-events:auto;
+    background:radial-gradient(120% 120% at 30% 22%,#8db8ff 0%,#4a80ea 55%,#2f5ecb 100%);
+    box-shadow:0 4px 0 #24499c,0 6px 12px rgba(20,40,110,.4);
     display:flex;align-items:center;justify-content:center}
-  #btnPause:active{transform:translateY(2px);box-shadow:0 1px 0 #2b5cb0}
-  #lvlPill{position:absolute;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
-    background:rgba(35,42,80,.82);color:#fff;font-size:16px;font-weight:700;letter-spacing:1px;
-    padding:7px 22px;border-radius:20px;white-space:nowrap}
+  #btnPause:active{transform:translateY(2px);box-shadow:0 2px 0 #24499c}
+  #lvlPill{position:absolute;top:calc(15px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
+    background:linear-gradient(180deg,#3c4570,#262d52);color:#fff;font-size:16px;font-weight:800;letter-spacing:1px;
+    padding:8px 24px;border-radius:22px;border:2px solid rgba(255,255,255,.25);white-space:nowrap;
+    box-shadow:0 4px 10px rgba(20,25,60,.35)}
   #lvlPill .hard{color:#ffd75e}
-  #queueSign{position:absolute;top:calc(64px + env(safe-area-inset-top));left:14px;background:linear-gradient(180deg,#3e77e0,#2b56b8);
-    border:2px solid #fff;border-radius:10px;padding:3px 14px 5px;text-align:center;min-width:84px;
-    box-shadow:0 3px 8px rgba(20,40,100,.35)}
-  #queueNum{color:#fff;font-size:23px;font-weight:800;line-height:1.05;font-variant-numeric:tabular-nums}
-  #queueSign .lbl{color:#ffd75e;font-size:11px;font-weight:700;letter-spacing:2px}
-  #coinBox{position:absolute;top:calc(14px + env(safe-area-inset-top));right:12px;display:flex;align-items:center;gap:6px;
-    background:rgba(35,42,80,.82);border-radius:20px;padding:6px 12px 6px 6px}
+  #queueSign{position:absolute;top:calc(66px + env(safe-area-inset-top));left:14px;text-align:center;min-width:88px;
+    filter:drop-shadow(0 4px 6px rgba(20,40,100,.35));display:flex;flex-direction:column;align-items:center;gap:3px}
+  #queueBoard{background:linear-gradient(180deg,#4a83ec,#2b56c8);border:2.5px solid #fff;border-radius:12px 12px 8px 8px;
+    padding:3px 14px 4px;box-shadow:inset 0 -4px 0 rgba(10,30,90,.35)}
+  #queueNum{color:#fff;font-size:25px;font-weight:900;line-height:1.05;font-variant-numeric:tabular-nums;
+    text-shadow:0 2px 0 rgba(10,30,90,.4)}
+  #queueLbl{display:inline-block;background:#ffd23e;color:#7a4c00;font-size:11px;font-weight:900;letter-spacing:2px;
+    padding:2px 10px;border-radius:9px;box-shadow:0 2px 0 #c99a12}
+  #coinBox{position:absolute;top:calc(15px + env(safe-area-inset-top));right:12px;display:flex;align-items:center;gap:6px;
+    background:linear-gradient(180deg,#3c4570,#262d52);border:2px solid rgba(255,255,255,.25);border-radius:20px;
+    padding:6px 13px 6px 7px;box-shadow:0 4px 10px rgba(20,25,60,.35)}
   #coinBox svg{width:22px;height:22px}
-  #coinNum{color:#ffd75e;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
+  #coinNum{color:#ffd75e;font-weight:900;font-size:15px;font-variant-numeric:tabular-nums}
   /* ---------- 道具栏 ---------- */
-  #props{position:absolute;left:0;right:0;bottom:0;z-index:6;display:flex;justify-content:center;gap:8px;
+  #props{position:absolute;left:0;right:0;bottom:0;z-index:6;display:flex;justify-content:center;gap:9px;
     padding:8px 8px calc(10px + env(safe-area-inset-bottom));pointer-events:auto}
-  .prop{position:relative;width:60px;height:62px;border:none;border-radius:14px;cursor:pointer;
-    background:linear-gradient(180deg,#ffe08a,#f6b93d);box-shadow:0 3px 0 #c98a1e,0 5px 10px rgba(80,50,0,.28);
+  .prop{position:relative;width:62px;height:66px;border:none;border-radius:16px;cursor:pointer;
+    background:linear-gradient(180deg,#ffdf74 0%,#fccb3f 55%,#f0b32a 100%);
+    border-bottom:4px solid #c8871a;
+    box-shadow:0 6px 12px rgba(90,55,0,.30),inset 0 2px 0 rgba(255,255,255,.65);
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-  .prop:active{transform:translateY(2px);box-shadow:0 1px 0 #c98a1e}
-  .prop svg{width:24px;height:24px}
-  .prop .nm{font-size:10px;font-weight:800;color:#5b3a00}
-  .prop .bd{position:absolute;top:-7px;right:-5px;min-width:20px;height:20px;border-radius:10px;padding:0 5px;
-    background:#39c15e;border:2px solid #fff;color:#fff;font-size:11px;font-weight:800;
-    display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
-  .prop .bd.price{background:#f2784b}
-  .prop.off{filter:grayscale(.75) brightness(.85)}
+  .prop:active{transform:translateY(2px);border-bottom-width:2px}
+  .prop svg{width:26px;height:26px;filter:drop-shadow(0 1px 0 rgba(255,255,255,.5))}
+  .prop .nm{font-size:11px;font-weight:900;color:#6b4600;letter-spacing:1px}
+  .prop .bd{position:absolute;top:-8px;left:50%;transform:translateX(-50%);min-width:24px;height:21px;border-radius:11px;
+    padding:0 6px;background:#fff;border:2px solid #39c15e;color:#1d8a3c;font-size:12px;font-weight:900;
+    display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;
+    box-shadow:0 2px 5px rgba(0,0,0,.22)}
+  .prop .bd.price{border-color:#f2784b;color:#d24a1e}
+  .prop.off{filter:grayscale(.78) brightness(.86)}
   .prop.act{outline:3px solid #fff;animation:pulse .8s infinite alternate}
   @keyframes pulse{from{transform:scale(1)}to{transform:scale(1.06)}}
   /* ---------- 提示 / 横幅 ---------- */
   #toast{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);z-index:8;pointer-events:none;
-    background:rgba(30,34,60,.88);color:#fff;font-size:15px;font-weight:600;padding:10px 20px;
-    border-radius:22px;opacity:0;transition:opacity .25s;max-width:82%;text-align:center}
-  #banner{position:absolute;left:0;right:0;top:34%;z-index:8;pointer-events:none;text-align:center;
-    font-size:40px;font-weight:900;color:#ffdf6b;-webkit-text-stroke:2px #7a4c00;
-    text-shadow:0 4px 0 rgba(90,50,0,.35);opacity:0;transform:scale(.6)}
+    background:rgba(28,32,58,.9);color:#fff;font-size:15px;font-weight:700;padding:11px 22px;
+    border-radius:24px;opacity:0;transition:opacity .25s;max-width:84%;text-align:center;
+    box-shadow:0 6px 18px rgba(10,15,40,.4)}
+  #banner{position:absolute;left:0;right:0;top:33%;z-index:8;pointer-events:none;text-align:center;
+    font-size:44px;font-weight:900;color:#ffdf6b;-webkit-text-stroke:2px #7a4c00;
+    text-shadow:0 5px 0 rgba(90,50,0,.35);opacity:0;transform:scale(.6)}
   #banner.show{animation:ban 1.5s ease forwards}
   @keyframes ban{0%{opacity:0;transform:scale(.5)}18%{opacity:1;transform:scale(1.12)}30%{transform:scale(1)}75%{opacity:1}100%{opacity:0;transform:scale(1.05) translateY(-14px)}}
   /* ---------- 弹窗 ---------- */
   #mask{position:absolute;inset:0;background:rgba(15,20,45,.55);z-index:10;display:none;
     align-items:center;justify-content:center;pointer-events:auto}
   #mask.show{display:flex}
-  #modal{background:#fff;border-radius:22px;padding:22px 20px calc(18px + env(safe-area-inset-bottom));
+  #modal{background:linear-gradient(180deg,#ffffff,#f2f5fd);border-radius:24px;padding:24px 20px calc(20px + env(safe-area-inset-bottom));
     width:min(86vw,340px);max-height:80vh;overflow:auto;text-align:center;
-    box-shadow:0 14px 40px rgba(10,20,60,.4);animation:mup .22s ease}
+    box-shadow:0 18px 50px rgba(10,20,60,.45),inset 0 2px 0 #fff;animation:mup .22s ease}
   @keyframes mup{from{transform:translateY(24px) scale(.94);opacity:0}to{transform:none;opacity:1}}
-  #modal h2{font-size:21px;color:#223;margin-bottom:10px}
-  #modal .txt{font-size:14px;color:#556;line-height:1.7;margin-bottom:14px;white-space:pre-line}
-  #modal .stars{font-size:34px;letter-spacing:6px;margin:4px 0 8px}
-  #modal .stars .dim{color:#d9dde6}
-  #modal .coin{color:#d98a00;font-weight:800;font-size:16px;margin-bottom:12px}
-  .btnrow{display:flex;flex-direction:column;gap:9px;margin-top:6px}
-  .btn{border:none;border-radius:14px;padding:13px 10px;font-size:16px;font-weight:800;cursor:pointer}
+  #modal h2{font-size:22px;color:#223;margin-bottom:10px}
+  #modal .txt{font-size:14px;color:#556;line-height:1.75;margin-bottom:14px;white-space:pre-line}
+  #modal .stars{font-size:36px;letter-spacing:8px;margin:4px 0 8px;color:#ffb400;
+    filter:drop-shadow(0 3px 0 rgba(150,90,0,.35))}
+  #modal .stars .dim{color:#d9dde6;filter:none}
+  #modal .coin{color:#d98a00;font-weight:900;font-size:16px;margin-bottom:12px}
+  .btnrow{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+  .btn{border:none;border-radius:15px;padding:13px 10px;font-size:16px;font-weight:900;cursor:pointer;letter-spacing:1px}
   .btn:active{transform:scale(.97)}
-  .btn.pri{background:linear-gradient(180deg,#63a1ff,#3b74e8);color:#fff;box-shadow:0 3px 0 #2b56b8}
-  .btn.sec{background:#eef1f8;color:#445;box-shadow:0 3px 0 #c9cfdd}
-  .btn.warn{background:linear-gradient(180deg,#ffb45e,#f68e2e);color:#fff;box-shadow:0 3px 0 #c96a12}
+  .btn.pri{background:linear-gradient(180deg,#6aa6ff,#3b74e8);color:#fff;box-shadow:0 4px 0 #2b56b8}
+  .btn.sec{background:#eef1f8;color:#445;box-shadow:0 4px 0 #c9cfdd}
+  .btn.warn{background:linear-gradient(180deg,#ffb45e,#f68e2e);color:#fff;box-shadow:0 4px 0 #c96a12}
 </style>
 </head>
 <body>
@@ -87,10 +98,13 @@
 
 <div id="hud">
   <button id="btnPause" aria-label="暂停">
-    <svg viewBox="0 0 24 24" width="18" height="18"><rect x="6" y="4" width="4" height="16" rx="1.6" fill="#fff"/><rect x="14" y="4" width="4" height="16" rx="1.6" fill="#fff"/></svg>
+    <svg viewBox="0 0 24 24" width="18" height="18"><rect x="6" y="4" width="4" height="16" rx="2" fill="#fff"/><rect x="14" y="4" width="4" height="16" rx="2" fill="#fff"/></svg>
   </button>
   <div id="lvlPill">第 1 关</div>
-  <div id="queueSign"><div id="queueNum">0</div><div class="lbl">排队人数</div></div>
+  <div id="queueSign">
+    <div id="queueBoard"><div id="queueNum">0</div></div>
+    <span id="queueLbl">排队人数</span>
+  </div>
   <div id="coinBox">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f6b93d" stroke="#c98a1e" stroke-width="2"/><circle cx="12" cy="12" r="5.6" fill="none" stroke="#ffe08a" stroke-width="2.4"/></svg>
     <span id="coinNum">0</span>
@@ -108,9 +122,8 @@
 <script>
 'use strict';
 /* =====================================================================
-   挪挪车 · 无限关卡版  (glm-5.3-flash)
-   玩法还原自实机录像：点击车辆→沿箭头滑行/冲出停车场→倒进顶部车位
-   →同色乘客从队列走过来上车→坐满沿马路开走腾车位；接完全部乘客过关。
+   挪挪车 · 无限关卡版  (glm-5.3-flash)  v2 立体视觉版
+   2.5D 挤出车身 + 倾斜停车场 + 完整「驶入-停车-上客-载客离场」动画链
    ===================================================================== */
 
 /* ---------------- 基础工具 ---------------- */
@@ -129,7 +142,7 @@ window.addEventListener('error',e=>__errs.push('err:'+(e.message||e)));
 window.addEventListener('unhandledrejection',e=>__errs.push('rej:'+(e.reason||'')));
 const _ce=console.error.bind(console);console.error=(...a)=>{__errs.push('ce:'+a.join(' '));_ce(...a);};
 
-/* ---------------- 音效（WebAudio 合成） ---------------- */
+/* ---------------- 音效 ---------------- */
 const SFX=(()=>{let ac=null;
   function ctx(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}return ac;}
   function env(g,t0,a,d,v){g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(v,t0+a);g.gain.exponentialRampToValueAtTime(0.001,t0+a+d);}
@@ -180,13 +193,13 @@ function levelParams(n){
   return {cols,rows,nVeh,busRatio,obstacles,colorCount,hard};
 }
 
-/* ---------------- 车辆颜色 / 容量 ---------------- */
+/* ---------------- 颜色 / 容量 ---------------- */
 const COLORS=[
-  {body:'#f0b429',dark:'#b97f0a',light:'#ffd97a'},
-  {body:'#4d9de0',dark:'#26619f',light:'#93c9f2'},
-  {body:'#e15554',dark:'#9c2e2e',light:'#f59493'},
-  {body:'#57b368',dark:'#2f7440',light:'#96d8a2'},
-  {body:'#b565d8',dark:'#74349a',light:'#dba6ef'},
+  {body:'#f4b91c',dark:'#b97f08',mid:'#dda41a',light:'#ffd970'},
+  {body:'#4d9de8',dark:'#26619f',mid:'#3a80c8',light:'#9ecdf5'},
+  {body:'#e8564f',dark:'#9c2e2e',mid:'#c84440',light:'#f79a95'},
+  {body:'#54b566',dark:'#2f7440',mid:'#3f9752',light:'#98dba3'},
+  {body:'#c06bd9',dark:'#74349a',mid:'#a352ba',light:'#e0a8ef'},
 ];
 const capOf=len=>len===3?8:4;
 
@@ -259,7 +272,9 @@ function tryGen(n,P,rng){
   return {n,params:P,obstacles,vehicles,par:vehicles.length};
 }
 
-/* ---------------- 布局几何 ---------------- */
+/* ---------------- 布局几何（含停车场倾角） ---------------- */
+const ROT=-0.07;                     // 整个停车场的透视倾角
+const COSR=Math.cos(ROT),SINR=Math.sin(ROT);
 const cv=document.getElementById('cv');
 const ctx=cv.getContext('2d');
 let W=0,H=0,DPR=1;
@@ -273,12 +288,11 @@ function computeLayout(){
   cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
   cv.style.width=W+'px';cv.style.height=H+'px';
   const bar=document.getElementById('props');
-  propsH=(bar?bar.offsetHeight:92)+14;
-  L.stationH=H*0.072;
+  propsH=(bar?bar.offsetHeight:96)+14;
+  L.stationH=H*0.075;
   L.queueZone=clamp(H*0.12,78,126);
   L.roadH=clamp(H*0.062,42,56);
   L.boardBot=H-propsH;
-  // 排队路径：右侧竖排→底部横排（闸口在右）
   L.queuePts=[];
   const qTop=L.stationH+12,qBot=L.stationH+L.queueZone-16;
   const vertX=W*0.86;
@@ -288,29 +302,53 @@ function computeLayout(){
     if(d<vertLen)L.queuePts.push({x:vertX,y:qBot-d});
     else L.queuePts.push({x:clamp(vertX-(d-vertLen),W*0.34,vertX),y:qBot});
   }
+  L.dots=[];
+  const drng=mulberry32(20260905);
+  for(let i=0;i<26;i++)L.dots.push({x:drng()*W,y:L.stationH+drng()*(H-L.stationH-propsH-40),r:3+drng()*7});
   if(G.level)layoutBoard();
 }
 function layoutBoard(){
   const {cols,rows}=G.level.params;
   const zone=L.boardBot-(L.stationH+L.queueZone)-L.roadH-18;
-  let cell=Math.min((W-24)/cols,54,zone/(rows+3.2));
+  const cA=Math.abs(Math.cos(ROT)),sA=Math.abs(Math.sin(ROT));
+  let cell=Math.min((W-26)/cols,54,zone/(rows+3.2));
+  cell=Math.min(cell,(W-26)/(cols*cA+rows*sA),zone/((cols+rows)*sA+rows*cA+3.2));
   cell=Math.max(cell,20);
   L.cell=cell;
-  L.slotH=3*cell+12;
+  L.slotH=3*cell+14;
   L.slotW=Math.min(L.slotH*0.66,(W-20-5*6)/6,64);
   L.slotStep=L.slotW+6;
   const totW=6*L.slotW+5*6;
   L.slotX0=(W-totW)/2;
-  L.slotY=L.stationH+L.queueZone+L.slotH/2+8;
-  L.roadY=L.slotY+L.slotH/2+5;
+  L.slotRowY=L.stationH+L.queueZone+L.slotH/2+8;
+  L.roadY=L.slotRowY+L.slotH/2*Math.cos(ROT)+L.slotH*0.28+5;
   L.roadMid=L.roadY+L.roadH*0.55;
   L.boardTop=L.roadY+L.roadH+6;
   boardRect={x:0,y:L.boardTop,w:W,h:L.boardBot-L.boardTop};
-  const pad=6;
   L.bx=boardRect.x+(boardRect.w-cell*cols)/2;
   L.by=boardRect.y+(boardRect.h-cell*rows)/2;
+  L.cx=L.bx+cols*cell/2;L.cy=L.by+rows*cell/2;
+  repositionBoardEnts();
+  bgDirty=true;
 }
-function cellPx(x,y){return {px:L.bx+(x+0.5)*L.cell,py:L.by+(y+0.5)*L.cell};}
+function gridToWorld(x,y){ // 网格中心 → 倾斜后的世界坐标
+  const u=L.bx+(x+0.5)*L.cell,v=L.by+(y+0.5)*L.cell;
+  const dx=u-L.cx,dy=v-L.cy;
+  return {px:L.cx+dx*COSR-dy*SINR,py:L.cy+dx*SINR+dy*COSR};
+}
+function worldToGrid(px,py){
+  const dx=px-L.cx,dy=py-L.cy;
+  const u=L.cx+dx*COSR+dy*SINR,v=L.cy-dx*SINR+dy*COSR;
+  return {gx:Math.floor((u-L.bx)/L.cell),gy:Math.floor((v-L.by)/L.cell)};
+}
+function repositionBoardEnts(){
+  for(const v of G.vehicles){
+    if(v.state!=='idle'&&v.state!=='sliding')continue;
+    const p=gridToWorld(v.orient==='h'?v.x+(v.len-1)/2:v.x,v.orient==='h'?v.y:v.y+(v.len-1)/2);
+    v.px=p.px;v.py=p.py;v.ang=angOf(v)+ROT;
+  }
+  for(const o of G.obstacles){const p=gridToWorld(o.x,o.y);o.px=p.px;o.py=p.py;}
+}
 
 /* ---------------- 游戏状态 ---------------- */
 const G={
@@ -351,34 +389,35 @@ function cellsHead(v){
 }
 function vehAt(px,py){
   const {cols,rows}=G.level.params;
-  const gx=Math.floor((px-L.bx)/L.cell),gy=Math.floor((py-L.by)/L.cell);
-  if(gx<0||gy<0||gx>=cols||gy>=rows)return null;
-  const v=occupancy()[gy][gx];
+  const w=worldToGrid(px,py);
+  if(w.gx<0||w.gy<0||w.gx>=cols||w.gy>=rows)return null;
+  const v=occupancy()[w.gy][w.gx];
   return (v&&v!=='o'&&v.state==='idle')?v:null;
 }
 
 /* ---------------- 开关一关 ---------------- */
 function startLevel(n){
   G.n=n;G.level=generateLevel(n);
-  G.obstacles=G.level.obstacles;
+  G.obstacles=G.level.obstacles.map(o=>Object.assign({},o));
   G.moves=0;G.propsUsed=0;G.served=0;G.total=0;
   G.snapStack=[];G.hintVid=-1;G.selectMode=null;
   G.deadlockShown=false;G.winShown=false;G.fx=[];
   G.vehicles=G.level.vehicles.map(v=>Object.assign({},v,{
     state:'idle',slot:-1,waitIdx:-1,boarded:0,boardTimer:0,toWait:false,
-    px:0,py:0,ang:0,path:null,pi:0,pd:0,
+    px:0,py:0,ang:0,path:null,pi:0,pd:0,curSpd:0,
     animFrom:null,animT:0,animDur:0,slideTo:null,
-    bump:0,shake:0}));
+    bump:0,dip:0,shake:0}));
   layoutBoard();
   for(const v of G.vehicles){
-    const p=cellPx(v.orient==='h'?v.x+(v.len-1)/2:v.x,v.orient==='h'?v.y:v.y+(v.len-1)/2);
-    v.px=p.px;v.py=p.py;v.ang=angOf(v);
+    const p=gridToWorld(v.orient==='h'?v.x+(v.len-1)/2:v.x,v.orient==='h'?v.y:v.y+(v.len-1)/2);
+    v.px=p.px;v.py=p.py;v.ang=angOf(v)+ROT;
   }
+  for(const o of G.obstacles){const p=gridToWorld(o.x,o.y);o.px=p.px;o.py=p.py;}
   G.persons=[];let pid=0;
   const rng=mulberry32(seedOf(n)^777);
   for(const v of G.vehicles)for(let s=0;s<capOf(v.len);s++)
     G.persons.push({id:pid++,ci:v.color,state:'queued',jx:(rng()-0.5)*4,jy:(rng()-0.5)*4,
-      fx:0,fy:0,tx:0,ty:0,t:0,dur:1,tvid:-1,seat:0});
+      fx:0,fy:0,hx:0,hy:0,sx:0,sy:0,t:0,dur:1,tvid:-1,seat:0});
   shuffleArr(G.persons,rng);
   clusterColors(G.persons,rng);
   G.total=G.persons.length;
@@ -419,10 +458,10 @@ function undo(){
   if(!s){toast('已经是初始局面啦');return;}
   for(const sv of s.vehicles){
     const v=G.vehicles.find(w=>w.id===sv.id);if(!v)continue;
-    Object.assign(v,sv,{path:null,animFrom:null,bump:0,shake:0,boardTimer:0});
+    Object.assign(v,sv,{path:null,animFrom:null,bump:0,dip:0,shake:0,boardTimer:0,curSpd:0});
     if(v.state==='idle'){
-      const p=cellPx(v.orient==='h'?v.x+(v.len-1)/2:v.x,v.orient==='h'?v.y:v.y+(v.len-1)/2);
-      v.px=p.px;v.py=p.py;v.ang=angOf(v);
+      const p=gridToWorld(v.orient==='h'?v.x+(v.len-1)/2:v.x,v.orient==='h'?v.y:v.y+(v.len-1)/2);
+      v.px=p.px;v.py=p.py;v.ang=angOf(v)+ROT;
     }
   }
   for(const sp of s.persons){const p=G.persons.find(w=>w.id===sp.id);if(p)p.state=sp.state;}
@@ -445,7 +484,7 @@ function startSlide(v,k){
   const axis=v.orient==='h'?'x':'y';
   const fx=v.px,fy=v.py;
   if(axis==='x')v.x+=k*v.dir;else v.y+=k*v.dir;
-  const p=cellPx(v.orient==='h'?v.x+(v.len-1)/2:v.x,v.orient==='h'?v.y:v.y+(v.len-1)/2);
+  const p=gridToWorld(v.orient==='h'?v.x+(v.len-1)/2:v.x,v.orient==='h'?v.y:v.y+(v.len-1)/2);
   v.state='sliding';v.animFrom={x:fx,y:fy};v.animT=0;v.animDur=0.055*k+0.06;v.slideTo={x:p.px,y:p.py};
   SFX.engine();
 }
@@ -453,17 +492,23 @@ function slotFree(i){
   return !G.vehicles.some(v=>v.slot===i&&(v.state==='exiting'||v.state==='boarding'||v.state==='waiting'));
 }
 function firstFreeSlot(){for(let i=0;i<save.slots;i++)if(slotFree(i))return i;return -1;}
-function slotCenter(i){return {x:L.slotX0+i*L.slotStep+L.slotW/2,y:L.slotY};}
+function slotCenter(i){ // 车位中心（整排绕左端微倾）
+  const lx=i*L.slotStep+L.slotW/2;
+  return {x:L.slotX0+lx*Math.cos(ROT),y:L.slotRowY+lx*Math.sin(ROT)};
+}
 function carLenPx(v){return v.len*L.cell;}
 function startExit(v,teleport){
   const axis=v.orient==='h'?'x':'y';
   const {cols,rows}=G.level.params;
   const wps=[];
+  const dxv=axis==='x'?v.dir:0, dyv=axis==='y'?v.dir:0;
+  const rdx=dxv*COSR-dyv*SINR, rdy=dxv*SINR+dyv*COSR; // 倾斜后的出场方向
   let ex,ey;
-  if(axis==='x'){const edge=v.dir>0?L.bx+cols*L.cell:L.bx;ex=edge+v.dir*(L.cell*0.9+carLenPx(v)/2);ey=v.py;}
-  else{const edge=v.dir>0?L.by+rows*L.cell:L.by;ex=v.px;ey=edge+v.dir*(L.cell*0.9+carLenPx(v)/2);}
+  const edge=axis==='x'?(v.dir>0?L.bx+cols*L.cell:L.bx):(v.dir>0?L.by+rows*L.cell:L.by);
+  const d=Math.abs(edge-v.px)*0+Math.abs(edge-(axis==='x'?v.px:v.py))+L.cell*0.9+carLenPx(v)/2;
+  ex=v.px+rdx*d;ey=v.py+rdy*d;
   wps.push({x:ex,y:ey});
-  const s=teleport?firstFreeSlot():firstFreeSlot();
+  const s=firstFreeSlot();
   if(ey>L.roadMid+6){
     const sideX=ex<(boardRect.x+boardRect.w/2)?boardRect.x-34:boardRect.x+boardRect.w+34;
     wps.push({x:sideX,y:ey},{x:sideX,y:L.roadMid});
@@ -473,7 +518,7 @@ function startExit(v,teleport){
   if(teleport){
     if(s>=0){
       v.slot=s;const c=slotCenter(s);
-      v.px=c.x;v.py=c.y;v.ang=0;v.path=null;v.state='boarding';v.boarded=0;v.boardTimer=0.2;
+      v.px=c.x;v.py=c.y;v.ang=ROT;v.path=null;v.state='boarding';v.boarded=0;v.boardTimer=0.2;
       SFX.park();return;
     }else{
       v.state='waiting';v.waitIdx=G.vehicles.filter(w=>w.state==='waiting').length;
@@ -490,7 +535,7 @@ function startExit(v,teleport){
     v.slot=-1;v.toWait=true;v.state='exiting';
     wps.push({x:-120-v.waitIdx*76,y:L.roadMid});
   }
-  v.path=wps;v.pi=0;v.pd=0;
+  v.path=wps;v.pi=0;v.pd=0;v.curSpd=L.cell*13;
   SFX.engine();
 }
 function promoteWaiting(){
@@ -499,12 +544,13 @@ function promoteWaiting(){
   const s=firstFreeSlot();if(s<0)return;
   w.slot=s;w.toWait=false;w.state='exiting';
   const c=slotCenter(s);
-  w.path=[{x:c.x,y:L.roadMid},{x:c.x,y:c.y}];w.pi=0;w.pd=0;
+  w.path=[{x:c.x,y:L.roadMid},{x:c.x,y:c.y}];w.pi=0;w.pd=0;w.curSpd=L.cell*13;
   SFX.engine();
 }
 function startLeave(v){
-  v.state='leaving';v.slotWas=v.slot;v.slot=-1;
-  v.path=[{x:v.px,y:L.roadMid},{x:-170,y:L.roadMid}];v.pi=0;v.pd=0;
+  v.state='leaving';v.slot=-1;v.curSpd=L.cell*9;v.dip=1;
+  for(let i=0;i<5;i++)G.fx.push({x:v.px+(Math.random()-0.5)*14,y:v.py+carLenPx(v)*0.45,r:4+Math.random()*5,t:-i*0.06,dur:0.7,smoke:true});
+  v.path=[{x:v.px,y:L.roadMid},{x:-180,y:L.roadMid}];v.pi=0;v.pd=0;
   SFX.leave();
   setTimeout(promoteWaiting,400);
 }
@@ -514,7 +560,7 @@ function updateBoarding(dt){
     v.boardTimer-=dt;
     if(v.boardTimer>0)continue;
     const cap=capOf(v.len);
-    const inFlight=G.persons.filter(p=>p.state==='walking'&&p.tvid===v.id).length;
+    const inFlight=G.persons.filter(p=>(p.state==='walking'||p.state==='hopping')&&p.tvid===v.id).length;
     if(v.boarded+inFlight>=cap){v.boardTimer=0.3;continue;}
     const p=G.persons.find(q=>q.state==='queued'&&q.ci===v.color);
     if(!p){v.boardTimer=0.3;continue;}
@@ -522,36 +568,52 @@ function updateBoarding(dt){
     const qi=G.persons.filter(q=>q.state==='queued').indexOf(p);
     const qp=queuePoint(qi);
     p.fx=qp.x+p.jx;p.fy=qp.y+p.jy;
-    const seat=seatPos(v,p.seat);p.tx=seat.x;p.ty=seat.y;
-    p.dur=0.18+dist(p.fx,p.fy,p.tx,p.ty)/150;
+    const seat=seatPos(v,p.seat);
+    p.hx=seat.x;p.hy=seat.y+12;      // 走到车旁地面点
+    p.sx=seat.x;p.sy=seat.y;         // 车顶座位
+    p.dur=0.18+dist(p.fx,p.fy,p.hx,p.hy)/140;
     v.boardTimer=0.34;
   }
   for(const p of G.persons){
     if(p.state==='walking'){
       p.t+=dt;
+      if(p.t>=p.dur){p.state='hopping';p.t=0;p.dur=0.24;}
+    }else if(p.state==='hopping'){
+      p.t+=dt;
       if(p.t>=p.dur){
         p.state='boarded';p.t=0;
         const v=G.vehicles.find(w=>w.id===p.tvid);
         if(v){
-          v.boarded++;
-          if(v.boarded>=capOf(v.len))startLeave(v);
+          v.boarded++;v.dip=1;SFX.seat();
+          if(v.boarded>=capOf(v.len)){
+            v.boardTimer=0.35; // 稍作停留再出发（下方统一检查）
+          }
         }
-        G.served++;SFX.seat();
+        G.served++;
         if(G.served>=G.total)onAllServed();
       }
     }else if(p.state==='boarded'){
       if(p.t<0.3)p.t+=dt;
     }
   }
+  // 坐满 → 出发
+  for(const v of G.vehicles){
+    if(v.state==='boarding'&&v.boarded>=capOf(v.len)){
+      v.boardTimer-=dt;
+      if(v.boardTimer<=0)startLeave(v);
+    }
+  }
 }
 function queuePoint(i){
   return L.queuePts[Math.min(i,L.queuePts.length-1)]||{x:W*0.8,y:H*0.18};
 }
-function seatPos(v,idx){
+function seatPos(v,idx){ // 车顶座位的世界坐标（随车身朝向旋转）
   const cap=capOf(v.len),rowsN=Math.ceil(cap/2),lenPx=carLenPx(v);
   const col=(idx%2===0)?-1:1,row=Math.floor(idx/2);
-  const gapY=(lenPx-30)/Math.max(rowsN-1,1);
-  return {x:v.px+col*L.cell*0.17,y:v.py-lenPx/2+17+row*gapY};
+  const gapY=(lenPx-34)/Math.max(rowsN-1,1);
+  const lx=col*L.cell*0.16,ly=-lenPx/2+20+row*gapY;
+  const c=Math.cos(v.ang),s=Math.sin(v.ang);
+  return {x:v.px+lx*c-ly*s,y:v.py+lx*s+ly*c};
 }
 function onAllServed(){
   if(G.winShown)return;G.winShown=true;
@@ -563,13 +625,13 @@ function onAllServed(){
 function update(dt){
   G.t+=dt;
   for(const v of G.vehicles){
-    v.bump=Math.max(0,v.bump-dt*3);v.shake=Math.max(0,v.shake-dt*2.2);
+    v.bump=Math.max(0,v.bump-dt*3);v.shake=Math.max(0,v.shake-dt*2.2);v.dip=Math.max(0,v.dip-dt*4);
     if(v.state==='sliding'){
       v.animT+=dt;const k=easeOut(clamp(v.animT/v.animDur,0,1));
       v.px=lerp(v.animFrom.x,v.slideTo.x,k);v.py=lerp(v.animFrom.y,v.slideTo.y,k);
       if(k>=1){v.state='idle';v.bump=1;SFX.bump();}
     }else if(v.state==='exiting'||v.state==='leaving'){
-      followPath(v,dt,L.cell*15);
+      followPath(v,dt);
     }
   }
   updateBoarding(dt);
@@ -578,9 +640,13 @@ function update(dt){
   checkDeadlock();
   updateHudLight();
 }
-function followPath(v,dt,speed){
+function followPath(v,dt){
   if(!v.path)return;
-  let adv=speed*dt;
+  let spd=v.curSpd;
+  if(v.state==='leaving'){v.curSpd+=L.cell*26*dt;spd=v.curSpd;}
+  const last=v.pi===v.path.length-1;
+  if(v.state==='exiting'&&last)spd*=0.55; // 进位减速
+  let adv=spd*dt;
   while(adv>0&&v.pi<v.path.length){
     const a=(v.pi===0)?{x:v.px,y:v.py}:v.path[v.pi-1];
     const b=v.path[v.pi];
@@ -588,19 +654,17 @@ function followPath(v,dt,speed){
     if(seg<0.001){v.pi++;v.pd=0;continue;}
     const remain=seg-v.pd;
     const ta=Math.atan2(b.y-a.y,b.x-a.x);
-    v.ang=angLerp(v.ang,ta,clamp(dt*10,0,1));
-    if(adv>=remain){
-      v.px=b.x;v.py=b.y;adv-=remain;v.pd=0;v.pi++;
-    }else{
-      v.px=a.x+(b.x-a.x)*(v.pd+adv)/seg;v.py=a.y+(b.y-a.y)*(v.pd+adv)/seg;v.pd+=adv;adv=0;
-    }
-    if(Math.random()<dt*14)G.fx.push({x:v.px-Math.cos(v.ang)*carLenPx(v)*0.45,y:v.py-Math.sin(v.ang)*carLenPx(v)*0.45,r:3+Math.random()*4,t:0,dur:0.5});
+    v.ang=angLerp(v.ang,ta,clamp(dt*8,0,1));
+    if(adv>=remain){v.px=b.x;v.py=b.y;adv-=remain;v.pd=0;v.pi++;}
+    else{v.px=a.x+(b.x-a.x)*(v.pd+adv)/seg;v.py=a.y+(b.y-a.y)*(v.pd+adv)/seg;v.pd+=adv;adv=0;}
+    const rate=v.state==='leaving'?dt*30:dt*14;
+    if(Math.random()<rate)G.fx.push({x:v.px-Math.cos(v.ang)*carLenPx(v)*0.45,y:v.py-Math.sin(v.ang)*carLenPx(v)*0.45,r:3+Math.random()*4,t:0,dur:0.55,smoke:v.state==='leaving'});
   }
   if(v.pi>=v.path.length){
     v.path=null;
     if(v.state==='exiting'){
       if(v.toWait){v.state='waiting';v.ang=Math.PI/2;}
-      else{v.state='boarding';v.boarded=v.boarded||0;v.boardTimer=0.25;v.ang=0;SFX.park();}
+      else{v.state='boarding';v.boarded=v.boarded||0;v.boardTimer=0.3;v.ang=ROT;v.bump=1;SFX.park();}
     }else if(v.state==='leaving'){v.state='gone';}
   }
 }
@@ -669,7 +733,7 @@ function applySelect(v){
   const key=G.selectMode;G.selectMode=null;
   if(save.props[key]<=0){renderProps();return;}
   save.props[key]--;G.propsUsed++;pushSnap();
-  if(key==='flip'){v.dir*=-1;v.ang=angOf(v);SFX.click();toast('已调头');}
+  if(key==='flip'){v.dir*=-1;v.ang=angOf(v)+ROT;SFX.click();toast('已调头');}
   else if(key==='remove'){startExit(v,true);G.moves++;toast('已送出，乘客直接上车');}
   persist();renderProps();afterAction();
 }
@@ -708,11 +772,8 @@ function doShuffle(){
       if(!done){ok=false;break;}
     }
     if(ok){
-      for(const v of board){
-        const p=cellPx(v.orient==='h'?v.x+(v.len-1)/2:v.x,v.orient==='h'?v.y:v.y+(v.len-1)/2);
-        v.px=p.px;v.py=p.py;v.ang=angOf(v);
-      }
-      for(const p of G.persons)if(p.state==='walking')p.state='queued';
+      repositionBoardEnts();
+      for(const p of G.persons)if(p.state==='walking'||p.state==='hopping')p.state='queued';
       SFX.engine();toast('重新排好啦，依然保证有解');
       afterAction();return;
     }
@@ -781,7 +842,7 @@ window.resetSave=function(){
 };
 window.doReset=function(){save=JSON.parse(JSON.stringify(DEF_SAVE));persist();hideModal();startLevel(save.lv);renderProps();updateHud();};
 
-/* ---------------- 道具栏 DOM ---------------- */
+/* ---------------- 道具栏 ---------------- */
 const ICONS={
   hint:'<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V18h6v-1.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z" fill="#5b3a00"/><rect x="9.5" y="19" width="5" height="2.6" rx="1.3" fill="#5b3a00"/></svg>',
   undo:'<svg viewBox="0 0 24 24"><path d="M9 7 4 12l5 5v-3.2c4.2-.4 7.3 1 9.6 4.2-.6-5-3.8-8.6-9.6-9z" fill="#5b3a00"/></svg>',
@@ -804,7 +865,7 @@ function renderProps(){
   }
 }
 
-/* ---------------- HUD 刷新 ---------------- */
+/* ---------------- HUD ---------------- */
 const queueNumEl=document.getElementById('queueNum'),coinNumEl=document.getElementById('coinNum'),lvlPillEl=document.getElementById('lvlPill');
 let lastRemaining=-1;
 function updateHud(){
@@ -816,34 +877,88 @@ function updateHudLight(){
   if(remaining!==lastRemaining){lastRemaining=remaining;queueNumEl.textContent=remaining;}
 }
 
-/* ---------------- 渲染 ---------------- */
-function rr(c,x,y,w,h,r){r=Math.min(r,w/2,h/2);if(r<0)r=0;c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+/* ================= 渲 染 ================= */
+function rr(c,x,y,w,h,r){r=Math.min(r,Math.abs(w)/2,Math.abs(h)/2);if(r<0)r=0;c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+/* 静态图层缓存：车站/车位/马路只在布局变化时重绘 */
+let bgCv=null,bgDirty=true;
+function renderStatic(){
+  if(!bgCv)bgCv=document.createElement('canvas');
+  bgCv.width=cv.width;bgCv.height=cv.height;
+  const c=bgCv.getContext('2d');
+  c.setTransform(DPR,0,0,DPR,0,0);
+  c.fillStyle='#aab6ec';c.fillRect(0,0,W,H);
+  c.fillStyle='rgba(255,255,255,.14)';
+  for(const d of L.dots){c.beginPath();c.arc(d.x,d.y,d.r,0,7);c.fill();}
+  // 车站
+  const h=L.stationH;
+  c.fillStyle='#dde4f6';c.fillRect(0,0,W,h);
+  c.fillStyle='#c3cdea';c.fillRect(0,h-6,W,6);
+  const ty=h*0.16,th=h*0.58;
+  c.fillStyle='#eef2fb';
+  rr(c,-8,ty,W+16,th,th*0.3);c.fill();
+  c.strokeStyle='#b9c4e4';c.lineWidth=2;
+  rr(c,-8,ty,W+16,th,th*0.3);c.stroke();
+  c.fillStyle='#37406b';
+  rr(c,-8,ty+th-7,W+16,7,3);c.fill();
+  const ww=Math.min(40,W*0.095),wh=th*0.52,wy=ty+th*0.16;
+  c.fillStyle='#8fb7ec';
+  for(let x=10;x<W-ww-10;x+=ww+13){rr(c,x,wy,ww,wh,5);c.fill();
+    c.fillStyle='rgba(255,255,255,.45)';rr(c,x+3,wy+2,ww*0.32,wh-4,3);c.fill();c.fillStyle='#8fb7ec';}
+  // 车位
+  for(let i=0;i<6;i++){
+    const ct=slotCenter(i);
+    const unlocked=i<save.slots;
+    c.save();
+    c.translate(ct.x,ct.y);c.rotate(ROT);
+    const w=L.slotW,hh=L.slotH;
+    c.fillStyle='rgba(40,50,90,.14)';
+    rr(c,-w/2+4,-hh/2+7,w,hh,10);c.fill();
+    c.fillStyle=unlocked?'#9aa3ba':'#6d7690';
+    rr(c,-w/2,-hh/2,w,hh,10);c.fill();
+    c.fillStyle=unlocked?'rgba(255,255,255,.28)':'rgba(255,255,255,.10)';
+    rr(c,-w/2+3,-hh/2+3,w-6,hh*0.45,8);c.fill();
+    if(unlocked){
+      c.strokeStyle='rgba(255,255,255,.85)';c.lineWidth=2;c.setLineDash([6,5]);
+      rr(c,-w/2+4,-hh/2+4,w-8,hh-8,7);c.stroke();c.setLineDash([]);
+      c.fillStyle='rgba(255,255,255,.95)';c.font='900 '+Math.round(w*0.46)+'px system-ui';
+      c.textAlign='center';c.textBaseline='middle';
+      c.fillText('P',0,2);
+    }else{
+      const s=w*0.26;
+      c.fillStyle='#cdd3e0';
+      rr(c,-s*0.75,-s*0.05,s*1.5,s*1.1,3);c.fill();
+      c.strokeStyle='#cdd3e0';c.lineWidth=Math.max(2,s*0.26);
+      c.beginPath();c.arc(0,-s*0.05,s*0.42,Math.PI,0);c.stroke();
+      c.fillStyle='#e7eaf2';c.font='800 10px system-ui';c.textAlign='center';c.textBaseline='middle';
+      c.fillText(i===4?'150':'300',0,hh*0.38);
+    }
+    c.restore();
+  }
+  c.textBaseline='alphabetic';
+  // 马路
+  c.fillStyle='#7d8698';c.fillRect(0,L.roadY-7,W,7);
+  c.fillStyle='#59616e';c.fillRect(0,L.roadY,W,L.roadH);
+  c.fillStyle='#6b7484';c.fillRect(0,L.roadY+L.roadH,W,5);
+  c.fillStyle='rgba(255,255,255,.85)';
+  for(let x=8;x<W;x+=44)c.fillRect(x,L.roadY+L.roadH/2-1.6,22,3.2);
+  bgDirty=false;
+}
 function render(){
+  if(bgDirty||!bgCv||bgCv.width!==cv.width)renderStatic();
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.drawImage(bgCv,0,0);
   ctx.setTransform(DPR,0,0,DPR,0,0);
-  ctx.fillStyle='#aebbf0';ctx.fillRect(0,0,W,H);
-  drawStation();
   drawQueue();
-  drawSlots();
-  drawRoad();
   drawBoardCars();
+  drawWaitingCars();
   drawMovingCars();
   drawWalkingPeople();
   drawFx();
   drawProgress();
   drawDebug();
 }
-function drawStation(){
-  const h=L.stationH;
-  ctx.fillStyle='#e2e8f8';ctx.fillRect(0,0,W,h);
-  ctx.fillStyle='#c7d0ec';ctx.fillRect(0,h-5,W,5);
-  ctx.fillStyle='#b3c1ea';
-  const ww=Math.min(34,W*0.09),wh=h*0.4,gy=h*0.18;
-  for(let x=14;x<W-ww-14;x+=ww+14){rr(ctx,x,gy,ww,wh,5);ctx.fill();}
-  const gx=W*0.915,gy2=h+6;
-  ctx.strokeStyle='#e05555';ctx.lineWidth=3;
-  ctx.beginPath();ctx.moveTo(gx,gy2);ctx.lineTo(gx,gy2+L.queueZone*0.72);ctx.stroke();
-  ctx.fillStyle='#e05555';rr(ctx,gx-30,gy2+L.queueZone*0.66,30,4,2);ctx.fill();
-}
+/* ---- 排队人群 + 护栏 ---- */
 function drawQueue(){
   const people=G.persons.filter(p=>p.state==='queued');
   const nShow=Math.min(people.length,90);
@@ -851,155 +966,232 @@ function drawQueue(){
     const p=people[i],pt=queuePoint(i);
     drawPerson(pt.x+p.jx,pt.y+p.jy,COLORS[p.ci],1);
   }
-}
-function drawPerson(x,y,C,s){
-  ctx.fillStyle='rgba(40,50,90,.18)';
-  ctx.beginPath();ctx.ellipse(x,y+7*s,5.5*s,2.2*s,0,0,7);ctx.fill();
-  ctx.fillStyle=C.body;
-  rr(ctx,x-4.5*s,y-4*s,9*s,11.5*s,4*s);ctx.fill();
-  ctx.beginPath();ctx.arc(x,y-6.5*s,4.4*s,0,7);ctx.fill();
-  ctx.fillStyle=C.light;
-  ctx.beginPath();ctx.arc(x-1.5*s,y-7.5*s,1.4*s,0,7);ctx.fill();
-}
-function drawSlots(){
-  for(let i=0;i<6;i++){
-    const c=slotCenter(i);
-    const unlocked=i<save.slots;
-    ctx.fillStyle=unlocked?'#98a2b8':'#6d7690';
-    rr(ctx,c.x-L.slotW/2,c.y-L.slotH/2,L.slotW,L.slotH,8);ctx.fill();
-    if(unlocked){
-      ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1.6;ctx.setLineDash([5,4]);
-      rr(ctx,c.x-L.slotW/2+4,c.y-L.slotH/2+4,L.slotW-8,L.slotH-8,6);ctx.stroke();ctx.setLineDash([]);
-      ctx.fillStyle='rgba(255,255,255,.9)';ctx.font='800 '+Math.round(L.slotW*0.42)+'px system-ui';
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText('P',c.x,c.y);
-    }else{
-      const s=L.slotW*0.26;
-      ctx.fillStyle='#cdd3e0';
-      rr(ctx,c.x-s*0.75,c.y-s*0.05,s*1.5,s*1.1,3);ctx.fill();
-      ctx.strokeStyle='#cdd3e0';ctx.lineWidth=Math.max(2,s*0.26);
-      ctx.beginPath();ctx.arc(c.x,c.y-s*0.05,s*0.42,Math.PI,0);ctx.stroke();
-      ctx.fillStyle='#e7eaf2';ctx.font='700 10px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(i===4?'150':'300',c.x,c.y+L.slotH*0.38);
-    }
-  }
+  // 闸口护栏：立柱 + 红白杆
+  const gx=W*0.915,gy0=L.stationH+4,gy1=L.stationH+L.queueZone-10;
+  ctx.strokeStyle='#8a93ad';ctx.lineWidth=5;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(gx,gy1);ctx.lineTo(gx,gy0);ctx.stroke();
+  ctx.strokeStyle='#e05555';ctx.lineWidth=5;
+  ctx.beginPath();ctx.moveTo(gx-30,gy1-8);ctx.lineTo(gx,gy1-8);ctx.stroke();
+  ctx.fillStyle='#fff';
+  for(let x=gx-28;x<gx-4;x+=14)ctx.fillRect(x,gy1-10.5,7,5);
+  // 站牌
+  const sx=W*0.955,sy=gy1-14;
+  ctx.fillStyle='#8a93ad';ctx.fillRect(sx-2,sy,4,18);
+  ctx.fillStyle='#ffd23e';
+  rr(ctx,sx-11,sy-20,22,20,5);ctx.fill();
+  ctx.strokeStyle='#c99a12';ctx.lineWidth=1.5;rr(ctx,sx-11,sy-20,22,20,5);ctx.stroke();
+  ctx.fillStyle='#7a4c00';ctx.font='900 10px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('巴',sx,sy-10);
   ctx.textBaseline='alphabetic';
 }
-function drawRoad(){
-  ctx.fillStyle='#59616e';ctx.fillRect(0,L.roadY,W,L.roadH);
-  ctx.fillStyle='rgba(255,255,255,.85)';
-  for(let x=8;x<W;x+=44)ctx.fillRect(x,L.roadY+L.roadH/2-1.6,22,3.2);
-  ctx.fillStyle='rgba(255,255,255,.25)';ctx.fillRect(0,L.roadY,W,2);ctx.fillRect(0,L.roadY+L.roadH-2,W,2);
+function drawPerson(x,y,C,s,alpha){
+  ctx.save();
+  if(alpha!==undefined)ctx.globalAlpha=alpha;
+  ctx.fillStyle='rgba(40,50,90,.20)';
+  ctx.beginPath();ctx.ellipse(x,y+7*s,5.5*s,2.2*s,0,0,7);ctx.fill();
+  ctx.fillStyle=C.dark;
+  rr(ctx,x-4.7*s,y-4.3*s,9.4*s,12*s,4.5*s);ctx.fill();
+  ctx.fillStyle=C.body;
+  rr(ctx,x-4.2*s,y-4*s,8.4*s,11.2*s,4.2*s);ctx.fill();
+  ctx.beginPath();ctx.arc(x,y-6.8*s,4.6*s,0,7);ctx.fill();
+  ctx.fillStyle=C.light;
+  ctx.beginPath();ctx.arc(x-1.6*s,y-7.8*s,1.5*s,0,7);ctx.fill();
+  ctx.restore();
 }
+/* ---- 2.5D 车辆 ---- */
 function drawVehicle(v,shadowPass){
+  const ang=v.ang;
   ctx.save();
   let ox=0,oy=0;
   if(v.shake>0)ox=Math.sin(v.shake*34)*3*v.shake;
-  if(v.bump>0)oy=Math.sin(v.bump*Math.PI)*3;
+  if(v.bump>0)oy+=Math.sin(v.bump*Math.PI)*2.5;
+  if(v.dip>0)oy+=Math.sin(v.dip*Math.PI)*2;
   ctx.translate(v.px+ox,v.py+oy);
-  ctx.rotate(v.ang);
-  const w=L.cell-7,len=carLenPx(v)-7;
+  ctx.rotate(ang);
+  const w=L.cell*0.80,len=carLenPx(v)-6;
+  const EXT=Math.max(5,L.cell*0.26);       // 车身高度（向世界下方挤出）
+  const dxx=Math.sin(ang)*EXT, dyy=Math.cos(ang)*EXT; // 世界"下方"在车体局部坐标
   const C=COLORS[v.color];
-  ctx.fillStyle='rgba(30,40,80,.20)';
-  rr(ctx,-w/2+2,-len/2+5,w,len,w*0.34);ctx.fill();
+  const R=w*0.34;
+  ctx.fillStyle='rgba(25,32,70,.28)';
+  rr(ctx,-w/2+3,-len/2+7,w,len,R);ctx.fill();
   if(shadowPass){ctx.restore();return;}
-  ctx.fillStyle='#2c3245';
-  const ww=Math.max(3,w*0.16),wh=Math.max(4,len*0.10);
-  rr(ctx,-w/2-2,-len/2+len*0.10,ww,wh,2);ctx.fill();
-  rr(ctx,w/2+2-ww,-len/2+len*0.10,ww,wh,2);ctx.fill();
-  rr(ctx,-w/2-2,len/2-len*0.10-wh,ww,wh,2);ctx.fill();
-  rr(ctx,w/2+2-ww,len/2-len*0.10-wh,ww,wh,2);ctx.fill();
+  // 轮毂（在车底侧沿）
+  ctx.fillStyle='#232a3d';
+  const ww=Math.max(4,w*0.17),wh=Math.max(5,L.cell*0.22);
+  const wy1=-len*0.30,wy2=len*0.30-wh;
+  rr(ctx,dxx-w/2+1,dyy+wy1,ww,wh,2.5);ctx.fill();
+  rr(ctx,dxx+w/2-1-ww,dyy+wy1,ww,wh,2.5);ctx.fill();
+  rr(ctx,dxx-w/2+1,dyy+wy2,ww,wh,2.5);ctx.fill();
+  rr(ctx,dxx+w/2-1-ww,dyy+wy2,ww,wh,2.5);ctx.fill();
+  // 车身：底（深）→ 中 → 顶（本色）三层堆叠出体积
+  ctx.fillStyle=C.dark;
+  rr(ctx,dxx-w/2,dyy-len/2,w,len,R);ctx.fill();
+  ctx.fillStyle=C.mid;
+  rr(ctx,dxx*0.55-w/2,dyy*0.55-len/2,w,len,R);ctx.fill();
   ctx.fillStyle=C.body;
-  rr(ctx,-w/2,-len/2,w,len,w*0.34);ctx.fill();
-  ctx.strokeStyle=C.dark;ctx.lineWidth=2;
-  rr(ctx,-w/2,-len/2,w,len,w*0.34);ctx.stroke();
-  ctx.fillStyle='rgba(20,30,55,.55)';
-  rr(ctx,-w*0.32,-len/2+len*0.075,w*0.64,len*0.10,3);ctx.fill();
+  rr(ctx,-w/2,-len/2,w,len,R);ctx.fill();
+  ctx.strokeStyle=C.dark;ctx.lineWidth=1.6;
+  rr(ctx,-w/2,-len/2,w,len,R);ctx.stroke();
+  // 车顶浅色面板
   ctx.fillStyle=C.light;
-  rr(ctx,-w*0.36,-len/2+len*0.20,w*0.72,len*0.56,4);ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=1;
-  rr(ctx,-w*0.36,-len/2+len*0.20,w*0.72,len*0.56,4);ctx.stroke();
-  ctx.fillStyle='rgba(20,30,55,.45)';
-  rr(ctx,-w*0.30,len/2-len*0.145,w*0.60,len*0.07,2);ctx.fill();
-  if(v.len===3){ctx.strokeStyle=C.dark;ctx.lineWidth=1.2;
-    ctx.beginPath();ctx.moveTo(-w*0.36,0);ctx.lineTo(w*0.36,0);ctx.stroke();}
-  ctx.fillStyle='#ffffff';
-  ctx.strokeStyle='rgba(40,45,60,.35)';ctx.lineWidth=2.5;
-  drawArrow(0,0,w,len,true);
+  rr(ctx,-w*0.40,-len/2+len*0.16,w*0.80,len*0.64,R*0.62);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=1;
+  rr(ctx,-w*0.40,-len/2+len*0.16,w*0.80,len*0.64,R*0.62);ctx.stroke();
+  // 前挡风（车头端深色玻璃带）
+  ctx.fillStyle='rgba(22,30,55,.78)';
+  rr(ctx,-w*0.36,-len/2+len*0.045,w*0.72,L.cell*0.14,3);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.30)';
+  rr(ctx,-w*0.30,-len/2+len*0.06,w*0.26,L.cell*0.08,2);ctx.fill();
+  // 后窗
+  ctx.fillStyle='rgba(22,30,55,.55)';
+  rr(ctx,-w*0.30,len/2-len*0.115,w*0.60,L.cell*0.09,2);ctx.fill();
+  // 巴士中缝
+  if(v.len===3){ctx.strokeStyle=C.dark;ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.moveTo(-w*0.40,0);ctx.lineTo(w*0.40,0);ctx.stroke();}
+  // 车顶白箭头（柔和投影 + 圆角粗箭头）
+  drawArrow(1.6,2.4,w,len,'rgba(40,45,70,.30)');
+  drawArrow(0,0,w,len,'#ffffff');
   ctx.restore();
+  // 高亮/选中光环（跟随倾角）
   if((G.hintVid===v.id&&G.t<G.hintUntil)||(G.selectMode&&v.state==='idle')){
     const isSel=G.selectMode&&v.state==='idle';
     const p=Math.sin(G.t*6)*0.5+0.5;
+    ctx.save();
+    ctx.translate(v.px,v.py);ctx.rotate(ang);
     ctx.strokeStyle=isSel?'rgba(255,220,80,'+(0.7+p*0.3)+')':'rgba(120,255,150,'+(0.55+p*0.45)+')';
     ctx.lineWidth=3.5;
-    const wpx=L.cell,m=5+p*3;
-    rr(ctx,v.px-wpx/2-m,v.py-carLenPx(v)/2-m,wpx+m*2,carLenPx(v)+m*2,12);ctx.stroke();
+    const m=5+p*3;
+    rr(ctx,-L.cell/2-m,-carLenPx(v)/2-m,L.cell+m*2,carLenPx(v)+m*2,12);ctx.stroke();
+    ctx.restore();
   }
 }
-function drawArrow(cx,oy,w,len,stroke){
-  const ah=w*0.30,aw=w*0.42;
-  const y0=-len*0.16+oy,y1=len*0.28+oy;
+function drawArrow(sxo,syo,w,len,color){ // 一体式箭头多边形：杆+头部
+  const s=w*0.085,h2=w*0.24,hLen=w*0.46;
+  const y0=-len*0.14+syo,y1=len*0.26+syo;
   ctx.beginPath();
-  ctx.moveTo(cx,y1-ah);
-  ctx.lineTo(cx+aw/2,y1-ah+ah*1.15);
-  ctx.lineTo(cx+aw*0.16,y1-ah+ah*0.95);
-  ctx.lineTo(cx+aw*0.16,y0);
-  ctx.lineTo(cx-aw*0.16,y0);
-  ctx.lineTo(cx-aw*0.16,y1-ah+ah*0.95);
-  ctx.lineTo(cx-aw/2,y1-ah+ah*1.15);
+  ctx.moveTo(sxo-s,y1);
+  ctx.lineTo(sxo-s,y0+hLen);
+  ctx.lineTo(sxo-h2,y0+hLen);
+  ctx.lineTo(sxo,y0);
+  ctx.lineTo(sxo+h2,y0+hLen);
+  ctx.lineTo(sxo+s,y0+hLen);
+  ctx.lineTo(sxo+s,y1);
   ctx.closePath();
-  if(stroke)ctx.stroke();
+  ctx.fillStyle=color;
   ctx.fill();
+  ctx.lineJoin='round';
+  ctx.strokeStyle=color;ctx.lineWidth=2.5;
+  ctx.stroke();
 }
 function drawBoardCars(){
   const board=G.vehicles.filter(v=>v.state==='idle'||v.state==='sliding');
   for(const v of board)drawVehicle(v,true);
   for(const v of board)drawVehicle(v,false);
   for(const o of G.obstacles){
-    const p=cellPx(o.x,o.y);
-    ctx.fillStyle='rgba(30,40,80,.18)';
-    ctx.beginPath();ctx.ellipse(p.px+2,p.py+4,L.cell*0.32,L.cell*0.2,0,0,7);ctx.fill();
-    ctx.fillStyle='#f07b4f';
-    ctx.beginPath();ctx.moveTo(p.px,p.py-L.cell*0.3);ctx.lineTo(p.px+L.cell*0.28,p.py+L.cell*0.2);ctx.lineTo(p.px-L.cell*0.28,p.py+L.cell*0.2);ctx.closePath();ctx.fill();
-    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(p.px,p.py-L.cell*0.02,L.cell*0.07,0,7);ctx.fill();
+    const p={x:o.px,y:o.py};
+    ctx.fillStyle='rgba(30,40,80,.20)';
+    ctx.beginPath();ctx.ellipse(p.px+2,p.py+5,L.cell*0.34,L.cell*0.2,0,0,7);ctx.fill();
+    ctx.fillStyle='#e8563f';
+    ctx.beginPath();ctx.moveTo(p.px,p.py-L.cell*0.34);
+    ctx.lineTo(p.px+L.cell*0.32,p.py+L.cell*0.22);
+    ctx.lineTo(p.px-L.cell*0.32,p.py+L.cell*0.22);
+    ctx.closePath();ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.arc(p.px,p.py-L.cell*0.02,L.cell*0.075,0,7);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.5)';
+    ctx.beginPath();ctx.moveTo(p.px,p.py-L.cell*0.34);
+    ctx.lineTo(p.px+L.cell*0.32,p.py+L.cell*0.22);
+    ctx.lineTo(p.px+L.cell*0.05,p.py+L.cell*0.22);
+    ctx.closePath();ctx.fill();
   }
+}
+function drawWaitingCars(){
+  for(const v of G.vehicles)if(v.state==='waiting')drawVehicle(v);
 }
 function drawMovingCars(){
   for(const v of G.vehicles){
-    if(v.state==='exiting'||v.state==='leaving'||v.state==='waiting'){drawVehicle(v);continue;}
+    if(v.state==='exiting'||v.state==='leaving'){drawVehicle(v);drawRiders(v);continue;}
+    if(v.state==='waiting'){drawVehicle(v);continue;}
     if(v.state!=='boarding')continue;
     drawVehicle(v);
+    drawRiders(v);
+    // 跳车上车中的乘客
     for(const p of G.persons){
-      if(p.state!=='boarded'||p.tvid!==v.id)continue;
-      const s=seatPos(v,p.seat);
-      const k=clamp(p.t/0.25,0,1);
-      drawPerson(s.x,s.y,COLORS[p.ci],0.65+0.35*k);
+      if(p.state!=='hopping'||p.tvid!==v.id)continue;
+      const k=clamp(p.t/p.dur,0,1);
+      const x=lerp(p.hx,p.sx,k),y=lerp(p.hy,p.sy,k)-Math.sin(k*Math.PI)*13;
+      drawPerson(x,y,COLORS[p.ci],0.9+0.25*k);
     }
+  }
+}
+function drawRiders(v){ // 车顶乘客（boarding / leaving 都显示 = 载客离场）
+  for(const p of G.persons){
+    if(p.state!=='boarded'||p.tvid!==v.id)continue;
+    const s=seatPos(v,p.seat);
+    const popK=clamp(p.t/0.25,0,1);
+    const bob=Math.sin(G.t*3+p.id)*0.8;
+    drawPerson(s.x,s.y+bob,COLORS[p.ci],(0.65+0.35*popK)*0.92);
   }
 }
 function drawWalkingPeople(){
   for(const p of G.persons){
     if(p.state!=='walking')continue;
     const k=easeOut(clamp(p.t/p.dur,0,1));
-    const x=lerp(p.fx,p.tx,k),y=lerp(p.fy,p.ty,k)-Math.abs(Math.sin(p.t*10))*4;
+    const x=lerp(p.fx,p.hx,k),y=lerp(p.fy,p.hy,k)-Math.abs(Math.sin(p.t*11))*4.5;
     drawPerson(x,y,COLORS[p.ci],1.05);
   }
 }
 function drawFx(){
   for(const f of G.fx){
+    if(f.t<0)continue;
     const k=f.t/f.dur;
-    ctx.fillStyle='rgba(235,240,250,'+(0.5*(1-k))+')';
-    ctx.beginPath();ctx.arc(f.x,f.y-k*8,f.r*(1+k*1.6),0,7);ctx.fill();
+    ctx.fillStyle=f.smoke?'rgba(235,238,248,'+(0.65*(1-k))+')':'rgba(235,240,250,'+(0.5*(1-k))+')';
+    ctx.beginPath();ctx.arc(f.x,f.y-k*(f.smoke?16:8),f.r*(1+k*(f.smoke?2.2:1.6)),0,7);ctx.fill();
   }
 }
 function drawProgress(){
-  const x=7,y0=L.boardTop+16,y1=L.boardBot-30;
-  ctx.fillStyle='rgba(255,255,255,.55)';
-  rr(ctx,x,y0,11,y1-y0,6);ctx.fill();
+  const x=8,y0=L.boardTop+14,y1=L.boardBot-34;
+  // 进度槽
+  ctx.fillStyle='rgba(255,255,255,.6)';
+  rr(ctx,x-2,y0,11,y1-y0,6);ctx.fill();
   const k=G.total?G.served/G.total:0;
-  if(k>0){ctx.fillStyle='#39c15e';rr(ctx,x,y0+(y1-y0)*(1-k),11,Math.max((y1-y0)*k,4),6);ctx.fill();}
-  ctx.fillStyle='#23306b';ctx.font='800 12px system-ui';ctx.textAlign='left';
-  ctx.fillText(Math.round(k*100)+'%',x-1,y1+16);
+  if(k>0){ctx.fillStyle='#39c15e';rr(ctx,x-2,y0+(y1-y0)*(1-k),11,Math.max((y1-y0)*k,5),6);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.35)';rr(ctx,x,y0+(y1-y0)*(1-k)+1.5,3,Math.max((y1-y0)*k-3,2),2);ctx.fill();}
+  ctx.fillStyle='#23306b';ctx.font='900 12px system-ui';ctx.textAlign='left';
+  ctx.fillText(Math.round(k*100)+'%',x-3,y1+16);
+  // 小工程师（站在进度槽旁）
+  const fx=x+26,fy=y1-6; // 脚底基准
+  ctx.save();
+  ctx.fillStyle='rgba(30,40,80,.22)';
+  ctx.beginPath();ctx.ellipse(fx,fy+1,10,3.2,0,0,7);ctx.fill();
+  ctx.fillStyle='#27336b';
+  rr(ctx,fx-5.5,fy-9,4.5,9,2);ctx.fill();
+  rr(ctx,fx+1,fy-9,4.5,9,2);ctx.fill();
+  ctx.fillStyle='#3a6cd8';
+  rr(ctx,fx-9,fy-27,18,20,6);ctx.fill();
+  ctx.fillStyle='#2c55b0';
+  rr(ctx,fx-9,fy-27,18,8,6);ctx.fill();
+  ctx.fillStyle='#ffd23e';
+  rr(ctx,fx-6.5,fy-24,4,9,2);ctx.fill();
+  rr(ctx,fx+2.5,fy-24,4,9,2);ctx.fill();
+  ctx.fillStyle='#3a6cd8';
+  rr(ctx,fx+8,fy-22,4.5,12,2.2);ctx.fill();
+  ctx.fillStyle='#c0392b';
+  rr(ctx,fx+7.5,fy-11,6,5,1.5);ctx.fill();
+  ctx.fillStyle='#f6c89f';
+  ctx.beginPath();ctx.arc(fx,fy-35,7.2,0,7);ctx.fill();
+  ctx.fillStyle='#2b2f45';
+  ctx.beginPath();ctx.arc(fx-2.4,fy-35.5,1,0,7);ctx.fill();
+  ctx.beginPath();ctx.arc(fx+2.4,fy-35.5,1,0,7);ctx.fill();
+  ctx.strokeStyle='#b5713f';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.arc(fx,fy-32.8,2.6,0.25*Math.PI,0.75*Math.PI);ctx.stroke();
+  ctx.fillStyle='#ffd23e';
+  rr(ctx,fx-8.5,fy-46.5,17,8.5,4);ctx.fill();
+  rr(ctx,fx-10.5,fy-39.5,21,3.2,1.6);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.5)';
+  rr(ctx,fx-6,fy-45,6,3,1.5);ctx.fill();
+  ctx.restore();
 }
 function drawDebug(){
   const q=new URLSearchParams(location.search);
@@ -1007,7 +1199,11 @@ function drawDebug(){
   ctx.strokeStyle='rgba(60,220,110,.9)';ctx.lineWidth=2;
   for(const v of G.vehicles){
     if(v.state!=='idle')continue;
-    if(cellsHead(v).exitable){rr(ctx,v.px-L.cell/2-3,v.py-carLenPx(v)/2-3,L.cell+6,carLenPx(v)+6,10);ctx.stroke();}
+    if(cellsHead(v).exitable){
+      ctx.save();ctx.translate(v.px,v.py);ctx.rotate(v.ang);
+      rr(ctx,-L.cell/2-3,-carLenPx(v)/2-3,L.cell+6,carLenPx(v)+6,10);ctx.stroke();
+      ctx.restore();
+    }
   }
 }
 
@@ -1019,7 +1215,7 @@ cv.addEventListener('pointerdown',e=>{
   const x=e.clientX-r.left,y=e.clientY-r.top;
   for(let i=save.slots;i<6;i++){
     const c=slotCenter(i);
-    if(Math.abs(x-c.x)<L.slotW/2&&Math.abs(y-c.y)<L.slotH/2){buySlot(i);return;}
+    if(Math.abs(x-c.x)<L.slotW/2+6&&Math.abs(y-c.y)<L.slotH/2+6){buySlot(i);return;}
   }
   const v=vehAt(x,y);
   if(!v&&G.selectMode){G.selectMode=null;renderProps();return;}
@@ -1037,12 +1233,12 @@ function buySlot(i){
 }
 window.doBuySlot=function(i,price){
   if(save.coins<price){toast('金币不足');return;}
-  save.coins-=price;save.slots=Math.max(save.slots,i+1);persist();
+  save.coins-=price;save.slots=Math.max(save.slots,i+1);persist();bgDirty=true;
   SFX.coin();hideModal();updateHud();toast('新车位解锁！');promoteWaiting();
 };
 document.getElementById('btnPause').addEventListener('click',()=>{SFX.click();showPause();});
 
-/* ---------------- 自动演示（调试/验收） ---------------- */
+/* ---------------- 自动演示 ---------------- */
 let autoTimer=null;
 function autoStep(){
   if(maskEl.classList.contains('show'))return;
@@ -1085,7 +1281,7 @@ function boot(){
     showModal(`<h2>🚗 挪挪车</h2><div class="txt">点击车辆，它会朝着<b>箭头方向</b>行驶：
 冲出停车场、倒进顶部车位。
 
-<b>同色乘客</b>会排队上车，坐满就开走。
+<b>同色乘客</b>会排队上车，坐满就载走。
 接走全部乘客即可通关！
 
 车位不够时，点锁定车位花金币扩建。</div>
