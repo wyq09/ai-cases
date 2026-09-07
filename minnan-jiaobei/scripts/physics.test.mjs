@@ -154,3 +154,36 @@ test("landing guard recovers an overlapping outside pose without changing face d
     assert.ok(Math.abs(normalBefore - normalAfter) < 1e-8);
   });
 });
+
+test("staged cups hold still above the tray until release", () => {
+  const sim = new JiaobeiPhysics();
+  sim.stage(0.5, () => 0.5);
+  assert.equal(sim.staged, true);
+  assert.equal(sim.active, false);
+  const held = sim.bodies.map((b) => b.position.clone());
+  for (let i = 0; i < 120; i++) assert.equal(sim.step(1 / 120), null);
+  sim.bodies.forEach((b, i) =>
+    assert.ok(b.position.distanceTo(held[i]) < 1e-12),
+  );
+  assert.ok(sim.bodies.every((b) => b.position.y > 0.2));
+  sim.release(0.5, () => 0.5);
+  assert.equal(sim.active, true);
+  assert.ok(sim.bodies.every((b) => b.velocity.y > 1.2));
+});
+
+test("a broken pose recovers to an undecided result instead of hanging", () => {
+  const sim = new JiaobeiPhysics();
+  sim.launch(0.5, () => 0.6);
+  sim.bodies[0].position.set(NaN, NaN, NaN);
+  const result = sim.step(1 / 120);
+  assert.equal(result.kind, "undecided");
+  assert.equal(sim.active, false);
+  assert.ok(
+    sim.bodies.every((b) =>
+      [...b.position.toArray(), ...b.quaternion.toArray()].every(
+        Number.isFinite,
+      ),
+    ),
+  );
+  assert.ok(sim.bodies.every((b) => b.sleepState === 2));
+});

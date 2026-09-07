@@ -53,7 +53,10 @@ let renderer,
   chargeStart = null,
   sound = false,
   audioContext,
-  shareURL;
+  shareURL,
+  needsRender = true,
+  liftFrom = [],
+  liftTo = [];
 let records = [];
 try {
   const data = JSON.parse(localStorage.getItem("hupi-records") || "[]");
@@ -189,11 +192,7 @@ function texture() {
   return tex;
 }
 function init() {
-  renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    alpha: true,
-    preserveDrawingBuffer: true,
-  });
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -299,6 +298,7 @@ function init() {
       $("#loading").hidden = true;
       throwButton.disabled = false;
       $("#throw-label").textContent = "诚心掷一杯";
+      invalidate();
     },
     undefined,
     () => {
@@ -317,12 +317,16 @@ function init() {
     $("#loading").textContent = "画面暂时中断，请刷新页面重新请筊。";
   });
 }
+function invalidate() {
+  needsRender = true;
+}
 function resize() {
   const { width, height } = stage.getBoundingClientRect();
   renderer.setSize(width, height);
   camera.aspect = width / height;
   camera.fov = width / height < 1 ? 43 : 34;
   camera.updateProjectionMatrix();
+  invalidate();
 }
 function random() {
   const a = new Uint32Array(1);
@@ -338,15 +342,29 @@ function throwCups(power = 0.25) {
   $("#wish").disabled = true;
   document.querySelectorAll("[data-wish]").forEach((b) => (b.disabled = true));
   $("#throw-label").textContent = "红筊问心中…";
-  $("#stage-state").textContent = "红筊落处，静候回响";
-  $("#result-title").textContent = "心意，正在落地。";
+  $("#stage-state").textContent = "捧筊过眉，问心所求";
+  $("#result-title").textContent = "心意，正在举起。";
   $("#result-description").textContent = "稍候片刻，让红筊停稳。";
-  animation = { wish: $("#wish").value.trim() };
   trayView.reset();
-  physics.launch(power, random);
-  physics.sync(cups);
+  physics.stage(power, random);
+  liftFrom = cups.map((c) => ({
+    p: c.position.clone(),
+    q: c.quaternion.clone(),
+  }));
+  liftTo = cups.map((c, i) => {
+    const t = physics.poseOf(i);
+    return { p: t.position, q: t.quaternion };
+  });
+  animation = {
+    wish: $("#wish").value.trim(),
+    phase: "lift",
+    start: performance.now(),
+    power,
+  };
+  invalidate();
 }
 const trayView = new TrayView();
+const LIFT_MS = 560;
 function frameCups() {
   trayView.fit(camera, cups);
 }
@@ -358,27 +376,49 @@ function frame(now) {
     throwButton.style.setProperty("--charge", `${power * 100}%`);
   }
   if (animation && !document.hidden) {
-    const result = physics.step(dt);
-    physics.sync(cups);
-    if (result) {
-      const completed = { ...animation, ...result };
-      animation = null;
-      finish(completed);
+    if (animation.phase === "lift") {
+      const k = reduced
+        ? 1
+        : Math.min((now - animation.start) / LIFT_MS, 1);
+      const e = k < 1 ? (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2) : 1;
+      cups.forEach((c, i) => {
+        c.position.lerpVectors(liftFrom[i].p, liftTo[i].p, e);
+        c.quaternion.slerpQuaternions(liftFrom[i].q, liftTo[i].q, e);
+      });
+      needsRender = true;
+      if (k >= 1) {
+        animation.phase = "fly";
+        physics.release(animation.power, random);
+        $("#stage-state").textContent = "红筊落处，静候回响";
+        $("#result-title").textContent = "心意，正在落地。";
+      }
+    } else {
+      let result = null;
+      try {
+        result = physics.step(dt);
+      } catch (e) {
+        console.error(e);
+        result = physics.recover();
+      }
+      physics.sync(cups);
+      needsRender = true;
+      if (result) {
+        const completed = { ...animation, ...result };
+        animation = null;
+        finish(completed);
+      }
     }
   }
-  frameCups();
-  renderer.render(scene, camera);
+  if (needsRender) {
+    frameCups();
+    renderer.render(scene, camera);
+    needsRender = false;
+  }
 }
 function finish(a) {
   busy = false;
   $("#mobile-wish").disabled = false;
-  last = {
-    kind: a.kind,
-    wish: a.wish,
-    date: new Date().toISOString(),
-    flat: a.flat,
-    normals: a.normals,
-  };
+  last = { kind: a.kind, wish: a.wish, date: new Date().toISOString() };
   const r = outcomes[a.kind];
   $("#result-kicker").textContent = "此刻的筊意";
   $("#face-summary").textContent = r.faces;

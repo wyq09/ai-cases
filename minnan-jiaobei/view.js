@@ -10,7 +10,9 @@ export class TrayView {
   fit(camera, cups) {
     const vertical = MathUtils.degToRad(camera.fov);
     const horizontal = 2 * Math.atan(Math.tan(vertical / 2) * camera.aspect);
-    const distance = 4.7 / Math.tan(Math.min(vertical, horizontal) / 2);
+    // Wide views need extra margin so the tray rim stays inside the frame.
+    const radius = camera.aspect >= 1.05 ? 5.25 : 4.7;
+    const distance = radius / Math.tan(Math.min(vertical, horizontal) / 2);
     const apply = () => {
       camera.position.set(
         0,
