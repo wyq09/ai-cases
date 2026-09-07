@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="鼓浪屿 · 漫步 — 用键盘或手指操控小人在三维鼓浪屿岛上漫游，探访八卦楼、日光岩、菽庄花园。">
+<title>鼓浪屿 · 漫步</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23e25c4a'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23ffd9a0'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<!-- 加载 / 开始 -->
+<div id="loader">
+  <div class="loader-inner">
+    <div class="loader-kicker">KULANGSU · WALK</div>
+    <h1 class="loader-title">鼓浪屿<span>·</span>漫步</h1>
+    <p class="loader-sub">琴岛、红砖与海风 — 一座可以走进去的小岛</p>
+    <div class="loader-bar"><div id="loaderFill"></div></div>
+    <div id="loaderTip">正在摆渡前往鼓浪屿…</div>
+    <button id="startBtn" class="start-btn" disabled>正在装载…</button>
+    <div class="loader-credit">数据 © OpenStreetMap 贡献者 · 地形 © AWS Terrain Tiles</div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="brand">鼓浪屿 · 漫步</div>
+
+  <canvas id="minimap" width="148" height="148"></canvas>
+
+  <div id="toolbar">
+    <button id="btnMap" title="大地图 / 传送"><span>🗺</span>地图</button>
+    <button id="btnList" title="景点列表"><span>🏛</span>景点</button>
+    <button id="btnSound" title="环境音"><span id="soundIcon">🔊</span>声音</button>
+  </div>
+
+  <div id="hint">W A S D / 方向键 移动 · 拖拽画面 转视角 · 滚轮 缩放 · Shift 疾走</div>
+
+  <!-- 虚拟摇杆（触屏） -->
+  <div id="joyZone">
+    <div id="joyBase"><div id="joyKnob"></div></div>
+  </div>
+  <div id="touchHint">左侧摇杆移动 · 右侧滑动转视角 · 双指缩放</div>
+
+  <!-- POI 卡片 -->
+  <div id="poiCard" class="hidden">
+    <div class="poi-en" id="poiEn"></div>
+    <div class="poi-name" id="poiName"></div>
+    <div class="poi-blurb" id="poiBlurb"></div>
+    <div class="poi-visited" id="poiVisited">🏆 新打卡！</div>
+  </div>
+
+  <!-- toast -->
+  <div id="toast" class="hidden"></div>
+</div>
+
+<!-- 大地图 overlay -->
+<div id="mapOverlay" class="hidden">
+  <div class="map-panel">
+    <div class="map-head">
+      <div class="map-title">全岛地图 <em id="visitCount"></em></div>
+      <button id="mapClose">✕</button>
+    </div>
+    <div class="map-body">
+      <canvas id="bigmap" width="640" height="640"></canvas>
+      <div id="poiList"></div>
+    </div>
+  </div>
+</div>
+
+<div id="glError" class="hidden">你的浏览器不支持 WebGL，无法进入鼓浪屿。</div>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+/* 鼓浪屿 · 漫步 */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: #0c1b26;
+  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.hidden { display: none !important; }
+
+/* ---------- 加载页 ---------- */
+#loader {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(120% 90% at 70% 10%, rgba(64, 140, 170, .35), transparent 60%),
+    linear-gradient(180deg, #0e2433 0%, #123243 52%, #0c1b26 100%);
+  transition: opacity .8s ease; 
+}
+#loader.gone { opacity: 0; pointer-events: none; }
+.loader-inner { text-align: center; color: #eef4ee; padding: 0 24px; max-width: 560px; }
+.loader-kicker { font-size: 12px; letter-spacing: .5em; color: #eec27f; margin-bottom: 18px; }
+.loader-title {
+  font-family: "Noto Serif SC", serif; font-weight: 900;
+  font-size: clamp(44px, 9vw, 76px); letter-spacing: .06em; line-height: 1.1;
+}
+.loader-title span { color: #e25c4a; padding: 0 .1em; }
+.loader-sub { margin-top: 14px; color: #b9cec9; font-size: 15px; letter-spacing: .12em; }
+.loader-bar {
+  margin: 34px auto 12px; width: min(360px, 78vw); height: 6px; border-radius: 3px;
+  background: rgba(255,255,255,.14); overflow: hidden;
+}
+#loaderFill { height: 100%; width: 0%; border-radius: 3px;
+  background: linear-gradient(90deg, #eec27f, #e25c4a); transition: width .25s ease; }
+#loaderTip { font-size: 13px; color: #8fa8a4; min-height: 20px; }
+.start-btn {
+  margin-top: 26px; padding: 13px 46px; font-size: 17px; letter-spacing: .3em; text-indent: .3em;
+  color: #16303c; background: linear-gradient(180deg, #f2d49b, #e0a95f);
+  border: 0; border-radius: 999px; cursor: pointer; font-weight: 700;
+  box-shadow: 0 6px 24px rgba(224, 169, 95, .35);
+  transition: transform .15s ease, opacity .3s;
+}
+.start-btn:disabled { opacity: .35; cursor: default; }
+.start-btn:not(:disabled):hover { transform: translateY(-2px); }
+.loader-credit { margin-top: 30px; font-size: 11px; color: #5f7a76; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
+#hud > * { pointer-events: auto; }
+
+#brand {
+  position: absolute; top: 14px; left: 16px;
+  font-family: "Noto Serif SC", serif; font-weight: 900; font-size: 17px; letter-spacing: .18em;
+  color: #fff7ea; text-shadow: 0 1px 8px rgba(10, 30, 40, .8);
+  padding: 8px 14px; border-radius: 10px;
+  background: rgba(12, 27, 38, .42); backdrop-filter: blur(6px);
+}
+
+#minimap {
+  position: absolute; top: 14px; right: 16px; width: 148px; height: 148px;
+  border-radius: 12px; border: 1px solid rgba(255, 247, 230, .35);
+  box-shadow: 0 4px 18px rgba(5, 20, 30, .5); cursor: pointer;
+  background: #123243;
+}
+
+#toolbar { position: absolute; top: 176px; right: 16px; display: flex; flex-direction: column; gap: 8px; }
+#toolbar button {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px; font-size: 13px; color: #fff7ea;
+  background: rgba(12, 27, 38, .55); border: 1px solid rgba(255, 247, 230, .25);
+  border-radius: 10px; cursor: pointer; backdrop-filter: blur(6px);
+}
+#toolbar button:hover { background: rgba(38, 66, 84, .7); }
+#toolbar button span { font-size: 14px; }
+
+#hint {
+  position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+  font-size: 12px; letter-spacing: .08em; color: #dfe9e4;
+  background: rgba(12, 27, 38, .45); padding: 7px 16px; border-radius: 999px;
+  white-space: nowrap; backdrop-filter: blur(6px);
+}
+
+/* ---------- 虚拟摇杆 ---------- */
+#joyZone {
+  position: absolute; left: 0; bottom: 0; width: 46%; height: 52%;
+  max-width: 340px; display: none;
+}
+#joyBase {
+  position: absolute; left: 26px; bottom: 30px; width: 118px; height: 118px;
+  border-radius: 50%; border: 2px solid rgba(255, 247, 230, .4);
+  background: rgba(12, 27, 38, .3); backdrop-filter: blur(2px);
+  touch-action: none;
+}
+#joyKnob {
+  position: absolute; left: 50%; top: 50%; width: 52px; height: 52px;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff4de, #d9a45e);
+  box-shadow: 0 3px 10px rgba(0,0,0,.35);
+}
+body.touch #joyZone { display: block; }
+body.touch #hint { display: none; }
+#touchHint {
+  display: none; position: absolute; bottom: 14px; right: 14px;
+  font-size: 12px; color: #dfe9e4; background: rgba(12, 27, 38, .45);
+  padding: 7px 12px; border-radius: 999px; white-space: nowrap;
+}
+body.touch #touchHint { display: block; }
+
+/* ---------- POI 卡片 ---------- */
+#poiCard {
+  position: absolute; bottom: 72px; left: 50%; transform: translateX(-50%);
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+  background: rgba(252, 248, 238, .96); color: #22343c;
+  border-radius: 16px; padding: 16px 20px 14px;
+  box-shadow: 0 10px 40px rgba(5, 20, 30, .45);
+  border-top: 4px solid #e25c4a;
+  animation: cardIn .35s ease;
+}
+@keyframes cardIn { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.poi-en { font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #b0783c; }
+.poi-name { font-family: "Noto Serif SC", serif; font-weight: 900; font-size: 24px; margin: 2px 0 6px; }
+.poi-blurb { font-size: 13.5px; line-height: 1.65; color: #4a5c62; }
+.poi-visited { margin-top: 8px; font-size: 12.5px; color: #b06423; font-weight: 700; }
+.poi-visited.seen { color: #7d8f7f; }
+
+/* ---------- toast ---------- */
+#toast {
+  position: absolute; top: 64px; left: 50%; transform: translateX(-50%);
+  background: rgba(12, 27, 38, .78); color: #ffe9c4; font-size: 14px;
+  padding: 9px 20px; border-radius: 999px; backdrop-filter: blur(6px);
+  transition: opacity .4s; white-space: nowrap;
+}
+
+/* ---------- 大地图 ---------- */
+#mapOverlay {
+  position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center;
+  background: rgba(6, 16, 24, .72); backdrop-filter: blur(4px);
+}
+.map-panel {
+  width: min(920px, calc(100vw - 28px)); max-height: calc(100vh - 28px);
+  background: #f6f1e4; border-radius: 18px; overflow: hidden;
+  display: flex; flex-direction: column; box-shadow: 0 24px 80px rgba(0,0,0,.5);
+}
+.map-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; background: #16303c; color: #fff7ea;
+}
+.map-title { font-family: "Noto Serif SC", serif; font-weight: 900; font-size: 18px; letter-spacing: .12em; }
+.map-title em { font-style: normal; font-size: 13px; color: #eec27f; margin-left: 10px; }
+#mapClose { background: none; border: 0; color: #fff7ea; font-size: 20px; cursor: pointer; padding: 4px 8px; }
+.map-body { display: flex; gap: 16px; padding: 16px; overflow: auto; flex-wrap: wrap; }
+#bigmap { width: min(420px, 100%); height: auto; border-radius: 12px; border: 1px solid #d9cfb9; background: #123243; }
+#poiList { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 9px; }
+.poi-item {
+  display: flex; align-items: center; gap: 12px; text-align: left;
+  padding: 11px 14px; border-radius: 12px; border: 1px solid #ddd2b8;
+  background: #fffdf6; cursor: pointer; transition: background .15s, transform .15s;
+}
+.poi-item:hover { background: #fdf3dd; transform: translateX(3px); }
+.poi-item .num {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #e9dfc6; color: #6c5c38; font-weight: 700; font-size: 14px;
+}
+.poi-item.visited .num { background: #e25c4a; color: #fff; }
+.poi-item .nm { font-weight: 700; font-size: 15.5px; color: #22343c; }
+.poi-item .ds { font-size: 12px; color: #8a8266; margin-top: 1px; }
+
+#glError {
+  position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center;
+  background: #0c1b26; color: #fff7ea; font-size: 16px;
+}
+
+@media (max-width: 640px) {
+  #minimap { width: 110px; height: 110px; }
+  #toolbar { top: 136px; }
+  #brand { font-size: 14px; padding: 6px 10px; }
+  .map-body { padding: 12px; gap: 10px; }
+}

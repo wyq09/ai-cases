@@ -1,0 +1,8 @@
+鼓浪屿 Blender 场景工程
+
+先观看 Gulangyu_Showcase_1080p.mp4。
+打开 Gulangyu_World.blend 可编辑完整场景与六段相机动画。
+game/ 提供通用 GLB、LOD、碰撞代理及植被实例清单。
+详细使用方法、精度范围及数据来源见上一级 README.md。
+
+本版是地图约束的环境复建原型，不是逐栋实测/扫描级复刻。

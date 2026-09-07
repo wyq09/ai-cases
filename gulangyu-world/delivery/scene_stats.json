@@ -1,0 +1,11 @@
+{
+  "objects": 13684,
+  "unique_meshes": 1189,
+  "unique_mesh_vertices": 5238938,
+  "unique_mesh_polygons": 3980731,
+  "build_seconds": 33.37,
+  "buildings": 1153,
+  "trees": 12494,
+  "roads": 463,
+  "paving_conformed_to_terrain": true
+}

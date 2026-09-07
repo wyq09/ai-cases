@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "source": "Gulangyu_Environment_LOD1.glb",
+  "mesh_objects": 13672,
+  "materials": 22,
+  "images": 26,
+  "bounds_min_blender": [
+    -1021.5701904296875,
+    -958.5326538085938,
+    -2.595020294189453
+  ],
+  "bounds_max_blender": [
+    920.1602783203125,
+    1017.1167602539062,
+    95.8499984741211
+  ],
+  "extent_metres": [
+    1941.73046875,
+    1975.6494140625,
+    98.44502258300781
+  ],
+  "read_seconds": 12.3
+}

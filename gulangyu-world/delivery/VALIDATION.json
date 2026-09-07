@@ -1,0 +1,111 @@
+{
+  "status": "passed",
+  "geometry": {
+    "Gulangyu_Environment_LOD0.glb": {
+      "bytes": 537585492,
+      "nodes": 13672,
+      "meshes": 1184,
+      "primitives": 7817,
+      "vertices_across_unique_primitives": 14121147,
+      "triangles_unique": 7184199,
+      "triangles_after_node_instancing": 59783655,
+      "embedded_images": 24,
+      "finite_attributes": true,
+      "indices_in_range": true
+    },
+    "Gulangyu_Environment_LOD1.glb": {
+      "bytes": 145745856,
+      "nodes": 13672,
+      "meshes": 1184,
+      "primitives": 4332,
+      "vertices_across_unique_primitives": 2972367,
+      "triangles_unique": 1617503,
+      "triangles_after_node_instancing": 26243839,
+      "embedded_images": 24,
+      "finite_attributes": true,
+      "indices_in_range": true
+    },
+    "Gulangyu_Collision_Proxies.glb": {
+      "bytes": 4299596,
+      "nodes": 1154,
+      "meshes": 1154,
+      "primitives": 1154,
+      "vertices_across_unique_primitives": 102599,
+      "triangles_unique": 130925,
+      "triangles_after_node_instancing": 130925,
+      "embedded_images": 0,
+      "finite_attributes": true,
+      "indices_in_range": true
+    },
+    "Foliage_Prototypes_LOD0.glb": {
+      "bytes": 5657068,
+      "nodes": 6,
+      "meshes": 6,
+      "primitives": 18,
+      "vertices_across_unique_primitives": 43476,
+      "triangles_unique": 25272,
+      "triangles_after_node_instancing": 25272,
+      "embedded_images": 3,
+      "finite_attributes": true,
+      "indices_in_range": true
+    }
+  },
+  "source_geometry": {
+    "terrain_vertices": 58450,
+    "terrain_triangles": 113649,
+    "upward_terrain_winding": true,
+    "buildings": 1153,
+    "road_segments": 463,
+    "vegetation_instances": 12494
+  },
+  "notes": [
+    "No in-engine Unity/Unreal runtime performance test.",
+    "Accuracy is map-constrained and reference-modeled, not survey or photogrammetry."
+  ],
+  "lod_triangle_reduction": 0.5610198305874741,
+  "gltf_roundtrip": {
+    "status": "passed",
+    "source": "Gulangyu_Environment_LOD1.glb",
+    "mesh_objects": 13672,
+    "materials": 22,
+    "images": 26,
+    "bounds_min_blender": [
+      -1021.5701904296875,
+      -958.5326538085938,
+      -2.595020294189453
+    ],
+    "bounds_max_blender": [
+      920.1602783203125,
+      1017.1167602539062,
+      95.8499984741211
+    ],
+    "extent_metres": [
+      1941.73046875,
+      1975.6494140625,
+      98.44502258300781
+    ],
+    "read_seconds": 12.3
+  },
+  "native_blend": {
+    "bytes": 160723876,
+    "version": "Blender 5.2.1 LTS",
+    "opened_for_render_and_export": true
+  },
+  "frame_sequence": {
+    "frames": 576,
+    "width": 1920,
+    "height": 1080,
+    "missing_frames": []
+  },
+  "video": {
+    "codec": "h264",
+    "width": 1920,
+    "height": 1080,
+    "fps": 24,
+    "frames": 576,
+    "duration_seconds": 24.0,
+    "audio_codec": "aac",
+    "decode_errors": 0,
+    "bytes": 47238621
+  }
+}

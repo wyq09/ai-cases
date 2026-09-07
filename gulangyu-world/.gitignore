@@ -1,0 +1,10 @@
+# 源 GLB 超 GitHub 100MB 单文件限制，不入库（可由 scripts 重建）
+delivery/game/Gulangyu_Environment_LOD0.glb
+delivery/game/Gulangyu_Environment_LOD1.glb
+
+# 可由 tools/extract*.mjs 重建的中间产物，不入库
+web/assets/env_notrees.glb
+web/assets/trees_raw.glb
+web/assets/detail_raw.glb
+delivery/Gulangyu_Game_Kit.zip
+delivery/Gulangyu_World.blend

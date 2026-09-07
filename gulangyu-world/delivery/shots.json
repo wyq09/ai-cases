@@ -1,0 +1,158 @@
+[
+  {
+    "name": "01_Island_Arrival",
+    "start": 1,
+    "end": 96,
+    "lens_mm": 53,
+    "position_start": [
+      2000,
+      -2800,
+      1900
+    ],
+    "position_end": [
+      1800,
+      -2600,
+      1740
+    ],
+    "target_start": [
+      -130,
+      10,
+      35
+    ],
+    "target_end": [
+      -100,
+      30,
+      40
+    ]
+  },
+  {
+    "name": "02_Sunlight_Rock",
+    "start": 97,
+    "end": 192,
+    "lens_mm": 43,
+    "position_start": [
+      100,
+      -430,
+      142
+    ],
+    "position_end": [
+      65,
+      -415,
+      130
+    ],
+    "target_start": [
+      -77,
+      -263,
+      77
+    ],
+    "target_end": [
+      -82,
+      -261,
+      81
+    ]
+  },
+  {
+    "name": "03_Bagua_Mansion",
+    "start": 193,
+    "end": 288,
+    "lens_mm": 49,
+    "position_start": [
+      155,
+      205,
+      99
+    ],
+    "position_end": [
+      120,
+      218,
+      91
+    ],
+    "target_start": [
+      24,
+      348,
+      48
+    ],
+    "target_end": [
+      24,
+      348,
+      49
+    ]
+  },
+  {
+    "name": "04_Shuzhuang_Garden",
+    "start": 289,
+    "end": 384,
+    "lens_mm": 45,
+    "position_start": [
+      390,
+      -960,
+      195
+    ],
+    "position_end": [
+      345,
+      -890,
+      155
+    ],
+    "target_start": [
+      166,
+      -643,
+      11
+    ],
+    "target_end": [
+      173,
+      -642,
+      12
+    ]
+  },
+  {
+    "name": "05_Architecture",
+    "start": 385,
+    "end": 480,
+    "lens_mm": 50,
+    "position_start": [
+      565,
+      -197,
+      69
+    ],
+    "position_end": [
+      545,
+      -174,
+      59
+    ],
+    "target_start": [
+      480,
+      -62,
+      26
+    ],
+    "target_end": [
+      483,
+      -63,
+      27
+    ]
+  },
+  {
+    "name": "06_Longtou_Lane",
+    "start": 481,
+    "end": 576,
+    "lens_mm": 28,
+    "position_start": [
+      332.3,
+      -60,
+      11.2
+    ],
+    "position_end": [
+      332.1,
+      -48,
+      10.7
+    ],
+    "target_start": [
+      332,
+      -32,
+      11.7
+    ],
+    "target_end": [
+      334,
+      -18,
+      11.6
+    ]
+  }
+]

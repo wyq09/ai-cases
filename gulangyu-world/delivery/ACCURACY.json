@@ -1,0 +1,13 @@
+{
+  "building_footprints": 1153,
+  "osm_explicit_height_tags": 0,
+  "osm_explicit_floor_tags": 11,
+  "latitude_longitude_origin": [
+    118.063,
+    24.447
+  ],
+  "coastline_source": "OpenStreetMap",
+  "terrain_source": "Mapzen Terrain Tiles; coast constrained",
+  "facade_source": "Interpretive modules",
+  "landmark_source": "Photos and OSM footprints; no photogrammetry"
+}

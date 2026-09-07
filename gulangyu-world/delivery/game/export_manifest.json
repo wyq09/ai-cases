@@ -1,0 +1,13 @@
+{
+  "lod0_objects": 13672,
+  "lod1_objects": 13672,
+  "collision_objects": 1154,
+  "tree_instances": 12494,
+  "unique_tree_meshes": 6,
+  "files": {
+    "Gulangyu_Environment_LOD0.glb": 537585492,
+    "Gulangyu_Environment_LOD1.glb": 145745856,
+    "Gulangyu_Collision_Proxies.glb": 4299596,
+    "Foliage_Prototypes_LOD0.glb": 5657068
+  }
+}
