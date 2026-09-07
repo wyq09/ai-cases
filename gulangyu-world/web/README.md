@@ -51,6 +51,23 @@ node verify.mjs                         # headless 桌面 + 移动端交互验�
 注意：`extract.mjs` 烘焙高度场时从写盘后的 `env_notrees.glb` 重新读取，而非复用内存文档；
 `tools/terrain_util.mjs` 的 ringGap/dropFor 是 env 与 detail 共用的建筑沉降算法，必须一致。
 
+## 传输优化（无损）
+
+几何已过 meshopt 熵编码，但 `brotli -q 11` 仍能再压一半（GLB 内多流间的重复模式）。
+`assets/` 中的 `.gz` / `.br` 为预压缩文件，随仓库分发；服务器 nginx 开启
+`gzip_static` / `brotli_static` 直接发送（零 CPU），并为 `.glb`/`.bin` 设置
+30 天 immutable 缓存。更新资产内容时必须同步重新生成预压缩文件，并升 `main.js`
+里的 `?v=N` 版本号以穿透客户端缓存。`detail.glb` 不阻塞首屏，进场后后台加载。
+
+```bash
+cd assets
+for f in env.glb detail.glb trees.glb instances.bin terrain.bin; do
+  gzip -9 -k -f $f && brotli -q 11 -k -f $f
+done
+```
+
+实际传输量：env 26.7→13.6 MB、detail 14.7→4.5 MB、terrain 1.9→0.57 MB（brotli）。
+
 ## 数据与署名
 
 模型与地形数据来自 [gulangyu-world](../README.md)：岛形、路网、建筑占地 ©

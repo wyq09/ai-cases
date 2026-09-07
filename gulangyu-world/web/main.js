@@ -242,8 +242,8 @@ async function loadAll() {
 
   const t0 = performance.now();
   const [terrainBuf, instBuf] = await Promise.all([
-    fetchBuffer('assets/terrain.bin', (f) => setProgress(0.02 + f * 0.06, '正在铺设岛上的道路…')),
-    fetchBuffer('assets/instances.bin', () => {}),
+    fetchBuffer('assets/terrain.bin?v=2', (f) => setProgress(0.02 + f * 0.06, '正在铺设岛上的道路…')),
+    fetchBuffer('assets/instances.bin?v=2', () => {}),
   ]);
   T.data = new Int16Array(terrainBuf);
   T.cols = meta.grid.cols; T.rows = meta.grid.rows;
@@ -254,28 +254,21 @@ async function loadAll() {
 
   const gltfLoader = new GLTFLoader();
   gltfLoader.setMeshoptDecoder(MeshoptDecoder);
-  const ENV_URL = new URLSearchParams(location.search).get('env') || 'assets/env.glb';
+  const ASSET_V = '?v=2'; // 资产更新时升版本号以穿透 30 天 immutable 缓存
+  const ENV_URL = new URLSearchParams(location.search).get('env') || ('assets/env.glb' + ASSET_V);
   const envGltf = await new Promise((res, rej) =>
     gltfLoader.load(ENV_URL,
       (g) => res(g),
-      (e) => { if (e.total) setProgress(0.1 + (e.loaded / e.total) * 0.73, '正在走下舷梯…'); },
+      (e) => { if (e.total) setProgress(0.1 + (e.loaded / e.total) * 0.78, '正在走下舷梯…'); },
       rej));
-  setProgress(0.9, '正在种下 12,494 棵树…');
+  setProgress(0.92, '正在种下 12,494 棵树…');
   const treeGltf = await new Promise((res, rej) =>
-    gltfLoader.load('assets/trees.glb', res, undefined, rej));
+    gltfLoader.load('assets/trees.glb' + ASSET_V, res, undefined, rej));
 
-  // 高模细节层：另一条管线产物，404 / 解析失败就静默跳过
-  let detailGltf = null;
+  // 高模细节层改为进场后后台加载（14.7MB 不阻塞首屏）；挂载逻辑见 startDetailLoad()
   window.__gly.detail = false;
-  try {
-    detailGltf = await new Promise((res, rej) =>
-      gltfLoader.load('assets/detail.glb', res,
-        (e) => { if (e.total) setProgress(0.83 + (e.loaded / e.total) * 0.05, '正在添上细节…'); },
-        () => rej(new Error('detail load failed'))));
-    window.__gly.detail = true;
-  } catch { detailGltf = null; window.__gly.detail = false; }
 
-  initScene(envGltf, treeGltf, instances, instCount, detailGltf);
+  initScene(envGltf, treeGltf, instances, instCount);
   console.log(`[gly] assets loaded in ${((performance.now() - t0) / 1000).toFixed(1)}s`);
 }
 
@@ -302,8 +295,37 @@ function applyAnisotropy(root) {
   });
 }
 
-function initScene(envGltf, treeGltf, instances, instCount, detailGltf) {
-  const canvas = $('scene');
+// ---------------- 高模细节层：进场后后台加载 ----------------
+let detailLoadStarted = false;
+function startDetailLoad() {
+  if (detailLoadStarted || !renderer) return;
+  detailLoadStarted = true;
+  const loader = new GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+  loader.load('assets/detail.glb?v=2',
+    (gltf) => {
+      try {
+        const detailRoot = gltf.scene;
+        applyAnisotropy(detailRoot);
+        detailRoot.traverse((o) => {
+          if (o.isMesh) {
+            o.castShadow = renderer.shadowMap.enabled;
+            o.receiveShadow = renderer.shadowMap.enabled;
+            o.matrixAutoUpdate = false;
+            o.updateMatrix();
+          }
+        });
+        scene.add(detailRoot);
+        window.__gly.detail = true;
+        window.__gly.detailRoot = detailRoot;
+        console.log('[gly] detail layer mounted (background)');
+      } catch (e) { console.warn('[gly] detail mount failed', e); }
+    },
+    undefined,
+    () => { /* 404/解析失败：核心街区保持简化观感，静默 */ });
+}
+
+function initScene(envGltf, treeGltf, instances, instCount) {  const canvas = $('scene');
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, IS_TOUCH ? 1.6 : 1.6));
   renderer.setSize(innerWidth, innerHeight, false);
@@ -429,28 +451,12 @@ function initScene(envGltf, treeGltf, instances, instCount, detailGltf) {
   });
   scene.add(envRoot);
 
-  // --- 高模细节层（可选，加载失败则静默跳过） ---
-  if (detailGltf && detailGltf.scene) {
-    const detailRoot = detailGltf.scene;
-    applyAnisotropy(detailRoot);
-    detailRoot.traverse((o) => {
-      if (o.isMesh) {
-        o.castShadow = renderer.shadowMap.enabled;
-        o.receiveShadow = renderer.shadowMap.enabled;
-        o.matrixAutoUpdate = false;
-        o.updateMatrix();
-      }
-    });
-    scene.add(detailRoot);
-    window.__gly.detailRoot = detailRoot;
   window.__gly.skirtsVisible = (v) => {
     let n = 0;
     scene.traverse((o) => { if (o.isMesh && /skirt/i.test(o.name || '')) { o.visible = v; n++; } });
     return n;
   };
   window.__gly.poiVisible = (v) => poiObjects.forEach((p) => { p.spr.visible = v; p.beam.visible = v; });
-    console.log('[gly] detail layer mounted');
-  }
 
   // --- 榕树实例 ---
   buildTrees(treeGltf, instances, instCount);
@@ -1286,6 +1292,7 @@ function onResize() {
       $('hud').classList.remove('hidden');
       initAudio();
       intro.start();
+      startDetailLoad(); // 14.7MB 高模细节层后台加载，不阻塞进场
       setTimeout(() => toast('沿石阶往高处走，全岛尽收眼底'), 4200);
     }, { once: true });
   } catch (err) {
