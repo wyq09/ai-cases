@@ -25,11 +25,12 @@ index.html?config=config.custom.json
 
 ## 自定义方式
 
-三种方式按顺序叠加生效：`DEFAULT_CONFIG` → 远程配置 → URL 快捷参数。
+四种方式按顺序叠加生效：`DEFAULT_CONFIG` → 面板本地保存 → 远程配置 → URL 快捷参数。
 
-1. **修改 `index.html` 顶部 `DEFAULT_CONFIG`**：所有默认配置集中在这一个对象里，直接编辑即可。
-2. **`?config=配置文件.json`**：通过 fetch 加载一份 JSON（本地路径或 URL 均可），与默认配置深度合并后生效；加载失败时静默回退默认值。注意 `file://` 直开时浏览器会拦截 fetch，此时需经静态服务器访问。示例配置见 `config.custom.json`。
-3. **快捷参数**：
+1. **游戏内配置面板（推荐）**：点击右上角齿轮按钮打开。可视化修改：标题等文案、等级数量、每一级的名称 / 颜色 / 分数 / 半径 / **上传图片作为图标**、背景（渐变 / 纯色 / **上传背景图** + 压暗度）、强调色、重力 / 投放冷却 / 危险线高度、特效与音效开关。「应用并保存」立即生效并写入浏览器本地存储（`localStorage`，键 `mw_user_config`，刷新后保留）；「导出 JSON」可下载当前完整配置用于 `?config=` 或写入 `DEFAULT_CONFIG`；「导入」可加载配置文件；「恢复默认」清空本地保存。
+2. **修改 `index.html` 顶部 `DEFAULT_CONFIG`**：所有默认配置集中在这一个对象里，直接编辑即可。
+3. **`?config=配置文件.json`**：通过 fetch 加载一份 JSON（本地路径或 URL 均可），与默认配置深度合并后生效；加载失败时静默回退默认值。注意 `file://` 直开时浏览器会拦截 fetch，此时需经静态服务器访问。示例配置见 `config.custom.json`。
+4. **快捷参数**：
    - `?levelCount=9`：快速修改合成等级数量（3~15），在远程配置加载后再覆盖
    - `?dropPool=5`：快速修改随机投放等级池大小
 
@@ -166,12 +167,13 @@ index.html?config=config.custom.json
 | 方法 | 说明 |
 | --- | --- |
 | `restart()` | 重开一局 |
-| `setConfig(ext)` | 深度合并配置并重建等级、图片、主题与文案，随后自动重开 |
+| `setConfig(ext)` | 深度合并配置并重建等级、图片、主题、文案、重力与危险线，随后自动重开 |
 | `dropAt(x, level?)` | 在世界坐标 `x` 处投放当前级（或指定级）的球；冷却中或已结束返回 `false` |
 | `spawnAt(level, x, y)` | 在指定世界坐标直接生成一个指定等级的球（不受冷却与判负限制） |
 | `fruitCount()` | 当前场上球的数量 |
+| `__bodies()` | 全部球的物理状态（`{x, y, r, vx, vy}` 数组），供自动化测试探针使用 |
 
-坐标系说明：逻辑世界宽度固定为 390，`x` 取值约 0~390，`y` 向下增大。
+坐标系说明：逻辑世界宽度固定为 390，`x` 取值约 0~390，`y` 向下增大。画布宽高比上限约 0.62，宽屏 / 横屏下画布自动收窄居中，保证容器始终占满可用高度。
 
 调用示例：
 
@@ -186,9 +188,13 @@ MergeGame.restart();
 
 ```
 merge-watermelon/
-├── index.html          游戏主体（HTML + CSS + JS + 默认配置 DEFAULT_CONFIG）
-├── matter.min.js       Matter.js 0.19.0 物理引擎（本地内置）
-├── config.custom.json  自定义配置示例（「合成星球」主题）
+├── index.html            游戏主体（HTML + CSS + JS + 默认配置 DEFAULT_CONFIG + 配置面板）
+├── matter.min.js         Matter.js 0.19.0 物理引擎（本地内置）
+├── config.custom.json    自定义配置示例（「合成星球」主题）
+├── tools/
+│   ├── verify.cjs        Playwright E2E 回归（合成 / 计分 / 配置 / 结算）
+│   ├── verify-layout.cjs 多视口布局回归（比例钳制 / 居中 / 满高 / 越界）
+│   └── test-config.json  E2E 用的远程配置样例
 └── README.md
 ```
 

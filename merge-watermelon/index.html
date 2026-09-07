@@ -42,7 +42,7 @@
   .score-chip{text-align:center;line-height:1.05}
   #scoreVal{font-size:26px;font-weight:900;color:var(--accent);font-variant-numeric:tabular-nums;text-shadow:0 1px 0 rgba(255,255,255,.6)}
   #bestVal{display:block;font-size:11px;font-weight:600;color:var(--ink-soft);margin-top:2px;font-variant-numeric:tabular-nums}
-  #bestVal.record{color:var(--danger)}
+  #bestVal.record{color:var(--accent)}
   .tb-right{display:flex;justify-content:flex-end;gap:8px}
   .icon-btn{
     width:38px;height:38px;border:none;border-radius:50%;cursor:pointer;
@@ -56,8 +56,8 @@
   .icon-btn.off{color:#c2a479}
 
   /* ===== 舞台 ===== */
-  #stage{flex:1 1 auto;position:relative;min-height:0}
-  #game{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  #stage{flex:1 1 auto;position:relative;min-height:0;overflow:hidden}
+  #game{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none}
   #hint{
     position:absolute;left:50%;bottom:9%;transform:translateX(-50%);
     background:rgba(91,58,30,.78);color:#fff4dd;font-size:13px;font-weight:600;letter-spacing:.06em;
@@ -120,6 +120,52 @@
     transition:opacity .4s ease;
   }
   #loading.hide{opacity:0;pointer-events:none}
+
+  /* ===== 配置面板 ===== */
+  #cfgPanel{
+    position:absolute;inset:0;z-index:15;display:none;align-items:flex-end;justify-content:center;
+    background:rgba(64,38,10,.45);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+  }
+  #cfgPanel.show{display:flex}
+  .cfg-card{
+    width:min(100%,460px);max-height:90%;background:var(--card);
+    border-radius:22px 22px 0 0;display:flex;flex-direction:column;
+    box-shadow:0 -10px 40px rgba(70,35,5,.3);touch-action:pan-y;overscroll-behavior:contain;
+  }
+  @media (min-width:700px){
+    .cfg-card{border-radius:22px;margin-bottom:4vh}
+  }
+  .cfg-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 8px;font-weight:900;font-size:17px;color:var(--ink)}
+  .cfg-close{border:none;background:none;cursor:pointer;color:var(--ink-soft);padding:4px;display:flex}
+  .cfg-close svg{width:18px;height:18px}
+  .cfg-body{overflow-y:auto;padding:0 18px 10px;-webkit-overflow-scrolling:touch}
+  .cfg-sec{margin:12px 0 4px;font-size:12px;font-weight:800;color:var(--ink-soft);letter-spacing:.08em}
+  .cfg-grid{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+  .cfg-grid label.mini{font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:5px;font-weight:600}
+  .cfg-grid input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+  .cfg-i{
+    border:1px solid #e5d3b4;background:#fffdf7;border-radius:10px;
+    padding:7px 9px;font-size:14px;color:var(--ink);outline:none;min-width:0;font-weight:600;
+  }
+  .cfg-i:focus{border-color:var(--accent)}
+  input[type=color]{width:34px;height:34px;border:1px solid #e5d3b4;border-radius:9px;background:#fffdf7;padding:2px;cursor:pointer}
+  input[type=range]{accent-color:var(--accent)}
+  select.cfg-i{cursor:pointer}
+  .lv-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px;border:1px solid #efe0c4;border-radius:14px;margin:6px 0;background:#fffdf7}
+  .lv-prev{width:38px;height:38px;border-radius:50%;flex:0 0 auto;background-size:cover;background-position:center;border:2px solid #f0e2c8}
+  .lv-name{width:78px}
+  .lv-score{width:58px}
+  .lv-radius{width:58px}
+  .lv-icon-btn,.lv-icon-clear{
+    border:1px solid #e5d3b4;background:#fff;border-radius:9px;padding:6px 9px;
+    font-size:12px;font-weight:700;color:var(--ink-soft);cursor:pointer;
+  }
+  .cfg-foot{display:flex;gap:8px;padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid #f0e2c8}
+  .cfg-btn{flex:1;border:none;border-radius:999px;padding:11px 0;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap}
+  .cfg-btn:active{transform:scale(.96)}
+  .cfg-btn.primary{background:linear-gradient(135deg,#ffa03d,#ff7a21);color:#fff;box-shadow:0 6px 16px rgba(255,122,33,.35)}
+  .cfg-btn.ghost{background:#fff4e2;color:var(--ink-soft)}
+  #cfgPanel input,#cfgPanel select,#cfgPanel button{-webkit-user-select:text;user-select:text}
 </style>
 </head>
 <body>
@@ -131,6 +177,12 @@
       <span id="bestVal">最高 0</span>
     </div>
     <div class="tb-right">
+      <button class="icon-btn" id="btnCfg" aria-label="自定义配置">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3.2"/>
+          <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/>
+        </svg>
+      </button>
       <button class="icon-btn" id="btnSound" aria-label="声音开关">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" stroke="none"/>
@@ -159,6 +211,68 @@
         <div id="recordTag">新纪录</div>
         <button id="btnAgain">再来一局</button>
         <div id="bestLine">历史最高 0</div>
+      </div>
+    </div>
+    <div id="cfgPanel">
+      <div class="cfg-card">
+        <div class="cfg-head">
+          <span>自定义配置</span>
+          <button class="cfg-close" id="cfgClose" aria-label="关闭">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+        <div class="cfg-body">
+          <div class="cfg-sec">文案</div>
+          <div class="cfg-grid">
+            <label class="mini">标题<input type="text" class="cfg-i" id="cfgTitle" style="width:110px" maxlength="12"></label>
+            <label class="mini">提示语<input type="text" class="cfg-i" id="cfgHint" style="width:150px" maxlength="20"></label>
+            <label class="mini">结束提示<input type="text" class="cfg-i" id="cfgOverTip" style="width:130px" maxlength="20"></label>
+          </div>
+          <div class="cfg-sec">合成等级</div>
+          <div class="cfg-grid">
+            <label class="mini">等级数量<input type="number" class="cfg-i" id="cfgLevelCount" min="3" max="15" style="width:62px"></label>
+            <label class="mini">投放池(前N级)<input type="number" class="cfg-i" id="cfgPool" min="1" max="15" style="width:56px"></label>
+          </div>
+          <div id="cfgLevels"></div>
+          <div class="cfg-sec">背景与配色</div>
+          <div class="cfg-grid">
+            <select class="cfg-i" id="cfgBgType">
+              <option value="gradient">渐变背景</option>
+              <option value="solid">纯色背景</option>
+              <option value="image">图片背景</option>
+            </select>
+            <label class="mini" id="cfgBgTopWrap">顶部<input type="color" id="cfgBgTop"></label>
+            <label class="mini" id="cfgBgBottomWrap">底部<input type="color" id="cfgBgBottom"></label>
+            <label class="mini" id="cfgBgSolidWrap">纯色<input type="color" id="cfgBgSolid"></label>
+            <button class="lv-icon-btn" id="cfgBgImgBtn">上传背景图</button>
+            <input type="file" id="cfgBgFile" accept="image/*" hidden>
+            <label class="mini" id="cfgBgDimWrap">压暗<input type="range" id="cfgBgDim" min="0" max="80" style="width:90px"></label>
+            <label class="mini">强调色<input type="color" id="cfgAccent"></label>
+          </div>
+          <div class="cfg-sec">玩法手感</div>
+          <div class="cfg-grid">
+            <label class="mini">重力<input type="range" id="cfgGravity" min="60" max="220" style="width:100px"></label>
+            <label class="mini">投放冷却<input type="range" id="cfgCooldown" min="150" max="1000" step="10" style="width:100px"></label>
+            <label class="mini">危险线高度<input type="range" id="cfgDanger" min="70" max="220" style="width:100px"></label>
+          </div>
+          <div class="cfg-sec">特效与声音</div>
+          <div class="cfg-grid">
+            <label class="mini"><input type="checkbox" id="cfgFxParticles">合成粒子</label>
+            <label class="mini"><input type="checkbox" id="cfgFxShake">震屏</label>
+            <label class="mini"><input type="checkbox" id="cfgFxConfetti">彩带</label>
+            <label class="mini"><input type="checkbox" id="cfgFxTrail">拖尾</label>
+            <label class="mini"><input type="checkbox" id="cfgFxSquash">压扁回弹</label>
+            <label class="mini"><input type="checkbox" id="cfgAudio">音效</label>
+            <label class="mini"><input type="checkbox" id="cfgHaptic">震动反馈</label>
+          </div>
+        </div>
+        <div class="cfg-foot">
+          <button class="cfg-btn primary" id="cfgApply">应用并保存</button>
+          <button class="cfg-btn ghost" id="cfgExport">导出 JSON</button>
+          <button class="cfg-btn ghost" id="cfgImportBtn">导入</button>
+          <button class="cfg-btn ghost" id="cfgReset">恢复默认</button>
+          <input type="file" id="cfgImportFile" accept="application/json,.json" hidden>
+        </div>
       </div>
     </div>
     <div id="loading">加载中</div>
@@ -358,6 +472,7 @@ function buildLevels(cfg){
     l._img=null; l._imgFail=false;
   });
   cfg.rules.levelCount=base.length;
+  cfg.levels=base; // 回写解析结果，保证 CFG.levels 始终含最终半径/分数等（配置面板依赖）
   return base;
 }
 
@@ -499,10 +614,20 @@ var elScore=document.getElementById('scoreVal'),
     elLoading=document.getElementById('loading'),
     elTitle=document.querySelector('#gameTitle .label');
 
-/* ---------- 尺寸 ---------- */
+/* ---------- 尺寸 ----------
+ * 画布宽高比有上限（MAX_ASPECT）：宽屏/横屏下不把世界压扁，
+ * 而是限制画布宽度并水平居中，保证容器始终占满可用高度、有足够游玩深度。 */
+var MAX_ASPECT=0.62;
 function resize(){
   var r=stage.getBoundingClientRect();
-  cssW=Math.max(1,r.width); cssH=Math.max(1,r.height);
+  var availW=Math.max(1,r.width), availH=Math.max(1,r.height);
+  var cw=availW, ch=availH;
+  if(cw/ch>MAX_ASPECT) cw=ch*MAX_ASPECT;
+  cssW=cw; cssH=ch;
+  canvas.style.width=cw+'px';
+  canvas.style.height=ch+'px';
+  canvas.style.left=((availW-cw)/2)+'px';
+  canvas.style.top='0';
   dpr=Math.min(window.devicePixelRatio||1,2);
   cssScale=cssW/W;
   var newH=W*(cssH/cssW);
@@ -545,22 +670,36 @@ function drawBg(){
     g.addColorStop(0,CFG.theme.bgColorTop); g.addColorStop(1,CFG.theme.bgColorBottom);
     c.fillStyle=g; c.fillRect(0,0,W,worldH);
   }
-  // 柔光圆点
+  // 游戏区容器：开口 vessel（无顶边），水果从上方落入；柔光圆点裁切在容器内部
+  var vesselPath=function(){
+    var x0=WALL_VIS/2,x1=W-WALL_VIS/2,y0=44,y1=worldH-WALL_VIS/2,r2=16;
+    c.beginPath();
+    c.moveTo(x0,y0);
+    c.lineTo(x0,y1-r2);
+    c.quadraticCurveTo(x0,y1,x0+r2,y1);
+    c.lineTo(x1-r2,y1);
+    c.quadraticCurveTo(x1,y1,x1,y1-r2);
+    c.lineTo(x1,y0);
+  };
+  vesselPath();
+  c.fillStyle=CFG.theme.courtColor;
+  c.fill();
+  c.strokeStyle=CFG.theme.wallLineColor;
+  c.lineWidth=WALL_VIS;
+  c.lineCap='round';
+  c.stroke();
   if(CFG.theme.decoBokeh){
+    c.save();
+    vesselPath();
+    c.clip();
     bokeh.forEach(function(b){
       var x=b.x+Math.sin(bootTs/1000*b.s1+b.p1)*14;
       var y=b.y+Math.cos(bootTs/1000*b.s2+b.p2)*10;
       c.fillStyle=b.col;
       c.beginPath();c.arc(x,y,b.r,0,7);c.fill();
     });
+    c.restore();
   }
-  // 游戏区容器
-  c.fillStyle=CFG.theme.courtColor;
-  roundRect(c,WALL_VIS/2,DANGER_Y-34,W-WALL_VIS,worldH-DANGER_Y+34-WALL_VIS/2,16);
-  c.fill();
-  c.strokeStyle=CFG.theme.wallLineColor;c.lineWidth=WALL_VIS;
-  roundRect(c,WALL_VIS/2,DANGER_Y-34,W-WALL_VIS,worldH-DANGER_Y+34-WALL_VIS/2,16);
-  c.stroke();
   // 危险线
   var dangerHot=warnLevel;
   var a=0.55+0.45*dangerHot*(0.6+0.4*Math.sin(bootTs/130));
@@ -958,9 +1097,15 @@ window.addEventListener('pointerup',function(){
 });
 window.addEventListener('pointercancel',function(){ aiming=false; });
 canvas.addEventListener('contextmenu',function(e){e.preventDefault()});
-document.addEventListener('touchmove',function(e){ e.preventDefault(); },{passive:false});
-// 键盘（桌面调试友好）
+// 拦截页面滚动，但配置面板内允许
+document.addEventListener('touchmove',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('#cfgPanel')) return;
+  e.preventDefault();
+},{passive:false});
+// 键盘（桌面调试友好）；输入控件内不拦截
 window.addEventListener('keydown',function(e){
+  var t=e.target;
+  if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT')) return;
   if(e.key==='ArrowLeft') aimX=clamp(aimX-16,WALL_VIS+curR(),W-WALL_VIS-curR());
   if(e.key==='ArrowRight') aimX=clamp(aimX+16,WALL_VIS+curR(),W-WALL_VIS-curR());
   if(e.key===' '){ AudioSys.unlock(); tryDrop(); e.preventDefault(); }
@@ -1017,6 +1162,10 @@ function applyUITexts(){
   elTitle.textContent=CFG.ui.title;
   elHint.textContent=CFG.ui.hint;
   document.documentElement.style.setProperty('--accent',CFG.theme.pageAccent);
+  // 页面（画布外）背景与主题保持一致，宽屏留白区域不突兀
+  var t=CFG.theme;
+  if(t.bgType==='solid') document.body.style.background=t.solidColor;
+  else document.body.style.background='linear-gradient(180deg,'+t.bgColorTop+' 0%,'+t.bgColorBottom+' 100%)';
   elBest.textContent=fmt(CFG.ui.bestTemplate,{best:best});
   var m=AudioSys.muted;
   btnSound.classList.toggle('off',m);
@@ -1072,6 +1221,7 @@ function initBokeh(){
 }
 
 /* ---------- 渲染主循环 ---------- */
+var MAX_SPEED=26, MAX_SPEED2=MAX_SPEED*MAX_SPEED; // 单步位移上限 < 墙厚，杜绝高速穿透
 var lastT=performance.now(),acc=0;
 function frame(now){
   requestAnimationFrame(frame);
@@ -1082,6 +1232,22 @@ function frame(now){
   var steps=0;
   while(acc>=16.666&&steps<4){ Matter.Engine.update(engine,16.666); acc-=16.666; steps++; }
   if(steps===4) acc=0;
+  // 稳定性兜底：限速防穿透；万一越界的水果拉回场内
+  for(var i=0;i<fruitBodies.length;i++){
+    var b=fruitBodies[i],vx=b.velocity.x,vy=b.velocity.y;
+    var sp2=vx*vx+vy*vy;
+    if(sp2>MAX_SPEED2){
+      var k=MAX_SPEED/Math.sqrt(sp2);
+      Matter.Body.setVelocity(b,{x:vx*k,y:vy*k});
+    }
+    var av=b.angularVelocity;
+    if(av>0.8||av<-0.8) Matter.Body.setAngularVelocity(b,clamp(av,-0.8,0.8));
+    var rr=b.circleRadius;
+    if(b.position.x<-rr*2||b.position.x>W+rr*2||b.position.y>worldH+rr*2+60){
+      Matter.Body.setPosition(b,{x:clamp(b.position.x,WALL_VIS+rr,W-WALL_VIS-rr),y:worldH-WALL_VIS-rr});
+      Matter.Body.setVelocity(b,{x:0,y:0});
+    }
+  }
   processMerges();
   updateWarn();
   updateFx(dt);
@@ -1215,6 +1381,208 @@ function render(now){
   }
 }
 
+/* ---------- 配置面板 ---------- */
+var CFG_STORE_KEY='mw_user_config';
+var work=null;
+function q(id){return document.getElementById(id)}
+function escAttr(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')}
+function cleanConfig(cfg){
+  return JSON.parse(JSON.stringify(cfg,function(k,v){return k&&k.charAt(0)==='_'?undefined:v}));
+}
+function readImageToDataURL(file,maxSize,mime,quality,cb){
+  var fr=new FileReader();
+  fr.onload=function(){
+    var img=new Image();
+    img.onload=function(){
+      var s=Math.min(1,maxSize/Math.max(img.width||1,img.height||1));
+      var cv=document.createElement('canvas');
+      cv.width=Math.max(1,Math.round((img.width||maxSize)*s));
+      cv.height=Math.max(1,Math.round((img.height||maxSize)*s));
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      cb(cv.toDataURL(mime,quality));
+    };
+    img.onerror=function(){cb(null)};
+    img.src=fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+function setWorkLevelCount(n){
+  n=clamp(Math.round(n)||7,3,15);
+  var old=Array.isArray(work.levels)?work.levels:[];
+  var next=genLevels(n);
+  for(var i=0;i<n&&i<old.length;i++) next[i]=old[i];
+  work.levels=next;
+  work.rules.levelCount=n;
+}
+function paintPreview(i){
+  var L=work.levels[i],el=q('lvprev'+i);
+  if(!el) return;
+  if(L.icon){ el.style.backgroundImage='url('+L.icon+')'; el.style.backgroundColor='transparent'; }
+  else{ el.style.backgroundImage='none'; el.style.backgroundColor=L.color; }
+}
+function renderCfgLevels(){
+  q('cfgLevelCount').value=work.rules.levelCount;
+  var box=q('cfgLevels'); box.innerHTML='';
+  work.levels.forEach(function(L,i){
+    var row=document.createElement('div'); row.className='lv-row';
+    row.innerHTML=
+      '<span class="lv-prev" id="lvprev'+i+'"></span>'+
+      '<input type="text" class="cfg-i lv-name" data-i="'+i+'" value="'+escAttr(L.name)+'" maxlength="8">'+
+      '<input type="color" class="lv-color" data-i="'+i+'" value="'+(/^#[0-9a-fA-F]{6}$/.test(L.color||'')?L.color:'#cccccc')+'">'+
+      '<label class="mini">分<input type="number" class="cfg-i lv-score" data-i="'+i+'" value="'+(L.score||i+1)+'" min="1" style="width:58px"></label>'+
+      '<label class="mini">径<input type="number" class="cfg-i lv-radius" data-i="'+i+'" value="'+Math.round(L.radius)+'" min="12" max="140" style="width:58px"></label>'+
+      '<button class="lv-icon-btn" data-icon="'+i+'">图片</button>'+
+      (L.icon?'<button class="lv-icon-clear" data-clear="'+i+'">清除</button>':'')+
+      '<input type="file" accept="image/*" class="lv-file" data-file="'+i+'" hidden>';
+    box.appendChild(row);
+    paintPreview(i);
+  });
+}
+function cfgToggleBgInputs(){
+  var t=q('cfgBgType').value;
+  q('cfgBgTopWrap').style.display=t==='gradient'?'':'none';
+  q('cfgBgBottomWrap').style.display=t==='gradient'?'':'none';
+  q('cfgBgSolidWrap').style.display=t==='solid'?'':'none';
+  q('cfgBgImgBtn').style.display=t==='image'?'':'none';
+  q('cfgBgDimWrap').style.display=t==='image'?'':'none';
+}
+function cfgPopulate(){
+  q('cfgTitle').value=work.ui.title;
+  q('cfgHint').value=work.ui.hint;
+  q('cfgOverTip').value=work.ui.overTip;
+  q('cfgLevelCount').value=work.rules.levelCount;
+  q('cfgPool').value=clamp(work.rules.dropPoolCount,1,15);
+  q('cfgBgType').value=work.theme.bgType;
+  q('cfgBgTop').value=work.theme.bgColorTop;
+  q('cfgBgBottom').value=work.theme.bgColorBottom;
+  q('cfgBgSolid').value=/^#[0-9a-fA-F]{6}$/.test(work.theme.solidColor||'')?work.theme.solidColor:'#ffe9c4';
+  q('cfgBgDim').value=Math.round(clamp(work.theme.backgroundImageDim||0,0,0.8)*100);
+  q('cfgAccent').value=work.theme.pageAccent;
+  q('cfgGravity').value=Math.round(clamp(work.physics.gravity,0.6,2.2)*50);
+  q('cfgCooldown').value=clamp(work.physics.dropCooldownMs,150,1000);
+  q('cfgDanger').value=clamp(work.rules.dangerY,70,220);
+  q('cfgFxParticles').checked=!!work.effects.particles;
+  q('cfgFxShake').checked=!!work.effects.shake;
+  q('cfgFxConfetti').checked=!!work.effects.confetti;
+  q('cfgFxTrail').checked=!!work.effects.trail;
+  q('cfgFxSquash').checked=!!work.effects.squash;
+  q('cfgAudio').checked=!!work.audio.enabled;
+  q('cfgHaptic').checked=!!work.effects.haptic;
+  cfgToggleBgInputs();
+  renderCfgLevels();
+}
+function cfgOpen(){
+  work=cleanConfig(CFG);
+  if(!Array.isArray(work.levels)||!work.levels.length) work.levels=genLevels(work.rules.levelCount);
+  cfgPopulate();
+  q('cfgPanel').classList.add('show');
+}
+function cfgApply(){
+  work.ui.title=q('cfgTitle').value.trim()||'合成大西瓜';
+  work.ui.hint=q('cfgHint').value;
+  work.ui.overTip=q('cfgOverTip').value;
+  work.rules.dropPoolCount=clamp(Math.round(+q('cfgPool').value)||4,1,work.levels.length);
+  work.theme.bgType=q('cfgBgType').value;
+  work.theme.bgColorTop=q('cfgBgTop').value;
+  work.theme.bgColorBottom=q('cfgBgBottom').value;
+  work.theme.solidColor=q('cfgBgSolid').value;
+  work.theme.backgroundImageDim=clamp((+q('cfgBgDim').value||0)/100,0,0.8);
+  work.theme.pageAccent=q('cfgAccent').value;
+  work.physics.gravity=clamp((+q('cfgGravity').value||57.5)/50,0.6,2.2);
+  work.physics.dropCooldownMs=clamp(+q('cfgCooldown').value||480,150,1000);
+  work.rules.dangerY=clamp(+q('cfgDanger').value||96,70,220);
+  work.effects.particles=q('cfgFxParticles').checked;
+  work.effects.shake=q('cfgFxShake').checked;
+  work.effects.confetti=q('cfgFxConfetti').checked;
+  work.effects.trail=q('cfgFxTrail').checked;
+  work.effects.squash=q('cfgFxSquash').checked;
+  work.effects.haptic=q('cfgHaptic').checked;
+  work.audio.enabled=q('cfgAudio').checked;
+  work.rules.levelCount=work.levels.length;
+  var snapshot=cleanConfig(work);
+  try{ localStorage.setItem(CFG_STORE_KEY,JSON.stringify(snapshot)); }
+  catch(e){ /* 存储超限时仅本次生效 */ }
+  q('cfgPanel').classList.remove('show');
+  API.setConfig(snapshot);
+}
+function initPanel(){
+  q('btnCfg').addEventListener('click',cfgOpen);
+  q('cfgClose').addEventListener('click',function(){ q('cfgPanel').classList.remove('show'); });
+  q('cfgApply').addEventListener('click',cfgApply);
+  q('cfgReset').addEventListener('click',function(){
+    localStorage.removeItem(CFG_STORE_KEY);
+    location.reload();
+  });
+  q('cfgExport').addEventListener('click',function(){
+    var data=JSON.stringify(cleanConfig(work),null,2);
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));
+    a.download='merge-config.json';
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);
+  });
+  q('cfgImportBtn').addEventListener('click',function(){ q('cfgImportFile').click(); });
+  q('cfgImportFile').addEventListener('change',function(){
+    var f=this.files&&this.files[0]; if(!f) return;
+    var fr=new FileReader();
+    fr.onload=function(){
+      try{
+        var parsed=JSON.parse(fr.result);
+        work=cleanConfig(deepMerge(DEFAULT_CONFIG,parsed));
+        if(!Array.isArray(work.levels)||!work.levels.length) work.levels=genLevels(work.rules.levelCount);
+        cfgPopulate();
+      }catch(e){ /* 配置文件不合法则忽略 */ }
+    };
+    fr.readAsText(f);
+    this.value='';
+  });
+  q('cfgLevelCount').addEventListener('change',function(){
+    setWorkLevelCount(+this.value);
+    renderCfgLevels();
+  });
+  q('cfgBgType').addEventListener('change',function(){
+    work.theme.bgType=this.value;
+    cfgToggleBgInputs();
+  });
+  q('cfgBgImgBtn').addEventListener('click',function(){ q('cfgBgFile').click(); });
+  q('cfgBgFile').addEventListener('change',function(){
+    var f=this.files&&this.files[0]; if(!f) return;
+    readImageToDataURL(f,1280,'image/jpeg',0.85,function(url){
+      if(url){ work.theme.backgroundImage=url; work.theme.bgType='image'; q('cfgBgType').value='image'; cfgToggleBgInputs(); }
+    });
+    this.value='';
+  });
+  q('cfgLevels').addEventListener('input',function(e){
+    var t=e.target,i=+t.getAttribute('data-i');
+    if(isNaN(i)||!work.levels[i]) return;
+    if(t.classList.contains('lv-name')) work.levels[i].name=t.value.trim()||('等级'+(i+1));
+    else if(t.classList.contains('lv-score')) work.levels[i].score=clamp(Math.round(+t.value)||i+1,1,999);
+    else if(t.classList.contains('lv-radius')) work.levels[i].radius=clamp(Math.round(+t.value)||17,12,140);
+    else if(t.classList.contains('lv-color')){ work.levels[i].color=t.value; paintPreview(i); }
+  });
+  q('cfgLevels').addEventListener('click',function(e){
+    var btn=e.target.closest('button'); if(!btn) return;
+    if(btn.hasAttribute('data-icon')){
+      var file=btn.parentNode.querySelector('.lv-file');
+      if(file) file.click();
+    }else if(btn.hasAttribute('data-clear')){
+      delete work.levels[+btn.getAttribute('data-clear')].icon;
+      renderCfgLevels();
+    }
+  });
+  q('cfgLevels').addEventListener('change',function(e){
+    var t=e.target;
+    if(!t.classList.contains('lv-file')) return;
+    var i=+t.getAttribute('data-file'),f=t.files&&t.files[0];
+    if(!f) return;
+    readImageToDataURL(f,256,'image/png',null,function(url){
+      if(url) work.levels[i].icon=url;
+      renderCfgLevels();
+    });
+    t.value='';
+  });
+}
+
 /* ---------- 调试/集成 API ---------- */
 var API={
   get config(){ return CFG; },
@@ -1226,10 +1594,13 @@ var API={
   fruitCount:function(){ return fruitBodies.length; },
   dropAt:function(x,level){ return tryDrop(level===undefined?curLevel:level,x); },
   spawnAt:function(level,x,y){ return makeFruit(level,x,y,0,0); },
+  __bodies:function(){ return fruitBodies.map(function(b){return {x:b.position.x,y:b.position.y,r:b.circleRadius,vx:b.velocity.x,vy:b.velocity.y};}); },
   restart:restart,
   setConfig:function(ext){
     CFG=deepMerge(CFG,ext);
     if(ext&&ext.rules&&ext.rules.levelCount) explicitLevelCount=true;
+    DANGER_Y=clamp(CFG.rules.dangerY,70,240);
+    if(engine) engine.gravity.y=CFG.physics.gravity;
     LEVELS=buildLevels(CFG);
     loadLevelImages();loadBgImage();initBokeh();applyUITexts();
     restart();
@@ -1239,16 +1610,25 @@ window.MergeGame=API;
 window.__mw=API; // 测试钩子
 
 /* ---------- 启动 ---------- */
+function loadStoredConfig(){
+  try{
+    var s=localStorage.getItem(CFG_STORE_KEY);
+    if(s){ CFG=deepMerge(CFG,JSON.parse(s)); }
+  }catch(e){ /* 本地存档损坏则忽略 */ }
+}
+loadStoredConfig(); // 优先级：默认 < 面板本地保存 < URL ?config=
 loadRemoteConfig().then(function(){
   LEVELS=buildLevels(CFG);
-  DANGER_Y=CFG.rules.dangerY;
+  DANGER_Y=clamp(CFG.rules.dangerY,70,240);
   best=parseInt(localStorage.getItem(bestKey())||'0',10)||0;
   resize();
   initBokeh();
   initPhysics();
+  engine.gravity.y=CFG.physics.gravity;
   loadLevelImages();
   loadBgImage();
   applyUITexts();
+  initPanel();
   curLevel=nextDropLevel();
   ghostVisible=true;
   elHint.classList.add('show');
