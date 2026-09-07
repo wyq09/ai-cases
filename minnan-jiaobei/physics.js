@@ -139,16 +139,16 @@ export class JiaobeiPhysics {
       stone = new CANNON.Material("stone");
     this.world.addContactMaterial(
       new CANNON.ContactMaterial(wood, stone, {
-        friction: 0.52,
-        restitution: 0.16,
+        friction: 0.42,
+        restitution: 0.38,
         contactEquationStiffness: 1e5,
         contactEquationRelaxation: 4,
       }),
     );
     this.world.addContactMaterial(
       new CANNON.ContactMaterial(wood, wood, {
-        friction: 0.42,
-        restitution: 0.1,
+        friction: 0.4,
+        restitution: 0.24,
       }),
     );
     const floor = new CANNON.Body({
@@ -311,8 +311,8 @@ export class JiaobeiPhysics {
               (c.bi === body || c.bj === body) &&
               (c.bi.mass === 0 || c.bj.mass === 0),
           );
-          body.linearDamping = grounded ? 0.55 : 0;
-          body.angularDamping = grounded ? 0.7 : 0.15;
+          body.linearDamping = grounded ? 0.3 : 0;
+          body.angularDamping = grounded ? 0.45 : 0.1;
           if (
             grounded &&
             body.velocity.length() < 0.018 &&

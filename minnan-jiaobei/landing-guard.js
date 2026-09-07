@@ -1,5 +1,5 @@
 import { Quaternion, Vec3 } from "cannon-es";
-export const SAFE_RADIUS = 0.06 * 4.05;
+export const SAFE_RADIUS = 0.06 * 4.2;
 export const CENTRE_GAP = 0.005;
 // Exact sampling density and dimensions of the Blender source, including the crown.
 const points = [];

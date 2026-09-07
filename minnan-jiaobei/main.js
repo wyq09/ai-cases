@@ -5,7 +5,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { JiaobeiPhysics } from "./physics.js";
 import { TrayView } from "./view.js";
-import { CupHands } from "./hands.js";
 const $ = (s) => document.querySelector(s);
 const stage = $("#stage"),
   throwButton = $("#throw"),
@@ -57,8 +56,7 @@ let renderer,
   shareURL,
   needsRender = true,
   liftFrom = [],
-  liftTo = [],
-  hands = null;
+  liftTo = [];
 let records = [];
 try {
   const data = JSON.parse(localStorage.getItem("hupi-records") || "[]");
@@ -212,7 +210,6 @@ function init() {
     }
   });
   scene = new THREE.Scene();
-  hands = new CupHands(scene);
   camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
   camera.position.set(0, 8.8, 10.8);
   camera.lookAt(0, 0.3, 0);
@@ -358,7 +355,6 @@ function throwCups(power = 0.25) {
     const t = physics.poseOf(i);
     return { p: t.position, q: t.quaternion };
   });
-  hands.attach(cups);
   animation = {
     wish: $("#wish").value.trim(),
     phase: "lift",
@@ -390,7 +386,6 @@ function frame(now) {
         c.position.lerpVectors(liftFrom[i].p, liftTo[i].p, e);
         c.quaternion.slerpQuaternions(liftFrom[i].q, liftTo[i].q, e);
       });
-      hands.setReveal(reduced ? 1 : Math.max(0, (k - 0.5) / 0.45));
       needsRender = true;
       if (k >= 1) {
         animation.phase = "hold";
@@ -400,7 +395,6 @@ function frame(now) {
       if (now - animation.start >= HOLD_MS) {
         animation.phase = "fly";
         physics.release(animation.power, random);
-        hands.release();
         $("#stage-state").textContent = "红筊落处，静候回响";
         $("#result-title").textContent = "心意，正在落地。";
       }
