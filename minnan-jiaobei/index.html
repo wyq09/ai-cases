@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#f4f0e7" />
+    <meta
+      name="description"
+      content="一对红筊，一份心意。体验闽南掷筊习俗，留下属于你的平安签。"
+    />
+    <title>有庇 · 闽南掷筊</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23aa3829'/%3E%3Ctext x='12' y='46' font-size='40' fill='%23fff4df'%3E庇%3C/text%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <a class="brand" href="./" aria-label="有庇首页"
+          ><span class="seal">有<br />庇</span
+          ><span>有庇<span class="brand-en">HŪ PÌ · MINNAN</span></span></a
+        >
+        <nav>
+          <button id="rules-open">掷筊小识 <span>↗</span></button
+          ><button id="history-open">
+            我的筊记 <span id="history-count">00</span></button
+          ><button id="sound" aria-pressed="false" aria-label="开启音效">
+            音效 <span>关</span>
+          </button>
+        </nav>
+      </header>
+      <main>
+        <div class="eyebrow">
+          <span class="red-dot"></span> 来自闽南的一份心意
+          <span class="line"></span> A LITTLE RITUAL, A MOMENT OF PEACE
+        </div>
+        <section class="experience">
+          <div class="intro">
+            <span class="small-label">有 拜 有 保 庇</span>
+            <h1>一掷心意<span>一念平安</span></h1>
+            <p>把心事轻轻说，<br />让红筊替你回应。</p>
+            <div class="vertical-note">红砖古厝 · 燕尾入云 · 香火人间</div>
+            <span class="round-stamp">闽南<br />日常</span>
+          </div>
+          <div id="stage" role="img" aria-label="闽南庙埕中的一对红色木质筊杯">
+            <div class="temple-art" aria-hidden="true">
+              <svg viewBox="0 0 900 300">
+                <g fill="none" stroke="currentColor" stroke-width="2">
+                  <path
+                    d="M30 164 Q105 185 208 133 L304 90 Q280 77 274 49 Q321 90 450 70 Q576 90 626 49 Q620 77 596 90 L692 133 Q795 185 870 164 Q826 203 731 182 L635 160 L265 160 L169 182 Q75 203 30 164Z"
+                  />
+                  <path
+                    d="M180 179 L180 280 M720 179 L720 280 M265 160 L265 280 M635 160 L635 280 M315 161 L315 280 M585 161 L585 280 M200 207 H263 M636 207 H700 M335 280 V192 H565 V280 M440 192 V280 M460 192 V280 M291 99 Q450 132 609 99 M226 136 Q450 169 674 136"
+                  />
+                  <path
+                    d="M60 284 H840 M120 291 H780 M376 160 V177 H525 V160"
+                  />
+                  <path
+                    d="M340 119 L328 145 M380 125 L376 151 M420 130 L420 155 M460 130 V155 M500 128 L505 152 M540 124 L548 146 M580 118 L592 140"
+                  />
+                </g>
+              </svg>
+            </div>
+            <div class="scene-label">
+              <span>一 对 红 筊 · 一 片 赤 诚</span>
+            </div>
+            <div id="loading">正在请出红筊…</div>
+            <div class="stage-bottom">
+              <span>闽南 · 庙埕之间</span
+              ><span id="stage-state">静心 · 默念 · 掷筊</span>
+            </div>
+          </div>
+          <aside class="ritual">
+            <button id="mobile-wish">
+              <span>默念心事，或写下你的心愿</span> <b>写心愿 ↗</b>
+            </button>
+            <div class="wish-fields">
+              <div class="step">
+                <span>01 — 静心问事</span><span class="tiny-flower">✳</span>
+              </div>
+              <label for="wish">此刻，心里惦记着什么？</label
+              ><textarea
+                id="wish"
+                rows="3"
+                maxlength="80"
+                placeholder="愿家人平安，所行皆坦途。"
+              ></textarea>
+              <div class="wish-meta">
+                <span>可以写下来，也可以只在心里默念</span
+                ><span id="char-count">0 / 80</span>
+              </div>
+              <div class="suggestions">
+                <button data-wish="愿家人身体安康，平安顺遂。">家人安康</button
+                ><button data-wish="想做的事，现在适合开始吗？">前程事业</button
+                ><button data-wish="这份心意，是否适合勇敢表达？">
+                  心有所念
+                </button>
+              </div>
+            </div>
+            <div class="result" aria-live="polite">
+              <div class="result-top">
+                <span id="result-kicker">02 — 诚心掷筊</span
+                ><span id="face-summary">一平 · 一凸 · 一份回应</span>
+              </div>
+              <h2 id="result-title">心诚，自有回响。</h2>
+              <p id="result-description">
+                捧起红筊，默念心中所问。<br />准备好了，就轻轻掷下吧。
+              </p>
+            </div>
+            <button id="throw" class="primary" disabled>
+              <span id="throw-label">请筊中…</span><span>↗</span><i></i>
+            </button>
+            <p class="button-hint">点击掷筊，或长按蓄力后松开</p>
+            <button id="share" class="share" disabled>
+              保存 / 分享这一份心意 <span>↗</span>
+            </button>
+          </aside>
+        </section>
+        <section class="bottom">
+          <div class="bottom-intro">
+            <span class="small-label">读 懂 筊 意</span>
+            <h3>一对红筊，三种回应。</h3>
+            <button id="more-rules">了解掷筊习俗 ↗</button>
+          </div>
+          <div class="meaning">
+            <div class="cup-icons"><i></i><i class="flat"></i></div>
+            <div>
+              <h3>圣筊 <span>SHÈNG JIǍO</span></h3>
+              <p>一平一凸 · 心意获允</p>
+            </div>
+          </div>
+          <div class="meaning">
+            <div class="cup-icons">
+              <i class="flat"></i><i class="flat"></i>
+            </div>
+            <div>
+              <h3>笑筊 <span>XIÀO JIǍO</span></h3>
+              <p>两平朝上 · 再说清心意</p>
+            </div>
+          </div>
+          <div class="meaning">
+            <div class="cup-icons"><i></i><i></i></div>
+            <div>
+              <h3>阴筊 <span>YĪN JIǍO</span></h3>
+              <p>两凸朝上 · 暂缓而行</p>
+            </div>
+          </div>
+        </section>
+      </main>
+      <footer>
+        <span
+          >有庇 HŪ PÌ
+          <span class="footer-divider">/</span> 把闽南的日常，放在手心。</span
+        ><span>民俗体验 · 随机筊象 · 愿你平安</span>
+      </footer>
+    </div>
+    <dialog id="dialog">
+      <button class="close" aria-label="关闭">×</button>
+      <div id="dialog-body"></div>
+    </dialog>
+    <div id="toast" role="status"></div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

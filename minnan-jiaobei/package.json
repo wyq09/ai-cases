@@ -1,0 +1,17 @@
+{
+  "name": "minnan-jiaobei",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build --base=./",
+    "dev": "vite --host 0.0.0.0",
+    "test": "node --test scripts/physics.test.mjs"
+  },
+  "dependencies": {
+    "cannon-es": "^0.20.0",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0"
+  }
+}

@@ -1,0 +1,249 @@
+/* Immersive single-screen interaction: one throw button and one large stage. */
+.page {
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  height: 72px;
+  min-height: 72px;
+}
+main {
+  flex: 1;
+  min-height: 0;
+}
+.eyebrow,
+.bottom,
+footer,
+.ritual,
+.button-hint {
+  display: none;
+}
+.experience {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 64px 50px minmax(0, 1fr);
+  gap: 8px;
+  padding: 10px 0 8px;
+}
+.intro {
+  grid-row: 1;
+  padding: 0;
+  text-align: center;
+  animation: none;
+}
+.intro .small-label,
+.intro p,
+.vertical-note,
+.round-stamp {
+  display: none;
+}
+h1 {
+  font-size: 30px;
+  line-height: 54px;
+  margin: 0;
+  letter-spacing: 2px;
+}
+h1 span {
+  display: inline;
+  margin-left: 14px;
+}
+#throw {
+  grid-column: 1;
+  grid-row: 2;
+  width: 240px;
+  justify-self: center;
+  padding: 12px 22px;
+  min-height: 48px;
+}
+#stage {
+  grid-column: 1;
+  grid-row: 3;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+}
+.temple-art {
+  top: 0;
+  left: 20%;
+  width: 60%;
+  opacity: 0.16;
+}
+.scene-label {
+  top: 16px;
+  font-size: 9px;
+}
+.stage-bottom {
+  display: none;
+}
+#stage canvas {
+  touch-action: manipulation;
+  cursor: pointer;
+}
+#stage .result {
+  position: absolute;
+  z-index: 3;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 80%;
+  text-align: center;
+  border: 0;
+  padding: 12px 22px;
+  min-height: 0;
+  background: #f4f0e7e8;
+  border-radius: 3px;
+  pointer-events: none;
+  overflow: visible;
+  animation: none;
+}
+#stage h2 {
+  font-size: 24px;
+  margin: 4px 0 0;
+}
+#stage .result-top {
+  justify-content: center;
+}
+#result-kicker,
+#result-description {
+  display: none;
+}
+#face-summary {
+  font-size: 11px;
+  color: #8c7657;
+}
+#mobile-wish {
+  position: absolute;
+  display: flex;
+  z-index: 4;
+  right: 12px;
+  top: 15px;
+  gap: 5px;
+  padding: 10px 13px;
+  border: 1px solid #cfc3af;
+  border-radius: 24px;
+  font-size: 11px;
+  background: #f4f0e7e8;
+  min-height: 40px;
+}
+#mobile-wish span {
+  display: none;
+}
+#mobile-wish b {
+  font-weight: 400;
+  font-size: 11px;
+}
+#share {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  z-index: 4;
+  width: auto;
+  padding: 10px 12px;
+  font-size: 10px;
+  border: 0;
+}
+#dialog .wish-fields {
+  display: block;
+}
+@media (max-width: 720px) {
+  header {
+    height: 56px;
+    min-height: 56px;
+  }
+  .experience {
+    grid-template-rows: 42px 48px minmax(0, 1fr);
+    padding-top: 4px;
+    gap: 4px;
+  }
+  h1 {
+    font-size: 25px;
+    line-height: 38px;
+    letter-spacing: 1px;
+  }
+  #throw {
+    width: 210px;
+  }
+  #stage {
+    margin: 0 -18px;
+    width: calc(100% + 36px);
+  }
+  .temple-art {
+    left: 0;
+    width: 100%;
+    top: 10px;
+  }
+  #stage .result {
+    bottom: 48px;
+    padding: 8px 12px;
+    max-width: 92%;
+  }
+  #stage h2 {
+    font-size: 22px;
+  }
+  .scene-label {
+    top: 30px;
+    left: 10px;
+    width: auto;
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+  #mobile-wish {
+    right: 16px;
+    top: 14px;
+  }
+  #share {
+    right: 50%;
+    transform: translateX(50%);
+    bottom: 7px;
+    white-space: nowrap;
+    min-height: 36px;
+  }
+}
+@media (max-width: 950px) and (max-height: 500px) and (orientation: landscape) {
+  .experience {
+    grid-template-columns: 1fr;
+    grid-template-rows: 44px minmax(0, 1fr);
+    gap: 0;
+  }
+  .intro {
+    display: none;
+  }
+  #throw {
+    grid-row: 1;
+    min-height: 40px;
+    height: 40px;
+    padding: 8px 20px;
+  }
+  #stage {
+    grid-row: 2;
+    grid-column: 1;
+  }
+  #stage .result {
+    left: 18%;
+    bottom: 20px;
+    max-width: 35%;
+    padding: 8px;
+  }
+  #stage h2 {
+    font-size: 17px;
+  }
+}
+#stage .result {
+  bottom: 17%;
+  background: #f4f0e7ca;
+}
+@media (max-width: 720px) {
+  #stage .result {
+    bottom: 17%;
+  }
+}
+@media (max-width: 950px) and (max-height: 500px) and (orientation: landscape) {
+  #stage .result {
+    bottom: 20px;
+  }
+}
