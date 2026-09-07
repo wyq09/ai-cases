@@ -1,0 +1,108 @@
+{
+  "_note": "「合成星球」示例配置。通过 index.html?config=config.custom.json 加载，与 index.html 内的 DEFAULT_CONFIG 深度合并；未写出的字段沿用默认值，levels 数组与自动生成值逐项合并，因此只需写想覆盖的字段。",
+  "rules": {
+    "levelCount": 8,
+    "dropPoolCount": 3
+  },
+  "levels": [
+    {
+      "name": "岩屑",
+      "color": "#A9714B",
+      "score": 1,
+      "deco": { "stem": false, "leaf": false, "stripes": false, "seeds": false, "dots": true, "calyx": false, "cleft": true, "flesh": false }
+    },
+    {
+      "name": "熔岩",
+      "color": "#E0491F",
+      "score": 2,
+      "deco": { "stem": false, "leaf": false, "stripes": false, "seeds": false, "dots": true, "calyx": false, "cleft": true, "flesh": false }
+    },
+    {
+      "name": "金沙",
+      "color": "#E3A13C",
+      "score": 4,
+      "deco": { "stem": false, "leaf": false, "stripes": false, "seeds": false, "dots": true, "calyx": false, "cleft": false, "flesh": false }
+    },
+    {
+      "name": "赤铁",
+      "color": "#BC5433",
+      "score": 6,
+      "deco": { "stem": false, "leaf": false, "stripes": false, "seeds": false, "dots": false, "calyx": false, "cleft": true, "flesh": false }
+    },
+    {
+      "name": "绯红",
+      "color": "#DE4340",
+      "score": 10,
+      "deco": { "stem": false, "leaf": false, "stripes": false, "seeds": false, "dots": true, "calyx": false, "cleft": true, "flesh": false }
+    },
+    {
+      "name": "琥珀",
+      "color": "#EF8B21",
+      "score": 14,
+      "deco": { "stem": false, "leaf": false, "stripes": true, "seeds": false, "dots": false, "calyx": false, "cleft": false, "flesh": false }
+    },
+    {
+      "name": "曜金",
+      "color": "#C1861D",
+      "radius": 70,
+      "score": 20,
+      "deco": { "stem": false, "leaf": false, "stripes": true, "seeds": false, "dots": true, "calyx": false, "cleft": false, "flesh": false }
+    },
+    {
+      "name": "恒星",
+      "color": "#FFC63D",
+      "radius": 92,
+      "score": 28,
+      "deco": { "stem": false, "leaf": false, "stripes": true, "seeds": false, "dots": true, "calyx": false, "cleft": false, "flesh": false }
+    }
+  ],
+  "theme": {
+    "bgType": "gradient",
+    "bgColorTop": "#3A1D07",
+    "bgColorBottom": "#7A5210",
+    "solidColor": "#4A2C0E",
+    "courtColor": "rgba(58,32,8,0.5)",
+    "wallLineColor": "#8A5A1E",
+    "dangerLineColor": "#FF5F45",
+    "dangerLineLabel": "警戒线",
+    "decoBokeh": true,
+    "pageAccent": "#F5B32A"
+  },
+  "ui": {
+    "title": "合成星球",
+    "hint": "拖动瞄准 · 松手投放",
+    "bestPrefix": "最高 ",
+    "scoreFloatPrefix": "+",
+    "comboText": "连锁 x{combo}",
+    "maxLevelBanner": "合成 {name}!",
+    "maxMergeBanner": "双{max}对撞 · 奖励 {bonus} 分!",
+    "newRecordBanner": "新纪录!",
+    "overTitle": "探索结束",
+    "overTip": "星球堆过警戒线啦",
+    "overScoreLabel": "本局积分",
+    "againText": "再次启程",
+    "overBestPrefix": "历史最高 ",
+    "bestTemplate": "最高 {best}"
+  },
+  "physics": {
+    "gravity": 0.95,
+    "restitution": 0.15,
+    "friction": 0.4,
+    "frictionAir": 0.006,
+    "dropCooldownMs": 420
+  },
+  "effects": {
+    "particles": true,
+    "shockwave": true,
+    "shake": true,
+    "shakeScale": 1,
+    "trail": true,
+    "squash": true,
+    "confetti": true,
+    "haptic": false
+  },
+  "audio": {
+    "enabled": true,
+    "volume": 0.5
+  }
+}

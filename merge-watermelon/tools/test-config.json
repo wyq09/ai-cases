@@ -1,0 +1,13 @@
+{
+  "ui": { "title": "合成星球", "hint": "点按投放星球", "overTip": "星球堆过红线啦" },
+  "rules": { "levelCount": 6, "dropPoolCount": 3 },
+  "theme": { "bgType": "solid", "solidColor": "#2b1d12", "pageAccent": "#eba53a" },
+  "levels": [
+    { "name": "岩屑", "color": "#B98A5E" },
+    { "name": "熔岩", "color": "#E2542E" },
+    { "name": "金沙", "color": "#EBAF3A" },
+    { "name": "翡翠", "color": "#7FA84B" },
+    { "name": "绯红", "color": "#D9484E" },
+    { "name": "恒星", "color": "#F2C14E", "deco": { "dots": true } }
+  ]
+}
