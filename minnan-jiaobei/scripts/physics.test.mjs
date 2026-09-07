@@ -168,7 +168,7 @@ test("staged cups hold still above the tray until release", () => {
   assert.ok(sim.bodies.every((b) => b.position.y > 0.2));
   sim.release(0.5, () => 0.5);
   assert.equal(sim.active, true);
-  assert.ok(sim.bodies.every((b) => b.velocity.y > 1.2));
+  assert.ok(sim.bodies.every((b) => b.velocity.y < -0.4));
 });
 
 test("a broken pose recovers to an undecided result instead of hanging", () => {

@@ -5,6 +5,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { JiaobeiPhysics } from "./physics.js";
 import { TrayView } from "./view.js";
+import { CupHands } from "./hands.js";
 const $ = (s) => document.querySelector(s);
 const stage = $("#stage"),
   throwButton = $("#throw"),
@@ -56,7 +57,8 @@ let renderer,
   shareURL,
   needsRender = true,
   liftFrom = [],
-  liftTo = [];
+  liftTo = [],
+  hands = null;
 let records = [];
 try {
   const data = JSON.parse(localStorage.getItem("hupi-records") || "[]");
@@ -210,6 +212,7 @@ function init() {
     }
   });
   scene = new THREE.Scene();
+  hands = new CupHands(scene);
   camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
   camera.position.set(0, 8.8, 10.8);
   camera.lookAt(0, 0.3, 0);
@@ -342,8 +345,8 @@ function throwCups(power = 0.25) {
   $("#wish").disabled = true;
   document.querySelectorAll("[data-wish]").forEach((b) => (b.disabled = true));
   $("#throw-label").textContent = "红筊问心中…";
-  $("#stage-state").textContent = "捧筊过眉，问心所求";
-  $("#result-title").textContent = "心意，正在举起。";
+  $("#stage-state").textContent = "双手捧筊，默念所求";
+  $("#result-title").textContent = "捧筊在手，诚心一掷。";
   $("#result-description").textContent = "稍候片刻，让红筊停稳。";
   trayView.reset();
   physics.stage(power, random);
@@ -355,6 +358,7 @@ function throwCups(power = 0.25) {
     const t = physics.poseOf(i);
     return { p: t.position, q: t.quaternion };
   });
+  hands.attach(cups);
   animation = {
     wish: $("#wish").value.trim(),
     phase: "lift",
@@ -365,6 +369,7 @@ function throwCups(power = 0.25) {
 }
 const trayView = new TrayView();
 const LIFT_MS = 560;
+const HOLD_MS = 480;
 function frameCups() {
   trayView.fit(camera, cups);
 }
@@ -385,10 +390,17 @@ function frame(now) {
         c.position.lerpVectors(liftFrom[i].p, liftTo[i].p, e);
         c.quaternion.slerpQuaternions(liftFrom[i].q, liftTo[i].q, e);
       });
+      hands.setReveal(reduced ? 1 : Math.max(0, (k - 0.5) / 0.45));
       needsRender = true;
       if (k >= 1) {
+        animation.phase = "hold";
+        animation.start = now;
+      }
+    } else if (animation.phase === "hold") {
+      if (now - animation.start >= HOLD_MS) {
         animation.phase = "fly";
         physics.release(animation.power, random);
+        hands.release();
         $("#stage-state").textContent = "红筊落处，静候回响";
         $("#result-title").textContent = "心意，正在落地。";
       }

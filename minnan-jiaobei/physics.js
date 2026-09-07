@@ -8,9 +8,11 @@ export const METRES = 0.06;
 const MODEL_SCALE = 1.4;
 const CENTRE = new CANNON.Vec3(0.18 * MODEL_SCALE, 0.28 * MODEL_SCALE, 0);
 const STEP = 1 / 120;
-// Cups are lifted to chest height first, then tossed; power adds height and spin.
-const HOLD_BASE = 0.24,
-  HOLD_RISE = 0.08,
+// Cups are lifted and held like in two palms, then tossed DOWN onto the tray;
+// power raises the hold a little and firms the wrist flick.
+const HOLD_BASE = 0.3,
+  HOLD_RISE = 0.1,
+  HOLD_X = 0.09,
   REST_Y = (0.28 * MODEL_SCALE - 0.03) * METRES;
 function hullShape(points) {
   const clean = [
@@ -138,7 +140,7 @@ export class JiaobeiPhysics {
     this.world.addContactMaterial(
       new CANNON.ContactMaterial(wood, stone, {
         friction: 0.52,
-        restitution: 0.1,
+        restitution: 0.16,
         contactEquationStiffness: 1e5,
         contactEquationRelaxation: 4,
       }),
@@ -223,14 +225,15 @@ export class JiaobeiPhysics {
       b.velocity.setZero();
       b.angularVelocity.setZero();
       b.position.set(
-        (i ? 1.8 : -1.8) * METRES,
+        (i ? 1 : -1) * HOLD_X,
         HOLD_BASE + power * HOLD_RISE + (random() - 0.5) * 0.006,
-        (i ? 0.25 : -0.25) * METRES,
+        (i ? 0.12 : -0.12) * METRES,
       );
+      // Held like in cupped palms: tipped slightly toward each other, flat face up.
       b.quaternion.setFromEuler(
-        (random() - 0.5) * 0.5,
-        (random() - 0.5) * 0.16,
+        (random() - 0.5) * 0.2,
         (random() - 0.5) * 0.12,
+        (i ? 1 : -1) * (0.12 + random() * 0.08),
       );
       if (this.landingProtection) protectLanding(b, i === 0 ? -1 : 1);
       b.previousPosition.copy(b.position);
@@ -244,15 +247,17 @@ export class JiaobeiPhysics {
     this.staged = false;
     this.active = true;
     this.bodies.forEach((b, i) => {
+      // A real toss: wrists flick downward, cups spread apart mid-air and
+      // tumble on the tray until they come to rest on a face.
       b.velocity.set(
-        (i ? 1 : -1) * (0.01 + random() * 0.03),
-        0.95 + power * 0.85,
-        (random() - 0.5) * 0.05,
+        (i ? 1 : -1) * (0.14 + power * 0.2 + random() * 0.05),
+        -(0.55 + power * 0.5),
+        (random() - 0.5) * 0.08,
       );
       b.angularVelocity.set(
-        (random() - 0.5) * 2 * (4.5 + 5.5 * power),
-        (random() - 0.5) * 0.6,
-        (random() - 0.5) * 0.6,
+        (random() - 0.5) * 2 * (12 - 3 * power),
+        (random() - 0.5) * 1.4,
+        (random() - 0.5) * 2 * (6 + 2 * power),
       );
     });
   }
@@ -306,8 +311,8 @@ export class JiaobeiPhysics {
               (c.bi === body || c.bj === body) &&
               (c.bi.mass === 0 || c.bj.mass === 0),
           );
-          body.linearDamping = grounded ? 0.65 : 0;
-          body.angularDamping = grounded ? 0.85 : 0.15;
+          body.linearDamping = grounded ? 0.55 : 0;
+          body.angularDamping = grounded ? 0.7 : 0.15;
           if (
             grounded &&
             body.velocity.length() < 0.018 &&
