@@ -129,7 +129,7 @@ const clock = new THREE.Clock();
 const ctrl = {
   keys: new Set(),
   joy: { x: 0, y: 0, active: false },
-  yaw: 2.6, pitch: 0.42, dist: 5.4,
+  yaw: 2.6, pitch: 0.42, dist: 4.7,
   dragging: false, lastDragT: -10,
   camPos: new THREE.Vector3(), camTarget: new THREE.Vector3(),
 };
@@ -137,8 +137,10 @@ const playerState = {
   x: 0, y: 0, z: 0, heading: 0,
   phase: 0, speedNorm: 0, moving: false,
 };
-const WALK = 3.6, RUN = 6.8, STEP_UP = 0.62, STEP_DOWN = 1.75;
-const TREE_FAR = 760;
+const WALK = 3.6, RUN = 6.8, STEP_UP = 1.05, STEP_DOWN = 1.75;
+// 2m 网格会把一段台阶量化成单格高差（常见 ≤1m），STEP_UP 必须容下它；
+// 建筑层高 ≥3m 的墙体仍会被步高挡住
+const TREE_FAR = 620;
 
 // ---------------- 高度场 ----------------
 const T = { data: null, cols: 0, rows: 0, ox: 0, oz: 0, cell: 2 };
@@ -303,7 +305,7 @@ function applyAnisotropy(root) {
 function initScene(envGltf, treeGltf, instances, instCount, detailGltf) {
   const canvas = $('scene');
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, IS_TOUCH ? 1.75 : 2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, IS_TOUCH ? 1.6 : 1.6));
   renderer.setSize(innerWidth, innerHeight, false);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.42;
@@ -311,9 +313,9 @@ function initScene(envGltf, treeGltf, instances, instCount, detailGltf) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0xcfe0e2, 340, 1650);
+  scene.fog = new THREE.Fog(0xc9dbe6, 550, 2600);
 
-  camera = new THREE.PerspectiveCamera(56, innerWidth / innerHeight, 0.3, 6000);
+  camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.3, 6000);
 
   // --- 光照 ---
   const hemi = new THREE.HemisphereLight(0xc3d9ff, 0x9d947c, 1.7);
@@ -322,14 +324,15 @@ function initScene(envGltf, treeGltf, instances, instCount, detailGltf) {
   sunLight.position.copy(SUN_DIR).multiplyScalar(400);
   {
     sunLight.castShadow = true;
-    // 触屏降档：1024 影贴 + ±60 正交范围；桌面 2048 / ±95
+    // 触屏降档：1024 影贴 + ±90 正交范围；桌面 2048 / ±130
+    // （正交范围外的地形会采样阴影贴图 clamp 边缘出现成片黑斑，范围宁大勿小）
     const sSize = IS_TOUCH ? 1024 : 2048;
-    const sExt = IS_TOUCH ? 60 : 95;
+    const sExt = IS_TOUCH ? 90 : 130;
     sunLight.shadow.mapSize.set(sSize, sSize);
     const sc = sunLight.shadow.camera;
     sc.left = -sExt; sc.right = sExt; sc.top = sExt; sc.bottom = -sExt; sc.near = 50; sc.far = 800;
     sunLight.shadow.bias = -2.5e-4;
-    sunLight.shadow.normalBias = 0.6;
+    sunLight.shadow.normalBias = 0.35; // 0.6 会产生明显悬浮影
   }
   scene.add(sunLight, sunLight.target);
 
@@ -371,7 +374,7 @@ function initScene(envGltf, treeGltf, instances, instCount, detailGltf) {
     { time: { value: 0 }, sunDir: { value: SUN_DIR } },
   ]);
   water = new THREE.Mesh(
-    new THREE.PlaneGeometry(9000, 9000, 1, 1),
+    new THREE.PlaneGeometry(7600, 7600, 1, 1), // 对角 5374m，必须 < camera.far(6000)，否则四角被裁露出天空
     new THREE.ShaderMaterial({
       uniforms: waterUniforms, fog: true,
       vertexShader: `
@@ -458,11 +461,12 @@ function initScene(envGltf, treeGltf, instances, instCount, detailGltf) {
   // --- POI ---
   buildPOIs();
 
-  // 出生点：龙头路以南的开阔街面
+  // 出生点：龙头路以南的开阔街面，视角自动面向龙头路街区
   const anchor = meta.pois.find((p) => p.id === 'longtou') || meta.spawn;
   const sp = findOpenSpawn(anchor.x + 30, anchor.z + 60);
   playerState.x = sp.x; playerState.z = sp.z; playerState.y = sp.h;
-  player.position.set(sp.x, sp.y, sp.z);
+  ctrl.yaw = Math.atan2(-(anchor.x - sp.x), -(anchor.z - sp.z));
+  player.position.set(sp.x, sp.h, sp.z);
   ctrl.camTarget.set(sp.x, sp.h + 1.6, sp.z);
   ctrl.camPos.copy(ctrl.camTarget).add(sphericalOffset(ctrl.yaw, ctrl.pitch, ctrl.dist));
   console.log('[gly] init camPos', ctrl.camPos.toArray().map((v) => +v.toFixed(2)).join(','), 'target', ctrl.camTarget.toArray().join(','), 'sp', JSON.stringify(sp));
@@ -945,9 +949,9 @@ function updatePlayer(dt) {
   const shadowK = clamp(1 - (playerState.y - g.h) / 2, 0.25, 1);
   blobShadow.material.opacity = shadowK;
 
-  // 软跟随：前进且久未拖拽时，视角缓慢回正到行进方向
-  if (moving && clock.elapsedTime - ctrl.lastDragT > 1.4) {
-    ctrl.yaw = angleLerp(ctrl.yaw, playerState.heading - Math.PI, 1 - Math.exp(-0.9 * dt));
+  // 软跟随：前进且久未拖拽时，视角缓慢回正到行进方向（温和，不抢玩家视角）
+  if (moving && clock.elapsedTime - ctrl.lastDragT > 2.5) {
+    ctrl.yaw = angleLerp(ctrl.yaw, playerState.heading - Math.PI, 1 - Math.exp(-0.55 * dt));
   }
 }
 
@@ -955,19 +959,27 @@ function updateCamera(dt, introK) {
   const target = ctrl.camTarget;
   target.set(playerState.x, playerState.y + 1.55, playerState.z);
 
+  // 开场：高空俯视停留久、末段快速降落（pow 包络），且全程跳过遮挡截断——
+  // 低空斜穿 30-50m 树冠层会满屏叶片，宁可远处穿模
   let dist = ctrl.dist, pitch = ctrl.pitch;
-  if (introK > 0) { dist = lerp(ctrl.dist, 46 + 90 * introK, introK); pitch = lerp(ctrl.pitch, 1.25, introK); }
+  if (introK > 0) {
+    const hk = Math.pow(introK, 0.42);
+    dist = lerp(ctrl.dist, 46 + 90 * hk, hk);
+    pitch = lerp(ctrl.pitch, 1.25, hk);
+  }
 
   // 视线遮挡：沿 target→理想机位步进采样
   const off = sphericalOffset(ctrl.yaw, pitch, 1);
   let allowed = dist;
-  const steps = 10;
-  for (let i = 1; i <= steps; i++) {
-    const d = (dist * i) / steps;
-    const sx = target.x + off.x * d, sz = target.z + off.z * d;
-    const sy = target.y + off.y * d;
-    const g = groundAt(sx, sz);
-    if (g.ok && g.h + 0.45 > sy) { allowed = Math.max((d * (i - 1)) / steps, 2.1); break; }
+  if (introK <= 0) {
+    const steps = 10;
+    for (let i = 1; i <= steps; i++) {
+      const d = (dist * i) / steps;
+      const sx = target.x + off.x * d, sz = target.z + off.z * d;
+      const sy = target.y + off.y * d;
+      const g = groundAt(sx, sz);
+      if (g.ok && g.h + 0.45 > sy) { allowed = Math.max((d * (i - 1)) / steps, 2.1); break; }
+    }
   }
   const desired = new THREE.Vector3(
     target.x + off.x * allowed,
@@ -1021,10 +1033,15 @@ function animate() {
     sunLight.target.position.set(playerState.x, 0, playerState.z);
     sunLight.target.updateMatrixWorld();
   }
-  // 远处树块剔除
+  // 远处树块剔除 + 树影按块距离分块（近块才投影，省一整遍顶点着色）
   for (const ch of treeChunks) {
-    const vis = !treesForcedOff && ch.center.distanceToSquared(ctrl.camTarget) < TREE_FAR * TREE_FAR;
-    for (const m of ch.meshes) m.visible = vis;
+    const d2 = ch.center.distanceToSquared(ctrl.camTarget);
+    const vis = !treesForcedOff && d2 < TREE_FAR * TREE_FAR;
+    const cast = vis && d2 < 130 * 130;
+    for (const m of ch.meshes) {
+      m.visible = vis;
+      if (m.castShadow !== cast) m.castShadow = cast;
+    }
   }
   waterUniforms.time.value = clock.elapsedTime;
   swayTime.value = clock.elapsedTime; // 树冠轻摆
@@ -1064,6 +1081,19 @@ const intro = {
 
 // ---------------- 接近检测 / 打卡 ----------------
 let nearPoi = null;
+function showPoiCard(p) {
+  const card = $('poiCard');
+  $('poiEn').textContent = p.poi.en;
+  $('poiName').textContent = p.poi.name;
+  $('poiBlurb').textContent = p.poi.blurb;
+  const visited = getVisited();
+  const isNew = !visited.includes(p.poi.id);
+  $('poiVisited').textContent = isNew ? '🏆 新打卡！已收录进「景点」' : `👀 已到访 · 第 ${visited.indexOf(p.poi.id) + 1} 次重逢`;
+  $('poiVisited').classList.toggle('seen', !isNew);
+  if (isNew) { addVisited(p.poi.id); toast(`📍 打卡「${p.poi.name}」 ${getVisited().length}/${meta.pois.length}`); }
+  card.classList.remove('hidden');
+}
+
 function updateProximity() {
   let found = null;
   for (const p of poiObjects) {
@@ -1072,17 +1102,8 @@ function updateProximity() {
   }
   if (found === nearPoi) return;
   nearPoi = found;
-  const card = $('poiCard');
-  if (!found) { card.classList.add('hidden'); return; }
-  $('poiEn').textContent = found.poi.en;
-  $('poiName').textContent = found.poi.name;
-  $('poiBlurb').textContent = found.poi.blurb;
-  const visited = getVisited();
-  const isNew = !visited.includes(found.poi.id);
-  $('poiVisited').textContent = isNew ? '🏆 新打卡！已收录进「景点」' : `👀 已到访 · 第 ${visited.indexOf(found.poi.id) + 1} 次重逢`;
-  $('poiVisited').classList.toggle('seen', !isNew);
-  if (isNew) { addVisited(found.poi.id); toast(`📍 打卡「${found.poi.name}」 ${getVisited().length}/${meta.pois.length}`); }
-  card.classList.remove('hidden');
+  if (!found) { $('poiCard').classList.add('hidden'); return; }
+  showPoiCard(found);
 }
 function getVisited() {
   try { return JSON.parse(localStorage.getItem('gly-visited') || '[]'); } catch { return []; }
@@ -1175,17 +1196,24 @@ function openMap() {
     btn.innerHTML = `<span class="num">${getVisited().includes(poi.id) ? '✓' : meta.pois.indexOf(poi) + 1}</span>
       <span><div class="nm">${poi.name}</div><div class="ds">${poi.en} · 距离 ${d < 1000 ? d.toFixed(0) + ' m' : (d / 1000).toFixed(1) + ' km'}</div></span>`;
     btn.addEventListener('click', () => {
-      // 落在地标外围、面向地标
+      // 落在地标近距离处（r+6，落不到可走格再逐圈外扩）、面向地标，落地立即弹介绍卡
       const dx = playerState.x - poi.x, dz = playerState.z - poi.z;
       const dl = Math.hypot(dx, dz) || 1;
-      const dist = poi.r + 22;
-      const tx = poi.x + (dx / dl) * dist, tz = poi.z + (dz / dl) * dist;
-      const spot = findWalkableNear(tx, tz, 40, 120);
+      let spot = null;
+      for (let tryDist = poi.r + 6; tryDist <= poi.r + 40; tryDist += 8) {
+        const s = findWalkableNear(poi.x + (dx / dl) * tryDist, poi.z + (dz / dl) * tryDist, 14, 120);
+        if (Math.hypot(s.x - poi.x, s.z - poi.z) <= poi.r + 24) { spot = s; break; }
+        if (!spot) spot = s;
+      }
       playerState.x = spot.x; playerState.z = spot.z; playerState.y = spot.h;
       ctrl.yaw = Math.atan2(-(poi.x - spot.x), -(poi.z - spot.z));
       ctrl.pitch = 0.32;
+      nearPoi = null;          // 强制下一帧重新评估
+      ctrl.camPos.set(spot.x, spot.h + 3, spot.z + 6);
       $('mapOverlay').classList.add('hidden');
       toast(`乘渡轮来到「${poi.name}」附近`);
+      const po = poiObjects.find((q) => q.poi.id === poi.id);
+      if (po) setTimeout(() => showPoiCard(po), 600);  // 传送即"到达"：稍后展示介绍卡（避免两条 toast 互相覆盖）
     });
     list.appendChild(btn);
   }
@@ -1231,7 +1259,11 @@ function initAudio() {
 function toggleSound() {
   soundOn = !soundOn;
   $('soundIcon').textContent = soundOn ? '🔊' : '🔇';
-  if (masterGain) masterGain.gain.setTargetAtTime(soundOn ? 0.16 : 0, audioCtx.currentTime, 0.2);
+  initAudio();
+  if (audioCtx) {
+    if (audioCtx.state === 'suspended') audioCtx.resume(); // iOS/部分浏览器需手势内解锁
+    if (masterGain) masterGain.gain.setTargetAtTime(soundOn ? 0.16 : 0, audioCtx.currentTime, 0.2);
+  }
 }
 
 // ---------------- 启动 ----------------
