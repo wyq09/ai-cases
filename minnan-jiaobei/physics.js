@@ -1,4 +1,5 @@
 import * as CANNON from "cannon-es";
+import { protectLanding } from "./landing-guard.js";
 import { Vector3 } from "three";
 import { ConvexHull } from "three/addons/math/ConvexHull.js";
 
@@ -120,7 +121,8 @@ export function classifyNormals(normals) {
   };
 }
 export class JiaobeiPhysics {
-  constructor(onImpact = () => {}) {
+  constructor(onImpact = () => {}, { landingProtection = true } = {}) {
+    this.landingProtection = landingProtection;
     this.world = new CANNON.World({
       gravity: new CANNON.Vec3(0, -9.81, 0),
       allowSleep: true,
@@ -208,14 +210,14 @@ export class JiaobeiPhysics {
       b.force.setZero();
       b.torque.setZero();
       b.position.set(
-        (i ? 1.5 : -1.5) * METRES,
+        (i ? 1.8 : -1.8) * METRES,
         0.16 + (random() - 0.5) * 0.006,
         (i ? 0.25 : -0.25) * METRES,
       );
       b.quaternion.setFromEuler(
         (random() - 0.5) * Math.PI * 2,
-        (random() - 0.5) * 0.7,
-        (random() - 0.5) * 0.6,
+        (random() - 0.5) * 0.16,
+        (random() - 0.5) * 0.08,
       );
       b.velocity.set(
         (i ? 1 : -1) * (0.002 + random() * 0.008),
@@ -224,9 +226,10 @@ export class JiaobeiPhysics {
       );
       b.angularVelocity.set(
         (random() - 0.5) * 10,
-        (random() - 0.5) * 3,
-        (random() - 0.5) * 3,
+        (random() - 0.5) * 0.5,
+        (random() - 0.5) * 0.5,
       );
+      if (this.landingProtection) protectLanding(b, i === 0 ? -1 : 1);
       b.previousPosition.copy(b.position);
       b.interpolatedPosition.copy(b.position);
       b.previousQuaternion.copy(b.quaternion);
@@ -238,6 +241,8 @@ export class JiaobeiPhysics {
     this.accumulator += Math.min(dt, 0.1);
     while (this.accumulator >= STEP) {
       this.world.step(STEP);
+      if (this.landingProtection)
+        this.bodies.forEach((b, i) => protectLanding(b, i === 0 ? -1 : 1));
       for (const body of this.bodies) {
         const grounded = this.world.contacts.some(
           (c) =>

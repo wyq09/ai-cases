@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { JiaobeiPhysics, classifyNormals } from "../physics.js";
 function falling() {
-  const sim = new JiaobeiPhysics();
+  const sim = new JiaobeiPhysics(() => {}, { landingProtection: false });
   sim.launch(0, () => 0.5);
   sim.bodies.forEach((b, i) => {
     b.position.set(i ? 2 : -2, 2, 0);
@@ -100,4 +100,57 @@ test("camera contains complete cups at extreme poses on mobile and desktop", asy
       }
     }
   }
+});
+
+test("full Blender silhouettes remain separated and inside the tray throughout throws", async () => {
+  const { landingBounds, SAFE_RADIUS, CENTRE_GAP } =
+    await import("../landing-guard.js");
+  const sim = new JiaobeiPhysics();
+  for (let n = 1; n <= 100; n++) {
+    let seed = n * 7919;
+    const random = () => {
+      seed = (seed * 16807) % 2147483647;
+      return seed / 2147483647;
+    };
+    sim.launch((n % 3) / 2, random);
+    let result;
+    for (let step = 0; step < 1500 && !result; step++) {
+      result = sim.step(1 / 120);
+      const [left, right] = sim.bodies.map(landingBounds);
+      assert.ok(
+        left.maxX <= -CENTRE_GAP + 1e-8,
+        `left crossed centre, throw ${n}`,
+      );
+      assert.ok(
+        right.minX >= CENTRE_GAP - 1e-8,
+        `right crossed centre, throw ${n}`,
+      );
+      assert.ok(
+        left.maxRadius <= SAFE_RADIUS + 1e-8 &&
+          right.maxRadius <= SAFE_RADIUS + 1e-8,
+        `outside tray, throw ${n}`,
+      );
+    }
+    assert.ok(result, `throw ${n} did not finish`);
+    assert.ok(
+      result.elapsed < 6,
+      `throw ${n} settled too slowly: ${result.elapsed}`,
+    );
+  }
+});
+
+test("landing guard recovers an overlapping outside pose without changing face direction", async () => {
+  const { protectLanding, landingBounds, SAFE_RADIUS } =
+    await import("../landing-guard.js");
+  const sim = new JiaobeiPhysics();
+  sim.launch(0.5, () => 0.8);
+  sim.bodies.forEach((b, i) => {
+    b.position.set(0.5, 0.1, 0.4);
+    b.quaternion.setFromEuler(0.9, 1.4, 0.2);
+    const normalBefore = 1 - 2 * (b.quaternion.x ** 2 + b.quaternion.z ** 2);
+    protectLanding(b, i === 0 ? -1 : 1);
+    assert.ok(landingBounds(b).maxRadius <= SAFE_RADIUS + 1e-8);
+    const normalAfter = 1 - 2 * (b.quaternion.x ** 2 + b.quaternion.z ** 2);
+    assert.ok(Math.abs(normalBefore - normalAfter) < 1e-8);
+  });
 });
