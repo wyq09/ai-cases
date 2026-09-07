@@ -490,7 +490,15 @@ shareButton.onclick = async () => {
   shareButton.disabled = true;
   try {
     await document.fonts.ready;
-    renderer.render(scene, camera);
+    // Render a dedicated 920×580 close-up instead of squeezing the tall live
+    // canvas into the card — the settled cups fill the picture.
+    const prevSize = renderer.getSize(new THREE.Vector2());
+    const prevScale = trayView.scale;
+    trayView.scale = 1;
+    renderer.setSize(920, 580, false);
+    const shareCam = new THREE.PerspectiveCamera(34, 920 / 580, 0.1, 100);
+    trayView.fit(shareCam, cups, 4.3);
+    renderer.render(scene, shareCam);
     const c = document.createElement("canvas");
     c.width = 1080;
     c.height = 1440;
@@ -498,52 +506,43 @@ shareButton.onclick = async () => {
     ctx.fillStyle = "#f4f0e7";
     ctx.fillRect(0, 0, 1080, 1440);
     ctx.fillStyle = "#a8392a";
-    ctx.fillRect(80, 75, 72, 83);
+    ctx.fillRect(80, 70, 76, 88);
     ctx.fillStyle = "#fff4e3";
-    ctx.font = '40px "Noto Serif SC",serif';
-    ctx.fillText("庇", 95, 132);
+    ctx.font = '44px "Noto Serif SC",serif';
+    ctx.fillText("庇", 96, 137);
     ctx.fillStyle = "#393a31";
-    ctx.font = '38px "Noto Serif SC",serif';
-    ctx.fillText("有庇 · 闽南掷筊", 180, 130);
+    ctx.font = '42px "Noto Serif SC",serif';
+    ctx.fillText("有庇 · 闽南掷筊", 182, 128);
     ctx.fillStyle = "#99907d";
-    ctx.font = "17px sans-serif";
-    ctx.fillText("HŪ PÌ   /   A MOMENT OF PEACE", 180, 162);
+    ctx.font = "18px sans-serif";
+    ctx.fillText("HŪ PÌ   /   A MOMENT OF PEACE", 182, 164);
     ctx.strokeStyle = "#d6cdbc";
     ctx.beginPath();
-    ctx.moveTo(80, 200);
-    ctx.lineTo(1000, 200);
+    ctx.moveTo(80, 204);
+    ctx.lineTo(1000, 204);
     ctx.stroke();
-    const src = renderer.domElement;
-    const scale = Math.min(1000 / src.width, 580 / src.height);
-    const w = src.width * scale,
-      h = src.height * scale;
-    ctx.drawImage(src, (1080 - w) / 2, 210 + (580 - h) / 2, w, h);
+    ctx.drawImage(renderer.domElement, 80, 228, 920, 580);
+    renderer.setSize(prevSize.x, prevSize.y, false);
+    trayView.scale = prevScale;
+    invalidate();
     const result = outcomes[last.kind];
     ctx.textAlign = "center";
     ctx.fillStyle = "#a8392a";
-    ctx.font = '82px "Noto Serif SC",serif';
-    ctx.fillText(result.title, 540, 870);
+    ctx.font = '100px "Noto Serif SC",serif';
+    ctx.fillText(result.title, 540, 930);
     ctx.fillStyle = "#82765f";
-    ctx.font = "23px sans-serif";
-    ctx.fillText(result.faces, 540, 925);
+    ctx.font = "27px sans-serif";
+    ctx.fillText(result.faces, 540, 990);
     ctx.fillStyle = "#393a31";
-    ctx.font = '35px "Noto Serif SC",serif';
-    ctx.fillText(result.subtitle, 540, 1015);
-    ctx.font = '26px "Noto Serif SC",serif';
+    ctx.font = '42px "Noto Serif SC",serif';
+    ctx.fillText(result.subtitle, 540, 1075);
+    ctx.font = '42px "Noto Serif SC",serif';
     ctx.fillStyle = "#8f826e";
-    wrap(
-      ctx,
-      last.wish || "心中默念的那件事，愿有回响。",
-      540,
-      1080,
-      850,
-      42,
-      3,
-    );
-    ctx.font = "17px sans-serif";
-    ctx.fillText(new Date(last.date).toLocaleString("zh-CN"), 540, 1310);
-    ctx.font = '18px "Noto Serif SC",serif';
-    ctx.fillText("有拜有保庇 · 民俗体验，愿你平安", 540, 1355);
+    wrap(ctx, last.wish || "心中默念的那件事，愿有回响。", 540, 1165, 860, 66, 3);
+    ctx.font = "20px sans-serif";
+    ctx.fillText(new Date(last.date).toLocaleString("zh-CN"), 540, 1345);
+    ctx.font = '22px "Noto Serif SC",serif';
+    ctx.fillText("有拜有保庇 · 民俗体验，愿你平安", 540, 1385);
     const blob = await new Promise((resolve) => c.toBlob(resolve, "image/png"));
     if (!blob) throw Error("image");
     if (shareURL) URL.revokeObjectURL(shareURL);
