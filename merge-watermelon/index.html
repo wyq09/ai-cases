@@ -352,7 +352,8 @@ var DEFAULT_CONFIG = {
     overScoreLabel: '本局分数',
     againText: '再来一局',
     overBestPrefix: '历史最高 ',
-    bestTemplate: '最高 {best}'
+    bestTemplate: '最高 {best}',
+    resumeText: '已恢复上次进度'
   },
   physics: {
     gravity: 1.15,
@@ -889,6 +890,7 @@ function onCollide(e){
   }
 }
 function processMerges(){
+  var merged=false;
   while(pendingPairs.length){
     var pair=pendingPairs.shift();
     var a=pair[0],b=pair[1];
@@ -897,6 +899,7 @@ function processMerges(){
     var mx=(a.position.x+b.position.x)/2, my=(a.position.y+b.position.y)/2;
     var vx=(a.velocity.x+b.velocity.x)/2, vy=(a.velocity.y+b.velocity.y)/2;
     removeFruit(a);removeFruit(b);
+    merged=true;
     // 连击
     var now=performance.now();
     if(now-lastMergeAt<CFG.rules.comboWindowMs) combo++; else combo=1;
@@ -928,6 +931,7 @@ function processMerges(){
       }
     }
   }
+  if(merged) scheduleSessionSave();
 }
 function addScore(pts,x,y){
   score+=pts;
@@ -1037,6 +1041,7 @@ function updateWarn(){
 /* ---------- 游戏结束 ---------- */
 function startGameOver(){
   over=true;overAnimating=true;
+  clearSession(); // 本局已结算，进度不再保留
   ghostVisible=false;
   AudioSys.over();
   var doomed=fruitBodies.slice().sort(function(a,b){return a.position.y-b.position.y});
@@ -1120,6 +1125,7 @@ function tryDrop(forceLevel,forceX){
   x=clamp(x,WALL_VIS+r,W-WALL_VIS-r);
   makeFruit(lv,x,SPAWN_Y,0,2);
   AudioSys.drop();
+  scheduleSessionSave();
   if(!forceLevel){
     cooldownUntil=performance.now()+CFG.physics.dropCooldownMs;
     ghostVisible=false;
@@ -1178,6 +1184,7 @@ function bestKey(){
   return 'mw_best_'+CFG.rules.levelCount+'_'+(LEVELS[0]?LEVELS[0].name:'')+'_'+(LEVELS[LEVELS.length-1]?LEVELS[LEVELS.length-1].name:'');
 }
 function restart(){
+  clearSession(); // 用户手动重开才清空进度
   fruitBodies.slice().forEach(removeFruit);
   pendingPairs.length=0;
   fx={parts:[],rings:[],texts:[],flashes:[]};
@@ -1583,6 +1590,81 @@ function initPanel(){
   });
 }
 
+/* ---------- 进度存档（自动保存；重开/结算时清除） ---------- */
+var SESSION_KEY='mw_game_session';
+var sessionTimer=0;
+function sessionPayload(){
+  return {
+    v:1, key:bestKey(), score:score, curLevel:curLevel,
+    fruits:fruitBodies.map(function(b){
+      return {
+        l:b.plugin.level,
+        x:Math.round(b.position.x*100)/100, y:Math.round(b.position.y*100)/100,
+        a:Math.round(b.angle*1000)/1000,
+        vx:Math.round(b.velocity.x*100)/100, vy:Math.round(b.velocity.y*100)/100
+      };
+    })
+  };
+}
+function saveSession(){
+  if(over||overAnimating) return;
+  try{
+    if(!fruitBodies.length){ localStorage.removeItem(SESSION_KEY); return; }
+    localStorage.setItem(SESSION_KEY,JSON.stringify(sessionPayload()));
+  }catch(e){}
+}
+function scheduleSessionSave(){
+  if(sessionTimer) return;
+  sessionTimer=setTimeout(function(){ sessionTimer=0; saveSession(); },1200);
+}
+function clearSession(){ try{ localStorage.removeItem(SESSION_KEY); }catch(e){} }
+function restoreSession(){
+  var s=null;
+  try{
+    var raw=localStorage.getItem(SESSION_KEY);
+    if(raw) s=JSON.parse(raw);
+  }catch(e){ return false; }
+  if(!s||s.v!==1||s.key!==bestKey()){ if(s) clearSession(); return false; }
+  if(!Array.isArray(s.fruits)||!s.fruits.length) return false;
+  var fruits=s.fruits.filter(function(f){
+    return f&&Number.isFinite(f.x)&&Number.isFinite(f.y)&&f.l>=0&&f.l<LEVELS.length;
+  });
+  if(!fruits.length) return false;
+  // 视口比例与上次不同时，整体平移贴合地板，保持堆叠形状
+  var floorY=worldH-WALL_VIS, maxY=0;
+  fruits.forEach(function(f){
+    var r=LEVELS[f.l].radius;
+    f.x=clamp(f.x,WALL_VIS+r,W-WALL_VIS-r);
+    maxY=Math.max(maxY,f.y+r);
+  });
+  var shift=floorY-maxY;
+  if(shift<0) fruits.forEach(function(f){ f.y+=shift; });
+  fruits.forEach(function(f){
+    var r=LEVELS[f.l].radius;
+    f.y=clamp(f.y,r,worldH-WALL_VIS-r);
+    var b=makeFruit(f.l,f.x,f.y,0,0);
+    Matter.Body.setAngle(b,f.a||0);
+    Matter.Body.setVelocity(b,{x:clamp(f.vx||0,-15,15),y:clamp(f.vy||0,-15,15)});
+  });
+  score=clamp(Math.round(s.score)||0,0,999999);
+  if(score>best){
+    best=score;
+    try{ localStorage.setItem(bestKey(),best); }catch(e){}
+  }
+  elScore.textContent=score;
+  elBest.textContent=fmt(CFG.ui.bestTemplate,{best:best});
+  curLevel=clamp(Math.round(s.curLevel)||0,0,Math.min(CFG.rules.dropPoolCount,LEVELS.length)-1);
+  firstDropDone=true;
+  elHint.classList.remove('show');
+  showBanner(CFG.ui.resumeText);
+  return true;
+}
+// 切后台 / 页面关闭时立即存档
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='hidden') saveSession();
+});
+window.addEventListener('pagehide',saveSession);
+
 /* ---------- 调试/集成 API ---------- */
 var API={
   get config(){ return CFG; },
@@ -1631,7 +1713,7 @@ loadRemoteConfig().then(function(){
   initPanel();
   curLevel=nextDropLevel();
   ghostVisible=true;
-  elHint.classList.add('show');
+  if(!restoreSession()) elHint.classList.add('show');
   elLoading.classList.add('hide');
   requestAnimationFrame(frame);
 });
