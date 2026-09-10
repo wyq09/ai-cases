@@ -57,27 +57,9 @@ svg{display:block;pointer-events:none}
 #cfClose svg{width:14px;height:14px}
 .t-btn.demo{background:linear-gradient(#7ed957,#4caf2a);box-shadow:0 2px 5px rgba(80,160,40,.4)}
 
-/* ===== wechat chrome ===== */
-#chrome{position:relative;z-index:5;background:#fff}
-#statusbar{height:30px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 14px 3px;font-size:13.5px;font-weight:700;color:#17222b}
-.sb-r{display:flex;align-items:center;gap:4px;font-size:9px}
-.sb-chip{background:#22303c;color:#fff;border-radius:3px;padding:1px 3px;font-weight:700;line-height:1}
-.sb-batt{width:22px;height:11px;border:1.5px solid #22303c;border-radius:3px;position:relative}
-.sb-batt::before{content:"";position:absolute;left:1px;top:1px;bottom:1px;width:82%;background:#22303c;border-radius:1px}
-.sb-batt::after{content:"";position:absolute;right:-4px;top:2.5px;width:2px;height:4px;background:#22303c;border-radius:1px}
-#navbar{height:45px;display:flex;align-items:center;padding:0 10px;gap:8px}
-#homeBtn{width:30px;height:30px;display:flex;align-items:center;justify-content:center}
-#homeBtn svg{width:21px;height:21px}
-#nbTitle{flex:1;text-align:center;font-size:16px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
-#capsule{display:flex;align-items:center;background:#fff;border:1px solid #ececec;border-radius:999px;height:31px;padding:0 11px;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.cap-dots{font-size:15px;font-weight:900;color:#111;letter-spacing:1px;line-height:1;margin-top:-4px}
-.cap-div{width:1px;height:16px;background:#e5e5e5}
-.cap-target{width:15px;height:15px;border:1.6px solid #111;border-radius:50%;position:relative}
-.cap-target::after{content:"";position:absolute;inset:0;margin:auto;width:5px;height:5px;background:#111;border-radius:50%}
-#ruleTab{position:absolute;right:0;top:148px;z-index:6;writing-mode:vertical-rl;font-size:12.5px;font-weight:800;color:#fff;letter-spacing:3px;padding:12px 5px;text-shadow:0 1px 4px rgba(50,110,50,.65),0 0 2px rgba(50,110,50,.5)}
-
 /* ===== hud ===== */
-#hud{position:relative;z-index:5;display:flex;gap:8px;padding:9px 10px 0;align-items:stretch}
+#ruleTab{position:absolute;right:0;top:118px;z-index:6;writing-mode:vertical-rl;font-size:12.5px;font-weight:800;color:#fff;letter-spacing:3px;padding:12px 5px;text-shadow:0 1px 4px rgba(50,110,50,.65),0 0 2px rgba(50,110,50,.5)}
+#hud{position:relative;z-index:5;display:flex;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 10px 0;align-items:stretch}
 #lvBadge{min-width:62px;background:linear-gradient(#a9e96f,#67bd35);border-radius:12px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;box-shadow:inset 0 2px 0 rgba(255,255,255,.4),0 3px 6px rgba(80,140,40,.35);padding:3px 8px}
 #lvBadge span{font-size:11px;font-weight:700;text-shadow:0 1px 1px rgba(60,120,30,.5)}
 #lvBadge b{font-size:19px;font-weight:800}
@@ -108,6 +90,8 @@ svg{display:block;pointer-events:none}
 .q-mini svg{width:100%;height:100%}
 .q-claim{display:none;margin:7px auto 0;background:linear-gradient(var(--grn1),var(--grn2));color:#fff;font-weight:800;font-size:14px;padding:5px 24px;border-radius:999px;border:2px solid #fff;box-shadow:0 3px 7px rgba(80,150,40,.45)}
 #qLeft.done .q-claim{display:block;animation:qpulse 1.15s ease-in-out infinite}
+#qLeft.done .q-claim.attn{animation:qattn .8s ease-in-out 3}
+@keyframes qattn{50%{transform:scale(1.14);box-shadow:0 3px 16px rgba(120,220,60,.8)}}
 @keyframes qpulse{50%{transform:scale(1.06)}}
 .qr-t{font-size:10.5px;color:#a5793d;font-weight:700;text-align:center}
 .qr-mid{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:2px}
@@ -137,8 +121,11 @@ svg{display:block;pointer-events:none}
 .q-check svg{width:100%;height:100%}
 #boardWrap{touch-action:none}
 .item.drag{z-index:30;filter:drop-shadow(0 10px 8px rgba(80,60,10,.35))}
-.item.pop .pic{animation:popin .38s cubic-bezier(.34,1.56,.64,1)}
-@keyframes popin{0%{transform:scale(.2)}68%{transform:scale(1.14)}100%{transform:scale(1)}}
+.item.fly{z-index:30;filter:drop-shadow(0 10px 8px rgba(80,60,10,.35))}
+.flash-ring{position:absolute;border:3px solid #fff;border-radius:50%;box-shadow:0 0 14px rgba(255,255,255,.95);animation:flashf .32s ease-out forwards}
+@keyframes flashf{0%{transform:scale(.45);opacity:.95}100%{transform:scale(1.12);opacity:0}}
+.item.pop .pic{animation:popin .34s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popin{0%{transform:scale(.2)}70%{transform:scale(1.08)}100%{transform:scale(1)}}
 .sp-label{position:absolute;bottom:0;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:800;color:#fff;padding:2px 7px;border-radius:999px;white-space:nowrap;z-index:3;border:1.5px solid #fff;box-shadow:0 2px 4px rgba(60,110,30,.4)}
 .item.courier .sp-label{background:linear-gradient(#69c94e,#3da32f)}
 .item.x5 .sp-label{background:linear-gradient(#ffd257,#f5a623);box-shadow:0 2px 4px rgba(200,130,0,.4)}
@@ -274,25 +261,14 @@ svg{display:block;pointer-events:none}
 .ru-list{text-align:left;font-size:13px;color:#8a6a3a;line-height:1.9;font-weight:600}
 .ru-btns{display:flex;gap:10px;margin-top:16px}
 .ru-btns button{flex:1;padding:10px 0;border-radius:999px;font-weight:800;font-size:14px}
-.ru-reset{background:#fff;color:#e23e30;border:1.5px solid #f0b6ae}
+.ru-reset,.ru-danger{background:#fff;color:#e23e30;border:1.5px solid #f0b6ae}
+.ru-cancel{background:#f2efe6;color:#8a8272}
 .ru-ok{background:linear-gradient(#ffb531,#ff8a1c);color:#fff;box-shadow:0 3px 0 #e0760a}
 </style>
 </head>
 <body>
 <div id="stage"><div id="phone">
   <div id="bgScene"></div>
-
-  <div id="chrome">
-    <div id="statusbar">
-      <span id="sbTime">9:41</span>
-      <div class="sb-r"><span class="sb-chip">VPN</span><span class="sb-chip">5G</span><span class="sb-batt"></span><span>97</span></div>
-    </div>
-    <div id="navbar">
-      <button id="homeBtn" data-ico="home" aria-label="首页"></button>
-      <div id="nbTitle">合成好物·最高赢100元红包</div>
-      <div id="capsule"><span class="cap-dots">···</span><i class="cap-div"></i><span class="cap-target"></span></div>
-    </div>
-  </div>
 
   <button id="ruleTab">规则</button>
 
@@ -561,15 +537,15 @@ function burstAt(i){
   r.style.cssText='left:'+p.x+'px;top:'+p.y+'px;width:'+s+'px;height:'+s+'px';
   fxEl.appendChild(r);setTimeout(function(){r.remove()},520);
   var j,b;
-  for(j=0;j<8;j++){
+  for(j=0;j<6;j++){
     b=document.createElement('div');b.className='bub';
-    var sz=6+Math.random()*10,ang=Math.PI*2*j/8+Math.random()*.5,dist=s*(.45+Math.random()*.35);
+    var sz=6+Math.random()*9,ang=Math.PI*2*j/6+Math.random()*.5,dist=s*(.38+Math.random()*.25);
     b.style.cssText='left:'+(p.x+s/2-sz/2)+'px;top:'+(p.y+s/2-sz/2)+'px;width:'+sz+'px;height:'+sz+'px;--dx:'+(Math.cos(ang)*dist).toFixed(1)+'px;--dy:'+(Math.sin(ang)*dist).toFixed(1)+'px';
     fxEl.appendChild(b);(function(el){setTimeout(function(){el.remove()},620)})(b);
   }
-  for(j=0;j<4;j++){
+  for(j=0;j<3;j++){
     b=document.createElement('div');b.className='spark';b.innerHTML=ico('x5star');
-    var sz2=13+Math.random()*8,ang2=Math.random()*Math.PI*2,dist2=s*(.5+Math.random()*.3);
+    var sz2=13+Math.random()*8,ang2=Math.PI*2*j/3+.4,dist2=s*(.42+Math.random()*.22);
     b.style.cssText='left:'+(p.x+s/2-sz2/2)+'px;top:'+(p.y+s/2-sz2/2)+'px;width:'+sz2+'px;height:'+sz2+'px;--dx:'+(Math.cos(ang2)*dist2).toFixed(1)+'px;--dy:'+(Math.sin(ang2)*dist2).toFixed(1)+'px';
     fxEl.appendChild(b);(function(el){setTimeout(function(){el.remove()},560)})(b);
   }
@@ -596,12 +572,18 @@ function flashBrk(b){if(!b)return;b.classList.remove('on');void b.offsetWidth;b.
 
 /* ---------- merge core ---------- */
 function sameK(i){var e=S.board[i];return e&&e.t==='item'&&!e.done?e.k:0}
-function addProgress(pts,i){
+function flashAt(i){
+  var p=fxPos(i),s=cellPx;
+  var r=document.createElement('div');r.className='flash-ring';
+  r.style.cssText='left:'+p.x+'px;top:'+p.y+'px;width:'+s+'px;height:'+s+'px';
+  fxEl.appendChild(r);setTimeout(function(){r.remove()},400);
+}
+function addProgress(pts,i,delay){
   var d=lvDef(S.lvIdx),cap=d.total-d.banner;
   if(S.progress>=cap)return;
   S.progress=Math.min(cap,S.progress+pts);
   renderProgress();
-  floatText(i,'+'+pts+'补分');
+  setTimeout(function(){floatText(i,'+'+pts+'补分')},delay||0);
 }
 function checkTarget(i,nk){
   if(S.targetMade)return;
@@ -620,14 +602,19 @@ function doMerge(from,to,fast){
     var finish=function(){
       var nk=k+1;
       S.board[to]={t:'item',k:nk};
-      renderItem(to,true);burstAt(to);
-      addProgress(nk,to);sfx('merge');
+      sfx('merge');
+      flashAt(to);
+      renderItem(to,true);
+      setTimeout(function(){burstAt(to)},80);
+      addProgress(nk,to,150);
       checkTarget(to,nk);saveSoon();res();
     };
     if(elFrom){
+      elFrom.classList.remove('drag');
+      elFrom.classList.add('fly');
       var a=elFrom.animate(
-        [{transform:elFrom.style.transform},{transform:'translate('+pTo.x+'px,'+pTo.y+'px) scale(.88)'}],
-        {duration:fast?150:175,easing:'cubic-bezier(.5,0,.75,.5)'});
+        [{transform:elFrom.style.transform},{transform:'translate('+pTo.x+'px,'+pTo.y+'px) scale(.85)'}],
+        {duration:fast?170:200,easing:'cubic-bezier(.5,.06,.65,.4)'});
       a.onfinish=function(){elFrom.remove();finish()};
       a.oncancel=function(){elFrom.remove();finish()};
     }else finish();
@@ -650,8 +637,11 @@ function flyAndMerge(from,to,cb){
     fly.remove();
     var nk=ent.k+1;
     S.board[to]={t:'item',k:nk};
-    renderItem(to,true);burstAt(to);
-    addProgress(nk,to);sfx('merge');
+    sfx('merge');
+    flashAt(to);
+    renderItem(to,true);
+    setTimeout(function(){burstAt(to)},80);
+    addProgress(nk,to,150);
     checkTarget(to,nk);
     cb();
   };
@@ -692,8 +682,15 @@ function onUp(e){
   d.el.classList.remove('drag');
   var hover=pointToCell(e.clientX,e.clientY);
   var ent=hover>=0?S.board[hover]:null;
-  if(hover>=0&&hover!==d.i&&ent&&ent.t==='item'&&!ent.done&&ent.k===d.k){
-    doMerge(d.i,hover);
+  var maxK=lvDef(S.lvIdx).chain.length;
+  if(hover>=0&&hover!==d.i&&ent&&ent.t==='item'&&ent.k===d.k){
+    if(ent.done||d.k>=maxK){
+      toast('已达成目标！点击「领奖励」过关吧～');
+      var qc=$('#qClaim');qc.classList.remove('attn');void qc.offsetWidth;qc.classList.add('attn');
+      sfx('err');
+    }else{
+      doMerge(d.i,hover);
+    }
   }else if(hover>=0&&hover!==d.i&&!ent){
     S.board[d.i]=null;S.board[hover]={t:'item',k:d.k};
     var el=itemEls[d.i];delete itemEls[d.i];itemEls[hover]=el;el.dataset.i=hover;
@@ -745,7 +742,7 @@ function x5Tap(el){
   (function runStep(idx){
     if(idx>=n){busy=false;saveSoon();return}
     S.energy--;renderHUD();bump($('#energyNum'));
-    flyAndMerge(steps[idx][0],steps[idx][1],function(){setTimeout(function(){runStep(idx+1)},70)});
+    flyAndMerge(steps[idx][0],steps[idx][1],function(){setTimeout(function(){runStep(idx+1)},130)});
   })(0);
 }
 
@@ -1006,16 +1003,24 @@ function doSign(){
 function openRules(){
   var m=showModal(
     '<div class="ru-h">规则说明</div>'+
-    '<div class="ru-list">1. 拖动两个相同商品，即可合成升级；<br>2. 点击「配送员」消耗 1 点体力，生成 1 个新商品；<br>3. 「X5 一键合成」消耗体力，自动合成 5 次相同级别商品；<br>4. 合成关卡目标商品后，点「领奖励」获得金币与补分，进入下一关；<br>5. 体力可做任务获得（任务列表含演示手动领取），每 30 秒自动回复 1 点；<br>6. 点击右缘齿轮可自定义商品图标与名称（演示配置，仅本机生效）。</div>'+
-    '<div class="ru-btns"><button class="ru-reset">重置进度</button><button class="ru-ok">知道了</button></div>');
+    '<div class="ru-list">1. 拖动两个相同商品，即可合成升级；<br>2. 点击「配送员」消耗 1 点体力，生成 1 个新商品；<br>3. 「X5 一键合成」消耗体力，自动合成 5 次相同级别商品；<br>4. 合成关卡目标商品后，点「领奖励」获得金币与补分，进入下一关；<br>5. 体力可做任务获得（任务列表含演示手动领取），每 30 秒自动回复 1 点；<br>6. 点击右缘齿轮可自定义商品图标与名称（演示配置，仅本机生效）；<br>7. 进度自动保存在本机，刷新页面自动恢复。</div>'+
+    '<div class="ru-btns"><button class="ru-reset">重新开始</button><button class="ru-ok">知道了</button></div>');
   m.querySelector('.ru-ok').onclick=function(){m.remove()};
-  m.querySelector('.ru-reset').onclick=function(){m.remove();resetAll()};
+  m.querySelector('.ru-reset').onclick=function(){m.remove();confirmReset()};
 }
-function resetAll(){
+function confirmReset(){
+  var m=showModal(
+    '<div class="ru-h">重新开始</div>'+
+    '<div class="ru-list" style="text-align:center">将清除本机游戏进度：<br>关卡、金币、补分、棋盘与体力。<br>自定义图标配置会保留。<br><b style="color:#e23e30">确定要重新开始吗？</b></div>'+
+    '<div class="ru-btns"><button class="ru-cancel">取消</button><button class="ru-danger">确定清除</button></div>');
+  m.querySelector('.ru-cancel').onclick=function(){m.remove()};
+  m.querySelector('.ru-danger').onclick=function(){m.remove();doResetAll()};
+}
+function doResetAll(){
   try{localStorage.removeItem(SAVE_KEY)}catch(e){}
   S=freshState();
   renderAll();renderHUD();renderProgress();renderQuest();
-  toast('进度已重置');
+  toast('已重新开始，从第 1 关出发');
 }
 function overlayOpen(){
   return $('#taskSheet').classList.contains('show')||
@@ -1068,10 +1073,6 @@ function injectStatics(){
   $('#cfgBtn').innerHTML='<svg viewBox="0 0 24 24"><path fill="#565656" d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>';
   if(SCENE.full)$('#bgScene').innerHTML=SCENE.full;
 }
-function tickTime(){
-  var d=new Date(),h=d.getHours(),m=d.getMinutes();
-  $('#sbTime').textContent=h+':'+(m<10?'0'+m:m);
-}
 function bindEvents(){
   itemsEl.addEventListener('pointerdown',onDown);
   window.addEventListener('pointermove',onMove,{passive:false});
@@ -1108,11 +1109,11 @@ function bindEvents(){
     saveSoon();toast(S.sfx?'音效已开启':'音效已关闭');
     if(S.sfx)sfx('tap');
   });
-  $('#homeBtn').addEventListener('click',function(){toast('演示环境：返回首页敬请期待')});
   $('#rpFloat').addEventListener('click',function(){toast('演示环境：红包活动敬请期待')});
   $('#coinPill').addEventListener('click',function(){toast('金币：完成关卡目标即可获得')});
   window.addEventListener('resize',layout);
   window.addEventListener('orientationchange',layout);
+  window.addEventListener('beforeunload',save);
   document.addEventListener('visibilitychange',function(){if(document.hidden)save()});
 }
 function init(){
@@ -1120,12 +1121,16 @@ function init(){
   loadCfg();
   var q=new URLSearchParams(location.search);
   if(q.get('reset')==='1'){try{localStorage.removeItem(SAVE_KEY)}catch(e){}}
-  S=load()||freshState();
+  var saved=load();
+  S=saved||freshState();
+  var meaningful=saved&&(saved.lvIdx>0||saved.coins>0||saved.piggy>0||saved.progress>0||saved.board.some(function(e2){return e2&&e2.t==='item'}));
+  if(meaningful&&q.get('reset')!=='1'){
+    setTimeout(function(){toast('已恢复上次进度 · 第'+lvDef(S.lvIdx).n+'关')},700);
+  }
   $('#musicBtn').classList.toggle('off',!S.sfx);
   buildCells();layout();renderAll();renderHUD();renderProgress();renderQuest();
-  bindEvents();startHints();tickTime();
+  bindEvents();startHints();
   boardEl.style.touchAction='none';
-  setInterval(tickTime,20000);
   setInterval(function(){
     if(S.energy<MAX_ENERGY){S.energy++;renderHUD();saveSoon()}
   },30000);
@@ -1164,6 +1169,12 @@ function init(){
       checkTarget(em[0],d.chain.length);saveSoon();return 'ok';
     },
     energy:function(n){S.energy=(n==null?MAX_ENERGY:n);renderHUD();saveSoon()},
+    place:function(k,i){
+      if(i==null){for(var j=0;j<N;j++){if(!S.board[j]){i=j;break}}}
+      if(i==null)return 'no space';
+      S.board[i]={t:'item',k:k||1};renderItem(i,true);saveSoon();
+      return 'placed V'+k+' at '+i;
+    },
     burst:function(i){burstAt(i==null?5:i);floatText(i==null?5:i,'+2补分');return 'ok'},
     burstStatic:function(i){
       i=(i==null)?5:i;
