@@ -1,0 +1,2583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>FIERY DRAGON · 火龙珠水果机</title>
+<meta name="description" content="经典街机火龙珠水果机 1:1 H5 复刻 · 押注跑灯 · 比倍猜大小 · JACKPOT">
+<style>
+/* ============ 基础 ============ */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#0d0405}
+body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+svg{display:block}
+
+/* ============ 舞台缩放（750×1610 设计坐标系） ============ */
+#viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(120% 90% at 50% 30%,#24100e 0%,#140708 55%,#0a0304 100%)}
+#stage{position:relative;width:750px;height:1610px;flex:none;transform-origin:center center}
+
+/* ============ 机箱 ============ */
+#machine{position:absolute;inset:0;border-radius:36px;overflow:hidden;
+  background:
+    radial-gradient(140% 60% at 50% 0%,rgba(255,120,60,.10),transparent 60%),
+    repeating-linear-gradient(97deg,rgba(0,0,0,.14) 0 3px,rgba(0,0,0,0) 3px 9px),
+    linear-gradient(180deg,#6d201a 0%,#54150f 18%,#43110c 55%,#3a0d09 82%,#2a0906 100%);
+  box-shadow:inset 0 0 140px rgba(0,0,0,.75), inset 0 0 0 2px #1c0605, 0 30px 80px rgba(0,0,0,.8)}
+/* 机头暗腔 */
+#headCavity{position:absolute;left:36px;right:36px;top:118px;height:196px;border-radius:22px;z-index:1;
+  background:linear-gradient(180deg,#1c0806,#2e0d08 70%,#200a06);
+  box-shadow:inset 0 8px 24px rgba(0,0,0,.85),inset 0 -2px 0 rgba(255,140,80,.12)}
+#archGlow{position:absolute;left:80px;right:80px;top:126px;height:70px;border-radius:35px;
+  background:radial-gradient(60% 160% at 50% 100%,rgba(255,90,40,.4),rgba(120,20,8,.1) 70%,transparent);filter:blur(2px)}
+/* 机身灯泡跑马 */
+.bulb{position:absolute;width:13px;height:13px;border-radius:50%;z-index:3;
+  background:radial-gradient(circle at 35% 30%,#ffe9b0,#ffb23e 55%,#a83c08 100%);
+  box-shadow:0 0 10px 2px rgba(255,150,40,.55);
+  animation:bulbBlink 1.4s ease-in-out infinite}
+@keyframes bulbBlink{0%,100%{filter:brightness(1.25)}50%{filter:brightness(.4)}}
+.winner .bulb{animation-duration:.28s}
+.lucky .bulb{animation-duration:.45s}
+
+/* ============ 顶部：菜单 / LED跑马屏 / info ============ */
+.corner-btn{position:absolute;top:158px;width:62px;height:58px;border:none;border-radius:14px;z-index:20;cursor:pointer;
+  background:linear-gradient(180deg,#5a4a3a,#33261c);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 4px 8px rgba(0,0,0,.5),0 0 0 2px #1c110a;
+  display:flex;align-items:center;justify-content:center;color:#e8d9b0;font-size:30px;font-weight:700}
+.corner-btn:active{transform:translateY(2px)}
+#menuBtn{left:22px}#infoBtn{right:22px;font-size:26px;font-style:italic;font-family:Georgia,serif}
+#marqueeNest{position:absolute;left:150px;right:150px;top:150px;height:104px;z-index:2;
+  border-radius:16px;padding:9px;
+  background:linear-gradient(180deg,#2e0f0b,#200a07);
+  box-shadow:inset 0 4px 14px rgba(0,0,0,.9),0 1px 0 rgba(255,160,90,.15)}
+#ticker{position:relative;width:100%;height:100%;border-radius:10px;overflow:hidden;background:#180503;
+  box-shadow:inset 0 0 24px rgba(0,0,0,.9)}
+#ticker::before{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
+  background-image:radial-gradient(rgba(0,0,0,.62) 34%,transparent 36%);background-size:5px 5px}
+#tickerText{position:absolute;top:50%;transform:translateY(-50%);white-space:nowrap;will-change:transform;
+  font-family:"Courier New",monospace;font-weight:700;font-size:42px;letter-spacing:6px;color:#ff4a26;
+  text-shadow:0 0 8px rgba(255,70,30,.9),0 0 18px rgba(255,60,20,.55)}
+
+/* ============ LED 计分行 ============ */
+#ledRow{position:absolute;left:45px;right:45px;top:312px;height:104px;display:flex;justify-content:space-between;z-index:4}
+.led-group{width:306px}
+.led-label{font-family:Georgia,"Times New Roman",serif;font-weight:700;font-size:21px;letter-spacing:2px;
+  color:#d9b98a;text-shadow:0 1px 2px #000;text-align:center;margin-bottom:4px}
+.led-frame{height:78px;border-radius:12px;padding:7px;
+  background:linear-gradient(180deg,#8a744c,#5f4c2e 40%,#83704a);
+  box-shadow:0 3px 6px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,230,170,.4)}
+.led-inner{width:100%;height:100%;border-radius:7px;background:linear-gradient(180deg,#241202,#170a02);
+  box-shadow:inset 0 3px 10px rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;gap:3px}
+.led-inner.flash{animation:ledFlash .5s steps(2) 3}
+@keyframes ledFlash{50%{filter:brightness(1.8)}}
+
+/* ============ 主板（灯环+中央） ============ */
+#board{position:absolute;left:45px;top:424px;width:660px;height:648px;z-index:4;
+  background:linear-gradient(160deg,#e8dcb4,#d8c896);border-radius:8px;
+  box-shadow:0 4px 10px rgba(0,0,0,.55),inset 0 0 0 3px #b8a26c}
+.cell{position:absolute;border-radius:6px;overflow:hidden;
+  background:linear-gradient(160deg,#f4ebcd 0%,#ecdfba 60%,#dfcfa4 100%);
+  box-shadow:inset 0 0 0 2px #cdbb90, inset 0 -6px 12px rgba(120,90,40,.28), 0 2px 3px rgba(0,0,0,.55)}
+.cell .sym{position:absolute;inset:10% 12% 20%;display:flex;align-items:center;justify-content:center}
+.cell .sym svg{width:100%;height:100%}
+.cell .x3{position:absolute;left:0;right:0;bottom:1px;text-align:center;
+  font-family:Georgia,serif;font-weight:900;font-size:25px;letter-spacing:1px;color:#26221a;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+.cellbar{position:absolute;left:6%;right:6%;top:12%;text-align:center}
+.cellbar .b{display:block;background:#101010;color:#fff;padding:1px 3px;margin:0 auto 2px;width:max-content;font-family:"Arial Black",Arial,sans-serif;font-weight:900;font-size:20px;line-height:1.02;letter-spacing:.5px}
+.cellbar .m{display:block;background:#101010;color:#ffd23e;padding:1px 3px;margin:0 auto;width:max-content;font-family:"Arial Black",Arial,sans-serif;font-weight:900;font-size:20px;line-height:1.02;letter-spacing:.5px}
+/* 灯亮 */
+.cell.lit{z-index:5}
+.cell.lit::after{content:"";position:absolute;inset:0;border-radius:6px;
+  background:radial-gradient(85% 85% at 50% 45%,rgba(255,236,170,.95) 0%,rgba(255,196,64,.75) 45%,rgba(230,120,10,.28) 78%,transparent 100%);
+  animation:cellPulse .55s ease-in-out infinite alternate}
+.cell.lit .sym,.cell.lit .x3{z-index:2;filter:drop-shadow(0 0 6px rgba(180,60,0,.5))}
+@keyframes cellPulse{from{opacity:.72}to{opacity:1}}
+/* 中奖格爆闪 */
+.cell.hitwin::after{background:radial-gradient(90% 90% at 50% 45%,#fff8dc 0%,#ffd23e 55%,#ff7a1a 100%);animation:hitBlink .16s steps(2) infinite}
+@keyframes hitBlink{50%{opacity:.25}}
+/* LUCK 触发闪烁 */
+.cell.hitluck::after{background:radial-gradient(90% 90% at 50% 45%,#dffbff 0%,#59d7ff 50%,#0e86c8 100%);animation:hitBlink .2s steps(2) infinite}
+/* 待机巡游微亮 */
+.cell.attract::after{content:"";position:absolute;inset:0;border-radius:6px;
+  background:radial-gradient(80% 80% at 50% 50%,rgba(255,220,130,.5),transparent 75%);animation:cellPulse .5s ease-in-out infinite alternate}
+
+/* ============ 中央画面 ============ */
+#center{position:absolute;left:96px;top:96px;width:468px;height:456px;border-radius:8px;overflow:hidden;
+  box-shadow:0 0 0 4px #b89a5e,0 0 0 6px #6d5426,0 6px 18px rgba(0,0,0,.6);z-index:6;background:#5e3a68}
+#sceneHolder{position:absolute;inset:0}
+#sceneHolder svg{width:100%;height:100%}
+#jpCoin{position:absolute;left:50%;top:37%;width:86px;height:86px;transform:translate(-50%,-50%);z-index:3;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,.55))}
+#jpCoin svg{width:100%;height:100%}
+#jpCoin.jpburst{animation:jpSpin .5s ease-in-out infinite}
+@keyframes jpSpin{50%{transform:translate(-50%,-50%) scale(1.14) rotate(8deg)}}
+#jpTag{position:absolute;left:50%;top:49.5%;transform:translateX(-50%);z-index:3;
+  background:rgba(20,8,4,.72);border:1px solid #caa14e;border-radius:8px;padding:1px 9px;
+  color:#ffd23e;font-size:15px;font-weight:700;letter-spacing:1px;font-family:Georgia,serif;white-space:nowrap}
+/* 中央 LED（比倍额） */
+#centerLED{position:absolute;left:50%;top:59%;transform:translateX(-50%);z-index:3;width:128px;height:52px;
+  border-radius:8px;background:linear-gradient(180deg,#151008,#0a0703);border:2px solid #241a10;
+  box-shadow:inset 0 3px 8px rgba(0,0,0,.9),0 1px 0 rgba(255,220,150,.25);
+  display:flex;align-items:center;justify-content:center}
+/* 比倍轮盘覆盖层 */
+#wheel{position:absolute;inset:0;z-index:8;display:none;background:radial-gradient(80% 80% at 50% 42%,rgba(28,8,40,.94),rgba(10,2,14,.97));
+  align-items:center;justify-content:center}
+#wheel.show{display:flex}
+#wheelDisc{position:relative;width:400px;height:400px;border-radius:50%;flex:none;
+  background:radial-gradient(circle at 50% 42%,#3a1440,#1c0a24 70%);
+  box-shadow:0 0 0 6px #c9a24e,0 0 0 10px #59401c,0 10px 40px rgba(0,0,0,.8),inset 0 0 60px rgba(0,0,0,.6)}
+.wnum{position:absolute;width:64px;height:44px;margin:-22px 0 0 -32px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:"Arial Black",Arial,sans-serif;font-weight:900;font-size:26px;color:#ffd985;
+  background:linear-gradient(180deg,#4b2c10,#2c1808);box-shadow:inset 0 0 0 2px #8a6428,0 2px 4px rgba(0,0,0,.6)}
+.wnum.seven{color:#ff6a4d}
+.wnum.lit{background:linear-gradient(180deg,#ffd23e,#e88a10);color:#4a1d02;box-shadow:0 0 22px 4px rgba(255,180,40,.75),inset 0 0 0 2px #fff0c0}
+.wnum.kill{background:linear-gradient(180deg,#7a1410,#3f0806)}
+#wheelTip{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;color:#ffe9b0;font-weight:800;font-size:27px;letter-spacing:2px;text-shadow:0 2px 6px #000;z-index:2;width:220px}
+#wheelTip small{display:block;font-size:15px;color:#d9b98a;margin-top:8px;letter-spacing:1px;font-weight:400}
+
+/* ============ 按钮排 ============ */
+#controls{position:absolute;left:26px;right:26px;top:1086px;height:130px;z-index:8;
+  display:flex;align-items:center;justify-content:space-between;padding:0 8px}
+.pbtn{border:none;cursor:pointer;position:relative;flex:none;
+  transition:transform .06s ease,filter .06s ease}
+.pbtn:active,.pbtn.down{transform:translateY(4px);filter:brightness(1.12)}
+.pbtn .cap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:Arial Black,Arial,sans-serif;font-weight:900;letter-spacing:1px;text-shadow:0 2px 2px rgba(0,0,0,.35)}
+.pbtn:disabled{filter:saturate(.3) brightness(.65);cursor:default}
+.pbtn:disabled:active{transform:none}
+/* ALL+1 圆钮 */
+#btnAll{width:104px;height:104px;border-radius:50%;
+  background:radial-gradient(circle at 38% 30%,#b9e078 0%,#8bc34a 45%,#4e7a23 100%);
+  box-shadow:0 7px 0 #2c4a12,0 10px 14px rgba(0,0,0,.6),inset 0 2px 6px rgba(255,255,255,.5)}
+#btnAll .cap{color:#1d3a08;font-size:26px;line-height:1.1;text-align:center;flex-direction:column}
+/* 箭头方块 */
+.arw{width:94px;height:90px;border-radius:20px;
+  background:linear-gradient(180deg,#4fd8b2 0%,#23b492 55%,#0e8a6d 100%);
+  box-shadow:0 7px 0 #085c48,0 10px 14px rgba(0,0,0,.55),inset 0 2px 5px rgba(255,255,255,.45)}
+.arw .cap{color:#0b3d30;font-size:38px}
+/* 1-6 / 8-13 圆钮 */
+.ypill{width:98px;height:98px;border-radius:50%;
+  background:radial-gradient(circle at 38% 30%,#ffe89a 0%,#f2c94c 48%,#c08a12 100%);
+  box-shadow:0 7px 0 #7a5406,0 10px 14px rgba(0,0,0,.6),inset 0 2px 6px rgba(255,255,255,.55)}
+.ypill .cap{color:#5d3d03;font-size:25px}
+/* GO */
+#btnGo{width:148px;height:102px;border-radius:24px;
+  background:linear-gradient(180deg,#ff7a52 0%,#e8452a 45%,#b01f10 100%);
+  box-shadow:0 8px 0 #6d1006,0 12px 18px rgba(0,0,0,.65),inset 0 2px 6px rgba(255,255,255,.4);
+  animation:goBreath 1.6s ease-in-out infinite}
+@keyframes goBreath{50%{filter:brightness(1.14)}}
+#btnGo .cap{color:#fff;font-size:44px;letter-spacing:3px;text-shadow:0 3px 3px rgba(90,10,0,.6)}
+#btnGo:disabled{animation:none}
+
+/* ============ 倍率行 ============ */
+#paytable{position:absolute;left:45px;right:45px;top:1226px;height:60px;z-index:6;display:flex;gap:5px}
+.pt-cell{flex:1;border-radius:5px;display:flex;align-items:center;justify-content:center;
+  font-family:Georgia,serif;font-weight:900;font-size:29px;letter-spacing:1px;color:#f7c948;
+  background:linear-gradient(180deg,#3d1410,#2a0c08);
+  box-shadow:inset 0 0 0 2px #6d3a1a, inset 0 2px 6px rgba(0,0,0,.7),0 1px 0 rgba(255,200,120,.14);
+  text-shadow:0 0 8px rgba(255,170,40,.35);position:relative}
+.pt-cell.edge{flex:1.15;background:linear-gradient(180deg,#1d3a12,#12250a);box-shadow:inset 0 0 0 2px #3f6a22,inset 0 2px 6px rgba(0,0,0,.7)}
+.pt-cell.bet{background:linear-gradient(180deg,#ff5a2a,#c81f0a);color:#ffe9a0;
+  box-shadow:inset 0 0 0 2px #ffb060,0 0 16px rgba(255,90,30,.55);text-shadow:0 0 10px rgba(255,220,120,.8);animation:ptBet 1s ease-in-out infinite alternate}
+@keyframes ptBet{to{filter:brightness(1.25)}}
+
+/* ============ 押注 LED 行 ============ */
+#betLeds{position:absolute;left:45px;right:45px;top:1294px;height:50px;z-index:6;display:flex;gap:5px}
+.bl-cell{flex:1;border-radius:5px;background:linear-gradient(180deg,#1c1008,#100802);
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.9),0 1px 0 rgba(255,200,120,.12);display:flex;align-items:center;justify-content:center}
+
+/* ============ 押注按钮行 ============ */
+#betBtns{position:absolute;left:30px;right:30px;top:1356px;height:116px;z-index:8;display:flex;justify-content:space-between;padding:0 2px}
+.bbtn{border:none;cursor:pointer;position:relative;border-radius:50%;width:80px;height:80px;flex:none;
+  background:radial-gradient(circle at 38% 28%,#a8d46a 0%,#7ab53c 48%,#43701d 100%);
+  box-shadow:0 6px 0 #234208,0 9px 12px rgba(0,0,0,.6),inset 0 2px 5px rgba(255,255,255,.45);
+  transition:transform .06s ease,filter .06s ease}
+.bbtn:active,.bbtn.down{transform:translateY(4px);filter:brightness(1.15)}
+.bbtn:disabled{filter:saturate(.3) brightness(.65)}
+.bbtn .bsym{position:absolute;inset:15% 15% 21%;display:flex;align-items:center;justify-content:center}
+.bbtn .bsym svg{width:100%;height:100%}
+.bbtn .bbar{position:absolute;inset:26% 10%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.bbtn .bbar i{font-style:normal;font-family:Arial Black,Arial,sans-serif;font-weight:900;font-size:12.5px;line-height:1.1;color:#fff;background:#111;padding:1px 3px;letter-spacing:.5px}
+.bbtn.beton{box-shadow:0 6px 0 #234208,0 9px 12px rgba(0,0,0,.6),inset 0 2px 5px rgba(255,255,255,.45),0 0 22px 5px rgba(180,255,80,.55)}
+.bbtn.beton::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:3px solid rgba(220,255,140,.9);animation:ptBet .5s ease-in-out infinite alternate}
+.bbtn.winflash{animation:winBtn .18s steps(2) infinite}
+@keyframes winBtn{50%{filter:brightness(1.75)}}
+
+/* ============ 底座 ============ */
+#base{position:absolute;left:0;right:0;top:1486px;bottom:0;z-index:2;
+  background:linear-gradient(180deg,#38100b,#240906 60%,#180503)}
+#base::before{content:"";position:absolute;left:56px;right:130px;top:10px;height:44px;border-radius:10px;
+  background:linear-gradient(180deg,#120705,#0a0403);box-shadow:inset 0 4px 12px rgba(0,0,0,.9),0 1px 0 rgba(255,160,90,.14)}
+#trayLabel{position:absolute;left:56px;right:130px;top:21px;text-align:center;color:#9a6a42;font-size:15px;letter-spacing:8px;font-weight:700;z-index:2;opacity:.85}
+
+/* ============ 投币工具条（演示用） ============ */
+#coinDock{position:absolute;left:45px;right:130px;top:1548px;height:50px;z-index:9;display:flex;gap:10px}
+.cdk{flex:1;border:none;border-radius:25px;cursor:pointer;font-weight:800;font-size:21px;letter-spacing:1px;
+  color:#ffe9b0;font-family:inherit;
+  background:linear-gradient(180deg,#7a4a1c,#4c2a0c);box-shadow:0 5px 0 #2c1604,0 6px 10px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,220,150,.35);
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .06s}
+.cdk:active{transform:translateY(3px)}
+.cdk.gold{background:linear-gradient(180deg,#e8b23e,#a86e10);color:#3a2000;box-shadow:0 5px 0 #5c3a04,0 6px 10px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,240,180,.5)}
+.cdk.on{background:linear-gradient(180deg,#57d86e,#1e9438);color:#04330e;box-shadow:0 5px 0 #0c4d1a,0 6px 10px rgba(0,0,0,.5)}
+#coinIcon{display:inline-block;width:26px;height:26px;flex:none}
+#coinIcon svg{width:100%;height:100%}
+
+/* ============ 金币飞行 ============ */
+.flycoin{position:absolute;z-index:60;width:40px;height:40px;pointer-events:none;left:0;top:0;
+  transition:transform .45s cubic-bezier(.3,-0.3,.6,1);opacity:.95}
+
+/* ============ 弹层：菜单 / 说明 / toast ============ */
+#overlay{position:absolute;inset:0;z-index:90;display:none;background:rgba(8,2,2,.72);backdrop-filter:blur(3px)}
+#overlay.show{display:block}
+.sheet{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:620px;max-height:1250px;overflow:auto;
+  background:linear-gradient(180deg,#2e1210,#1c0a08);border:2px solid #8a6428;border-radius:18px;padding:30px 34px;
+  box-shadow:0 20px 60px rgba(0,0,0,.8);color:#f0dfb8}
+.sheet h3{font-size:30px;letter-spacing:4px;color:#ffd23e;margin-bottom:20px;text-align:center}
+.sheet .row{display:flex;align-items:center;justify-content:space-between;padding:15px 4px;border-bottom:1px dashed #5a3a20;font-size:23px}
+.sheet .row:last-child{border-bottom:none}
+.switch{width:74px;height:38px;border-radius:19px;background:#4a2418;position:relative;cursor:pointer;border:1px solid #7a4a2a;transition:background .2s;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:4px;width:30px;height:30px;border-radius:50%;background:#c9a07a;transition:all .2s}
+.switch.on{background:#1e9438}.switch.on::after{left:38px;background:#eaffe0}
+.mini{border:none;border-radius:10px;padding:10px 18px;margin:6px 6px 0 0;font-size:20px;font-weight:700;cursor:pointer;
+  background:linear-gradient(180deg,#e8b23e,#a86e10);color:#3a2000}
+.mini.red{background:linear-gradient(180deg,#e85540,#a81f10);color:#fff}
+.rules{font-size:20px;line-height:1.75;color:#e8d5a8}
+.rules b{color:#ffd23e}
+.rules table{width:100%;border-collapse:collapse;margin:12px 0;font-size:19px;text-align:center}
+.rules td,.rules th{border:1px solid #5a3a20;padding:6px 4px}
+.rules th{color:#ffd23e;background:#33150e}
+.close-x{position:absolute;right:18px;top:14px;width:44px;height:44px;border:none;border-radius:50%;cursor:pointer;
+  background:#5a2a1a;color:#ffd8a8;font-size:22px;font-weight:700}
+#toasts{position:absolute;left:0;right:0;top:32%;z-index:95;display:flex;flex-direction:column;align-items:center;gap:12px;pointer-events:none}
+.toast{background:rgba(20,6,4,.92);border:1px solid #c9a24e;color:#ffe9b0;border-radius:14px;padding:14px 30px;
+  font-size:24px;font-weight:700;letter-spacing:1px;box-shadow:0 8px 24px rgba(0,0,0,.6);
+  animation:toastIn .25s ease,toastOut .3s ease 2.2s forwards;max-width:600px;text-align:center}
+@keyframes toastIn{from{opacity:0;transform:translateY(16px) scale(.9)}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-14px)}}
+
+/* 静音钮 */
+#muteBtn{position:absolute;right:45px;top:1548px;z-index:30;width:64px;height:50px;border-radius:25px;border:none;cursor:pointer;
+  background:linear-gradient(180deg,#4a3a28,#2a1c10);color:#ffd8a8;font-size:24px;
+  box-shadow:0 5px 0 #16100a,inset 0 1px 0 rgba(255,220,150,.3)}
+#muteBtn.off{color:#7a5a44;text-shadow:none}
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="stage">
+    <div id="machine">
+      <!-- 顶部 -->
+      <div id="headCavity"></div>
+      <div id="archGlow"></div>
+      <button class="corner-btn" id="menuBtn">≡</button>
+      <button class="corner-btn" id="infoBtn">i</button>
+      <div id="marqueeNest"><div id="ticker"><div id="tickerText">★ FIERY DRAGON ★ 火龙珠祝您好运 ★</div></div></div>
+      <!-- LED 计分行 -->
+      <div id="ledRow">
+        <div class="led-group"><div class="led-label">BONUS-WIN</div><div class="led-frame"><div class="led-inner" id="ledBonus"></div></div></div>
+        <div class="led-group"><div class="led-label">CREDIT</div><div class="led-frame"><div class="led-inner" id="ledCredit"></div></div></div>
+      </div>
+      <!-- 主板 -->
+      <div id="board">
+        <div id="center">
+          <div id="sceneHolder"></div>
+          <div id="jpCoin"></div>
+          <div id="jpTag">JP 500</div>
+          <div id="centerLED"></div>
+          <div id="wheel"><div id="wheelDisc"><div id="wheelTip">比倍猜大小<small>← → 调整比倍额<br>猜对翻倍 · 7 通杀</small></div></div></div>
+        </div>
+      </div>
+      <!-- 按钮排 -->
+      <div id="controls">
+        <button class="pbtn" id="btnAll"><span class="cap">ALL<br>+1</span></button>
+        <button class="pbtn arw" id="btnLeft"><span class="cap">←</span></button>
+        <button class="pbtn arw" id="btnRight"><span class="cap">→</span></button>
+        <button class="pbtn ypill" id="btnSmall"><span class="cap">1-6</span></button>
+        <button class="pbtn ypill" id="btnBig"><span class="cap">8-13</span></button>
+        <button class="pbtn" id="btnGo"><span class="cap">GO</span></button>
+      </div>
+      <!-- 倍率行 -->
+      <div id="paytable"></div>
+      <!-- 押注LED -->
+      <div id="betLeds"></div>
+      <!-- 押注按钮 -->
+      <div id="betBtns"></div>
+      <!-- 底座 -->
+      <div id="base"></div>
+      <div id="trayLabel">· FIERY DRAGON ·</div>
+      <!-- 投币坞 -->
+      <div id="coinDock">
+        <button class="cdk gold" id="dockCoin"><span id="coinIcon"></span>投币 +1</button>
+        <button class="cdk" id="dockAdd">上分 +100</button>
+        <button class="cdk" id="dockAuto">自动投币</button>
+      </div>
+      <button id="muteBtn">♪</button>
+      <div id="toasts"></div>
+      <div id="overlay"></div>
+    </div>
+  </div>
+</div>
+<script>
+/* ===== src/art.js ===== */
+/* ============================================================
+ * FIERY DRAGON 火龙珠 — ART 模块 (纯程序化 SVG, 无外部资源)
+ * window.ART.symbol / luckEgg / coin / jpCoin / scene
+ * 所有渐变 id 加前缀 fdart- 防冲突; svg 以 viewBox 起头, 无宽高
+ * ============================================================ */
+window.ART = (() => {
+
+  const P = 'fdart-';
+  const FONT = "'Arial Black',Arial,sans-serif";
+
+  /* ---------- 小工具 ---------- */
+  const stops = arr => arr.map(s =>
+    `<stop offset="${s[0]}" stop-color="${s[1]}"${s[2] != null ? ` stop-opacity="${s[2]}"` : ''}/>`).join('');
+
+  const lg = (id, arr, x1 = 0, y1 = 0, x2 = 0, y2 = 1) =>
+    `<linearGradient id="${P}${id}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">${stops(arr)}</linearGradient>`;
+
+  const rg = (id, arr, cx = 0.34, cy = 0.28, r = 0.95) =>
+    `<radialGradient id="${P}${id}" cx="${cx}" cy="${cy}" r="${r}">${stops(arr)}</radialGradient>`;
+
+  const svg = (vb, defs, body) =>
+    `<svg viewBox="0 0 ${vb}" xmlns="http://www.w3.org/2000/svg"><defs>${defs}</defs>${body}</svg>`;
+
+  const n = v => (+v).toFixed(1).replace(/\.0$/, '');
+
+  // 双层描边肢体/杆件: 先粗描边再细填充 → 卡通轮廓
+  const limb = (pts, w, fill, line) => {
+    const ps = pts.map(p => `${n(p[0])},${n(p[1])}`).join(' ');
+    return `<polyline points="${ps}" fill="none" stroke="${line}" stroke-width="${w + 6}" stroke-linecap="round" stroke-linejoin="round"/>` +
+      `<polyline points="${ps}" fill="none" stroke="${fill}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  };
+
+  const hoof = (x, y, rot, f = '#4a3f45') =>
+    `<rect x="-8" y="-5.5" width="17" height="12" rx="3.5" transform="translate(${n(x)},${n(y)}) rotate(${rot})" fill="${f}" stroke="#2a2228" stroke-width="2"/>`;
+
+  const starPath = (cx, cy, R, r, rot = -90) => {
+    let d = '';
+    for (let i = 0; i < 10; i++) {
+      const rad = (rot + i * 36) * Math.PI / 180;
+      const rr = i % 2 ? r : R;
+      d += (i ? 'L' : 'M') + n(cx + rr * Math.cos(rad)) + ',' + n(cy + rr * Math.sin(rad));
+    }
+    return d + 'Z';
+  };
+
+  // 放射光楔形
+  const wedge = (cx, cy, r, a0, a1, fill) => {
+    const p = a => [cx + r * Math.cos(a * Math.PI / 180), cy + r * Math.sin(a * Math.PI / 180)];
+    const [x1, y1] = p(a0), [x2, y2] = p(a1);
+    return `<path d="M${cx},${cy} L${n(x1)},${n(y1)} A${r},${r} 0 0 1 ${n(x2)},${n(y2)} Z" fill="${fill}"/>`;
+  };
+
+  const spark4 = (x, y, s, op, fill = '#ffffff') =>
+    `<path transform="translate(${n(x)},${n(y)}) scale(${s})" d="M0,-15 L3,-3 L15,0 L3,3 L0,15 L-3,3 L-15,0 L-3,-3 Z" fill="${fill}" opacity="${op}"/>`;
+
+  const leaf = (d) =>
+    `<path d="${d}" fill="url(#${P}leaf)" stroke="#3f7a16" stroke-width="2.5" stroke-linejoin="round"/>`;
+
+  const vein = (d) =>
+    `<path d="${d}" stroke="#eafccd" stroke-width="1.6" fill="none" opacity=".8" stroke-linecap="round"/>`;
+
+  /* ---------- 水果机符号 (viewBox 0 0 100 100) ---------- */
+  const SYM = {
+
+    apple: () => svg('100 100',
+      rg('ap', [[0, '#ff8f72'], [0.45, '#ee3b30'], [1, '#ad111a']]) +
+      lg('leaf', [[0, '#a4e455'], [1, '#4f9c1e']], 0, 0, 1, 1),
+      leaf(`M57,27 C60,13 76,7 88,12 C87,25 74,34 60,31 C57,30 56,29 57,27 Z `) +
+      `<path d="M62,27 C71,21 79,16 86,13" stroke="#3f7a16" stroke-width="1.6" fill="none" opacity=".7"/>` +
+      `<path d="M50,37 C50,29 52,24 56,19" stroke="#7a4218" stroke-width="5" fill="none" stroke-linecap="round"/>` +
+      `<path d="M50,37 C61,26 82,32 83,55 C84,77 67,89 56,89 C53,89 51,88 50,86.5 C49,88 47,89 44,89 C33,89 16,77 17,55 C18,32 39,26 50,37 Z" fill="url(#${P}ap)" stroke="#66110f" stroke-width="3.5" stroke-linejoin="round"/>` +
+      `<path d="M44,84 C36,84 24,76 21,62" stroke="#8f1520" stroke-width="3" fill="none" opacity=".5" stroke-linecap="round"/>` +
+      `<ellipse cx="35" cy="49" rx="8" ry="13" fill="#fff" opacity=".78" transform="rotate(-22 35 49)"/>` +
+      `<circle cx="30" cy="67" r="3" fill="#fff" opacity=".45"/>`
+    ),
+
+    orange: () => svg('100 100',
+      rg('or', [[0, '#ffd95e'], [0.5, '#ff9c22'], [1, '#df6906']]) +
+      lg('leaf', [[0, '#a4e455'], [1, '#4f9c1e']], 0, 0, 1, 1),
+      `<circle cx="50" cy="57" r="31" fill="url(#${P}or)" stroke="#a35408" stroke-width="3.5"/>` +
+      [[62, 68, 2.2], [70, 58, 1.8], [55, 76, 2], [40, 74, 1.7], [66, 44, 1.5], [30, 62, 1.6]]
+        .map(d => `<circle cx="${d[0]}" cy="${d[1]}" r="${d[2]}" fill="#c65f06" opacity=".4"/>`).join('') +
+      [[42, 46, 2.4], [34, 56, 1.8], [52, 40, 1.8], [60, 52, 1.6]]
+        .map(d => `<circle cx="${d[0]}" cy="${d[1]}" r="${d[2]}" fill="#ffe08a" opacity=".6"/>`).join('') +
+      `<ellipse cx="37" cy="45" rx="8" ry="13" fill="#fff" opacity=".8" transform="rotate(-24 37 45)"/>` +
+      `<circle cx="32" cy="63" r="3" fill="#fff" opacity=".4"/>` +
+      `<path d="M50,27 C49,23 50,20 52,17" stroke="#8a5a1e" stroke-width="4" fill="none" stroke-linecap="round"/>` +
+      `<circle cx="51" cy="26" r="4" fill="#8a5a1e"/>` +
+      leaf(`M53,22 C57,9 73,4 85,10 C83,22 70,30 57,27 C54,26 52,24 53,22 Z`) +
+      vein(`M58,24 C66,18 73,14 80,11`)
+    ),
+
+    lemon: () => svg('100 100',
+      rg('le', [[0, '#f4f98e'], [0.55, '#cde14b'], [1, '#9fc22e']]) +
+      lg('leaf', [[0, '#a4e455'], [1, '#4f9c1e']], 0, 0, 1, 1),
+      `<path d="M47,31 C45,26 45,22 47,18" stroke="#7a9a18" stroke-width="3.5" fill="none" stroke-linecap="round"/>` +
+      leaf(`M48,28 C50,16 62,9 75,11 C74,21 63,29 51,29 Z`) +
+      vein(`M52,25 C58,19 65,15 71,12`) +
+      `<path d="M50,31 C65,31 79,40 84,51 L91,55 L84,60 C79,71 65,80 50,80 C35,80 21,71 16,60 L9,55 L16,51 C21,40 35,31 50,31 Z" fill="url(#${P}le)" stroke="#5f7d10" stroke-width="3.5" stroke-linejoin="round"/>` +
+      `<path d="M26,68 C33,74 44,77 54,76" stroke="#7f9e1c" stroke-width="3" fill="none" opacity=".55" stroke-linecap="round"/>` +
+      `<ellipse cx="36" cy="44" rx="8" ry="11" fill="#fff" opacity=".72" transform="rotate(-18 36 44)"/>` +
+      `<circle cx="31" cy="58" r="2.6" fill="#fff" opacity=".4"/>`
+    ),
+
+    bell: () => svg('100 100',
+      lg('be', [[0, '#fff0a0'], [0.5, '#ffd23e'], [1, '#eba412']]) +
+      lg('bs', [[0, '#f6bd3c'], [1, '#df9006']]),
+      `<circle cx="50" cy="16" r="6" fill="url(#${P}be)" stroke="#8a5a08" stroke-width="3"/>` +
+      `<path d="M50,20 C37,20 31,31 30,45 C29,57 26,64 21,70 C19,73 21,77 25,77 L75,77 C79,77 81,73 79,70 C74,64 71,57 70,45 C69,31 63,20 50,20 Z" fill="url(#${P}be)" stroke="#8a5a08" stroke-width="3.5" stroke-linejoin="round"/>` +
+      `<path d="M63,28 C68,34 70,42 70,50" stroke="#c87e08" stroke-width="4" fill="none" opacity=".45" stroke-linecap="round"/>` +
+      `<ellipse cx="40" cy="34" rx="4.5" ry="9" fill="#fff" opacity=".8" transform="rotate(12 40 34)"/>` +
+      `<path d="M19,73 C13,71 8,73 5,78 C9,80 12,82 13,85 C16,82 19,80 21,80 Z" fill="#f08a28" stroke="#a35408" stroke-width="2" stroke-linejoin="round"/>` +
+      `<path d="M81,73 C87,71 92,73 95,78 C88,80 84,82 87,85 C84,82 81,80 79,80 Z" fill="#f08a28" stroke="#a35408" stroke-width="2" stroke-linejoin="round"/>` +
+      `<path d="M21,70 L79,70 L82,81 C82,86 78,89 73,89 L27,89 C22,89 18,86 18,81 Z" fill="url(#${P}bs)" stroke="#8a5a08" stroke-width="3.5" stroke-linejoin="round"/>` +
+      `<path d="M25,74 L75,74" stroke="#fff" stroke-width="2.5" opacity=".5" stroke-linecap="round"/>` +
+      `<circle cx="50" cy="92" r="5.5" fill="#9a6510" stroke="#5a3808" stroke-width="2.5"/>`
+    ),
+
+    melon: () => svg('100 100',
+      rg('mf', [[0, '#ff8a78'], [0.6, '#f0453f'], [1, '#cf2430']], 0.4, 0.32) +
+      lg('mr', [[0, '#4d9c48'], [1, '#256e2c']]),
+      `<path d="M10,42 A40,40 0 0 0 90,42 Z" fill="url(#${P}mr)" stroke="#1c5220" stroke-width="3.5" stroke-linejoin="round"/>` +
+      `<path d="M15,42 A35,35 0 0 0 85,42 Z" fill="#e6f3c4"/>` +
+      `<path d="M19,42 A31,31 0 0 0 81,42 Z" fill="url(#${P}mf)" stroke="#a31c28" stroke-width="2.5" stroke-linejoin="round"/>` +
+      [[38, 56, -18, 4.6], [50, 63, 3, 5], [62, 56, 18, 4.6], [44, 48, -8, 4], [57, 47, 9, 4]]
+        .map(s => `<ellipse cx="${s[0]}" cy="${s[1]}" rx="2.7" ry="${s[3] / 2}" fill="#2a1a1e" transform="rotate(${s[2]} ${s[0]} ${s[1]})"/>`).join('') +
+      `<ellipse cx="32" cy="49" rx="7" ry="4.5" fill="#fff" opacity=".45" transform="rotate(-28 32 49)"/>`
+    ),
+
+    star: () => svg('100 100',
+      rg('st', [[0, '#fff3a0'], [0.55, '#ffd23e'], [1, '#f09f16']], 0.38, 0.32),
+      `<path d="${starPath(60, 37, 27, 11.5, -70)}" fill="#f2b32a" stroke="#9a5e08" stroke-width="3" stroke-linejoin="round"/>` +
+      `<path d="${starPath(44, 59, 30, 13, -98)}" fill="url(#${P}st)" stroke="#9a5e08" stroke-width="3.5" stroke-linejoin="round"/>` +
+      `<path d="${starPath(44, 59, 22, 9, -98)}" fill="#fff" opacity=".28"/>` +
+      spark4(64, 62, 0.5, 0.85)
+    ),
+
+    seven: () => {
+      const one = (dx, dy) =>
+        `<g transform="translate(${dx},${dy})">` +
+        `<polygon points="24,29 84,29 88,37 52,95 36,95 66,43 24,43" fill="#ff9e28" stroke="#8a1015" stroke-width="3" stroke-linejoin="round"/>` +
+        `<polygon points="18,22 78,22 82,30 46,88 30,88 60,36 18,36" fill="url(#${P}s7)" stroke="#8a1015" stroke-width="3" stroke-linejoin="round"/>` +
+        `<path d="M23,27 L73,27" stroke="#ffc0a8" stroke-width="3.2" opacity=".75" stroke-linecap="round"/>` +
+        `</g>`;
+      return svg('100 100',
+        lg('s7', [[0, '#ff7454'], [0.5, '#f02a24'], [1, '#c40e18']]),
+        `<g transform="translate(50,50) scale(0.8) translate(-65,-58)">` + one(-6, 1) + one(30, -1) + `</g>` +
+        spark4(24, 26, 0.55, 0.9) + spark4(79, 60, 0.4, 0.8)
+      );
+    },
+
+    bar: () => svg('100 100',
+      lg('bp', [[0, '#4c4c4c'], [0.5, '#1c1c1c'], [1, '#0a0a0a']]),
+      `<rect x="9" y="17" width="82" height="66" rx="10" fill="url(#${P}bp)" stroke="#000" stroke-width="3"/>` +
+      `<rect x="13.5" y="21.5" width="73" height="57" rx="7" fill="none" stroke="#565656" stroke-width="2"/>` +
+      `<path d="M14,25 Q50,20 86,25 L86,42 Q50,35 14,42 Z" fill="#fff" opacity=".1"/>` +
+      [39, 58, 77].map(y =>
+        `<text x="50" y="${y}" font-family="${FONT}" font-weight="900" font-size="18.5" letter-spacing="1" text-anchor="middle" fill="#ffffff">BAR</text>`
+      ).join('')
+    )
+  };
+
+  /* ---------- LUCK 蛋 ---------- */
+  const EGG = {
+    orange: {
+      bg: '#ef8c2c', ray1: '#f8b055', ray2: '#ffc678',
+      grad: ['eo', [[0, '#fff8ee'], [0.55, '#f9dcc4'], [1, '#eaa081']]],
+      stroke: '#b06a48', spot: '#eba08c', shade: '#d98a68', outline: '#d94f16', halo: '#fff3da'
+    },
+    blue: {
+      bg: '#4fb394', ray1: '#3f86c2', ray2: '#74c6de',
+      grad: ['eb', [[0, '#f4fcfe'], [0.55, '#d5e9f2'], [1, '#a2bbcf']]],
+      stroke: '#4a6a8a', spot: '#8fb4d4', shade: '#7fa2bd', outline: '#1d5a9e', halo: '#eafaff'
+    }
+  };
+  const EGG_D = 'M50,20 C62,20 73,37 73,57 C73,75 63,86 50,86 C37,86 27,75 27,57 C27,37 38,20 50,20 Z';
+
+  function luckEgg(color) {
+    const c = EGG[color] || EGG.orange;
+    let rays = '';
+    for (let i = 0; i < 6; i++) {
+      const a = -90 + i * 60;
+      rays += wedge(50, 54, 78, a, a + 30, c.ray1) + wedge(50, 54, 78, a + 30, a + 60, c.ray2);
+    }
+    const spots = [[42, 36, 6], [60, 48, 5], [38, 60, 5.5], [56, 72, 6], [48, 50, 4]]
+      .map(s => `<circle cx="${s[0]}" cy="${s[1]}" r="${s[2]}" fill="${c.spot}" opacity=".8"/>`).join('');
+    const txt = (extra) =>
+      `<text x="50" y="76" transform="rotate(-8 50 66)" font-family="${FONT}" font-weight="900" font-size="30" letter-spacing="1" text-anchor="middle" ${extra}>LUCK</text>`;
+    return svg('100 100',
+      rg(c.grad[0], c.grad[1]) +
+      lg('lg1', [[0, '#fff7a8'], [0.55, '#ffd83e'], [1, '#f5a81e']]) +
+      `<clipPath id="${P}ec"><path d="${EGG_D}"/></clipPath>`,
+      `<rect width="100" height="100" fill="${c.bg}"/>` + rays +
+      `<circle cx="50" cy="54" r="31" fill="${c.halo}" opacity=".35"/>` +
+      `<path d="${EGG_D}" fill="url(#${P}${c.grad[0]})" stroke="${c.stroke}" stroke-width="3"/>` +
+      `<g clip-path="url(#${P}ec)">${spots}<ellipse cx="50" cy="88" rx="24" ry="9" fill="${c.shade}" opacity=".55"/></g>` +
+      `<ellipse cx="38" cy="33" rx="6" ry="10" fill="#fff" opacity=".85" transform="rotate(-16 38 33)"/>` +
+      txt(`fill="none" stroke="${c.halo}" stroke-width="10" stroke-linejoin="round"`) +
+      txt(`fill="none" stroke="${c.outline}" stroke-width="5.5" stroke-linejoin="round"`) +
+      txt(`fill="url(#${P}lg1)" stroke="${c.outline}" stroke-width="1.4" paint-order="stroke"`)
+    );
+  }
+
+  /* ---------- 金币 ---------- */
+  function coin() {
+    let ticks = '';
+    for (let i = 0; i < 14; i++) {
+      const a = i * (360 / 14) * Math.PI / 180;
+      ticks += `<line x1="${n(50 + 39.5 * Math.cos(a))}" y1="${n(50 + 39.5 * Math.sin(a))}" x2="${n(50 + 44 * Math.cos(a))}" y2="${n(50 + 44 * Math.sin(a))}" stroke="#b8820f" stroke-width="2" opacity=".7"/>`;
+    }
+    const t = (dx, dy, fill) =>
+      `<text x="${50 + dx}" y="${61 + dy}" font-family="${FONT}" font-weight="900" font-size="27" letter-spacing="1" text-anchor="middle" fill="${fill}">FD</text>`;
+    return svg('100 100',
+      lg('c1', [[0, '#f8c93e'], [1, '#e29a14']]) +
+      rg('c2', [[0, '#fff0a2'], [0.55, '#f8cb42'], [1, '#e9a516']], 0.36, 0.3),
+      `<circle cx="50" cy="50" r="47" fill="url(#${P}c1)" stroke="#7a4e08" stroke-width="4"/>` +
+      ticks +
+      `<circle cx="50" cy="50" r="38" fill="url(#${P}c2)" stroke="#c88818" stroke-width="2.5"/>` +
+      `<path d="M19,33 A37,37 0 0 1 47,13" stroke="#fff6c8" stroke-width="5" fill="none" stroke-linecap="round" opacity=".8"/>` +
+      t(-1, -1.5, '#ffedb0') + t(0.8, 0.8, '#a87008') + t(0, 0, '#b87810')
+    );
+  }
+
+  function jpCoin() {
+    let ticks = '';
+    for (let i = 0; i < 20; i++) {
+      const a = i * 18 * Math.PI / 180;
+      ticks += `<line x1="${n(50 + 36 * Math.cos(a))}" y1="${n(50 + 36 * Math.sin(a))}" x2="${n(50 + 41 * Math.cos(a))}" y2="${n(50 + 41 * Math.sin(a))}" stroke="#c8820f" stroke-width="2" opacity=".65"/>`;
+    }
+    const t = (dx, dy, fill) =>
+      `<text x="${50 + dx}" y="${63 + dy}" font-family="${FONT}" font-weight="900" font-size="30" letter-spacing="1" text-anchor="middle" fill="${fill}">JP</text>`;
+    return svg('100 100',
+      rg('jg', [[0, '#ffd870', 0.9], [0.72, '#ffbe48', 0.5], [1, '#ffbe48', 0]], 0.5, 0.5, 0.5) +
+      lg('j1', [[0, '#f8d05a'], [1, '#e89a1c']]) +
+      rg('j2', [[0, '#fff6c0'], [0.55, '#ffd44e'], [1, '#f2a828']], 0.4, 0.32),
+      `<circle cx="50" cy="50" r="49" fill="url(#${P}jg)"/>` +
+      `<circle cx="50" cy="50" r="44" fill="url(#${P}j1)" stroke="#a35e0c" stroke-width="3.5"/>` +
+      ticks +
+      `<circle cx="50" cy="50" r="35" fill="url(#${P}j2)" stroke="#d88f1c" stroke-width="3"/>` +
+      `<path d="M22,32 A33,33 0 0 1 46,18" stroke="#fff8d0" stroke-width="4.5" fill="none" stroke-linecap="round" opacity=".85"/>` +
+      `<ellipse cx="50" cy="56" rx="25" ry="15" fill="#fff2a0" opacity=".8"/>` +
+      t(1.2, 1.5, '#8a5208') + t(0, 0, '#7c4a06')
+    );
+  }
+
+  /* ---------- 中央场景 560×640 ---------- */
+  function scene() {
+    const d = [];
+    // defs
+    let defs =
+      lg('sky', [[0, '#8f5f96'], [0.45, '#b287a5'], [1, '#cbb4bc']]) +
+      lg('tg', [[0, '#fff7a0'], [0.55, '#ffd23e'], [1, '#f5a01a']]) +
+      lg('cw', [[0, '#f7f0dc'], [1, '#e6d9bc']]) +
+      lg('cr', [[0, '#ffd96a'], [0.5, '#f2ab28'], [1, '#dd8c12']]) +
+      rg('dm', [[0, '#f06850'], [0.6, '#d93a28'], [1, '#b02018']], 0.4, 0.3) +
+      lg('hb1', [[0, '#b9d478'], [1, '#93bd52']]) +
+      lg('hf1', [[0, '#8fc455'], [1, '#5f9a3a']]) +
+      lg('sd', [[0, '#ecc77e'], [1, '#cf9d58']]) +
+      lg('hbd', [[0, '#fcfaf4'], [1, '#ddd9ce']]) +
+      lg('ard', [[0, '#f4f2ec'], [1, '#c9c6bb']]) +
+      lg('cap', [[0, '#ee5540'], [1, '#b81820']]) +
+      lg('plm', [[0, '#ff5a3a'], [1, '#c81f1f']]) +
+      lg('dbd', [[0, '#4aa2da'], [1, '#1f6fb0']]) +
+      lg('dhd', [[0, '#4aa2da'], [1, '#2a80bc']]);
+
+    const cloud = (x, y, s, op) =>
+      `<g transform="translate(${x},${y}) scale(${s})" fill="#ffffff" opacity="${op}">` +
+      `<ellipse cx="0" cy="0" rx="30" ry="17"/><ellipse cx="-26" cy="7" rx="20" ry="12"/>` +
+      `<ellipse cx="27" cy="7" rx="23" ry="13"/><ellipse cx="2" cy="10" rx="34" ry="11"/></g>`;
+
+    const pine = (x, y, H) => {
+      const tri = (w, yT, yB) => `<path d="M${x},${n(yT)} L${n(x - w)},${n(yB)} L${n(x + w)},${n(yB)} Z" fill="#2f8040" stroke="#1c5528" stroke-width="2" stroke-linejoin="round"/>`;
+      const lite = (w, yT, yB) => `<path d="M${x},${n(yT)} L${n(x - w * 0.55)},${n(yB)} L${x},${n(yB)} Z" fill="#4d9c50" opacity=".85"/>`;
+      const t1 = [0.36 * H, y - 0.62 * H, y - 0.16 * H], t2 = [0.30 * H, y - 0.86 * H, y - 0.44 * H], t3 = [0.22 * H, y - H, y - 0.62 * H];
+      return `<rect x="${n(x - 0.05 * H)}" y="${n(y - 0.22 * H)}" width="${n(0.1 * H)}" height="${n(0.22 * H)}" fill="#6a4a2a"/>` +
+        tri(...t1) + lite(...t1) + tri(...t2) + lite(...t2) + tri(...t3) + lite(...t3);
+    };
+
+    const tuft = (x, y) =>
+      `<path d="M${x},${y} Q${x - 3},${y - 8} ${x - 7},${y - 13} M${x},${y} Q${x + 1},${y - 10} ${x - 1},${y - 16} M${x},${y} Q${x + 5},${y - 8} ${x + 9},${y - 12}" stroke="#4a8a30" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+
+    const arch = (x, y, w, h, f = '#4a3a52') =>
+      `<path d="M${x},${y + h} L${x},${y + w / 2} Q${x + w / 2},${y - w * 0.28} ${x + w},${y + w / 2} L${x + w},${y + h} Z" fill="${f}"/>`;
+
+    /* --- 标题: 沿弧线排列的立体字母 --- */
+    let title = '';
+    {
+      const word = 'FIERY DRAGON', R = 352, cx = 282, cy = 452, a0 = -31.2, st = 6.24;
+      for (let i = 0; i < word.length; i++) {
+        const ch = word[i];
+        if (ch === ' ') continue;
+        const a = a0 + st * i, rad = a * Math.PI / 180;
+        const x = cx + R * Math.sin(rad), y = cy - R * Math.cos(rad);
+        const tf = `transform="translate(${n(x)},${n(y)}) rotate(${n(a)})"`;
+        const base = `${tf} font-family="${FONT}" font-weight="900" font-size="44" text-anchor="middle" stroke-linejoin="round"`;
+        title += `<text ${base} fill="none" stroke="#8a2012" stroke-width="11">${ch}</text>` +
+          `<text ${base} fill="url(#${P}tg)" stroke="#f06a2a" stroke-width="5" paint-order="stroke">${ch}</text>`;
+      }
+    }
+
+    /* --- 天空 云 星光 --- */
+    d.push(`<rect width="560" height="640" fill="url(#${P}sky)"/>`);
+    d.push(cloud(86, 258, 1, 0.95), cloud(210, 218, 0.7, 0.8), cloud(470, 228, 0.9, 0.9), cloud(318, 180, 0.45, 0.55));
+    d.push(spark4(452, 198, 1.2, 0.95), spark4(436, 224, 0.55, 0.7), spark4(468, 174, 0.5, 0.6), spark4(140, 218, 0.45, 0.5));
+
+    /* --- 城堡 (右上) --- */
+    d.push(
+      // 后方矮墙+雉堞
+      `<rect x="338" y="452" width="206" height="26" fill="url(#${P}cw)" stroke="#7a6850" stroke-width="2"/>` +
+      [346, 374, 402, 458, 486, 514].map(x => `<rect x="${x}" y="442" width="14" height="12" fill="url(#${P}cw)" stroke="#7a6850" stroke-width="2"/>`).join('') +
+      // 中央主楼 + 金色锥顶
+      `<rect x="396" y="298" width="62" height="160" fill="url(#${P}cw)" stroke="#7a6850" stroke-width="2.5"/>` +
+      `<rect x="444" y="300" width="12" height="156" fill="#d9c8a4" opacity=".7"/>` +
+      `<polygon points="386,298 468,298 427,196" fill="url(#${P}cr)" stroke="#8a5a10" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<line x1="427" y1="196" x2="427" y2="184" stroke="#8a5a10" stroke-width="3"/><circle cx="427" cy="181" r="4.5" fill="#f8c84a" stroke="#8a5a10" stroke-width="2"/>` +
+      arch(406, 318, 12, 18) + arch(434, 318, 12, 18) + arch(406, 352, 12, 18) + arch(434, 352, 12, 18) + arch(420, 392, 12, 20) +
+      // 左塔 红洋葱顶
+      `<rect x="346" y="368" width="42" height="100" fill="url(#${P}cw)" stroke="#7a6850" stroke-width="2.5"/>` +
+      `<rect x="377" y="370" width="9" height="96" fill="#d9c8a4" opacity=".7"/>` +
+      `<path d="M344,368 C344,346 352,332 367,318 C382,332 390,346 390,368 Z" fill="url(#${P}dm)" stroke="#7a140e" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<line x1="367" y1="318" x2="367" y2="306" stroke="#8a5a10" stroke-width="2.5"/><circle cx="367" cy="303" r="3.5" fill="#f8c84a" stroke="#8a5a10" stroke-width="1.5"/>` +
+      arch(359, 396, 14, 20) + arch(359, 430, 14, 20) +
+      // 右塔 红洋葱顶
+      `<rect x="470" y="356" width="46" height="110" fill="url(#${P}cw)" stroke="#7a6850" stroke-width="2.5"/>` +
+      `<rect x="504" y="358" width="10" height="106" fill="#d9c8a4" opacity=".7"/>` +
+      `<path d="M468,356 C468,332 477,318 493,302 C509,318 518,332 518,356 Z" fill="url(#${P}dm)" stroke="#7a140e" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<line x1="493" y1="302" x2="493" y2="289" stroke="#8a5a10" stroke-width="2.5"/><circle cx="493" cy="286" r="4" fill="#f8c84a" stroke="#8a5a10" stroke-width="1.5"/>` +
+      arch(482, 384, 14, 20) + arch(482, 418, 14, 20) +
+      // 最右小塔
+      `<rect x="524" y="396" width="36" height="72" fill="url(#${P}cw)" stroke="#7a6850" stroke-width="2.5"/>` +
+      `<path d="M522,396 C522,380 528,370 542,360 C556,370 562,380 562,396 Z" fill="url(#${P}dm)" stroke="#7a140e" stroke-width="2.5" stroke-linejoin="round"/>` +
+      arch(536, 416, 12, 16)
+    );
+
+    /* --- 丘陵 与 松树 --- */
+    d.push(`<path d="M0,462 C90,428 180,438 260,458 C340,478 460,456 560,470 L560,640 L0,640 Z" fill="url(#${P}hb1)"/>`);
+    d.push(pine(334, 474, 52), pine(372, 464, 68), pine(408, 476, 46), pine(300, 480, 38));
+    d.push(`<path d="M0,520 C100,488 200,500 300,512 C400,524 480,506 560,520 L560,640 L0,640 Z" fill="url(#${P}hf1)"/>`);
+    d.push(pine(62, 518, 42), pine(110, 510, 54), pine(252, 522, 32));
+
+    /* --- 底部沙地 + 石头草丛 --- */
+    d.push(`<path d="M0,566 C110,550 240,556 360,564 C450,570 520,562 560,566 L560,640 L0,640 Z" fill="url(#${P}sd)"/>`);
+    d.push(`<path d="M0,566 C110,550 240,556 360,564 C450,570 520,562 560,566" stroke="#a5793c" stroke-width="3.5" fill="none" opacity=".8"/>`);
+    d.push(
+      `<path d="M134,606 C134,596 142,590 152,590 C162,590 168,596 168,604 L166,608 L136,608 Z" fill="#dcb271" stroke="#8a6634" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<path d="M146,591 L142,607" stroke="#b98f52" stroke-width="1.5"/>` +
+      `<path d="M420,602 C421,594 428,590 436,590 C444,590 449,595 449,601 L448,604 L421,604 Z" fill="#dcb271" stroke="#8a6634" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<ellipse cx="476" cy="604" rx="9" ry="5.5" fill="#d4a965" stroke="#8a6634" stroke-width="2"/>` +
+      tuft(112, 586) + tuft(298, 594) + tuft(368, 588) + tuft(508, 598)
+    );
+    d.push(`<ellipse cx="152" cy="566" rx="88" ry="11" fill="#7a5a2c" opacity=".28"/>`);
+    d.push(`<ellipse cx="512" cy="628" rx="46" ry="9" fill="#7a5a2c" opacity=".28"/>`);
+
+    /* --- 蓝龙 (右下, 昂首喷火) --- */
+    d.push(
+      // 颈身
+      `<path d="M470,640 C476,592 486,552 502,516 C512,494 522,480 534,473 C544,468 554,468 560,472 L560,640 Z" fill="url(#${P}dbd)" stroke="#123f66" stroke-width="3.5" stroke-linejoin="round"/>` +
+      // 腹甲
+      `<path d="M486,640 C492,596 502,558 518,526" stroke="#f2df9e" stroke-width="13" fill="none" stroke-linecap="round"/>` +
+      `<path d="M484,618 l15,-4 M490,592 l14,-6 M500,566 l13,-8 M512,544 l12,-9 M526,524 l11,-9" stroke="#cfa852" stroke-width="2.5" fill="none" stroke-linecap="round"/>` +
+      // 红鞍带
+      `<path d="M496,638 C506,612 520,596 544,588" stroke="#c82832" stroke-width="9" fill="none" stroke-linecap="round"/>` +
+      `<circle cx="524" cy="600" r="4.5" fill="#f0b030" stroke="#8a5f10" stroke-width="2"/>` +
+      // 手持金环长杆 (挑火)
+      limb([[520, 570], [498, 554], [482, 544]], 9, '#3f92cc', '#123f66') +
+      `<line x1="488" y1="554" x2="410" y2="482" stroke="#6a4c24" stroke-width="8" stroke-linecap="round"/>` +
+      `<line x1="488" y1="554" x2="410" y2="482" stroke="#b08850" stroke-width="4.5" stroke-linecap="round"/>` +
+      `<circle cx="406" cy="479" r="9" fill="none" stroke="#8a5f12" stroke-width="8"/>` +
+      `<circle cx="406" cy="479" r="9" fill="none" stroke="#f2b428" stroke-width="4.5"/>` +
+      `<circle cx="480" cy="543" r="6" fill="#3f92cc" stroke="#123f66" stroke-width="2"/>`
+    );
+    // 龙头 (朝左张口)
+    d.push(`<g transform="translate(468,468) rotate(-10)">` +
+      `<path d="M22,-14 C34,-34 56,-42 70,-36 C58,-30 50,-22 46,-8 C38,-14 28,-16 22,-14 Z" fill="#1c5c96" stroke="#0f3557" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<path d="M46,-12 C36,-26 8,-30 -20,-20 C-48,-10 -68,0 -74,7 L-74,10 C-50,10 -20,14 4,20 L30,24 C46,16 52,0 46,-12 Z" fill="url(#${P}dhd)" stroke="#123f66" stroke-width="3.5" stroke-linejoin="round"/>` +
+      `<path d="M-16,22 C-38,22 -56,27 -64,35 C-60,43 -40,47 -16,45 C-4,43 2,35 0,27 Z" fill="#2f86c2" stroke="#123f66" stroke-width="3" stroke-linejoin="round"/>` +
+      `<path d="M-70,8 L-14,17 L-58,33 C-66,27 -71,17 -70,8 Z" fill="#b02034"/>` +
+      `<path d="M-64,10 l6,9 l6,-8 Z M-48,12 l6,9 l6,-8 Z M-32,14 l6,8 l6,-7 Z" fill="#ffffff" stroke="#8a8a92" stroke-width="1"/>` +
+      `<path d="M-54,29 l5,-8 l5,7 Z M-39,31 l5,-8 l5,7 Z" fill="#ffffff" stroke="#8a8a92" stroke-width="1"/>` +
+      `<path d="M-22,24 C-38,21 -52,24 -60,30 C-52,35 -36,34 -22,29 C-20,27 -20,25 -22,24 Z" fill="#ff6a55" stroke="#b02a30" stroke-width="2"/>` +
+      `<circle cx="-58" cy="2" r="2.2" fill="#123f66"/>` +
+      `<path d="M-2,-16 L14,-12" stroke="#123f66" stroke-width="3" stroke-linecap="round"/>` +
+      `<circle cx="6" cy="-7" r="7.5" fill="#ffffff" stroke="#123f66" stroke-width="2.5"/>` +
+      `<circle cx="4" cy="-6" r="3.4" fill="#123f66"/><circle cx="5.4" cy="-7.6" r="1.2" fill="#ffffff"/>` +
+      // 火焰
+      `<path d="M-78,2 L-104,-8 L-88,2 L-106,12 L-88,10 L-96,24 L-78,12 Z" fill="#ff8a1e" stroke="#cc5a0a" stroke-width="2" stroke-linejoin="round"/>` +
+      `<path d="M-80,4 L-98,0 L-88,4 L-98,12 L-86,10 L-90,18 L-78,10 Z" fill="#ffd23e"/>` +
+      `<circle cx="-84" cy="8" r="4" fill="#fff2a0"/>` +
+      `</g>`);
+
+    /* --- 白马骑士 (左, 持枪冲锋) --- */
+    d.push(
+      // 马尾
+      `<path d="M96,446 C70,462 50,492 52,528 C62,518 68,522 66,536 C78,522 86,514 92,500 L98,456 Z" fill="#8a8a94" stroke="#3a3540" stroke-width="3" stroke-linejoin="round"/>` +
+      // 远侧腿
+      limb([[118, 478], [98, 518], [80, 550]], 11, '#d8d5cb', '#3a3540') + hoof(78, 552, 28, '#3f363c') +
+      limb([[194, 458], [224, 432], [238, 406]], 10, '#d8d5cb', '#3a3540') + hoof(240, 402, -30, '#3f363c') +
+      // 躯干
+      `<path d="M94,450 C100,428 138,416 172,422 C198,427 216,440 218,458 C220,476 206,492 180,496 C148,501 110,496 98,480 C92,470 91,460 94,450 Z" fill="url(#${P}hbd)" stroke="#3a3540" stroke-width="3.5" stroke-linejoin="round"/>` +
+      `<path d="M100,448 C104,436 116,430 128,430 C120,442 116,458 118,474 C108,470 100,462 100,448 Z" fill="#dcd9cf" opacity=".7"/>` +
+      // 近侧腿
+      limb([[130, 486], [120, 526], [102, 558]], 12, '#f6f4ee', '#3a3540') + hoof(102, 560, 24) +
+      limb([[202, 466], [238, 452], [258, 470]], 11, '#f6f4ee', '#3a3540') + hoof(260, 472, 35) +
+      // 颈 + 鬃毛 + 头
+      `<circle cx="221" cy="401" r="11" fill="#a8402a" stroke="#6a2012" stroke-width="2.5"/>` +
+      `<circle cx="205" cy="417" r="11" fill="#a8402a" stroke="#6a2012" stroke-width="2.5"/>` +
+      `<circle cx="189" cy="433" r="11" fill="#a8402a" stroke="#6a2012" stroke-width="2.5"/>` +
+      `<path d="M176,444 C194,432 212,418 226,398 L254,412 C242,434 224,450 202,460 Z" fill="url(#${P}hbd)" stroke="#3a3540" stroke-width="3.5" stroke-linejoin="round"/>` +
+      `<path d="M238,392 L242,372 L253,386 Z" fill="url(#${P}hbd)" stroke="#3a3540" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<path d="M232,394 C240,382 256,378 268,386 C278,393 286,408 288,422 L282,432 C272,428 260,426 250,427 C238,428 228,420 226,408 C225,400 227,396 232,394 Z" fill="url(#${P}hbd)" stroke="#3a3540" stroke-width="3.5" stroke-linejoin="round"/>` +
+      `<circle cx="281" cy="420" r="2.5" fill="#3a3540"/>` +
+      `<path d="M282,428 Q274,432 264,431" stroke="#3a3540" stroke-width="2.5" fill="none" stroke-linecap="round"/>` +
+      `<circle cx="252" cy="402" r="3.2" fill="#2a2228"/><circle cx="253.2" cy="401" r="1" fill="#fff"/>` +
+      `<path d="M240,400 C252,408 262,414 273,420" stroke="#c82832" stroke-width="3.5" fill="none"/>` +
+      `<circle cx="273" cy="420" r="2.2" fill="#c82832"/>` +
+      `<path d="M264,424 C253,430 242,432 231,430" stroke="#c82832" stroke-width="2.5" fill="none" opacity=".85"/>` +
+      // 红鞍袍
+      `<path d="M148,428 C168,420 192,424 208,438 C216,446 219,456 216,464 L200,459 C198,468 190,473 181,470 L176,459 C166,466 154,464 148,455 C140,459 131,455 130,446 L142,438 Z" fill="url(#${P}cap)" stroke="#7a0e14" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<path d="M131,446 C140,452 150,456 160,454 M176,459 C186,464 196,462 201,458" stroke="#f2b428" stroke-width="2.5" fill="none" stroke-linecap="round"/>` +
+      // 骑手: 腿/甲/盔/红羽
+      limb([[158, 424], [176, 440], [188, 452]], 10, '#e8e6de', '#3a3540') + hoof(191, 454, 42, '#4a3f45') +
+      `<path d="M142,394 C142,380 152,371 165,371 C178,371 188,380 188,394 L185,424 C174,433 156,433 146,424 Z" fill="url(#${P}ard)" stroke="#3a3540" stroke-width="3" stroke-linejoin="round"/>` +
+      `<path d="M158,374 L157,426 M172,374 L173,426" stroke="#a8a496" stroke-width="1.8"/>` +
+      `<circle cx="143" cy="384" r="8" fill="#e6e3da" stroke="#3a3540" stroke-width="2.5"/>` +
+      `<circle cx="187" cy="384" r="8" fill="#e6e3da" stroke="#3a3540" stroke-width="2.5"/>` +
+      limb([[150, 386], [136, 368], [126, 352]], 9, '#e8e6de', '#3a3540') +
+      `<path d="M166,331 C172,312 188,300 206,302 C198,290 176,290 163,300 C154,308 152,320 156,331 Z" fill="url(#${P}plm)" stroke="#7a0e14" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<path d="M164,330 C170,314 182,304 198,302" stroke="#8a1a12" stroke-width="2" fill="none" opacity=".6"/>` +
+      `<path d="M147,358 C147,342 155,331 166,331 C177,331 185,342 185,358 L183,364 L149,364 Z" fill="url(#${P}ard)" stroke="#3a3540" stroke-width="3" stroke-linejoin="round"/>` +
+      `<path d="M160,333 L159,362 M166,331 L166,362 M172,333 L173,362" stroke="#a8a496" stroke-width="1.6"/>` +
+      `<rect x="151" y="350" width="30" height="8" rx="4" fill="#2a2430"/>` +
+      `<circle cx="159" cy="354" r="2.6" fill="#ff3b2e"/><circle cx="172" cy="354" r="2.6" fill="#ff3b2e"/>` +
+      // 长枪 + 红缨 (手握枪杆)
+      `<line x1="126" y1="350" x2="56" y2="244" stroke="#6a6a74" stroke-width="9" stroke-linecap="round"/>` +
+      `<line x1="126" y1="350" x2="56" y2="244" stroke="#eceff4" stroke-width="5" stroke-linecap="round"/>` +
+      `<circle cx="124" cy="349" r="6.5" fill="#d6d3ca" stroke="#3a3540" stroke-width="2.5"/>` +
+      `<path d="M62,252 L48,228 L70,240 Z" fill="#c9ccd4" stroke="#3a3540" stroke-width="2" stroke-linejoin="round"/>` +
+      `<path d="M60,254 L30,252 L54,236 Z" fill="url(#${P}plm)" stroke="#7a0e14" stroke-width="2" stroke-linejoin="round"/>`
+    );
+
+    /* --- 标题压顶 --- */
+    d.push(title);
+
+    return svg('560 640', defs, d.join('\n'));
+  }
+
+  return { symbol, luckEgg, coin, jpCoin, scene };
+
+  function symbol(key) {
+    const f = SYM[key];
+    if (!f) throw new Error('unknown symbol: ' + key);
+    return f();
+  }
+})();
+
+</script>
+<script>
+/* ===== src/audio.js ===== */
+/* ============================================================
+ * FIERY DRAGON 火龙珠 · SFX 子代理B — WebAudio 程序化合成音效引擎
+ * 纯合成 8-bit 街机风：方波/三角波/锯齿/白噪声 + 快速包络。
+ * 链路: voice → master → (dry) → compressor → destination
+ *                     └→ convolver(程序生成衰减噪声IR) → wet → compressor
+ * 无任何外部音频资源；无 AudioContext 环境全程安全降级不抛错。
+ * ============================================================ */
+window.SFX = (() => {
+  'use strict';
+
+  var MASTER_VOL = 0.8;
+  var ctx = null;          // AudioContext
+  var master = null;       // 总增益（静音控制点）
+  var comp = null;         // 轻限幅，防止 win3 多层叠爆
+  var conv = null;         // 混响
+  var wet = null;          // 湿声增益
+  var noiseBuf = null;     // 缓存的 1s 白噪声
+  var muted = false;
+  var loops = {};          // 循环型句柄: gspin / bgm
+
+  /* ---------------- 基础设施 ---------------- */
+
+  function resume() {
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      try {
+        var p = ctx.resume();
+        if (p && p.catch) p.catch(function () {});
+      } catch (e) {}
+    }
+  }
+
+  // 程序生成混响 IR：双声道衰减噪声
+  function makeIR(seconds, decay) {
+    var rate = ctx.sampleRate;
+    var len = Math.max(1, Math.floor(seconds * rate));
+    var buf = ctx.createBuffer(2, len, rate);
+    for (var c = 0; c < 2; c++) {
+      var d = buf.getChannelData(c);
+      for (var i = 0; i < len; i++) {
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+      }
+    }
+    return buf;
+  }
+
+  // 幂等初始化；iOS 需在首次用户手势中调用
+  function init() {
+    if (ctx) { resume(); return; }
+    var AC = (typeof window !== 'undefined') &&
+             (window.AudioContext || window.webkitAudioContext);
+    if (!AC) return;
+    try {
+      ctx = new AC();
+      master = ctx.createGain();
+      master.gain.value = muted ? 0 : MASTER_VOL;
+      comp = ctx.createDynamicsCompressor();
+      try {
+        comp.threshold.value = -14; comp.knee.value = 20; comp.ratio.value = 6;
+      } catch (e) {}
+      comp.connect(ctx.destination);
+      master.connect(comp);                                    // 干声
+      conv = ctx.createConvolver();
+      conv.buffer = makeIR(1.1, 2.8);
+      wet = ctx.createGain();
+      wet.gain.value = 0.13;
+      master.connect(conv); conv.connect(wet); wet.connect(comp); // 湿声并行
+      resume();
+    } catch (e) {
+      ctx = null; master = null; comp = null; conv = null; wet = null;
+    }
+  }
+
+  function noise() {
+    if (!noiseBuf) {
+      var rate = ctx.sampleRate;
+      noiseBuf = ctx.createBuffer(1, rate, rate);
+      var d = noiseBuf.getChannelData(0);
+      for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    return noiseBuf;
+  }
+
+  /* 单音: 方波/三角/锯齿 + 快速 AD 包络 (+可选颤音)，自清理 */
+  function beep(o) {
+    var t0 = (o.t != null) ? o.t : ctx.currentTime;
+    var dur = o.dur || 0.1;
+    var vol = Math.max(0.0003, o.vol || 0.15);
+    var osc = ctx.createOscillator();
+    osc.type = o.type || 'square';
+    osc.frequency.setValueAtTime(Math.max(1, o.f0), t0);
+    if (o.f1 && o.f1 !== o.f0) {
+      osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.f1), t0 + dur);
+    }
+    var g = ctx.createGain();
+    var a = Math.min(o.attack != null ? o.attack : 0.004, dur * 0.5);
+    g.gain.setValueAtTime(0.0002, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + a);
+    g.gain.exponentialRampToValueAtTime(0.0002, t0 + dur);
+    osc.connect(g); g.connect(master);
+    var lfo = null, lg = null;
+    if (o.vib) {                       // vib: [Hz, depth]
+      lfo = ctx.createOscillator();
+      lfo.frequency.value = o.vib[0];
+      lg = ctx.createGain();
+      lg.gain.value = o.vib[1];
+      lfo.connect(lg); lg.connect(osc.frequency);
+      lfo.start(t0);
+    }
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.05);
+    osc.onended = function () {
+      try {
+        g.disconnect(); osc.disconnect();
+        if (lfo) { try { lfo.stop(); } catch (e) {} lfo.disconnect(); lg.disconnect(); }
+      } catch (e) {}
+    };
+  }
+
+  /* 噪声打击: 可选带通/高通/低通 + 频率扫掠，自清理 */
+  function nz(o) {
+    var t0 = (o.t != null) ? o.t : ctx.currentTime;
+    var dur = o.dur || 0.1;
+    var vol = Math.max(0.0003, o.vol || 0.15);
+    var src = ctx.createBufferSource();
+    src.buffer = noise(); src.loop = true;
+    var f = ctx.createBiquadFilter();
+    f.type = o.ftype || 'bandpass';
+    f.frequency.setValueAtTime(Math.max(20, o.f0 || 2000), t0);
+    if (o.f1) f.frequency.exponentialRampToValueAtTime(Math.max(20, o.f1), t0 + dur);
+    f.Q.value = o.q || 1;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0002, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0002, t0 + dur);
+    src.connect(f); f.connect(g); g.connect(master);
+    src.start(t0, Math.random() * 0.5);
+    src.stop(t0 + dur + 0.02);
+    src.onended = function () {
+      try { g.disconnect(); f.disconnect(); src.disconnect(); } catch (e) {}
+    };
+  }
+
+  /* ---------------- 一次性音效（8-bit 音色设计） ---------------- */
+
+  var SOUNDS = {
+    // 投币：两声高频金属叮 + 下滑落袋
+    coin: function () {
+      var t = ctx.currentTime;
+      beep({ f0: 1976, dur: 0.07, vol: 0.2, t: t });
+      beep({ f0: 2637, dur: 0.09, vol: 0.18, t: t + 0.07 });
+      beep({ f0: 1200, f1: 320, dur: 0.12, vol: 0.1, t: t + 0.16 });
+    },
+    // 押注：短促方波嘟
+    bet: function () {
+      beep({ f0: 660, f1: 520, dur: 0.07, vol: 0.2 });
+    },
+    // 全押：快速上行扫弦琶音
+    allin: function () {
+      var t = ctx.currentTime;
+      var sc = [523, 587, 659, 784, 880, 1046, 1175, 1319];
+      for (var i = 0; i < sc.length; i++) {
+        beep({ f0: sc[i], dur: 0.1, vol: 0.12, t: t + i * 0.035 });
+      }
+    },
+    // 启动：噪声嗖(高通下扫) + 低频引擎起转
+    go: function () {
+      var t = ctx.currentTime;
+      nz({ ftype: 'highpass', f0: 3200, f1: 300, dur: 0.35, vol: 0.16, q: 0.8, t: t });
+      beep({ type: 'sawtooth', f0: 45, f1: 130, dur: 0.7, vol: 0.2, t: t + 0.05, attack: 0.08 });
+      beep({ f0: 220, dur: 0.08, vol: 0.12, t: t + 0.72 });
+    },
+    // 跑灯哒：极短单方波，pitch 0.6~1.6 缩放基频，可高频重叠
+    tick: function (opts) {
+      var p = (opts && opts.pitch) ? opts.pitch : 1;
+      beep({ f0: 900 * p, dur: 0.03, vol: 0.09, attack: 0.001 });
+    },
+    // LUCK：神秘上行五声音阶琶音 + 尾音闪烁颤音
+    luck: function () {
+      var t = ctx.currentTime;
+      var sc = [523, 587, 659, 784, 880, 1046];
+      for (var i = 0; i < sc.length; i++) {
+        beep({ f0: sc[i], dur: 0.11, vol: 0.13, t: t + i * 0.07 });
+        beep({ type: 'triangle', f0: sc[i] * 2, dur: 0.08, vol: 0.04, t: t + i * 0.07 });
+      }
+      beep({ f0: 1319, dur: 0.5, vol: 0.14, t: t + 0.44, vib: [9, 18] });
+      beep({ type: 'triangle', f0: 2637, dur: 0.4, vol: 0.05, t: t + 0.44, vib: [9, 30] });
+    },
+    // 小奖 0.5s：三连上行 + 高八度收尾
+    win0: function () {
+      var t = ctx.currentTime;
+      var n = [523, 659, 784];
+      for (var i = 0; i < n.length; i++) beep({ f0: n[i], dur: 0.1, vol: 0.17, t: t + i * 0.07 });
+      beep({ f0: 1046, dur: 0.22, vol: 0.2, t: t + 0.22 });
+    },
+    // 中奖 1.2s：上行琶音 + 和弦垫 + 星光
+    win1: function () {
+      var t = ctx.currentTime;
+      var arp = [523, 659, 784, 1046];
+      for (var i = 0; i < arp.length; i++) beep({ f0: arp[i], dur: 0.1, vol: 0.18, t: t + i * 0.08 });
+      var pad = [523, 659, 784, 1046];
+      for (var j = 0; j < pad.length; j++) {
+        beep({ type: 'triangle', f0: pad[j], dur: 0.7, vol: 0.055, t: t + 0.35, attack: 0.03 });
+      }
+      beep({ f0: 2637, dur: 0.2, vol: 0.06, t: t + 0.62 });
+    },
+    // 大奖 2.5s：双八度琶音 + 双和弦垫 + 高音铃
+    win2: function () {
+      var t = ctx.currentTime;
+      var arp = [523, 659, 784, 1046, 1319, 1568, 2093];
+      for (var i = 0; i < arp.length; i++) beep({ f0: arp[i], dur: 0.1, vol: 0.16, t: t + i * 0.09 });
+      var c = [523, 659, 784, 1046];
+      for (var a = 0; a < c.length; a++) beep({ type: 'triangle', f0: c[a], dur: 1.0, vol: 0.055, t: t + 0.7, attack: 0.04 });
+      var gch = [392, 494, 587, 784];
+      for (var b = 0; b < gch.length; b++) beep({ type: 'triangle', f0: gch[b], dur: 0.7, vol: 0.055, t: t + 1.5, attack: 0.04 });
+      beep({ f0: 2093, dur: 0.3, vol: 0.07, t: t + 1.2 });
+      beep({ f0: 2637, dur: 0.3, vol: 0.07, t: t + 1.55 });
+      var fin = [523, 659, 784, 1046];
+      for (var k = 0; k < fin.length; k++) beep({ type: 'triangle', f0: fin[k], dur: 0.5, vol: 0.06, t: t + 2.0 });
+      beep({ f0: 2093, dur: 0.45, vol: 0.12, t: t + 2.0 });
+    },
+    // JACKPOT 4s：大琶音+进行和弦垫+高音铃+烟花爆裂
+    win3: function () {
+      var t = ctx.currentTime;
+      var arp = [523, 659, 784, 1046, 1319, 1568, 2093, 2637];
+      for (var i = 0; i < arp.length; i++) beep({ f0: arp[i], dur: 0.11, vol: 0.16, t: t + i * 0.1 });
+      var pads = [
+        [523, 659, 784, 1046, 0.9, 1.2],
+        [349, 440, 523, 698, 1.7, 0.8],
+        [392, 494, 587, 784, 2.3, 0.8],
+        [523, 659, 784, 1046, 2.9, 1.1]
+      ];
+      for (var p = 0; p < pads.length; p++) {
+        for (var m = 0; m < 4; m++) {
+          beep({ type: 'triangle', f0: pads[p][m], dur: pads[p][5], vol: 0.05, t: t + pads[p][4], attack: 0.05 });
+        }
+      }
+      var bells = [[2093, 1.0], [2637, 1.35], [3136, 1.7], [2093, 2.6], [3136, 3.1]];
+      for (var bl = 0; bl < bells.length; bl++) {
+        beep({ f0: bells[bl][0], dur: 0.3, vol: 0.07, t: t + bells[bl][1] });
+      }
+      var booms = [1.3, 2.0, 2.7, 3.3];    // 烟花：带通爆裂 + 低频闷响
+      for (var f = 0; f < booms.length; f++) {
+        nz({
+          ftype: 'bandpass', f0: 1200 + Math.random() * 3000,
+          f1: 200, dur: 0.28, vol: 0.2, q: 0.7, t: t + booms[f]
+        });
+        beep({ type: 'sawtooth', f0: 100, f1: 40, dur: 0.15, vol: 0.16, t: t + booms[f] });
+      }
+    },
+    // 比倍猜对：双音叮咚上行
+    gwin: function () {
+      var t = ctx.currentTime;
+      beep({ f0: 659, dur: 0.09, vol: 0.18, t: t });
+      beep({ f0: 880, dur: 0.28, vol: 0.18, t: t + 0.1, vib: [7, 6] });
+    },
+    // 猜错：低频下滑呜
+    glose: function () {
+      var t = ctx.currentTime;
+      beep({ type: 'sawtooth', f0: 220, f1: 70, dur: 0.55, vol: 0.18, t: t });
+      beep({ f0: 110, f1: 50, dur: 0.55, vol: 0.1, t: t });
+    },
+    // 收分：金币快速流入串（上行叮叮）+ 落袋滑音
+    insert: function () {
+      var t = ctx.currentTime;
+      var fs = [1568, 1760, 1976, 2093, 2349, 2637];
+      for (var i = 0; i < fs.length; i++) beep({ f0: fs[i], dur: 0.05, vol: 0.13, t: t + i * 0.055 });
+      beep({ f0: 3136, dur: 0.16, vol: 0.15, t: t + 0.34 });
+      beep({ f0: 1000, f1: 380, dur: 0.12, vol: 0.09, t: t + 0.46 });
+    },
+    // 通用按键：短咔
+    press: function () {
+      beep({ f0: 1200, dur: 0.025, vol: 0.09, attack: 0.001 });
+      nz({ ftype: 'highpass', f0: 5000, dur: 0.02, vol: 0.04 });
+    }
+  };
+
+  /* ---------------- 循环型：比倍轮盘 gspin ---------------- */
+
+  function startGspin(opts) {
+    init();
+    if (!ctx) return null;
+    if (loops.gspin) return loops.gspin;
+    var t0 = ctx.currentTime;
+    var pm = (opts && opts.pitch) ? opts.pitch : 1;
+    var h = {
+      stop: function () {
+        if (h.timer) { clearInterval(h.timer); h.timer = null; }
+        if (loops.gspin === h) delete loops.gspin;
+      }
+    };
+    h.timer = setInterval(function () {
+      if (!ctx) return;
+      var e = ctx.currentTime - t0;
+      var rise = Math.min(1, e / 3);          // 3s 内渐升，营造加速感
+      beep({ f0: (700 + 400 * rise) * pm, dur: 0.035, vol: 0.085, attack: 0.001 });
+    }, 66);
+    loops.gspin = h;
+    return h;
+  }
+
+  /* ---------------- BGM：轻量 8-bit 循环 (bpm 132, Am-F-C-G) ----------------
+   * 低音方波 8 分 + 三角波琶音 16 分 + 极轻噪声 hat，整体音量压低不喧宾。
+   * lookahead 调度器: setInterval(40ms) + 0.18s 提前排程。
+   */
+  var BGM = [
+    { bass: 110.0,  notes: [220.0, 261.63, 329.63, 440.0] },   // Am
+    { bass: 87.31,  notes: [174.61, 220.0, 261.63, 349.23] },  // F
+    { bass: 130.81, notes: [261.63, 329.63, 392.0, 523.25] },  // C
+    { bass: 98.0,   notes: [196.0, 246.94, 293.66, 392.0] }    // G
+  ];
+  var ARP_SEQ = [0, 1, 2, 3, 2, 1, 2, 3, 0, 1, 2, 3, 2, 3, 2, 1];
+  var bgm = null;
+
+  function startBGM() {
+    init();
+    if (!ctx || bgm) return;
+    var STEP = 60 / 132 / 4;                 // 16分音符 ≈ 0.1136s
+    var st = { step: 0, next: ctx.currentTime + 0.06, timer: null };
+    function schedule() {
+      while (st.next < ctx.currentTime + 0.18) {
+        var bar = Math.floor(st.step / 16) % 4;
+        var pos = st.step % 16;
+        var ch = BGM[bar];
+        if (pos % 2 === 0) {                 // 低音 8 分，第 3 拍翻高八度
+          beep({
+            f0: ch.bass * (pos === 4 || pos === 12 ? 2 : 1),
+            t: st.next, dur: 0.11, vol: 0.11, attack: 0.003
+          });
+        }
+        beep({                                 // 琶音 16 分
+          type: 'triangle', f0: ch.notes[ARP_SEQ[pos]],
+          t: st.next, dur: 0.085, vol: 0.05
+        });
+        if (pos % 4 === 2) {                   // 轻 hat
+          nz({ ftype: 'highpass', f0: 6000, dur: 0.03, vol: 0.016, t: st.next });
+        }
+        st.next += STEP;
+        st.step++;
+      }
+    }
+    st.timer = setInterval(schedule, 40);
+    schedule();
+    bgm = st;
+    loops.bgm = { stop: stopBGM };
+  }
+
+  function stopBGM() {
+    if (bgm) {
+      clearInterval(bgm.timer);
+      bgm = null;
+    }
+    delete loops.bgm;
+  }
+
+  /* ---------------- 对外 API ---------------- */
+
+  function play(name, opts) {
+    init();
+    if (!ctx) return null;
+    if (name === 'gspin') return startGspin(opts);
+    var fn = SOUNDS[name];
+    if (!fn) return null;                    // 未知音效：静默忽略
+    try { fn(opts || {}); } catch (e) {}
+    return null;
+  }
+
+  function stop(name) {
+    if (name === 'bgm') { stopBGM(); return; }
+    var h = loops[name];
+    if (h) { try { h.stop(); } catch (e) {} delete loops[name]; }
+  }
+
+  function setMuted(b) {
+    muted = !!b;
+    if (ctx && master) {
+      try {
+        master.gain.setTargetAtTime(muted ? 0 : MASTER_VOL, ctx.currentTime, 0.02);
+      } catch (e) {
+        try { master.gain.value = muted ? 0 : MASTER_VOL; } catch (e2) {}
+      }
+    }
+  }
+
+  return {
+    init: init,
+    play: play,
+    stop: stop,
+    setMuted: setMuted,
+    toggleMuted: function () { setMuted(!muted); return muted; },
+    isMuted: function () { return muted; },
+    startBGM: startBGM,
+    stopBGM: stopBGM
+  };
+})();
+
+</script>
+<script>
+/* ===== src/fx.js ===== */
+/* =========================================================================
+ * FIERY DRAGON 火龙珠水果机 — FX 粒子特效层（Canvas2D，独立叠加层）
+ * 契约: window.FX = { init, coinBurst, coinRain, confetti, spark,
+ *                     flash, ring, bigText, stopAll }
+ * 硬性约束:
+ *   - 禁用 ctx.shadowBlur（手机 GPU 杀手）；辉光一律用 createRadialGradient
+ *     预渲染贴图 / 多层半透明圆叠加。
+ *   - 金币启动时预渲染 3 帧离屏贴图，粒子只做 drawImage 旋转/缩放/抛物线，
+ *     coinBurst 单次 200 枚不掉帧。
+ *   - 对象池预分配 + 活跃标记，热路径零对象创建，避免 GC 卡顿。
+ *   - 坐标系对外一律为视口 css 像素，内部乘 dpr。
+ * ========================================================================= */
+window.FX = (() => {
+  'use strict';
+
+  const TAU = Math.PI * 2;
+  const POOL_MAX = 1500;               // 池容量：够 200 金币 + 大雨 + 彩带 + 星光
+  const T_COIN = 1, T_CONF = 2, T_SPARK = 3, T_RING = 4, T_FLASH = 5;
+
+  // ---------- 运行时状态（无 DOM 环境下保持空安全，API 自动降级 no-op） ----------
+  let cv = null, ctx = null;
+  let dpr = 1, W = 0, H = 0;
+  let rafId = 0, last = -1;
+  let live = false;                    // 引擎是否已初始化
+
+  const pool = [];                     // 粒子对象池（预分配，形状单一）
+  let cursor = 0;                      // 池扫描游标
+  const texts = [];                    // bigText 层（并发极少，小数组）
+
+  let coinSpr = [];                    // 预渲染金币帧 [canvas x3]
+  const glowCache = Object.create(null); // color -> 辉光贴图缓存
+
+  // =========================================================
+  // 工具
+  // =========================================================
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  // rAF 经 window 取用（无 rAF 环境返回 0，循环自然不启动）
+  function raf(cb) {
+    return (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function')
+      ? window.requestAnimationFrame(cb) : 0;
+  }
+  function caf(id) {
+    if (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(id);
+  }
+
+  // 颜色 -> rgba 字符串（支持 #rgb/#rrggbb/rgb()/rgba()，其余兜底白色）
+  function toRgba(col, a) {
+    if (typeof col !== 'string') return 'rgba(255,255,255,' + a + ')';
+    const s = col.trim();
+    if (s.charCodeAt(0) === 35) { // '#'
+      let h = s.slice(1);
+      if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      if (h.length !== 6) return 'rgba(255,255,255,' + a + ')';
+      const n = parseInt(h, 16);
+      if (isNaN(n)) return 'rgba(255,255,255,' + a + ')';
+      return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+    }
+    const m = s.match(/rgba?\(([^)]+)\)/);
+    if (m) {
+      const p = m[1].split(',');
+      return 'rgba(' + (parseFloat(p[0]) | 0) + ',' + (parseFloat(p[1]) | 0) + ',' +
+        (parseFloat(p[2]) | 0) + ',' + a + ')';
+    }
+    return 'rgba(255,255,255,' + a + ')';
+  }
+
+  // 十六进制色解析 -> [r,g,b] / null
+  function parseHex(hex) {
+    if (typeof hex !== 'string') return null;
+    let h = hex.trim();
+    if (h.charCodeAt(0) !== 35) return null;
+    h = h.slice(1);
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    if (h.length !== 6) return null;
+    const n = parseInt(h, 16);
+    if (isNaN(n)) return null;
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  // 颜色向目标 RGB 靠近 k（0~1），用于金字的亮/暗渐变
+  function mixCol(hex, tgt, k) {
+    const c = parseHex(hex);
+    if (!c) return hex;
+    return 'rgb(' + Math.round(c[0] + (tgt[0] - c[0]) * k) + ',' +
+      Math.round(c[1] + (tgt[1] - c[1]) * k) + ',' +
+      Math.round(c[2] + (tgt[2] - c[2]) * k) + ')';
+  }
+
+  // 五角星路径
+  function starPath(g, cx, cy, R, r, rot) {
+    g.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const rad = (i & 1) ? r : R;
+      const a = rot + Math.PI * i / 5;
+      const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad;
+      if (i) g.lineTo(x, y); else g.moveTo(x, y);
+    }
+    g.closePath();
+  }
+
+  // easeOutBack（大字弹入回弹）
+  function easeOutBack(t) {
+    const c1 = 1.70158, c3 = c1 + 1;
+    const u = t - 1;
+    return 1 + c3 * u * u * u + c1 * u * u;
+  }
+  function easeOutCubic(t) { const u = 1 - t; return 1 - u * u * u; }
+
+  // =========================================================
+  // 预渲染：辉光贴图（径向渐变，替代 shadowBlur）
+  // =========================================================
+  function glowSprite(color) {
+    let s = glowCache[color];
+    if (s) return s;
+    const S = 64;
+    s = document.createElement('canvas');
+    s.width = s.height = S;
+    const g = s.getContext('2d');
+    const gr = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    gr.addColorStop(0, toRgba(color, 1));
+    gr.addColorStop(0.28, toRgba(color, 0.5));
+    gr.addColorStop(1, toRgba(color, 0));
+    g.fillStyle = gr;
+    g.fillRect(0, 0, S, S);
+    glowCache[color] = s;
+    return s;
+  }
+
+  // =========================================================
+  // 预渲染：金币贴图 3 帧（金渐变圆 + 浮雕边 + 齿点 + 星纹 + 高光弧）
+  // =========================================================
+  function makeCoinSprite(S, f) {
+    const c = document.createElement('canvas');
+    c.width = c.height = S;
+    const g = c.getContext('2d');
+    const m = S / 2, R = m - 2;
+
+    // 主盘：左上光源径向渐变
+    const grad = g.createRadialGradient(m - R * 0.35, m - R * 0.45, R * 0.12, m, m, R);
+    grad.addColorStop(0, '#fff7cf');
+    grad.addColorStop(0.4, '#ffd94e');
+    grad.addColorStop(0.78, '#f3a41a');
+    grad.addColorStop(1, '#bf6a06');
+    g.fillStyle = grad;
+    g.beginPath(); g.arc(m, m, R, 0, TAU); g.fill();
+
+    // 外浮雕暗环
+    const rim = S * 0.075;
+    g.lineWidth = rim;
+    g.strokeStyle = '#a35a05';
+    g.beginPath(); g.arc(m, m, R - rim / 2, 0, TAU); g.stroke();
+
+    // 边齿点（三帧相位错开）
+    const dots = 12, da = TAU / dots, off = f * da / 3;
+    g.fillStyle = 'rgba(120,56,2,0.5)';
+    for (let i = 0; i < dots; i++) {
+      const a = off + i * da;
+      g.beginPath();
+      g.arc(m + Math.cos(a) * R * 0.9, m + Math.sin(a) * R * 0.9, S * 0.028, 0, TAU);
+      g.fill();
+    }
+
+    // 内亮环
+    g.lineWidth = S * 0.05;
+    g.strokeStyle = 'rgba(255,246,190,0.85)';
+    g.beginPath(); g.arc(m, m, R * 0.72, 0, TAU); g.stroke();
+
+    // 中央星纹（暗偏移做浮雕底 + 亮描边）
+    const rot = f * 0.55;
+    starPath(g, m + S * 0.022, m + S * 0.028, R * 0.46, R * 0.19, rot);
+    g.fillStyle = 'rgba(140,74,4,0.85)'; g.fill();
+    starPath(g, m, m, R * 0.46, R * 0.19, rot);
+    g.fillStyle = '#e9990b'; g.fill();
+    g.lineWidth = S * 0.02;
+    g.strokeStyle = 'rgba(255,240,176,0.95)'; g.stroke();
+
+    // 顶部高光弧（三帧角度略移，转动时更闪）
+    const ha = -2.25 + f * 0.35;
+    g.lineWidth = S * 0.07;
+    g.lineCap = 'round';
+    g.strokeStyle = 'rgba(255,255,255,0.8)';
+    g.beginPath(); g.arc(m, m, R * 0.84, ha, ha + 0.9); g.stroke();
+
+    return c;
+  }
+
+  function ensureSprites() {
+    if (coinSpr.length) return;
+    const S = 96; // 离屏 96px，绘制时缩到 ~22-38css px，抗锯齿且省显存
+    coinSpr = [makeCoinSprite(S, 0), makeCoinSprite(S, 1), makeCoinSprite(S, 2)];
+  }
+
+  // =========================================================
+  // 对象池
+  // =========================================================
+  function initPool() {
+    for (let i = 0; i < POOL_MAX; i++) {
+      pool.push({
+        on: false, type: 0,
+        x: 0, y: 0, vx: 0, vy: 0, g: 0, drag: 0,
+        t: 0, life: 1, delay: 0, size: 0, a: 1,
+        rot: 0, vr: 0, flip: 0, vf: 0, frame: 0,
+        w: 0, h: 0, amp: 0, freq: 0, ph: 0,
+        color: '', a0: 0, maxR: 0
+      });
+    }
+  }
+
+  function spawn() {
+    for (let i = 0; i < POOL_MAX; i++) {
+      cursor = (cursor + 1) % POOL_MAX;
+      const p = pool[cursor];
+      if (!p.on) { p.on = true; return p; }
+    }
+    return null; // 池满丢弃（比卡帧好）
+  }
+
+  // =========================================================
+  // 主循环
+  // =========================================================
+  function tick(now) {
+    rafId = raf(tick);
+    if (last < 0) last = now;
+    let dt = (now - last) / 1000;
+    last = now;
+    if (dt > 0.05) dt = 0.05; // 切后台回来防跳变
+    if (dt <= 0) return;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    // 第一遍：普通粒子（第二遍画全屏 flash，保证盖在最上）
+    let flashSeen = false;
+    for (let i = 0; i < POOL_MAX; i++) {
+      const p = pool[i];
+      if (!p.on) continue;
+      if (p.type === T_FLASH) { flashSeen = true; continue; }
+      step(p, dt);
+      if (p.on) draw(p);
+    }
+    if (flashSeen) {
+      for (let i = 0; i < POOL_MAX; i++) {
+        const p = pool[i];
+        if (p.on && p.type === T_FLASH) { step(p, dt); if (p.on) draw(p); }
+      }
+    }
+
+    drawTexts(dt);
+  }
+
+  function step(p, dt) {
+    if (p.delay > 0) { p.delay -= dt; return; }
+    p.t += dt;
+    if (p.t >= p.life) { p.on = false; return; }
+
+    switch (p.type) {
+      case T_COIN:
+        p.vy += p.g * dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.rot += p.vr * dt;
+        p.flip += p.vf * dt;
+        if (p.y - p.size > H + 8 || p.x < -80 || p.x > W + 80) p.on = false; // 落出屏底
+        break;
+      case T_CONF:
+        p.vy += p.g * dt;
+        p.y += p.vy * dt;
+        p.x += (p.vx + Math.sin(p.t * p.freq + p.ph) * p.amp) * dt;
+        p.rot += p.vr * dt;
+        p.flip += p.vf * dt;
+        if (p.y > H + 24) p.on = false;
+        break;
+      case T_SPARK: {
+        const k = Math.exp(-p.drag * dt);
+        p.vx *= k; p.vy *= k;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        break;
+      }
+      case T_RING:
+      case T_FLASH:
+        break;
+    }
+  }
+
+  function draw(p) {
+    if (p.delay > 0) return;
+    const k = p.t / p.life; // 0..1 生命周期进度
+
+    switch (p.type) {
+      case T_COIN: {
+        const spr = coinSpr[p.frame] || coinSpr[0];
+        const sx = Math.max(0.18, Math.abs(Math.cos(p.flip))); // 翻转的横向压扁
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.scale(sx, 1);
+        ctx.drawImage(spr, -p.size, -p.size, p.size * 2, p.size * 2);
+        ctx.restore();
+        break;
+      }
+      case T_CONF: {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.scale(1, Math.sin(p.flip) * 0.92 + 0.08); // 翻面
+        ctx.globalAlpha = k > 0.8 ? (1 - k) / 0.2 : 1;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.fillStyle = 'rgba(255,255,255,0.35)'; // 上缘高光
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * 0.34);
+        ctx.restore();
+        break;
+      }
+      case T_SPARK: {
+        const fade = 1 - k;
+        const s = p.size * (0.5 + 0.5 * fade);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = fade * 0.9;
+        const spr = glowSprite(p.color);
+        const gs = s * 6;
+        ctx.drawImage(spr, p.x - gs / 2, p.y - gs / 2, gs, gs);
+        // 亮核
+        ctx.globalAlpha = fade;
+        ctx.fillStyle = '#fffbe8';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, s * 0.55, 0, TAU);
+        ctx.fill();
+        ctx.restore();
+        break;
+      }
+      case T_RING: {
+        const e = easeOutCubic(k);
+        const r = p.maxR * e;
+        const fade = 1 - k;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        // 多层半透明描边叠加出辉光（无 shadowBlur）
+        ctx.globalAlpha = fade * 0.22;
+        ctx.lineWidth = 14 * fade + 3;
+        ctx.strokeStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.stroke();
+        ctx.globalAlpha = fade * 0.5;
+        ctx.lineWidth = 6 * fade + 1.5;
+        ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.stroke();
+        ctx.globalAlpha = fade * 0.95;
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = '#fff8dc';
+        ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.stroke();
+        ctx.restore();
+        break;
+      }
+      case T_FLASH: {
+        ctx.globalAlpha = p.a0 * Math.pow(1 - k, 1.6); // 快速淡出
+        ctx.fillStyle = p.color;
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalAlpha = 1;
+        break;
+      }
+    }
+  }
+
+  // =========================================================
+  // bigText：中央大字冲屏（缩放弹入 + 微浮动 + 淡出，金色立体描边）
+  // =========================================================
+  function drawTexts(dt) {
+    for (let i = texts.length - 1; i >= 0; i--) {
+      const o = texts[i];
+      o.t += dt;
+      if (o.t >= o.dur) { texts.splice(i, 1); continue; }
+
+      const IN = 0.32, OUT = 0.38;
+      let sc, alpha = 1;
+      if (o.t < IN) sc = easeOutBack(o.t / IN);                       // 弹入（带回弹）
+      else {
+        sc = 1;
+        const left = o.dur - o.t;
+        if (left < OUT) alpha = left / OUT;                            // 淡出
+      }
+      const hold = clamp(o.t - IN, 0, 10);
+      const bx = o.nx * W, by = o.ny * H;
+      const fy = by + Math.sin(hold * 5) * o.px * 0.035;               // 微浮动
+      const scale = sc * o.scale * (o.t < IN ? 1 : 1 + (o.t - IN) * 0.012);
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(bx, fy);
+      ctx.scale(scale, scale);
+
+      const px = o.px;
+      const font = '900 ' + px + 'px "Arial Black","Arial Bold",Gadget,"PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.font = font;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineJoin = 'round';
+
+      // 辉光垫底：多层半透明重绘（无 shadowBlur）
+      ctx.globalAlpha = alpha * 0.16;
+      ctx.fillStyle = o.glow;
+      for (let r = 1; r <= 3; r++) {
+        ctx.font = '900 ' + (px + r * px * 0.055) + 'px "Arial Black","Arial Bold",Gadget,"PingFang SC","Microsoft YaHei",sans-serif';
+        ctx.fillText(o.text, 0, 0);
+      }
+      ctx.font = font;
+
+      // 立体深度（右下暗色位移多层）
+      const depth = clamp(Math.round(px * 0.055), 3, 7);
+      ctx.fillStyle = o.dark;
+      for (let d = depth; d >= 1; d--) ctx.fillText(o.text, d * 0.9, d);
+      // 外描边
+      ctx.lineWidth = Math.max(3, px * 0.085);
+      ctx.strokeStyle = o.stroke;
+      ctx.strokeText(o.text, 0, 0);
+      // 金渐变主体
+      const gr = ctx.createLinearGradient(0, -px * 0.5, 0, px * 0.5);
+      gr.addColorStop(0, o.light);
+      gr.addColorStop(0.52, o.main);
+      gr.addColorStop(1, o.dark2);
+      ctx.fillStyle = gr;
+      ctx.fillText(o.text, 0, 0);
+      // 顶部高光细描
+      ctx.lineWidth = Math.max(1, px * 0.02);
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.strokeText(o.text, 0, 0);
+
+      // 副标题小字
+      if (o.sub) {
+        const spx = px * 0.3;
+        ctx.font = '700 ' + spx + 'px "PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif';
+        ctx.lineWidth = Math.max(2, spx * 0.16);
+        ctx.strokeStyle = 'rgba(58,18,0,0.9)';
+        ctx.strokeText(o.sub, 0, px * 0.82);
+        ctx.fillStyle = '#fff6dc';
+        ctx.fillText(o.sub, 0, px * 0.82);
+      }
+      ctx.restore();
+    }
+  }
+
+  // =========================================================
+  // 尺寸 / 可见性
+  // =========================================================
+  function resize() {
+    if (!cv) return;
+    const iw = (window.innerWidth || 0) || (document.documentElement && document.documentElement.clientWidth) || 375;
+    const ih = (window.innerHeight || 0) || (document.documentElement && document.documentElement.clientHeight) || 667;
+    W = iw; H = ih;
+    dpr = clamp(window.devicePixelRatio || 1, 1, 2); // 钳制 ≤2
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+  }
+
+  function onVis() {
+    if (!live) return;
+    if (document.hidden) {
+      if (rafId) { caf(rafId); rafId = 0; }
+    } else if (!rafId) {
+      last = -1;
+      rafId = raf(tick);
+    }
+  }
+
+  // =========================================================
+  // 公开 API
+  // =========================================================
+  function init(hostEl) {
+    if (typeof document === 'undefined' || typeof document.createElement !== 'function') return; // 无 DOM 降级
+    if (cv) { resize(); return; } // 幂等
+    const parent = hostEl || document.body;
+    if (!parent) return;
+
+    cv = document.createElement('canvas');
+    cv.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;' +
+      'z-index:99999;pointer-events:none;display:block;';
+    parent.appendChild(cv);
+    ctx = cv.getContext('2d');
+    if (!ctx) { parent.removeChild(cv); cv = null; return; }
+
+    ensureSprites();
+    if (!pool.length) initPool();
+    resize();
+    live = true;
+
+    if (typeof window.addEventListener === 'function') {
+      window.addEventListener('resize', resize);
+      window.addEventListener('orientationchange', resize);
+    }
+    if (typeof document.addEventListener === 'function') {
+      document.addEventListener('visibilitychange', onVis);
+    }
+    last = -1;
+    rafId = raf(tick);
+  }
+
+  // 金币喷泉：从 (x,y) 抛物线喷出、落出屏底
+  // opt { spread:水平散布px/s, up:初始向上速度px/s, gravity:重力px/s^2 }
+  function coinBurst(x, y, n, opt) {
+    if (!ctx) return;
+    n = clamp(n | 0, 0, 400);
+    opt = opt || {};
+    const spread = typeof opt.spread === 'number' ? opt.spread : 250;
+    const up = typeof opt.up === 'number' ? opt.up : 780;
+    const grav = typeof opt.gravity === 'number' ? opt.gravity : 1600;
+    for (let i = 0; i < n; i++) {
+      const p = spawn();
+      if (!p) return;
+      p.type = T_COIN;
+      p.x = x + rand(-8, 8);
+      p.y = y + rand(-6, 6);
+      p.vx = rand(-spread, spread);
+      p.vy = -up * rand(0.55, 1.05) * Math.sin(rand(0.9, 1.4));
+      p.g = grav * rand(0.9, 1.1);
+      p.t = 0; p.life = 6;
+      p.size = rand(11, 19);
+      p.rot = rand(0, TAU);
+      p.vr = rand(-7, 7);
+      p.flip = rand(0, TAU);
+      p.vf = rand(6, 13) * (Math.random() < 0.5 ? -1 : 1);
+      p.frame = (Math.random() * coinSpr.length) | 0;
+      p.delay = 0;
+      p.a = 1;
+    }
+  }
+
+  // 金币雨：顶部随机 x 落下（带错峰延迟）
+  function coinRain(n) {
+    if (!ctx) return;
+    n = clamp(n | 0, 0, 300);
+    for (let i = 0; i < n; i++) {
+      const p = spawn();
+      if (!p) return;
+      p.type = T_COIN;
+      p.x = rand(10, W - 10);
+      p.y = rand(-40, -20);
+      p.vx = rand(-45, 45);
+      p.vy = rand(40, 160);
+      p.g = rand(750, 1000);
+      p.t = 0; p.life = 6;
+      p.size = rand(9, 16);
+      p.rot = rand(0, TAU);
+      p.vr = rand(-5, 5);
+      p.flip = rand(0, TAU);
+      p.vf = rand(5, 11) * (Math.random() < 0.5 ? -1 : 1);
+      p.frame = (Math.random() * coinSpr.length) | 0;
+      p.delay = rand(0, 1.3); // 错峰，避免一帧全砸下来
+      p.a = 1;
+    }
+  }
+
+  // 彩带纸屑：矩形翻转飘落（红/金/青/紫）
+  function confetti(n) {
+    if (!ctx) return;
+    n = clamp(n | 0, 0, 400);
+    const colors = ['#ff4d4d', '#ffd94e', '#3de0e0', '#a06bff', '#ff8a3d'];
+    for (let i = 0; i < n; i++) {
+      const p = spawn();
+      if (!p) return;
+      p.type = T_CONF;
+      p.x = rand(0, W);
+      p.y = rand(-60, -16);
+      p.vx = rand(-30, 30);
+      p.vy = rand(110, 240);
+      p.g = rand(30, 90);
+      p.t = 0; p.life = 6;
+      p.w = rand(7, 13);
+      p.h = rand(4, 8);
+      p.rot = rand(0, TAU);
+      p.vr = rand(-6, 6);
+      p.flip = rand(0, TAU);
+      p.vf = rand(4, 9);
+      p.amp = rand(50, 130);   // 横向摆幅 px/s
+      p.freq = rand(1.6, 3.6); // 摆频
+      p.ph = rand(0, TAU);
+      p.color = colors[(Math.random() * colors.length) | 0];
+      p.delay = rand(0, 0.8);
+      p.a = 1;
+    }
+  }
+
+  // 星光迸发：短促向四周散开
+  function spark(x, y, color, n) {
+    if (!ctx) return;
+    color = color || '#ffd94e';
+    n = clamp(n | 0, 0, 120);
+    for (let i = 0; i < n; i++) {
+      const p = spawn();
+      if (!p) return;
+      p.type = T_SPARK;
+      const a = rand(0, TAU), sp = rand(60, 460);
+      p.x = x; p.y = y;
+      p.vx = Math.cos(a) * sp;
+      p.vy = Math.sin(a) * sp;
+      p.drag = rand(2.6, 4.2);
+      p.t = 0; p.life = rand(0.3, 0.65);
+      p.size = rand(2.5, 6.5);
+      p.color = color;
+      p.delay = 0;
+    }
+  }
+
+  // 全屏一闪（快速淡出）
+  function flash(color, alpha) {
+    if (!ctx) return;
+    const p = spawn();
+    if (!p) return;
+    p.type = T_FLASH;
+    p.color = color || '#fff6d0';
+    p.a0 = clamp(typeof alpha === 'number' ? alpha : 0.55, 0.02, 1);
+    p.t = 0; p.life = 0.35;
+    p.delay = 0;
+  }
+
+  // 冲击波圆环：扩散淡出
+  function ring(x, y, color) {
+    if (!ctx) return;
+    const p = spawn();
+    if (!p) return;
+    p.type = T_RING;
+    p.x = x; p.y = y;
+    p.color = color || '#ffd94e';
+    p.maxR = Math.min(W, H) * 0.32;
+    p.t = 0; p.life = 0.55;
+    p.delay = 0;
+  }
+
+  // 中央大字冲屏: opt { color, sub, dur, scale }
+  function bigText(text, opt) {
+    if (!ctx) return;
+    if (!text) return;
+    opt = opt || {};
+    const color = (typeof opt.color === 'string' && opt.color) || '#ffd94e';
+    const dur = clamp(typeof opt.dur === 'number' ? opt.dur : 1.6, 0.6, 8);
+    const scale = clamp(typeof opt.scale === 'number' ? opt.scale : 1, 0.3, 3);
+    const px = Math.max(30, Math.min(W / Math.max(4, text.length * 0.72), H * 0.2)) * scale;
+    texts.push({
+      text: String(text),
+      sub: opt.sub ? String(opt.sub) : '',
+      nx: 0.5, ny: 0.42, px: px,          // 相对坐标：resize 后仍居中
+      t: 0, dur: dur, scale: 1,
+      light: mixCol(color, [255, 255, 240], 0.62),
+      main: color,
+      dark2: mixCol(color, [120, 30, 0], 0.5),
+      dark: mixCol(color, [70, 12, 0], 0.62),
+      stroke: mixCol(color, [96, 18, 0], 0.58),
+      glow: color
+    });
+  }
+
+  // 清空全部特效
+  function stopAll() {
+    for (let i = 0; i < pool.length; i++) pool[i].on = false;
+    texts.length = 0;
+    if (ctx) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+    }
+  }
+
+  return { init, coinBurst, coinRain, confetti, spark, flash, ring, bigText, stopAll };
+})();
+
+</script>
+<script>
+/* ===== src/game.js ===== */
+/* ============================================================
+ * FIERY DRAGON · 火龙珠水果机 H5 — 核心逻辑
+ * 状态机 / 跑灯 / 比倍 / 投币 / 结算 / JP / 服务端适配层
+ * ============================================================ */
+(() => {
+'use strict';
+
+/* ---------------- 常量 ---------------- */
+// 24 格灯环（顺时针）：[符号, 倍率, 是否x3]
+const CELLS = [
+  ['orange',10,0],['bell',20,1],['bar',50,0],['bar',100,0],['apple',5,0],['apple',5,1],['lemon',15,0],
+  ['melon',20,0],['melon',20,1],['luck',0,0],['apple',5,0],['orange',10,1],
+  ['orange',10,0],['bell',20,0],['seven',40,1],['seven',40,0],['apple',5,0],['lemon',15,0],['lemon',15,1],
+  ['star',30,0],['star',30,1],['luck',0,0],['apple',5,0],['bell',20,1]
+];
+const BET_ORDER = ['bar','seven','star','melon','bell','lemon','orange','apple'];
+const MULT      = {bar:100,seven:40,star:30,melon:20,bell:20,lemon:15,orange:10,apple:5};
+const SYM_NAME  = {apple:'苹果',orange:'橙子',lemon:'柠檬',bell:'铃铛',melon:'西瓜',star:'星星',seven:'77',bar:'BAR'};
+const LUCK_CELLS = [9,21];
+const MAX_BET = 99, MAX_CREDIT = 99999999, START_CREDIT = 100;
+
+/* ---------------- 状态 ---------------- */
+const S = {
+  credit: 0, bonus: 0, bonusBet: 0,
+  bets: {bar:0,seven:0,star:0,melon:0,bell:0,lemon:0,orange:0,apple:0},
+  jp: 500,
+  phase: 'idle',          // idle | spinning | awarding | bonusIdle | bonusSpin
+  auto: false, muted: false, bgmOn: false,
+  litCell: -1, freeSpin: false,
+  forcedCell: -1, rig: '', totalIn: 0, totalOut: 0
+};
+
+/* ============================================================
+ * 服务端适配层 — 接入真服务端时仅需把 LocalServer 两个方法
+ * 换成 HTTP/WebSocket 请求，前端状态机零改动。
+ * 本地实现演示了街机式「概率控奖」：赔付越高权重越低。
+ * ============================================================ */
+const LocalServer = {
+  async spin({ bets }) {
+    await sleep(50);
+    if (S.forcedCell >= 0) { const c = S.forcedCell; S.forcedCell = -1; return c; }
+    const LAMBDA = 60, W0 = 1, LUCK_W = 0.45;
+    const weights = CELLS.map(([sym, mult]) => {
+      if (sym === 'luck') return LUCK_W;
+      const b = bets[sym] || 0;
+      if (!b) return W0;
+      let w = W0 / (1 + (b * mult) / LAMBDA);
+      if (S.rig === 'win') w *= 3; else if (S.rig === 'lose') w *= 0.22;
+      return w;
+    });
+    if (bets.bar > 0) weights[3] *= 0.55;   // 头奖格（BAR×100）额外压制
+    return sampleWeights(weights);
+  },
+  async guess() { await sleep(50); return 1 + Math.floor(Math.random() * 13); }
+};
+const sampleWeights = ws => {
+  let sum = 0; for (const w of ws) sum += w;
+  let r = Math.random() * sum;
+  for (let i = 0; i < ws.length; i++) { r -= ws[i]; if (r < 0) return i; }
+  return ws.length - 1;
+};
+
+/* ---------------- 工具 ---------------- */
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const uid = (() => { let i = 0; return () => 'fd' + (++i); })();
+let stageScale = 1;
+function centerInViewport(el) { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  $('#toasts').appendChild(t);
+  setTimeout(() => t.remove(), 2700);
+}
+
+/* ---------------- 七段 LED ---------------- */
+const SEG_PTS = {
+  a: '5,0 25,0 28,3 25,6 5,6 2,3',   b: '26,5 29,8 29,22 26,25 23,22 23,8',
+  c: '26,27 29,30 29,44 26,47 23,44 23,30', d: '5,46 25,46 28,49 25,52 5,52 2,49',
+  e: '4,27 1,30 1,44 4,47 7,44 7,30', f: '4,5 1,8 1,22 4,25 7,22 7,8',
+  g: '5,23 25,23 27,26 25,29 5,29 3,26'
+};
+const SEG_DIG = ['abcdef','bc','abged','abgcd','fgbc','afgcd','afgedc','abc','abcdefg','abcfgd'];
+class Led7 {
+  constructor(host, digits, opt = {}) {
+    this.digits = digits; this.value = -1; this.id = uid();
+    const w = digits * 30 + (digits - 1) * 4, h = 52;
+    const sc = opt.scale || Math.min(1, (opt.h || 52) / h);
+    let svg = `<svg viewBox="0 0 ${w} ${h}" width="${w * sc}" height="${h * sc}">`;
+    svg += `<defs><filter id="gl${this.id}" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="1.6"/></filter></defs>`;
+    this.polys = [];
+    for (let i = 0; i < digits; i++) {
+      const ox = i * 34;
+      svg += `<g transform="translate(${ox},0)">`;
+      for (const k in SEG_PTS) svg += `<polygon data-blur points="${SEG_PTS[k]}" fill="none"/>`;
+      for (const k in SEG_PTS) svg += `<polygon class="p${k}" data-on="0" points="${SEG_PTS[k]}" fill="#3a100a"/>`;
+      svg += `</g>`;
+    }
+    svg += '</svg>';
+    host.innerHTML = svg;
+    this.svg = host.firstChild;
+    this.polys = [...this.svg.querySelectorAll('polygon[data-on]')];
+    this.blurs = [...this.svg.querySelectorAll('polygon[data-blur]')];
+    this.blurs.forEach(p => { p.setAttribute('filter', `url(#gl${this.id})`); p.setAttribute('opacity', '0'); });
+    this.set(0);
+  }
+  set(v) {
+    v = clamp(Math.floor(v), 0, Math.pow(10, this.digits) - 1);
+    if (v === this.value) return; this.value = v;
+    const str = String(v).padStart(this.digits, ' ');
+    for (let i = 0; i < this.digits; i++) {
+      const ch = str[i], on = ch === ' ' ? '' : SEG_DIG[+ch];
+      for (let s = 0; s < 7; s++) {
+        const key = 'abcdefg'[s], p = this.polys[i * 7 + s], lit = on.includes(key);
+        p.setAttribute('data-on', lit ? '1' : '0');
+        p.setAttribute('fill', lit ? '#ff4a22' : '#3a100a');
+        this.blurs[i * 7 + s].setAttribute('points', SEG_PTS[key]);
+        this.blurs[i * 7 + s].setAttribute('opacity', lit ? '.75' : '0');
+        this.blurs[i * 7 + s].setAttribute('fill', '#ff6a30');
+      }
+    }
+  }
+}
+// 数字滚动动画
+function rollLed(led, from, to, ms = 420) {
+  if (from === to) { led.set(to); return; }
+  const t0 = performance.now();
+  (function step(t) {
+    const k = clamp((t - t0) / ms, 0, 1), e = 1 - Math.pow(1 - k, 3);
+    led.set(from + (to - from) * e);
+    if (k < 1) requestAnimationFrame(step);
+  })(t0);
+}
+
+/* ---------------- 状态渲染 ---------------- */
+let ledBonus, ledCredit, centerLed, betLeds = [], cellEls = [], ptEls = [], bbtnEls = {};
+let creditsShown = 0, bonusShown = 0;
+
+function renderCredit(instant) {
+  if (instant) { ledCredit.set(S.credit); creditsShown = S.credit; }
+  else { rollLed(ledCredit, creditsShown, S.credit); creditsShown = S.credit; }
+}
+function renderBonus(instant) {
+  if (instant) { ledBonus.set(S.bonus); bonusShown = S.bonus; }
+  else { rollLed(ledBonus, bonusShown, S.bonus); bonusShown = S.bonus; }
+}
+function renderCenterLED() { centerLed.set(S.phase === 'bonusIdle' || S.phase === 'bonusSpin' ? S.bonusBet : 0); }
+function renderBets() {
+  BET_ORDER.forEach((k, i) => {
+    betLeds[i].set(S.bets[k]);
+    ptEls[i].classList.toggle('bet', S.bets[k] > 0);
+    bbtnEls[k].classList.toggle('beton', S.bets[k] > 0);
+  });
+}
+function renderJP() { $('#jpTag').textContent = 'JP ' + S.jp; }
+
+/* ---------------- UI 构建 ---------------- */
+function buildRing() {
+  const board = $('#board');
+  const W = 660, H = 648, cw = W / 7, ch = (H - 2 * cw) / 5;
+  const pos = i => {
+    if (i <= 6)  return { x: i * cw, y: 0, w: cw, h: cw };
+    if (i <= 11) return { x: W - cw, y: cw + (i - 7) * ch, w: cw, h: ch };
+    if (i <= 18) return { x: W - cw - (i - 12) * cw, y: H - cw, w: cw, h: cw };
+    return { x: 0, y: H - cw - (i - 18) * ch, w: cw, h: ch };
+  };
+  CELLS.forEach(([sym, mult, x3], i) => {
+    const p = pos(i), c = document.createElement('div');
+    c.className = 'cell'; c.style.cssText = `left:${p.x + 2}px;top:${p.y + 2}px;width:${p.w - 4}px;height:${p.h - 4}px`;
+    if (sym === 'luck') {
+      c.innerHTML = ART.luckEgg(i === 9 ? 'blue' : 'orange');
+      c.querySelector('svg').style.cssText = 'position:absolute;inset:0;width:100%;height:100%';
+    } else if (sym === 'bar') {
+      c.innerHTML = `<div class="cellbar"><span class="b">BAR</span><span class="m">X${mult}</span><span class="b">BAR</span></div>`;
+    } else {
+      c.innerHTML = `<div class="sym">${ART.symbol(sym)}</div>${x3 ? '<div class="x3">x3</div>' : ''}`;
+    }
+    board.appendChild(c); cellEls[i] = c;
+  });
+}
+function buildPaytable() {
+  const pt = $('#paytable');
+  BET_ORDER.forEach((k, i) => {
+    const d = document.createElement('div');
+    d.className = 'pt-cell' + (i === 0 || i === 7 ? ' edge' : '');
+    d.textContent = MULT[k];
+    pt.appendChild(d); ptEls[i] = d;
+  });
+}
+function buildBetLeds() {
+  const bl = $('#betLeds');
+  BET_ORDER.forEach(() => {
+    const d = document.createElement('div');
+    d.className = 'bl-cell'; bl.appendChild(d);
+    betLeds.push(new Led7(d, 2, { scale: 0.62 }));
+  });
+}
+function buildBetBtns() {
+  const bb = $('#betBtns');
+  BET_ORDER.forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'bbtn';
+    b.innerHTML = k === 'bar'
+      ? `<span class="bbar"><i>BAR</i><i>BAR</i><i>BAR</i></span>`
+      : `<span class="bsym">${ART.symbol(k)}</span>`;
+    bindHold(b, () => actBet(k));
+    bb.appendChild(b); bbtnEls[k] = b;
+  });
+}
+function buildTicker() {
+  $('#coinIcon').innerHTML = ART.coin();
+  $('#jpCoin').innerHTML = ART.jpCoin();
+  const msgs = ['★ FIERY DRAGON ★ 火龙珠祝您好运 ', '★ JACKPOT 500 等你来拿 ★ 押 BAR 中头奖 ', '★ LUCK 幸运星 送免费一局 ★ '];
+  startTicker(msgs.join(''));
+}
+let tickerTimer = null;
+function startTicker(text) {
+  const el = $('#tickerText');
+  el.textContent = text + '　　' + text + '　　';
+  el.style.animation = 'none'; void el.offsetWidth;
+  const dist = el.scrollWidth / 2;
+  el.style.transform = 'translateY(-50%)';
+  const DUR = Math.max(8, dist / 90);
+  el.animate([{ transform: 'translateY(-50%) translateX(0)' }, { transform: `translateY(-50%) translateX(${-dist}px)` }],
+    { duration: DUR * 1000, iterations: Infinity });
+}
+function buildBulbs() {
+  const m = $('#machine'), mk = (x, y) => {
+    const b = document.createElement('div');
+    b.className = 'bulb'; b.style.left = x + 'px'; b.style.top = y + 'px';
+    m.appendChild(b);
+  };
+  for (let i = 0; i < 11; i++) mk(78 + i * (594 / 10), 132 - Math.sin(Math.PI * i / 10) * 48);
+  for (let y = 430; y <= 1470; y = y + 130) { mk(10, y); mk(727, y); }
+  for (let x = 90; x <= 660; x += 95) mk(x, 1594);
+}
+
+/* ---------------- 比倍轮盘 ---------------- */
+let wnums = [];
+function buildWheel() {
+  const disc = $('#wheelDisc'), R = 156;
+  for (let n = 1; n <= 13; n++) {
+    const a = -Math.PI / 2 + (n - 1) * (Math.PI * 2 / 13);
+    const d = document.createElement('div');
+    d.className = 'wnum' + (n === 7 ? ' seven kill' : '');
+    d.textContent = n;
+    d.style.left = (200 + Math.cos(a) * R) + 'px';
+    d.style.top = (200 + Math.sin(a) * R) + 'px';
+    disc.appendChild(d); wnums[n] = d;
+  }
+}
+async function spinWheelAnim(result) {
+  const N = 34 + Math.floor(Math.random() * 10);
+  let cur = 1, t = 0;
+  for (let i = 0; i < N; i++) {
+    const k = i / N;
+    const ms = 45 + 260 * Math.pow(k, 2.6);
+    t += ms;
+    wnums[cur].classList.remove('lit');
+    cur = cur % 13 + 1;
+    wnums[cur].classList.add('lit');
+    SFX.play('tick', { pitch: 1.5 - k * 0.8 });
+    await sleep(t * 0 + ms);
+  }
+  wnums[cur].classList.remove('lit');
+  wnums[result].classList.add('lit');
+  return result;
+}
+
+/* ---------------- 动作：投币 ---------------- */
+function insertCoin(n, opt = {}) {
+  SFX.init();
+  if (S.credit >= MAX_CREDIT) { if (!opt.auto) toast('积分已满'); return; }
+  S.credit = Math.min(MAX_CREDIT, S.credit + n);
+  S.totalIn += n;
+  renderCredit();
+  SFX.play(opt.auto ? 'bet' : 'coin');
+  if (!opt.auto) flyCoin($('#dockCoin'), $('#ledCredit').parentElement);
+  else flashEl($('#ledCredit'));
+  save();
+}
+function addCredit(n) {
+  SFX.init(); S.credit = Math.min(MAX_CREDIT, S.credit + n);
+  S.totalIn += n;
+  renderCredit(); SFX.play('insert');
+  const p = centerInViewport($('#ledCredit'));
+  FX.coinBurst(p.x, p.y, 14, {});
+  save();
+}
+function flyCoin(fromEl, toEl) {
+  const a = centerInViewport(fromEl), b = centerInViewport(toEl);
+  const c = document.createElement('div');
+  c.className = 'flycoin'; c.innerHTML = ART.coin();
+  c.style.position = 'fixed'; c.style.zIndex = 900;
+  document.body.appendChild(c);
+  c.style.transform = `translate(${a.x - 20}px,${a.y - 20}px) scale(.6)`;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    c.style.transform = `translate(${b.x - 20}px,${b.y - 20}px) scale(1.05) rotate(220deg)`;
+  }));
+  setTimeout(() => { c.style.opacity = '0'; setTimeout(() => c.remove(), 200); }, 470);
+}
+function flashEl(el) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+
+/* ---------------- 动作：押注 ---------------- */
+const totalBet = () => BET_ORDER.reduce((s, k) => s + S.bets[k], 0);
+function actBet(k, n = 1) {
+  if (S.phase === 'bonusIdle') collectBonus(true);
+  if (S.phase !== 'idle') return;
+  SFX.init();
+  const room = MAX_BET - S.bets[k];
+  if (room <= 0) { toast('该门子已押满'); return; }
+  const add = Math.min(n, room);
+  if (S.credit < add) { toast('积分不足，请先投币'); return; }
+  S.credit -= add; S.bets[k] += add;
+  S.jp = Math.min(999999, S.jp + add);
+  renderCredit(); renderBets(); renderJP();
+  SFX.play('bet');
+  if (add >= 8) flashEl(bbtnEls[k]);
+  save();
+}
+function actBetAll() {
+  if (S.phase === 'bonusIdle') collectBonus(true);
+  if (S.phase !== 'idle') return;
+  SFX.init();
+  if (S.credit < 8) { toast('积分不足 8，无法全押'); return; }
+  BET_ORDER.forEach(k => {
+    const add = Math.min(1, MAX_BET - S.bets[k]);
+    S.bets[k] += add; S.credit -= add; S.jp = Math.min(999999, S.jp + add);
+  });
+  renderCredit(); renderBets(); renderJP();
+  SFX.play('allin');
+  BET_ORDER.forEach((k, i) => setTimeout(() => flashEl(bbtnEls[k]), i * 40));
+  save();
+}
+
+/* ---------------- 动作：GO / 跑灯 ---------------- */
+async function actGo() {
+  SFX.init();
+  if (S.phase === 'bonusIdle') collectBonus();
+  if (S.phase !== 'idle') return;
+  if (totalBet() === 0) { toast('请先押注（绿色按钮押分）'); SFX.play('glose'); return; }
+  S.phase = 'spinning'; syncButtons();
+  stopAttract();
+  cellEls.forEach(c => c.classList.remove('hitwin', 'hitluck'));
+  SFX.play('go');
+  const cell = await LocalServer.spin({ bets: { ...S.bets }, jp: S.jp });
+  runLight(cell);
+}
+function runLight(target) {
+  const N = CELLS.length;
+  const cur = S.litCell < 0 ? -1 : S.litCell;   // cur=上一步位置，第一步落在 cur+1
+  const steps = [];
+  const fast = 24 * 2 + 10 + Math.floor(Math.random() * 8);
+  let total = fast + ((target - (cur + fast) % N + N * 2) % N);
+  while (total - fast < 12) total += N;   // 缓降段至少 12 步
+  for (let i = 0; i < total; i++) {
+    const k = i / total;
+    const ms = k < 0.6 ? 28 : 28 + 340 * Math.pow((k - 0.6) / 0.4, 2.4);  // 全速→缓降悬念
+    steps.push(ms);
+  }
+  const t0 = performance.now();
+  let done = 0, acc = 0;
+  (function frame(t) {
+    acc += t - (frame.last || t0); frame.last = t;
+    while (done < total && acc >= steps[done]) {
+      acc -= steps[done];
+      setLit((cur + done + 1) % N, done >= total - 8);
+      done++;
+    }
+    if (done < total) requestAnimationFrame(frame);
+    else onLightStop((cur + total) % N);
+  })(t0);
+}
+function setLit(i, slow) {
+  if (S.litCell >= 0) cellEls[S.litCell].classList.remove('lit');
+  S.litCell = i;
+  cellEls[i].classList.add('lit');
+  SFX.play('tick', { pitch: slow ? 0.72 : 0.9 + Math.random() * 0.5 });
+}
+async function onLightStop(cell) {
+  const [sym, mult, x3] = CELLS[cell];
+  // LUCK：免费再跑一次
+  if (sym === 'luck') {
+    SFX.play('luck');
+    $('#machine').classList.add('lucky');
+    LUCK_CELLS.forEach(i => cellEls[i].classList.add('hitluck'));
+    const p = centerInViewport(cellEls[cell]);
+    FX.spark(p.x, p.y, '#7ad7ff', 26);
+    FX.bigText('LUCK!', { color: '#7ad7ff', sub: S.freeSpin ? '幸运连锁！' : '送免费一局', dur: 1500 });
+    await sleep(1400);
+    LUCK_CELLS.forEach(i => cellEls[i].classList.remove('hitluck'));
+    $('#machine').classList.remove('lucky');
+    S.freeSpin = true;
+    S.phase = 'spinning';
+    runLight(await LocalServer.spin({ bets: { ...S.bets }, jp: S.jp }));
+    return;
+  }
+  await settle(cell, sym, mult, x3);
+}
+
+/* ---------------- 结算 ---------------- */
+async function settle(cell, sym, mult, x3) {
+  S.phase = 'awarding'; syncButtons();
+  const betN = S.bets[sym] || 0;
+  const win = betN * mult * (x3 ? 3 : 1);
+  const jpHit = mult === 100 && betN > 0;
+  const p = centerInViewport(cellEls[cell]);
+
+  if (win > 0) {
+    S.totalOut += win;
+    cellEls[cell].classList.add('hitwin');
+    bbtnEls[sym].classList.add('winflash');
+    const winAll = win + (jpHit ? S.jp : 0);
+    SFX.play(winAll >= 600 ? 'win3' : winAll >= 200 ? 'win2' : winAll >= 50 ? 'win1' : 'win0');
+    FX.coinBurst(p.x, p.y, clamp(winAll, 12, 90), {});
+    FX.ring(p.x, p.y, '#ffd23e');
+    if (winAll >= 200) { $('#machine').classList.add('winner'); FX.confetti(60); }
+    if (jpHit) FX.bigText('JACKPOT!', { color: '#ffd23e', sub: `中奖 +${winAll}`, dur: 3.0 });
+    else if (winAll >= 200) FX.bigText('大 奖 !', { color: '#ffd23e', sub: `中奖 +${winAll}`, dur: 1.9 });
+    let jpWin = 0;
+    if (jpHit) {
+      jpWin = S.jp; S.jp = 0; renderJP();
+      $('#jpCoin').classList.add('jpburst');
+      FX.coinRain(50); FX.flash('#ffd23e', .55);
+      startTicker('★ 恭喜 JACKPOT！独中头奖 +100 随机彩 ★ ');
+    }
+    S.totalOut += jpWin;
+    rollLed(ledBonus, bonusShown, S.bonus + win + jpWin, 500);
+    S.bonus += win + jpWin;
+    await sleep(jpHit ? 3200 : winAll >= 200 ? 2200 : 1800);
+    bbtnEls[sym].classList.remove('winflash');
+    $('#machine').classList.remove('winner');
+    $('#jpCoin').classList.remove('jpburst');
+    // 中奖格保留爆闪直到下局 GO
+  } else {
+    SFX.play('tick', { pitch: 0.5 });
+    await sleep(500);
+  }
+  // 清押注
+  BET_ORDER.forEach(k => S.bets[k] = 0);
+  renderBets();
+  S.freeSpin = false;
+  if (S.bonus > 0) enterBonus();
+  else { S.phase = 'idle'; syncButtons(); startAttract(); save(); }
+}
+
+/* ---------------- 比倍（猜大小） ---------------- */
+function enterBonus() {
+  S.phase = 'bonusIdle'; S.bonusBet = S.bonus;
+  $('#wheel').classList.add('show');
+  $('#wheelTip').innerHTML = `比倍猜大小<small>← → 调整比倍额<br>猜对翻倍 · 7 通杀</small>`;
+  renderCenterLED(); syncButtons();
+  SFX.play('press');
+  save();
+}
+function adjBonusBet(d) {
+  if (S.phase !== 'bonusIdle') return;
+  S.bonusBet = clamp(S.bonusBet + d, 0, S.bonus);
+  renderCenterLED();
+  SFX.play('bet', {});
+}
+async function actGuess(dir) {
+  if (S.phase !== 'bonusIdle') return;
+  if (S.bonusBet <= 0) { toast('← → 先调整比倍金额'); return; }
+  S.phase = 'bonusSpin'; syncButtons();
+  $('#wheelTip').style.opacity = '.25';
+  SFX.play('go', {});
+  const n = await LocalServer.guess({ dir, bet: S.bonusBet });
+  await spinWheelAnim(n);
+  const hit = dir === 'small' ? n <= 6 : n >= 8;
+  const p = centerInViewport($('#wheel'));
+  if (hit) {
+    S.bonus += S.bonusBet; // 本金保留 + 赢一份
+    SFX.play('gwin');
+    FX.spark(p.x, p.y - 40, '#ffd23e', 30);
+    $('#wheelTip').innerHTML = `${n <= 6 ? '小' : '大'} ${n} ✓ 翻倍！<small>继续猜 或 GO 收分</small>`;
+  } else {
+    S.bonus -= S.bonusBet;
+    SFX.play('glose');
+    FX.flash('#ff3018', .4);
+    $('#wheelTip').innerHTML = `${n === 7 ? '7 通杀' : (n <= 6 ? '小' : '大') + ' ' + n} ✗ 输了<small>${S.bonus > 0 ? '还可继续' : '下次再来'}</small>`;
+  }
+  bonusShown = -1; renderBonus();
+  $('#wheelTip').style.opacity = '1';
+  renderCenterLED();
+  await sleep(900);
+  wnums.forEach(w => w && w.classList.remove('lit'));
+  if (S.bonus <= 0) {
+    S.phase = 'idle'; S.bonus = 0; S.bonusBet = 0;
+    $('#wheel').classList.remove('show');
+    renderBonus(); renderCenterLED(); syncButtons(); startAttract(); save();
+  } else {
+    S.phase = 'bonusIdle'; S.bonusBet = S.bonus;
+    renderCenterLED(); syncButtons(); save();
+  }
+}
+function collectBonus(silent) {
+  if (S.bonus <= 0) { if (S.phase === 'bonusIdle') { S.phase = 'idle'; syncButtons(); } return; }
+  S.credit = Math.min(MAX_CREDIT, S.credit + S.bonus);
+  if (!silent) {
+    SFX.play('insert');
+    const p = centerInViewport($('#ledCredit'));
+    FX.coinBurst(p.x, p.y, 16, {});
+    toast(`收分 +${S.bonus}`);
+  }
+  S.bonus = 0; S.bonusBet = 0;
+  $('#wheel').classList.remove('show');
+  renderCredit(); renderBonus(); renderCenterLED();
+  S.phase = 'idle'; syncButtons(); startAttract();
+  save();
+}
+
+/* ---------------- 待机巡游 ---------------- */
+let attractTimer = null, attractPos = 0;
+function startAttract() {
+  if (S.phase !== 'idle' || attractTimer) return;
+  attractTimer = setInterval(() => {
+    if (document.hidden) return;
+    cellEls[attractPos % 24] && cellEls[attractPos % 24].classList.remove('attract');
+    attractPos = (attractPos + 1) % 24;
+    cellEls[attractPos].classList.add('attract');
+  }, 130);
+}
+function stopAttract() {
+  clearInterval(attractTimer); attractTimer = null;
+  cellEls.forEach(c => c.classList.remove('attract'));
+}
+
+/* ---------------- 按钮可用性 ---------------- */
+function syncButtons() {
+  const idle = S.phase === 'idle', bonusIdle = S.phase === 'bonusIdle';
+  const canBet = idle || bonusIdle;   // 比倍待命时押注 = 自动收分后押新局
+  $('#btnGo').disabled = !(idle || bonusIdle);
+  $('#btnGo .cap').textContent = bonusIdle ? '收分' : 'GO';
+  $('#btnAll').disabled = !canBet;
+  $('#btnLeft').disabled = !bonusIdle;
+  $('#btnRight').disabled = !bonusIdle;
+  $('#btnSmall').disabled = !bonusIdle;
+  $('#btnBig').disabled = !bonusIdle;
+  document.querySelectorAll('.bbtn').forEach(b => b.disabled = !canBet);
+}
+
+/* ---------------- 长按连发绑定 ---------------- */
+function bindHold(el, fn, opt = {}) {
+  let t1 = null, t2 = null, held = false;
+  const clearTimers = () => { clearTimeout(t1); clearInterval(t2); t1 = t2 = null; };
+  const start = e => {
+    if (el.disabled || held) return;
+    e.preventDefault(); SFX.init();
+    held = true; el.classList.add('down');
+    fn();
+    t1 = setTimeout(() => { t2 = setInterval(fn, opt.repeat || 95); }, opt.delay || 380);
+  };
+  const end = () => {
+    if (!held) return;
+    held = false; el.classList.remove('down'); clearTimers();
+  };
+  el.addEventListener('pointerdown', start);
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => el.addEventListener(ev, end));
+  el.addEventListener('lostpointercapture', end);
+}
+
+/* ---------------- 菜单 / 说明 ---------------- */
+function showMenu() {
+  const ov = $('#overlay');
+  ov.innerHTML = `<div class="sheet">
+    <button class="close-x">✕</button><h3>机 台 设 置</h3>
+    <div class="row"><span>音效</span><div class="switch ${S.muted ? '' : 'on'}" data-k="muted"></div></div>
+    <div class="row"><span>背景音乐</span><div class="switch ${S.bgmOn ? 'on' : ''}" data-k="bgm"></div></div>
+    <div class="row"><span>自动投币</span><div class="switch ${S.auto ? 'on' : ''}" data-k="auto"></div></div>
+    <div class="row" style="display:block">
+      <span>演示辅助</span><br>
+      <button class="mini" data-act="add100">上分 +100</button>
+      <button class="mini" data-act="add1000">上分 +1000</button>
+      <button class="mini" data-act="forcejp">下局必中头奖</button>
+      <button class="mini red" data-act="reset">清空存档</button>
+    </div>
+    <div class="row" style="font-size:16px;color:#a8886a">累计投入 ${S.totalIn} · 累计产出 ${S.totalOut} · 返奖率 ${S.totalIn ? Math.round(S.totalOut / S.totalIn * 100) : 0}%</div>
+  </div>`;
+  ov.classList.add('show');
+  ov.querySelector('.close-x').onclick = () => ov.classList.remove('show');
+  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('show'); }, { once: true });
+  ov.querySelectorAll('.switch').forEach(sw => sw.onclick = () => {
+    const k = sw.dataset.k;
+    if (k === 'muted') setMuted(!S.muted);
+    if (k === 'bgm') setBGM(!S.bgmOn);
+    if (k === 'auto') setAuto(!S.auto);
+    sw.classList.toggle('on');
+  });
+  ov.querySelectorAll('.mini').forEach(b => b.onclick = () => {
+    const act = b.dataset.act;
+    if (act === 'add100') addCredit(100);
+    if (act === 'add1000') addCredit(1000);
+    if (act === 'forcejp') { S.forcedCell = 3; toast('下局开灯必停 BAR×100'); }
+    if (act === 'reset') { localStorage.removeItem('fd-save-v1'); location.reload(); }
+    SFX.play('press');
+  });
+}
+function showInfo() {
+  const ov = $('#overlay');
+  const rows = BET_ORDER.map(k => `<tr><td>${SYM_NAME[k]}</td><td>${MULT[k]} 倍</td></tr>`).join('');
+  ov.innerHTML = `<div class="sheet rules">
+    <button class="close-x">✕</button><h3>玩 法 说 明</h3>
+    <b>① 投币</b>：底部「投币 +1」或「上分」增加 CREDIT。<br>
+    <b>② 押注</b>：点绿色符号钮押分（长按连押），「ALL+1」全门各押 1；每门上限 99。<br>
+    <b>③ 开灯</b>：按 <b>GO</b> 跑马灯旋转减速停止，押中停下格子所属符号即赢「押注 × 倍率」。<br>
+    <b>④ 特殊格</b>：<b>x3</b> 格倍率×3；<b>LUCK</b> 送免费一局；<b>BAR×100</b> 命中独吞 JP 彩金池（押注自动累积）。<br>
+    <b>⑤ 比倍</b>：中奖后进入比倍——<b>← →</b> 调整比倍额，按 <b>1-6</b>（猜小）或 <b>8-13</b>（猜大）开数字轮盘；猜对金额翻倍可连续比倍，7 通杀；按 <b>GO/收分</b> 落袋为安。
+    <table><tr><th>符号</th><th>基础倍率</th></tr>${rows}</table>
+    <div style="font-size:15px;color:#a8886a">提示：长按按钮可连发；顶栏 ≡ 内有演示辅助。本作为怀旧街机机制演示 Demo。</div>
+  </div>`;
+  ov.classList.add('show');
+  ov.querySelector('.close-x').onclick = () => ov.classList.remove('show');
+  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('show'); }, { once: true });
+}
+
+/* ---------------- 开关 ---------------- */
+function setMuted(v) {
+  S.muted = v; SFX.setMuted(v);
+  $('#muteBtn').textContent = v ? '静' : '音';
+  $('#muteBtn').classList.toggle('off', v);
+  save();
+}
+function setBGM(v) {
+  S.bgmOn = v;
+  if (v) { SFX.init(); SFX.startBGM(); } else SFX.stopBGM();
+  save();
+}
+function setAuto(v) {
+  S.auto = v;
+  const b = $('#dockAuto');
+  b.classList.toggle('on', v);
+  b.textContent = v ? '停止投币' : '自动投币';
+  clearInterval(autoTimer);
+  if (v) autoTimer = setInterval(() => {
+    if (document.hidden || S.credit >= MAX_CREDIT) return;
+    insertCoin(1, { auto: true });
+  }, 300);
+  save();
+}
+let autoTimer = null;
+
+/* ---------------- 存档 ---------------- */
+function save() {
+  try {
+    localStorage.setItem('fd-save-v1', JSON.stringify({
+      credit: S.credit, jp: S.jp, muted: S.muted, bgm: S.bgmOn,
+      totalIn: S.totalIn, totalOut: S.totalOut
+    }));
+  } catch (e) {}
+}
+function load() {
+  try { return JSON.parse(localStorage.getItem('fd-save-v1')) || null; } catch (e) { return null; }
+}
+
+/* ---------------- 缩放适配 ---------------- */
+function resize() {
+  stageScale = Math.min(innerWidth / 750, innerHeight / 1610);
+  $('#stage').style.transform = `scale(${stageScale})`;
+}
+
+/* ---------------- 启动 ---------------- */
+function boot() {
+  // URL 调试参数
+  const q = new URLSearchParams(location.search);
+  if (q.get('reset') === '1') { try { localStorage.removeItem('fd-save-v1'); } catch (e) {} }
+  if (q.get('cell')) S.forcedCell = +q.get('cell');
+  if (q.get('rig')) S.rig = q.get('rig');
+
+  // 素材注入
+  {
+    const sh = $('#sceneHolder');
+    sh.innerHTML = ART.scene();
+    const sv = sh.querySelector('svg');
+    if (sv && !sv.getAttribute('preserveAspectRatio')) sv.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+  }
+  buildRing(); buildPaytable(); buildBetLeds(); buildBetBtns(); buildWheel(); buildTicker(); buildBulbs();
+
+  // LED
+  ledBonus = new Led7($('#ledBonus'), 8, { scale: 0.78 });
+  ledCredit = new Led7($('#ledCredit'), 8, { scale: 0.78 });
+  centerLed = new Led7($('#centerLED'), 2, { scale: 0.7 });
+
+  // 存档 / 初始
+  const d = load();
+  if (d) {
+    S.credit = d.credit || 0; S.jp = d.jp || 500;
+    S.totalIn = d.totalIn || 0; S.totalOut = d.totalOut || 0;
+    setMuted(!!d.muted); if (d.bgm) setTimeout(() => setBGM(true), 0);
+    setTimeout(() => toast('已恢复上次进度'), 600);
+  } else {
+    S.credit = START_CREDIT;
+    setTimeout(() => toast('新手礼包 +100，点击绿色符号钮押注'), 600);
+  }
+  creditsShown = bonusShown = -1;
+  renderCredit(true); renderBonus(true); renderBets(); renderJP(); renderCenterLED();
+  if (q.get('muted') === '1') setMuted(true);
+  if (q.get('auto') === '1') setAuto(true);
+
+  // 特效层
+  FX.init(document.body);
+
+  // 事件
+  bindHold($('#dockCoin'), () => insertCoin(1), { delay: 260, repeat: 120 });
+  $('#dockAdd').addEventListener('pointerdown', e => { e.preventDefault(); addCredit(100); });
+  $('#dockAuto').addEventListener('pointerdown', e => { e.preventDefault(); SFX.init(); setAuto(!S.auto); SFX.play('press'); });
+  bindHold($('#btnAll'), actBetAll, { delay: 600, repeat: 260 });
+  bindHold($('#btnLeft'), () => adjBonusBet(-1), { delay: 300, repeat: 70 });
+  bindHold($('#btnRight'), () => adjBonusBet(1), { delay: 300, repeat: 70 });
+  bindHold($('#btnSmall'), () => actGuess('small'), { delay: 9999 });
+  bindHold($('#btnBig'), () => actGuess('big'), { delay: 9999 });
+  bindHold($('#btnGo'), actGo, { delay: 9999 });
+  $('#menuBtn').addEventListener('pointerdown', e => { e.preventDefault(); SFX.init(); SFX.play('press'); showMenu(); });
+  $('#infoBtn').addEventListener('pointerdown', e => { e.preventDefault(); SFX.init(); SFX.play('press'); showInfo(); });
+  $('#muteBtn').addEventListener('pointerdown', e => { e.preventDefault(); SFX.init(); setMuted(!S.muted); SFX.play('press'); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+  addEventListener('resize', resize);
+  resize();
+
+  syncButtons(); startAttract();
+  window.__fd = { S, LocalServer, forceCell: c => S.forcedCell = c }; // 调试钩子
+}
+
+document.addEventListener('DOMContentLoaded', boot);
+window.addEventListener('error', e => {
+  (window.__errs = window.__errs || []).push(String(e.message || e));
+});
+})();
+
+</script>
+
+
+</body>
+</html>
