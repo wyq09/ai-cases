@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>合成好物 · 图标库自检</title>
+<style>
+  body { margin:0; padding:24px 28px; background:#f3e2c2; font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif; }
+  h1 { color:#7a5220; font-size:22px; margin:0 0 4px; }
+  .meta { color:#a08048; font-size:12px; margin-bottom:6px; }
+  #errbox { display:none; background:#e03e32; color:#fff; padding:10px 14px; border-radius:10px; font-size:13px; margin:10px 0; white-space:pre-wrap; font-family:Menlo,monospace; }
+  h2 { color:#8a5f28; font-size:16px; margin:26px 0 12px; border-left:5px solid #e0b268; padding-left:9px; }
+  .grid { display:flex; flex-wrap:wrap; gap:14px; }
+  .cell { width:96px; }
+  .cell.big { width:180px; }
+  .tile { width:96px; height:96px; background:#FCF2DC; border-radius:18px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(160,120,60,.14); overflow:hidden; }
+  .cell.big .tile { width:180px; height:152px; }
+  .tile svg { width:78px; height:78px; display:block; }
+  .cell.big .tile svg { width:140px; height:120px; }
+  .key { text-align:center; font-size:11px; color:#8a6a3a; margin-top:5px; font-family:Menlo,monospace; }
+</style>
+</head>
+<body>
+<div id="errbox"></div>
+<h1>合成好物 · SVG 图标库自检</h1>
+<div class="meta" id="count"></div>
+<h2>商品图标（100×100）</h2><div class="grid" id="g_product"></div>
+<h2>UI 彩色图标（48×48）</h2><div class="grid" id="g_ui"></div>
+<h2>任务小图标（48×48）</h2><div class="grid" id="g_task"></div>
+<h2>配送员特写（140×120）</h2><div class="grid" id="g_courier"></div>
+<script>
+window.onerror = function (msg, src, line, col) {
+  var b = document.getElementById('errbox');
+  b.style.display = 'block';
+  b.textContent += 'JS ERROR: ' + msg + ' @line ' + line + ':' + col + '\n';
+};
+</script>
+<script src="icons.js"></script>
+<script>
+(function () {
+  var groups = [
+    ['g_product', ['dongua','koumo','fanqie','zhe','ou','songrong','songrong_ok','yagao','shuiku','xiaomai','mianfen','mianbao','chengzi','chengzhi','jidan','chayedan','mianhua','maojin'], false],
+    ['g_ui', ['coin','coinstack','lightning','redpacket','flower','note','trophy','piggy','home','close','lock','check','arrowleft','gift','x5star'], false],
+    ['g_task', ['t_lottery','t_calendar','t_vip','t_invite','t_team','t_order','t_review','t_list','t_eye','t_sign'], false],
+    ['g_courier', ['courier'], true]
+  ];
+  var covered = {};
+  function addCell(el, key, big, unknown) {
+    var s = (window.ICONS || {})[key];
+    var d = document.createElement('div');
+    d.className = big ? 'cell big' : 'cell';
+    var tile = document.createElement('div');
+    tile.className = 'tile';
+    if (unknown) { tile.style.outline = '3px dashed #e03e32'; }
+    if (!s) {
+      tile.innerHTML = '<b style="color:#c00;font-size:11px">MISSING</b>';
+    } else {
+      tile.innerHTML = s;
+    }
+    var lab = document.createElement('div');
+    lab.className = 'key';
+    lab.textContent = key + (unknown ? ' (未分组)' : '');
+    d.appendChild(tile);
+    d.appendChild(lab);
+    el.appendChild(d);
+  }
+  groups.forEach(function (g) {
+    var el = document.getElementById(g[0]);
+    g[1].forEach(function (k) { covered[k] = 1; addCell(el, k, g[2], false); });
+  });
+  var n = 0;
+  Object.keys(window.ICONS || {}).forEach(function (k) {
+    n++;
+    if (!covered[k]) { addCell(document.getElementById('g_product'), k, false, true); }
+  });
+  document.getElementById('count').textContent = '共 ' + n + ' 个图标 · window.onerror 已挂载（出错时页面顶部出现红条）';
+})();
+</script>
+</body>
+</html>

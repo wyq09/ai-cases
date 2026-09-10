@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>农场背景场景预览 - hecheng-haowu</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #343a41; }
+  body { font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif; }
+  #errbar {
+    display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+    background: #e5484d; color: #ffffff; font: 13px/1.5 Menlo, Consolas, monospace;
+    padding: 8px 12px; white-space: pre-wrap; word-break: break-all;
+  }
+  .stage { display: flex; justify-content: center; padding: 24px 0 32px; }
+  .phone {
+    position: relative; width: 375px; height: 850px; border-radius: 28px; overflow: hidden;
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45); background: #bfe9fb;
+  }
+  .phone svg { display: block; }
+  .hud {
+    position: absolute; background: #ffffff; border-radius: 19px;
+    box-shadow: 0 3px 8px rgba(60, 90, 60, 0.18);
+  }
+  .hud .dot { position: absolute; top: 9px; left: 10px; width: 20px; height: 20px; border-radius: 50%; background: #eef3ee; }
+  .hud .bar { position: absolute; top: 14px; left: 38px; right: 14px; height: 10px; border-radius: 5px; background: #eceff1; }
+  .card {
+    position: absolute; background: #f9efd8; border-radius: 14px;
+    box-shadow: 0 4px 10px rgba(80, 100, 60, 0.20);
+  }
+  .card .ico { position: absolute; top: 13px; left: 12px; width: 32px; height: 32px; border-radius: 10px; background: #ffffff; }
+  .card .l1 { position: absolute; top: 14px; left: 54px; width: 96px; height: 9px; border-radius: 4px; background: #e8dcc0; }
+  .card .l2 { position: absolute; top: 31px; left: 54px; width: 68px; height: 9px; border-radius: 4px; background: #f2ead6; }
+  .board {
+    position: absolute; left: 18px; top: 352px; width: 340px; height: 430px;
+    background: #f9efd8; border-radius: 20px; box-shadow: 0 8px 22px rgba(70, 100, 50, 0.22);
+  }
+  .dock {
+    position: absolute; left: 14px; top: 796px; width: 347px; height: 44px;
+    background: #5cb853; border-radius: 22px; box-shadow: 0 6px 14px rgba(40, 90, 40, 0.30);
+  }
+</style>
+</head>
+<body>
+<div id="errbar"></div>
+<div class="stage">
+  <div class="phone" id="phone">
+    <div class="hud" style="left:12px; top:12px; width:168px; height:38px;"><div class="dot"></div><div class="bar"></div></div>
+    <div class="hud" style="left:245px; top:12px; width:118px; height:38px;"><div class="dot" style="left:86px;"></div><div class="bar" style="left:12px; right:40px;"></div></div>
+    <div class="card" style="left:192px; top:118px; width:170px; height:58px;"><div class="ico"></div><div class="l1"></div><div class="l2"></div></div>
+    <div class="card" style="left:192px; top:182px; width:170px; height:58px;"><div class="ico"></div><div class="l1"></div><div class="l2"></div></div>
+    <div class="board"></div>
+    <div class="dock"></div>
+  </div>
+</div>
+<script>
+window.onerror = function (msg, src, line, col) {
+  var b = document.getElementById('errbar');
+  b.style.display = 'block';
+  b.textContent = 'ERROR: ' + msg + ' (' + (src || '?') + ' :' + line + ':' + col + ')';
+  return false;
+};
+</script>
+<script src="scene.js"></script>
+<script>
+(function () {
+  var phone = document.getElementById('phone');
+  if (!window.SCENE || !window.SCENE.full) {
+    var b = document.getElementById('errbar');
+    b.style.display = 'block';
+    b.textContent = 'ERROR: window.SCENE.full is missing (scene.js not loaded?)';
+    return;
+  }
+  phone.insertAdjacentHTML('afterbegin', window.SCENE.full);
+})();
+</script>
+</body>
+</html>
