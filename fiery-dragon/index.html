@@ -1881,18 +1881,29 @@ const S = {
 /* ============================================================
  * 服务端适配层 — 接入真服务端时仅需把 LocalServer 两个方法
  * 换成 HTTP/WebSocket 请求，前端状态机零改动。
- * 本地实现演示了街机式「概率控奖」：赔付越高权重越低。
+ * 本地实现演示街机式「概率控奖」：
+ *   · 赔付越高权重越低（平方衰减），重注天然被压制；
+ *   · 未押门为「冷格」且权重随总押注上涨（吃分体感）；
+ *   · BAR/77 高倍门衰减豁免（博头奖仍有戏）；
+ *   · LUCK 稀有触发。
+ * demo 为放水体感调参；正式运营以服务端控奖为准。
  * ============================================================ */
 const LocalServer = {
   async spin({ bets }) {
     await sleep(50);
     if (S.forcedCell >= 0) { const c = S.forcedCell; S.forcedCell = -1; return c; }
-    const LAMBDA = 60, W0 = 1, LUCK_W = 0.45;
+    // 分段控奖：轻注（<20）放水体感；重注/全押（≥20）吃分压制
+    const heavy = BET_ORDER.reduce((s, k) => s + (bets[k] || 0), 0) >= 20;
+    const LAM = heavy ? 10 : 12, POW = heavy ? 2 : 1;
+    const COLD0 = heavy ? 0.05 : 0.3, K = 0.002, LW0 = 0.05, KL = 0.002;
+    const total = BET_ORDER.reduce((s, k) => s + (bets[k] || 0), 0);
+    const cold = COLD0 + total * K, luckW = LW0 + total * KL;
     const weights = CELLS.map(([sym, mult]) => {
-      if (sym === 'luck') return LUCK_W;
+      if (sym === 'luck') return luckW;
       const b = bets[sym] || 0;
-      if (!b) return W0;
-      let w = W0 / (1 + (b * mult) / LAMBDA);
+      if (!b) return cold;
+      const lam = (sym === 'bar' || sym === 'seven') ? LAM * 3 : LAM;
+      let w = 1 / Math.pow(1 + (b * mult) / lam, POW);
       if (S.rig === 'win') w *= 3; else if (S.rig === 'lose') w *= 0.22;
       return w;
     });
