@@ -24,7 +24,8 @@ const CFG_DEFAULT = {
   bar50: 5, bar100: 10,          // 中 BAR 散出的中奖水果数
   luckChance: 50,                // 中 LUCK 触发散花的概率 %
   luckMin: 3, luckMax: 8,        // LUCK 散花水果数范围
-  wApple: 20, wOrange: 15, wLemon: 12, wBell: 12, wMelon: 10, wStar: 8, wSeven: 5  // 各水果抽中权重
+  wApple: 20, wOrange: 15, wLemon: 12, wBell: 12, wMelon: 10, wStar: 8, wSeven: 5,  // 各水果抽中权重
+  pBar50: 2, pBar100: 1, pLuck: 5  // 开灯基础概率 %（BAR×50 / BAR×100 / LUCK）
 };
 let CFG = { ...CFG_DEFAULT };
 function saveCfg() {
@@ -122,23 +123,42 @@ const LocalServer = {
   async spin({ bets }) {
     await sleep(50);
     if (S.forcedCell >= 0) { const c = S.forcedCell; S.forcedCell = -1; return c; }
-    // 分段控奖：轻注（<20）放水体感；重注/全押（≥20）吃分压制
+    // —— 第一段：特殊格固定概率（配置化，不受押注影响）——
+    const pB50 = clamp(+CFG.pBar50 || 0, 0, 100);
+    const pB100 = clamp(+CFG.pBar100 || 0, 0, 100);
+    const pLuck = clamp(+CFG.pLuck || 0, 0, 100);
+    const r = Math.random() * 100;
+    if (r < pB50) return 2;                                   // BAR×50
+    if (r < pB50 + pB100) return 3;                           // BAR×100
+    if (r < pB50 + pB100 + pLuck) return Math.random() < 0.5 ? 9 : 21;  // LUCK
+    // —— 第二段：普通池（其余格子按押注衰减 shape 分配剩余概率）——
     const heavy = BET_ORDER.reduce((s, k) => s + (bets[k] || 0), 0) >= 20;
     const LAM = heavy ? 10 : 12, POW = heavy ? 2 : 1;
-    const COLD0 = heavy ? 0.05 : 0.3, K = 0.002, LW0 = 0.05, KL = 0.002;
+    const COLD0 = heavy ? 0.05 : 0.3, K = 0.002;
     const total = BET_ORDER.reduce((s, k) => s + (bets[k] || 0), 0);
-    const cold = COLD0 + total * K, luckW = LW0 + total * KL;
-    const weights = CELLS.map(([sym, mult]) => {
-      if (sym === 'luck') return luckW;
+    const cold = COLD0 + total * K;
+    const weights = CELLS.map(([sym, mult], i) => {
+      if (sym === 'luck') return 0;                           // LUCK 已在第一段
+      if (i === 2 || i === 3) return 0;                       // BAR 两格已在第一段
       const b = bets[sym] || 0;
       if (!b) return cold;
-      const lam = (sym === 'bar' || sym === 'seven') ? LAM * 3 : LAM;
+      const lam = (sym === 'seven') ? LAM * 3 : LAM;          // 77 衰减豁免
       let w = 1 / Math.pow(1 + (b * mult) / lam, POW);
       if (S.rig === 'win') w *= 3; else if (S.rig === 'lose') w *= 0.22;
       return w;
     });
-    if (bets.bar > 0) weights[3] *= 0.55;   // 头奖格（BAR×100）额外压制
-    return sampleWeights(weights);
+    const W = weights.reduce((a, b) => a + b, 0);
+    // 归一后乘剩余概率份额 → 还原为真实概率再采样
+    const target = Math.random() * W;
+    let acc = 0;
+    for (let i = 0; i < weights.length; i++) {
+      acc += weights[i];
+      if (target < acc) {
+        // 份额缩放不改相对次序，直接返回普通池采样结果
+        return i;
+      }
+    }
+    return 0;
   },
   async guess() { await sleep(50); return 1 + Math.floor(Math.random() * 13); }
 };
@@ -782,6 +802,15 @@ function showMenu() {
       <button class="mini" data-act="add1000">上分 +1000</button>
       <button class="mini" data-act="forcejp">下局必中头奖</button>
       <button class="mini red" data-act="reset">清空存档</button>
+    </div>
+    <div class="row" style="display:block">
+      <span>开奖概率设置（%）</span>
+      <div style="margin-top:8px">
+        <span class="cfg-lab">BAR×50 <input class="cfg-in" type="number" min="0" max="100" data-cfg="pBar50"></span>
+        <span class="cfg-lab">BAR×100 <input class="cfg-in" type="number" min="0" max="100" data-cfg="pBar100"></span>
+        <span class="cfg-lab">LUCK <input class="cfg-in" type="number" min="0" max="100" data-cfg="pLuck"></span>
+      </div>
+      <span style="font-size:15px;color:#a8886a">固定基础概率，不受押注影响；其余格子分配剩余概率</span>
     </div>
     <div class="row" style="display:block">
       <span>天女散花设置</span><br>
