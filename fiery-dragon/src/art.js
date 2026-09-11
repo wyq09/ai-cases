@@ -128,11 +128,12 @@ window.ART = (() => {
     ),
 
     star: () => svg('100 100',
-      rg('st', [[0, '#fff3a0'], [0.55, '#ffd23e'], [1, '#f09f16']], 0.38, 0.32),
-      `<path d="${starPath(60, 37, 27, 11.5, -70)}" fill="#f2b32a" stroke="#9a5e08" stroke-width="3" stroke-linejoin="round"/>` +
-      `<path d="${starPath(44, 59, 30, 13, -98)}" fill="url(#${P}st)" stroke="#9a5e08" stroke-width="3.5" stroke-linejoin="round"/>` +
-      `<path d="${starPath(44, 59, 22, 9, -98)}" fill="#fff" opacity=".28"/>` +
-      spark4(64, 62, 0.5, 0.85)
+      rg('st', [[0, '#fff8b0'], [0.5, '#ffce1e'], [1, '#f08a06']], 0.38, 0.32),
+      `<path d="${starPath(60, 37, 27, 11.5, -70)}" fill="#f5a812" stroke="#6e3c02" stroke-width="3.6" stroke-linejoin="round"/>` +
+      `<path d="${starPath(44, 59, 30, 13, -98)}" fill="url(#${P}st)" stroke="#6e3c02" stroke-width="4.2" stroke-linejoin="round"/>` +
+      `<path d="${starPath(44, 59, 21, 8.6, -98)}" fill="#fff" opacity=".32"/>` +
+      `<path d="${starPath(44, 59, 30, 13, -98)}" fill="none" stroke="#fff2b0" stroke-width="1.2" opacity=".8" transform="translate(-1,-1.5)"/>` +
+      spark4(64, 62, 0.55, 0.95)
     ),
 
     seven: () => {
@@ -222,24 +223,43 @@ window.ART = (() => {
   }
 
   function jpCoin() {
-    let ticks = '';
-    for (let i = 0; i < 20; i++) {
-      const a = i * 18 * Math.PI / 180;
-      ticks += `<line x1="${n(50 + 36 * Math.cos(a))}" y1="${n(50 + 36 * Math.sin(a))}" x2="${n(50 + 41 * Math.cos(a))}" y2="${n(50 + 41 * Math.sin(a))}" stroke="#c8820f" stroke-width="2" opacity=".65"/>`;
+    // 内芯放射光楔 (橙红交替)
+    let rays = '';
+    for (let i = 0; i < 12; i++) {
+      const a = -90 + i * 30;
+      rays += wedge(50, 51, 32, a, a + 15, i % 2 ? '#ffb434' : '#f4801c');
     }
-    const t = (dx, dy, fill) =>
-      `<text x="${50 + dx}" y="${63 + dy}" font-family="${FONT}" font-weight="900" font-size="30" letter-spacing="1" text-anchor="middle" fill="${fill}">JP</text>`;
+    // 金环铆珠
+    let beads = '';
+    for (let i = 0; i < 18; i++) {
+      const a = i * 20 * Math.PI / 180;
+      beads += `<circle cx="${n(50 + 39.2 * Math.cos(a))}" cy="${n(50 + 39.2 * Math.sin(a))}" r="1.5" fill="#a86e08" opacity=".8"/>`;
+    }
+    const t = (dx, dy, fill, extra = '') =>
+      `<text x="${50 + dx}" y="${64 + dy}" font-family="${FONT}" font-weight="900" font-size="31" letter-spacing="1" text-anchor="middle" stroke-linejoin="round" fill="${fill}" ${extra}>JP</text>`;
     return svg('100 100',
-      rg('jg', [[0, '#ffd870', 0.9], [0.72, '#ffbe48', 0.5], [1, '#ffbe48', 0]], 0.5, 0.5, 0.5) +
-      lg('j1', [[0, '#f8d05a'], [1, '#e89a1c']]) +
-      rg('j2', [[0, '#fff6c0'], [0.55, '#ffd44e'], [1, '#f2a828']], 0.4, 0.32),
+      rg('jg', [[0, '#ffedb0', 0.9], [0.55, '#ffcf56', 0.42], [1, '#ffcf56', 0]], 0.5, 0.5, 0.52) +
+      lg('j1', [[0, '#fff0ae'], [0.3, '#f9ca4c'], [0.65, '#eda41e'], [1, '#b26e08']]) +
+      lg('j3', [[0, '#d89414'], [1, '#f6c852']]) +
+      rg('j2', [[0, '#fff3a2'], [0.42, '#ffc23a'], [0.78, '#f2781a'], [1, '#dd4c14']], 0.5, 0.46, 0.62) +
+      lg('jt', [[0, '#e02818'], [0.5, '#c01512'], [1, '#8f0a0a']]),
       `<circle cx="50" cy="50" r="49" fill="url(#${P}jg)"/>` +
-      `<circle cx="50" cy="50" r="44" fill="url(#${P}j1)" stroke="#a35e0c" stroke-width="3.5"/>` +
-      ticks +
-      `<circle cx="50" cy="50" r="35" fill="url(#${P}j2)" stroke="#d88f1c" stroke-width="3"/>` +
-      `<path d="M22,32 A33,33 0 0 1 46,18" stroke="#fff8d0" stroke-width="4.5" fill="none" stroke-linecap="round" opacity=".85"/>` +
-      `<ellipse cx="50" cy="56" rx="25" ry="15" fill="#fff2a0" opacity=".8"/>` +
-      t(1.2, 1.5, '#8a5208') + t(0, 0, '#7c4a06')
+      `<circle cx="50" cy="50" r="43.5" fill="url(#${P}j1)" stroke="#6e4406" stroke-width="2.5"/>` +
+      beads +
+      `<circle cx="50" cy="50" r="35" fill="url(#${P}j3)" stroke="#8a5208" stroke-width="1.6"/>` +
+      `<circle cx="50" cy="51" r="32" fill="url(#${P}j2)" stroke="#a3510a" stroke-width="2"/>` +
+      rays +
+      `<circle cx="50" cy="51" r="32" fill="none" stroke="#e05a12" stroke-width="1.3" opacity=".5"/>` +
+      // 内芯底部暗弧 (体积感)
+      `<path d="M26,66 A29,29 0 0 0 74,66" stroke="#c44a0e" stroke-width="4" fill="none" stroke-linecap="round" opacity=".45"/>` +
+      // 红字 JP: 投影 → 金描边 → 红渐变主体
+      t(1.6, 2.4, '#8e1208') +
+      t(0, 0, 'none', `stroke="#ffe2a0" stroke-width="4"`) +
+      t(0, 0, `url(#${P}jt)`, `stroke="#7a0c10" stroke-width="1.4" paint-order="stroke"`) +
+      // 高光: 环弧 + 内芯弧 + 亮点
+      `<path d="M15,38 A38,38 0 0 1 40,14" stroke="#fffbe2" stroke-width="4.5" fill="none" stroke-linecap="round" opacity=".95"/>` +
+      `<path d="M24,40 A30,30 0 0 1 44,22" stroke="#fff8d8" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".9"/>` +
+      `<circle cx="33" cy="30" r="2.5" fill="#fff" opacity=".85"/>`
     );
   }
 
@@ -248,20 +268,25 @@ window.ART = (() => {
     const d = [];
     // defs
     let defs =
-      lg('sky', [[0, '#8f5f96'], [0.45, '#b287a5'], [1, '#cbb4bc']]) +
-      lg('tg', [[0, '#fff7a0'], [0.55, '#ffd23e'], [1, '#f5a01a']]) +
-      lg('cw', [[0, '#f7f0dc'], [1, '#e6d9bc']]) +
-      lg('cr', [[0, '#ffd96a'], [0.5, '#f2ab28'], [1, '#dd8c12']]) +
-      rg('dm', [[0, '#f06850'], [0.6, '#d93a28'], [1, '#b02018']], 0.4, 0.3) +
-      lg('hb1', [[0, '#b9d478'], [1, '#93bd52']]) +
-      lg('hf1', [[0, '#8fc455'], [1, '#5f9a3a']]) +
-      lg('sd', [[0, '#ecc77e'], [1, '#cf9d58']]) +
-      lg('hbd', [[0, '#fcfaf4'], [1, '#ddd9ce']]) +
+      lg('sky', [[0, '#88448a'], [0.4, '#a76d9e'], [0.72, '#c49ab2'], [1, '#e2bdc9']]) +
+      rg('jhalo', [[0, '#fff3d8', 0.55], [0.55, '#ffe9c4', 0.22], [1, '#ffe9c4', 0]], 0.5, 0.5, 0.5) +
+      lg('ttl', [[0, '#e8452a'], [0.5, '#d01818'], [1, '#8f0f12']]) +
+      lg('tgl', [[0, '#ffc93e'], [1, '#e89a12']]) +
+      lg('hb1', [[0, '#b7d274'], [1, '#8bb050']]) +
+      lg('mound', [[0, '#e3ec9e'], [1, '#9cba4c']]) +
+      lg('hf1', [[0, '#8cc254'], [1, '#4e9134']]) +
+      lg('sd', [[0, '#efca80'], [1, '#ca974f']]) +
+      lg('cw', [[0, '#fbf5e2'], [0.6, '#f1e7cd'], [1, '#ddd0ae']]) +
+      lg('cr', [[0, '#ffe27a'], [0.5, '#f4b32a'], [1, '#d8860e']]) +
+      rg('dm', [[0, '#f06850'], [0.6, '#d93a28'], [1, '#ac1e16']], 0.4, 0.3) +
+      lg('hood', [[0, '#f4684c'], [0.55, '#dc3026'], [1, '#a41216']]) +
+      lg('cap', [[0, '#ee5540'], [1, '#b41820']]) +
+      lg('hbd', [[0, '#fdfbf6'], [1, '#dcd8cc']]) +
       lg('ard', [[0, '#f4f2ec'], [1, '#c9c6bb']]) +
-      lg('cap', [[0, '#ee5540'], [1, '#b81820']]) +
       lg('plm', [[0, '#ff5a3a'], [1, '#c81f1f']]) +
       lg('dbd', [[0, '#4aa2da'], [1, '#1f6fb0']]) +
-      lg('dhd', [[0, '#4aa2da'], [1, '#2a80bc']]);
+      lg('dhd', [[0, '#4aa2da'], [1, '#2a80bc']]) +
+      lg('dbly', [[0, '#eaf09c'], [1, '#b5ca48']]);
 
     const cloud = (x, y, s, op) =>
       `<g transform="translate(${x},${y}) scale(${s})" fill="#ffffff" opacity="${op}">` +
@@ -269,20 +294,41 @@ window.ART = (() => {
       `<ellipse cx="27" cy="7" rx="23" ry="13"/><ellipse cx="2" cy="10" rx="34" ry="11"/></g>`;
 
     const pine = (x, y, H) => {
-      const tri = (w, yT, yB) => `<path d="M${x},${n(yT)} L${n(x - w)},${n(yB)} L${n(x + w)},${n(yB)} Z" fill="#2f8040" stroke="#1c5528" stroke-width="2" stroke-linejoin="round"/>`;
-      const lite = (w, yT, yB) => `<path d="M${x},${n(yT)} L${n(x - w * 0.55)},${n(yB)} L${x},${n(yB)} Z" fill="#4d9c50" opacity=".85"/>`;
+      const tri = (w, yT, yB) => `<path d="M${x},${n(yT)} L${n(x - w)},${n(yB)} L${n(x + w)},${n(yB)} Z" fill="#2c7a3e" stroke="#153f22" stroke-width="2" stroke-linejoin="round"/>`;
+      const lite = (w, yT, yB) => `<path d="M${x},${n(yT)} L${n(x - w * 0.55)},${n(yB)} L${x},${n(yB)} Z" fill="#4a9a50" opacity=".85"/>`;
       const t1 = [0.36 * H, y - 0.62 * H, y - 0.16 * H], t2 = [0.30 * H, y - 0.86 * H, y - 0.44 * H], t3 = [0.22 * H, y - H, y - 0.62 * H];
       return `<rect x="${n(x - 0.05 * H)}" y="${n(y - 0.22 * H)}" width="${n(0.1 * H)}" height="${n(0.22 * H)}" fill="#6a4a2a"/>` +
         tri(...t1) + lite(...t1) + tri(...t2) + lite(...t2) + tri(...t3) + lite(...t3);
     };
 
     const tuft = (x, y) =>
-      `<path d="M${x},${y} Q${x - 3},${y - 8} ${x - 7},${y - 13} M${x},${y} Q${x + 1},${y - 10} ${x - 1},${y - 16} M${x},${y} Q${x + 5},${y - 8} ${x + 9},${y - 12}" stroke="#4a8a30" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+      `<path d="M${x},${y} Q${x - 3},${y - 8} ${x - 7},${y - 13} M${x},${y} Q${x + 1},${y - 10} ${x - 1},${y - 16} M${x},${y} Q${x + 5},${y - 8} ${x + 9},${y - 12}" stroke="#3f7f28" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
 
     const arch = (x, y, w, h, f = '#4a3a52') =>
-      `<path d="M${x},${y + h} L${x},${y + w / 2} Q${x + w / 2},${y - w * 0.28} ${x + w},${y + w / 2} L${x + w},${y + h} Z" fill="${f}"/>`;
+      `<path d="M${x},${y + h} L${x},${y + w / 2} Q${x + w / 2},${y - w * 0.28} ${x + w},${y + w / 2} L${x + w},${y + h} Z" fill="${f}" stroke="#6a5848" stroke-width="1.4"/>`;
 
-    /* --- 标题: 沿弧线排列的立体字母 --- */
+    // 城墙顶部: 压顶石 + 雉堞
+    const merlons = (x, y, w, cnt) => {
+      const mw = w / (cnt * 2 - 1);
+      let s = `<rect x="${x}" y="${y}" width="${w}" height="${n(mw + 4)}" fill="url(#${P}cw)" stroke="#8a765a" stroke-width="1.8"/>`;
+      for (let i = 0; i < cnt; i++)
+        s += `<rect x="${n(x + i * 2 * mw)}" y="${n(y - mw - 1)}" width="${n(mw)}" height="${n(mw + 3)}" fill="url(#${P}cw)" stroke="#8a765a" stroke-width="1.6"/>`;
+      return s;
+    };
+
+    // 砖缝纹理: 横缝 + 交错竖缝
+    const bricks = (x, y, w, h) => {
+      let s = '', row = 0;
+      for (let ly = y + 13; ly < y + h - 3; ly += 13) {
+        row++;
+        s += `<line x1="${x + 2}" y1="${ly}" x2="${x + w - 2}" y2="${ly}" stroke="#c9b790" stroke-width="1.1" opacity=".5"/>`;
+        for (let tx = x + (row % 2 ? 8 : 19); tx < x + w - 3; tx += 22)
+          s += `<line x1="${tx}" y1="${ly - 13}" x2="${tx}" y2="${ly}" stroke="#c9b790" stroke-width="1" opacity=".42"/>`;
+      }
+      return s;
+    };
+
+    /* --- 标题: 弧形排列, 红渐变字母 + 金橙描边 --- */
     let title = '';
     {
       const word = 'FIERY DRAGON', R = 352, cx = 282, cy = 452, a0 = -31.2, st = 6.24;
@@ -291,152 +337,190 @@ window.ART = (() => {
         if (ch === ' ') continue;
         const a = a0 + st * i, rad = a * Math.PI / 180;
         const x = cx + R * Math.sin(rad), y = cy - R * Math.cos(rad);
-        const tf = `transform="translate(${n(x)},${n(y)}) rotate(${n(a)})"`;
-        const base = `${tf} font-family="${FONT}" font-weight="900" font-size="44" text-anchor="middle" stroke-linejoin="round"`;
-        title += `<text ${base} fill="none" stroke="#8a2012" stroke-width="11">${ch}</text>` +
-          `<text ${base} fill="url(#${P}tg)" stroke="#f06a2a" stroke-width="5" paint-order="stroke">${ch}</text>`;
+        const base = `transform="translate(${n(x)},${n(y)}) rotate(${n(a)})" font-family="${FONT}" font-weight="900" font-size="45" text-anchor="middle" stroke-linejoin="round"`;
+        title += `<text ${base} fill="none" stroke="#6e150c" stroke-width="14">${ch}</text>` +
+          `<text ${base} fill="none" stroke="url(#${P}tgl)" stroke-width="9">${ch}</text>` +
+          `<text ${base} fill="url(#${P}ttl)" stroke="#8e1810" stroke-width="1.3">${ch}</text>`;
       }
     }
 
-    /* --- 天空 云 星光 --- */
+    /* --- 天空 柔光(JP位留白) 云 星光 --- */
     d.push(`<rect width="560" height="640" fill="url(#${P}sky)"/>`);
-    d.push(cloud(86, 258, 1, 0.95), cloud(210, 218, 0.7, 0.8), cloud(470, 228, 0.9, 0.9), cloud(318, 180, 0.45, 0.55));
-    d.push(spark4(452, 198, 1.2, 0.95), spark4(436, 224, 0.55, 0.7), spark4(468, 174, 0.5, 0.6), spark4(140, 218, 0.45, 0.5));
+    d.push(`<ellipse cx="262" cy="298" rx="122" ry="102" fill="url(#${P}jhalo)"/>`);
+    d.push(cloud(80, 254, 1.05, 0.95), cloud(158, 214, 0.62, 0.8), cloud(300, 186, 0.5, 0.6),
+      cloud(470, 236, 0.92, 0.92), cloud(534, 330, 0.66, 0.75), cloud(44, 330, 0.6, 0.7));
+    // 右上星光十字闪
+    d.push(`<path d="M378,138 L381.5,168 L411,172 L381.5,176 L378,206 L374.5,176 L345,172 L374.5,168 Z" fill="#fff" opacity=".95"/>` +
+      `<path d="M378,152 L380,168 L396,172 L380,176 L378,192 L376,176 L360,172 L376,168 Z" fill="#fff" opacity=".55"/>`);
+    d.push(spark4(410, 142, 0.5, 0.75), spark4(344, 198, 0.42, 0.6), spark4(430, 206, 0.38, 0.55),
+      spark4(140, 220, 0.45, 0.55), spark4(320, 128, 0.35, 0.5));
 
-    /* --- 城堡 (右上) --- */
+    /* --- 城堡 (中偏右, 大体量精细) --- */
     d.push(
-      // 后方矮墙+雉堞
-      `<rect x="338" y="452" width="206" height="26" fill="url(#${P}cw)" stroke="#7a6850" stroke-width="2"/>` +
-      [346, 374, 402, 458, 486, 514].map(x => `<rect x="${x}" y="442" width="14" height="12" fill="url(#${P}cw)" stroke="#7a6850" stroke-width="2"/>`).join('') +
-      // 中央主楼 + 金色锥顶
-      `<rect x="396" y="298" width="62" height="160" fill="url(#${P}cw)" stroke="#7a6850" stroke-width="2.5"/>` +
-      `<rect x="444" y="300" width="12" height="156" fill="#d9c8a4" opacity=".7"/>` +
-      `<polygon points="386,298 468,298 427,196" fill="url(#${P}cr)" stroke="#8a5a10" stroke-width="2.5" stroke-linejoin="round"/>` +
-      `<line x1="427" y1="196" x2="427" y2="184" stroke="#8a5a10" stroke-width="3"/><circle cx="427" cy="181" r="4.5" fill="#f8c84a" stroke="#8a5a10" stroke-width="2"/>` +
-      arch(406, 318, 12, 18) + arch(434, 318, 12, 18) + arch(406, 352, 12, 18) + arch(434, 352, 12, 18) + arch(420, 392, 12, 20) +
       // 左塔 红洋葱顶
-      `<rect x="346" y="368" width="42" height="100" fill="url(#${P}cw)" stroke="#7a6850" stroke-width="2.5"/>` +
-      `<rect x="377" y="370" width="9" height="96" fill="#d9c8a4" opacity=".7"/>` +
-      `<path d="M344,368 C344,346 352,332 367,318 C382,332 390,346 390,368 Z" fill="url(#${P}dm)" stroke="#7a140e" stroke-width="2.5" stroke-linejoin="round"/>` +
-      `<line x1="367" y1="318" x2="367" y2="306" stroke="#8a5a10" stroke-width="2.5"/><circle cx="367" cy="303" r="3.5" fill="#f8c84a" stroke="#8a5a10" stroke-width="1.5"/>` +
-      arch(359, 396, 14, 20) + arch(359, 430, 14, 20) +
+      `<rect x="330" y="350" width="50" height="122" fill="url(#${P}cw)" stroke="#8a765a" stroke-width="2.5"/>` +
+      `<rect x="371" y="353" width="8" height="117" fill="#d9c8a4" opacity=".55"/>` +
+      bricks(330, 350, 50, 118) +
+      arch(342, 378, 14, 22) + arch(342, 414, 14, 20) +
+      `<path d="M324,350 C324,326 336,308 355,294 C374,308 386,326 386,350 Z" fill="url(#${P}dm)" stroke="#7a140e" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<rect x="326" y="344" width="58" height="9" rx="3.5" fill="#a8281e" stroke="#7a140e" stroke-width="1.5"/>` +
+      `<line x1="355" y1="294" x2="355" y2="280" stroke="#8a5a10" stroke-width="2.5"/><circle cx="355" cy="277" r="3.5" fill="#f8c84a" stroke="#8a5a10" stroke-width="1.5"/>` +
+      // 连墙A + 雉堞 + 城门
+      `<rect x="380" y="398" width="34" height="74" fill="url(#${P}cw)" stroke="#8a765a" stroke-width="2.2"/>` +
+      bricks(380, 398, 34, 70) +
+      merlons(380, 396, 34, 3) +
+      `<path d="M383,436 L383,424 Q396,407 409,424 L409,436 Z" fill="#4a3a52" stroke="#6a5848" stroke-width="1.4"/>` +
+      // 主楼 + 金色锥顶
+      `<rect x="414" y="268" width="64" height="204" fill="url(#${P}cw)" stroke="#8a765a" stroke-width="2.5"/>` +
+      `<rect x="468" y="272" width="9" height="198" fill="#d9c8a4" opacity=".55"/>` +
+      bricks(414, 268, 64, 200) +
+      arch(424, 288, 13, 20) + arch(452, 288, 13, 20) +
+      arch(424, 326, 13, 20) + arch(452, 326, 13, 20) +
+      arch(438, 368, 15, 24) +
+      `<rect x="409" y="262" width="74" height="9" rx="2.5" fill="url(#${P}cw)" stroke="#8a765a" stroke-width="2"/>` +
+      `<path d="M402,266 L490,266 L446,160 Z" fill="url(#${P}cr)" stroke="#8a5a10" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<path d="M416,260 L446,174 L444,260 Z" fill="#fff" opacity=".3"/>` +
+      `<line x1="446" y1="160" x2="446" y2="144" stroke="#8a5a10" stroke-width="3"/><circle cx="446" cy="140" r="4.5" fill="#f8c84a" stroke="#8a5a10" stroke-width="2"/>` +
+      // 连墙B + 雉堞
+      `<rect x="478" y="406" width="28" height="66" fill="url(#${P}cw)" stroke="#8a765a" stroke-width="2.2"/>` +
+      bricks(478, 406, 28, 62) +
+      merlons(478, 404, 28, 3) +
       // 右塔 红洋葱顶
-      `<rect x="470" y="356" width="46" height="110" fill="url(#${P}cw)" stroke="#7a6850" stroke-width="2.5"/>` +
-      `<rect x="504" y="358" width="10" height="106" fill="#d9c8a4" opacity=".7"/>` +
-      `<path d="M468,356 C468,332 477,318 493,302 C509,318 518,332 518,356 Z" fill="url(#${P}dm)" stroke="#7a140e" stroke-width="2.5" stroke-linejoin="round"/>` +
-      `<line x1="493" y1="302" x2="493" y2="289" stroke="#8a5a10" stroke-width="2.5"/><circle cx="493" cy="286" r="4" fill="#f8c84a" stroke="#8a5a10" stroke-width="1.5"/>` +
-      arch(482, 384, 14, 20) + arch(482, 418, 14, 20) +
-      // 最右小塔
-      `<rect x="524" y="396" width="36" height="72" fill="url(#${P}cw)" stroke="#7a6850" stroke-width="2.5"/>` +
-      `<path d="M522,396 C522,380 528,370 542,360 C556,370 562,380 562,396 Z" fill="url(#${P}dm)" stroke="#7a140e" stroke-width="2.5" stroke-linejoin="round"/>` +
-      arch(536, 416, 12, 16)
+      `<rect x="506" y="330" width="50" height="142" fill="url(#${P}cw)" stroke="#8a765a" stroke-width="2.5"/>` +
+      `<rect x="546" y="334" width="8" height="136" fill="#d9c8a4" opacity=".55"/>` +
+      bricks(506, 330, 50, 138) +
+      arch(518, 358, 14, 22) + arch(518, 394, 14, 18) +
+      `<path d="M500,330 C500,306 512,288 531,274 C550,288 562,306 562,330 Z" fill="url(#${P}dm)" stroke="#7a140e" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<rect x="502" y="324" width="58" height="9" rx="3.5" fill="#a8281e" stroke="#7a140e" stroke-width="1.5"/>` +
+      `<line x1="531" y1="274" x2="531" y2="260" stroke="#8a5a10" stroke-width="2.5"/><circle cx="531" cy="257" r="4" fill="#f8c84a" stroke="#8a5a10" stroke-width="1.5"/>`
     );
 
     /* --- 丘陵 与 松树 --- */
-    d.push(`<path d="M0,462 C90,428 180,438 260,458 C340,478 460,456 560,470 L560,640 L0,640 Z" fill="url(#${P}hb1)"/>`);
-    d.push(pine(334, 474, 52), pine(372, 464, 68), pine(408, 476, 46), pine(300, 480, 38));
-    d.push(`<path d="M0,520 C100,488 200,500 300,512 C400,524 480,506 560,520 L560,640 L0,640 Z" fill="url(#${P}hf1)"/>`);
-    d.push(pine(62, 518, 42), pine(110, 510, 54), pine(252, 522, 32));
+    d.push(`<path d="M0,432 C70,404 150,398 230,410 C290,419 330,430 390,434 C450,438 510,422 560,412 L560,640 L0,640 Z" fill="url(#${P}hb1)"/>`);
+    d.push(pine(26, 452, 52), pine(58, 444, 64), pine(96, 456, 44));
+    d.push(`<path d="M118,640 C136,520 178,442 262,418 C332,398 402,422 442,472 C468,506 478,570 470,640 Z" fill="url(#${P}mound)"/>`);
+    d.push(pine(218, 494, 56), pine(252, 470, 80), pine(296, 454, 94), pine(342, 468, 82), pine(390, 488, 62));
+    d.push(`<path d="M0,512 C80,488 170,482 260,494 C350,506 450,498 560,516 L560,640 L0,640 Z" fill="url(#${P}hf1)"/>`);
 
     /* --- 底部沙地 + 石头草丛 --- */
-    d.push(`<path d="M0,566 C110,550 240,556 360,564 C450,570 520,562 560,566 L560,640 L0,640 Z" fill="url(#${P}sd)"/>`);
-    d.push(`<path d="M0,566 C110,550 240,556 360,564 C450,570 520,562 560,566" stroke="#a5793c" stroke-width="3.5" fill="none" opacity=".8"/>`);
+    d.push(`<path d="M0,564 C90,552 200,556 320,562 C420,567 500,560 560,566 L560,640 L0,640 Z" fill="url(#${P}sd)"/>`);
+    d.push(`<path d="M0,564 C90,552 200,556 320,562 C420,567 500,560 560,566" stroke="#a5793c" stroke-width="3.5" fill="none" opacity=".75"/>`);
     d.push(
-      `<path d="M134,606 C134,596 142,590 152,590 C162,590 168,596 168,604 L166,608 L136,608 Z" fill="#dcb271" stroke="#8a6634" stroke-width="2.5" stroke-linejoin="round"/>` +
-      `<path d="M146,591 L142,607" stroke="#b98f52" stroke-width="1.5"/>` +
-      `<path d="M420,602 C421,594 428,590 436,590 C444,590 449,595 449,601 L448,604 L421,604 Z" fill="#dcb271" stroke="#8a6634" stroke-width="2.5" stroke-linejoin="round"/>` +
-      `<ellipse cx="476" cy="604" rx="9" ry="5.5" fill="#d4a965" stroke="#8a6634" stroke-width="2"/>` +
-      tuft(112, 586) + tuft(298, 594) + tuft(368, 588) + tuft(508, 598)
+      `<path d="M96,612 C95,600 105,590 120,589 C135,588 143,596 144,606 L143,613 L97,613 Z" fill="#e3b878" stroke="#8a6634" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<path d="M138,606 C140,598 148,593 156,595 C163,597 167,602 166,608 L165,611 L139,611 Z" fill="#d9ab68" stroke="#8a6634" stroke-width="2" stroke-linejoin="round"/>` +
+      `<path d="M110,592 L106,610 M126,590 L124,610" stroke="#b98f52" stroke-width="1.5" opacity=".8"/>` +
+      `<path d="M428,608 C429,598 437,592 447,592 C457,592 463,598 463,605 L462,609 L429,609 Z" fill="#e3b878" stroke="#8a6634" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<ellipse cx="496" cy="607" rx="10" ry="6" fill="#d9ab68" stroke="#8a6634" stroke-width="2"/>` +
+      `<ellipse cx="474" cy="611" rx="4.5" ry="3" fill="#c99a54" stroke="#8a6634" stroke-width="1.5"/>` +
+      tuft(66, 592) + tuft(184, 602) + tuft(352, 588) + tuft(372, 618) + tuft(518, 600) + tuft(244, 620) +
+      tuft(208, 566) + tuft(452, 566)
     );
-    d.push(`<ellipse cx="152" cy="566" rx="88" ry="11" fill="#7a5a2c" opacity=".28"/>`);
-    d.push(`<ellipse cx="512" cy="628" rx="46" ry="9" fill="#7a5a2c" opacity=".28"/>`);
+    d.push(`<ellipse cx="158" cy="560" rx="86" ry="9" fill="#6a4a20" opacity=".25"/>`);
+    d.push(`<ellipse cx="516" cy="632" rx="46" ry="8" fill="#6a4a20" opacity=".25"/>`);
 
-    /* --- 蓝龙 (右下, 昂首喷火) --- */
+    /* --- 蓝龙 (右下, 昂首, 金色火舌, 卷尾) --- */
     d.push(
+      // 卷尾 (压在身体后, 伸向左侧沙地)
+      limb([[478, 632], [446, 622], [428, 602]], 13, '#2f86c2', '#123f66') +
+      limb([[428, 602], [432, 586], [444, 580]], 9, '#2f86c2', '#123f66') +
+      `<circle cx="446" cy="579" r="5.5" fill="#2f86c2" stroke="#123f66" stroke-width="2"/>` +
+      // 背鳍 (先画, 根部被颈部遮住)
+      `<path d="M506,462 L532,440 L521,494 Z" fill="#1c5c96" stroke="#0f3557" stroke-width="2" stroke-linejoin="round"/>` +
+      `<path d="M520,516 L546,496 L535,550 Z" fill="#1c5c96" stroke="#0f3557" stroke-width="2" stroke-linejoin="round"/>` +
+      `<path d="M531,572 L556,554 L547,606 Z" fill="#1c5c96" stroke="#0f3557" stroke-width="2" stroke-linejoin="round"/>` +
       // 颈身
-      `<path d="M470,640 C476,592 486,552 502,516 C512,494 522,480 534,473 C544,468 554,468 560,472 L560,640 Z" fill="url(#${P}dbd)" stroke="#123f66" stroke-width="3.5" stroke-linejoin="round"/>` +
-      // 腹甲
-      `<path d="M486,640 C492,596 502,558 518,526" stroke="#f2df9e" stroke-width="13" fill="none" stroke-linecap="round"/>` +
-      `<path d="M484,618 l15,-4 M490,592 l14,-6 M500,566 l13,-8 M512,544 l12,-9 M526,524 l11,-9" stroke="#cfa852" stroke-width="2.5" fill="none" stroke-linecap="round"/>` +
-      // 红鞍带
-      `<path d="M496,638 C506,612 520,596 544,588" stroke="#c82832" stroke-width="9" fill="none" stroke-linecap="round"/>` +
-      `<circle cx="524" cy="600" r="4.5" fill="#f0b030" stroke="#8a5f10" stroke-width="2"/>` +
-      // 手持金环长杆 (挑火)
-      limb([[520, 570], [498, 554], [482, 544]], 9, '#3f92cc', '#123f66') +
-      `<line x1="488" y1="554" x2="410" y2="482" stroke="#6a4c24" stroke-width="8" stroke-linecap="round"/>` +
-      `<line x1="488" y1="554" x2="410" y2="482" stroke="#b08850" stroke-width="4.5" stroke-linecap="round"/>` +
-      `<circle cx="406" cy="479" r="9" fill="none" stroke="#8a5f12" stroke-width="8"/>` +
-      `<circle cx="406" cy="479" r="9" fill="none" stroke="#f2b428" stroke-width="4.5"/>` +
-      `<circle cx="480" cy="543" r="6" fill="#3f92cc" stroke="#123f66" stroke-width="2"/>`
+      `<path d="M452,452 C462,506 472,566 474,640 L540,640 C538,560 526,490 508,448 C496,420 468,424 452,452 Z" fill="url(#${P}dbd)" stroke="#123f66" stroke-width="3.5" stroke-linejoin="round"/>` +
+      // 黄绿腹甲 + 横纹
+      `<path d="M456,458 C466,508 474,566 476,640 L494,640 C492,566 484,506 472,456 C467,449 460,451 456,458 Z" fill="url(#${P}dbly)" stroke="#6e8a1c" stroke-width="2"/>` +
+      `<path d="M461,500 l15,-3 M465,536 l15,-3 M469,572 l15,-3 M472,606 l15,-3" stroke="#93ad2c" stroke-width="2.5" fill="none" stroke-linecap="round"/>` +
+      // 红鞍带 + 金扣
+      `<path d="M476,588 C492,578 512,576 530,582" stroke="#c82832" stroke-width="9" fill="none" stroke-linecap="round"/>` +
+      `<circle cx="504" cy="580" r="4.5" fill="#f0b030" stroke="#8a5f10" stroke-width="2"/>` +
+      // 手持长杆 (杆梢红缨)
+      limb([[490, 566], [472, 554], [458, 546]], 8, '#3f92cc', '#123f66') +
+      `<line x1="460" y1="548" x2="404" y2="482" stroke="#6a4c24" stroke-width="7" stroke-linecap="round"/>` +
+      `<line x1="460" y1="548" x2="404" y2="482" stroke="#b08a52" stroke-width="3.5" stroke-linecap="round"/>` +
+      `<path d="M405,483 C397,473 389,469 381,469 M405,483 C399,477 391,475 383,477 M405,483 C403,475 399,469 393,463" stroke="#c82832" stroke-width="3.5" fill="none" stroke-linecap="round"/>` +
+      `<circle cx="456" cy="545" r="5" fill="#3f92cc" stroke="#123f66" stroke-width="2"/>`
     );
-    // 龙头 (朝左张口)
-    d.push(`<g transform="translate(468,468) rotate(-10)">` +
+    // 龙头 (朝左张口, 金色火舌伸向前方)
+    d.push(`<g transform="translate(456,430) rotate(-12)">` +
+      // 头顶背鳍 + 后颈鬃
+      `<path d="M6,-24 L16,-44 L26,-26 L36,-40 L44,-22 L30,-14 L12,-16 Z" fill="#1c5c96" stroke="#0f3557" stroke-width="2" stroke-linejoin="round"/>` +
       `<path d="M22,-14 C34,-34 56,-42 70,-36 C58,-30 50,-22 46,-8 C38,-14 28,-16 22,-14 Z" fill="#1c5c96" stroke="#0f3557" stroke-width="2.5" stroke-linejoin="round"/>` +
+      // 头骨上颚
       `<path d="M46,-12 C36,-26 8,-30 -20,-20 C-48,-10 -68,0 -74,7 L-74,10 C-50,10 -20,14 4,20 L30,24 C46,16 52,0 46,-12 Z" fill="url(#${P}dhd)" stroke="#123f66" stroke-width="3.5" stroke-linejoin="round"/>` +
-      `<path d="M-16,22 C-38,22 -56,27 -64,35 C-60,43 -40,47 -16,45 C-4,43 2,35 0,27 Z" fill="#2f86c2" stroke="#123f66" stroke-width="3" stroke-linejoin="round"/>` +
-      `<path d="M-70,8 L-14,17 L-58,33 C-66,27 -71,17 -70,8 Z" fill="#b02034"/>` +
-      `<path d="M-64,10 l6,9 l6,-8 Z M-48,12 l6,9 l6,-8 Z M-32,14 l6,8 l6,-7 Z" fill="#ffffff" stroke="#8a8a92" stroke-width="1"/>` +
-      `<path d="M-54,29 l5,-8 l5,7 Z M-39,31 l5,-8 l5,7 Z" fill="#ffffff" stroke="#8a8a92" stroke-width="1"/>` +
-      `<path d="M-22,24 C-38,21 -52,24 -60,30 C-52,35 -36,34 -22,29 C-20,27 -20,25 -22,24 Z" fill="#ff6a55" stroke="#b02a30" stroke-width="2"/>` +
+      // 口腔 + 下颚
+      `<path d="M-56,12 L38,12 L-6,42 Z" fill="#8e1420"/>` +
+      `<path d="M-54,14 C-46,32 -24,46 2,48 C20,49 34,42 39,28 C40,22 39,16 38,12 L-56,12 Z" fill="#2f86c2" stroke="#123f66" stroke-width="3" stroke-linejoin="round"/>` +
+      // 牙齿
+      `<path d="M-48,12 l5,9 l5,-9 Z M-32,12 l5,9 l5,-9 Z M-16,12 l5,9 l5,-9 Z M0,13 l5,9 l5,-9 Z" fill="#ffffff" stroke="#8a8a92" stroke-width="1"/>` +
+      `<path d="M-42,14 l5,-8 l5,8 Z M-26,14 l5,-8 l5,8 Z M-10,14 l5,-8 l5,8 Z" fill="#ffffff" stroke="#8a8a92" stroke-width="1"/>` +
+      // 金色火舌 (伸向前方)
+      `<path d="M-46,8 C-66,-4 -88,-2 -108,8 L-128,0 L-116,12 L-130,24 L-110,20 C-88,28 -62,26 -46,20 Z" fill="#f28c14" stroke="#cc5a0a" stroke-width="1.6" stroke-linejoin="round"/>` +
+      `<path d="M-46,13 C-62,7 -82,9 -100,16 C-88,22 -74,23 -60,23 C-52,22 -47,19 -46,18 Z" fill="#ffd23e"/>` +
+      `<circle cx="-98" cy="16" r="3.5" fill="#fff2a0"/>` +
+      // 鼻孔 眉 眼
       `<circle cx="-58" cy="2" r="2.2" fill="#123f66"/>` +
       `<path d="M-2,-16 L14,-12" stroke="#123f66" stroke-width="3" stroke-linecap="round"/>` +
       `<circle cx="6" cy="-7" r="7.5" fill="#ffffff" stroke="#123f66" stroke-width="2.5"/>` +
       `<circle cx="4" cy="-6" r="3.4" fill="#123f66"/><circle cx="5.4" cy="-7.6" r="1.2" fill="#ffffff"/>` +
-      // 火焰
-      `<path d="M-78,2 L-104,-8 L-88,2 L-106,12 L-88,10 L-96,24 L-78,12 Z" fill="#ff8a1e" stroke="#cc5a0a" stroke-width="2" stroke-linejoin="round"/>` +
-      `<path d="M-80,4 L-98,0 L-88,4 L-98,12 L-86,10 L-90,18 L-78,10 Z" fill="#ffd23e"/>` +
-      `<circle cx="-84" cy="8" r="4" fill="#fff2a0"/>` +
       `</g>`);
 
-    /* --- 白马骑士 (左, 持枪冲锋) --- */
+    /* --- 白马骑士 (左, 红头罩, 扬蹄冲锋, 持长枪白旗) --- */
     d.push(
       // 马尾
-      `<path d="M96,446 C70,462 50,492 52,528 C62,518 68,522 66,536 C78,522 86,514 92,500 L98,456 Z" fill="#8a8a94" stroke="#3a3540" stroke-width="3" stroke-linejoin="round"/>` +
-      // 远侧腿
-      limb([[118, 478], [98, 518], [80, 550]], 11, '#d8d5cb', '#3a3540') + hoof(78, 552, 28, '#3f363c') +
-      limb([[194, 458], [224, 432], [238, 406]], 10, '#d8d5cb', '#3a3540') + hoof(240, 402, -30, '#3f363c') +
-      // 躯干
-      `<path d="M94,450 C100,428 138,416 172,422 C198,427 216,440 218,458 C220,476 206,492 180,496 C148,501 110,496 98,480 C92,470 91,460 94,450 Z" fill="url(#${P}hbd)" stroke="#3a3540" stroke-width="3.5" stroke-linejoin="round"/>` +
-      `<path d="M100,448 C104,436 116,430 128,430 C120,442 116,458 118,474 C108,470 100,462 100,448 Z" fill="#dcd9cf" opacity=".7"/>` +
-      // 近侧腿
-      limb([[130, 486], [120, 526], [102, 558]], 12, '#f6f4ee', '#3a3540') + hoof(102, 560, 24) +
-      limb([[202, 466], [238, 452], [258, 470]], 11, '#f6f4ee', '#3a3540') + hoof(260, 472, 35) +
-      // 颈 + 鬃毛 + 头
-      `<circle cx="221" cy="401" r="11" fill="#a8402a" stroke="#6a2012" stroke-width="2.5"/>` +
-      `<circle cx="205" cy="417" r="11" fill="#a8402a" stroke="#6a2012" stroke-width="2.5"/>` +
-      `<circle cx="189" cy="433" r="11" fill="#a8402a" stroke="#6a2012" stroke-width="2.5"/>` +
-      `<path d="M176,444 C194,432 212,418 226,398 L254,412 C242,434 224,450 202,460 Z" fill="url(#${P}hbd)" stroke="#3a3540" stroke-width="3.5" stroke-linejoin="round"/>` +
-      `<path d="M238,392 L242,372 L253,386 Z" fill="url(#${P}hbd)" stroke="#3a3540" stroke-width="2.5" stroke-linejoin="round"/>` +
-      `<path d="M232,394 C240,382 256,378 268,386 C278,393 286,408 288,422 L282,432 C272,428 260,426 250,427 C238,428 228,420 226,408 C225,400 227,396 232,394 Z" fill="url(#${P}hbd)" stroke="#3a3540" stroke-width="3.5" stroke-linejoin="round"/>` +
-      `<circle cx="281" cy="420" r="2.5" fill="#3a3540"/>` +
-      `<path d="M282,428 Q274,432 264,431" stroke="#3a3540" stroke-width="2.5" fill="none" stroke-linecap="round"/>` +
-      `<circle cx="252" cy="402" r="3.2" fill="#2a2228"/><circle cx="253.2" cy="401" r="1" fill="#fff"/>` +
-      `<path d="M240,400 C252,408 262,414 273,420" stroke="#c82832" stroke-width="3.5" fill="none"/>` +
-      `<circle cx="273" cy="420" r="2.2" fill="#c82832"/>` +
-      `<path d="M264,424 C253,430 242,432 231,430" stroke="#c82832" stroke-width="2.5" fill="none" opacity=".85"/>` +
-      // 红鞍袍
-      `<path d="M148,428 C168,420 192,424 208,438 C216,446 219,456 216,464 L200,459 C198,468 190,473 181,470 L176,459 C166,466 154,464 148,455 C140,459 131,455 130,446 L142,438 Z" fill="url(#${P}cap)" stroke="#7a0e14" stroke-width="2.5" stroke-linejoin="round"/>` +
-      `<path d="M131,446 C140,452 150,456 160,454 M176,459 C186,464 196,462 201,458" stroke="#f2b428" stroke-width="2.5" fill="none" stroke-linecap="round"/>` +
-      // 骑手: 腿/甲/盔/红羽
-      limb([[158, 424], [176, 440], [188, 452]], 10, '#e8e6de', '#3a3540') + hoof(191, 454, 42, '#4a3f45') +
-      `<path d="M142,394 C142,380 152,371 165,371 C178,371 188,380 188,394 L185,424 C174,433 156,433 146,424 Z" fill="url(#${P}ard)" stroke="#3a3540" stroke-width="3" stroke-linejoin="round"/>` +
-      `<path d="M158,374 L157,426 M172,374 L173,426" stroke="#a8a496" stroke-width="1.8"/>` +
-      `<circle cx="143" cy="384" r="8" fill="#e6e3da" stroke="#3a3540" stroke-width="2.5"/>` +
-      `<circle cx="187" cy="384" r="8" fill="#e6e3da" stroke="#3a3540" stroke-width="2.5"/>` +
-      limb([[150, 386], [136, 368], [126, 352]], 9, '#e8e6de', '#3a3540') +
-      `<path d="M166,331 C172,312 188,300 206,302 C198,290 176,290 163,300 C154,308 152,320 156,331 Z" fill="url(#${P}plm)" stroke="#7a0e14" stroke-width="2.5" stroke-linejoin="round"/>` +
-      `<path d="M164,330 C170,314 182,304 198,302" stroke="#8a1a12" stroke-width="2" fill="none" opacity=".6"/>` +
-      `<path d="M147,358 C147,342 155,331 166,331 C177,331 185,342 185,358 L183,364 L149,364 Z" fill="url(#${P}ard)" stroke="#3a3540" stroke-width="3" stroke-linejoin="round"/>` +
-      `<path d="M160,333 L159,362 M166,331 L166,362 M172,333 L173,362" stroke="#a8a496" stroke-width="1.6"/>` +
-      `<rect x="151" y="350" width="30" height="8" rx="4" fill="#2a2430"/>` +
-      `<circle cx="159" cy="354" r="2.6" fill="#ff3b2e"/><circle cx="172" cy="354" r="2.6" fill="#ff3b2e"/>` +
-      // 长枪 + 红缨 (手握枪杆)
-      `<line x1="126" y1="350" x2="56" y2="244" stroke="#6a6a74" stroke-width="9" stroke-linecap="round"/>` +
-      `<line x1="126" y1="350" x2="56" y2="244" stroke="#eceff4" stroke-width="5" stroke-linecap="round"/>` +
-      `<circle cx="124" cy="349" r="6.5" fill="#d6d3ca" stroke="#3a3540" stroke-width="2.5"/>` +
-      `<path d="M62,252 L48,228 L70,240 Z" fill="#c9ccd4" stroke="#3a3540" stroke-width="2" stroke-linejoin="round"/>` +
-      `<path d="M60,254 L30,252 L54,236 Z" fill="url(#${P}plm)" stroke="#7a0e14" stroke-width="2" stroke-linejoin="round"/>`
+      `<path d="M118,452 C94,464 76,490 78,524 C88,514 94,518 92,532 C104,518 112,508 118,494 L124,456 Z" fill="#d9d5c9" stroke="#3a3540" stroke-width="3" stroke-linejoin="round"/>` +
+      // 远侧腿 (后腿撑地, 前腿腾空)
+      limb([[140, 470], [112, 516], [92, 548]], 11, '#d8d5cb', '#3a3540') + hoof(90, 550, 18, '#3f363c') +
+      limb([[198, 440], [224, 424], [236, 430]], 9.5, '#d8d5cb', '#3a3540') + hoof(238, 431, -40, '#3f363c') +
+      // 躯干 (扬起)
+      `<path d="M96,492 C92,466 106,444 134,432 C162,420 194,416 214,424 C230,430 238,444 234,458 C230,472 214,484 190,490 C158,498 118,502 96,492 Z" fill="url(#${P}hbd)" stroke="#3a3540" stroke-width="3.5" stroke-linejoin="round"/>` +
+      `<path d="M108,486 C112,468 124,454 142,448 C132,460 126,472 126,488 C118,488 112,487 108,486 Z" fill="#dcd9cf" opacity=".7"/>` +
+      // 近侧后腿
+      limb([[158, 478], [150, 524], [134, 556]], 12, '#f6f4ee', '#3a3540') + hoof(132, 558, 8) +
+      // 红鞍 (金边, 骑士臀位正下)
+      `<path d="M130,434 C146,424 172,420 190,428 C198,436 200,448 196,458 C182,468 154,470 140,462 C130,452 128,442 130,434 Z" fill="url(#${P}cap)" stroke="#6e0e12" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<path d="M136,458 C150,466 176,468 192,460" stroke="#f2b428" stroke-width="2.5" fill="none" stroke-linecap="round"/>` +
+      // 红头罩颈 (自胸背上扬)
+      `<path d="M176,452 C178,424 180,398 190,374 L220,398 C208,412 200,432 196,454 C184,466 174,464 176,452 Z" fill="url(#${P}hood)" stroke="#6e1210" stroke-width="3.5" stroke-linejoin="round"/>` +
+      // 红罩马头 (双耳 眼 鼻 嘴)
+      `<path d="M178,334 L184,314 L196,332 Z" fill="url(#${P}hood)" stroke="#6e1210" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<path d="M192,328 L202,312 L210,334 Z" fill="url(#${P}hood)" stroke="#6e1210" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<path d="M172,340 C178,328 192,322 204,326 C216,330 228,340 234,352 C238,360 239,368 236,376 C232,386 220,392 206,390 C192,388 178,380 172,366 C169,357 169,348 172,340 Z" fill="url(#${P}hood)" stroke="#6e1210" stroke-width="3" stroke-linejoin="round"/>` +
+      `<circle cx="210" cy="354" r="3" fill="#2a1a1e"/><circle cx="211" cy="353" r="1" fill="#fff"/>` +
+      `<circle cx="232" cy="368" r="2" fill="#7a1410"/>` +
+      `<path d="M236,376 C230,382 222,384 214,383" stroke="#8e1a12" stroke-width="2" fill="none" stroke-linecap="round"/>` +
+      `<path d="M196,386 C206,376 216,366 222,352" stroke="#a02018" stroke-width="2" fill="none" opacity=".55"/>` +
+      // 缰绳
+      `<path d="M198,388 C190,406 184,420 180,436" stroke="#7a0e14" stroke-width="2.5" fill="none"/>` +
+      // 近侧前腿 (腾空, 画在颈前)
+      limb([[206, 450], [240, 440], [256, 456]], 11, '#f6f4ee', '#3a3540') + hoof(258, 458, -25) +
+      // 骑手: 跨坐鞍上, 一腿贴马身侧
+      limb([[150, 412], [184, 422], [178, 452]], 9, '#e8e6de', '#3a3540') + hoof(180, 456, 75, '#4a3f45') +
+      `<path d="M124,371 C124,355 134,346 147,346 C160,346 170,355 170,371 L167,400 C164,414 152,420 142,420 C133,420 127,414 127,406 Z" fill="url(#${P}ard)" stroke="#3a3540" stroke-width="3" stroke-linejoin="round"/>` +
+      `<path d="M142,349 L141,414 M154,349 L155,414" stroke="#a8a496" stroke-width="1.8"/>` +
+      `<circle cx="126" cy="370" r="8" fill="#e6e3da" stroke="#3a3540" stroke-width="2.5"/>` +
+      `<circle cx="168" cy="370" r="8" fill="#e6e3da" stroke="#3a3540" stroke-width="2.5"/>` +
+      limb([[128, 374], [110, 354], [96, 334]], 9, '#e8e6de', '#3a3540') +
+      // 盔 + 领甲 + 红缨
+      `<path d="M126,316 C126,300 134,290 147,290 C160,290 168,300 168,316 L166,324 L128,324 Z" fill="url(#${P}ard)" stroke="#3a3540" stroke-width="3" stroke-linejoin="round"/>` +
+      `<rect x="137" y="322" width="20" height="26" rx="4" fill="url(#${P}ard)" stroke="#3a3540" stroke-width="2.5"/>` +
+      `<path d="M147,290 L147,283" stroke="#3a3540" stroke-width="2.5" stroke-linecap="round"/>` +
+      `<path d="M144,294 C146,268 160,246 186,234 C178,252 176,272 182,292 C170,286 154,288 144,294 Z" fill="url(#${P}plm)" stroke="#7a0e14" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<path d="M148,290 C154,270 164,254 178,242" stroke="#8a1a12" stroke-width="2" fill="none" opacity=".6"/>` +
+      `<rect x="131" y="306" width="28" height="8" rx="4" fill="#2a2430"/>` +
+      `<circle cx="139" cy="310" r="2.6" fill="#ff3b2e"/><circle cx="152" cy="310" r="2.6" fill="#ff3b2e"/>`
     );
+    // 长枪 + 白旗 (持于手中)
+    d.push(`<g transform="translate(94,332) rotate(-118)">` +
+      `<path d="M40,-4 L102,-4 L102,-27 L86,-16 L70,-27 L70,-4 Z" fill="#f9f6ec" stroke="#3a3540" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<line x1="12" y1="0" x2="140" y2="0" stroke="#6a6a74" stroke-width="9" stroke-linecap="round"/>` +
+      `<line x1="12" y1="0" x2="140" y2="0" stroke="#eceff4" stroke-width="4.5" stroke-linecap="round"/>` +
+      `<path d="M138,-5.5 L160,0 L138,5.5 Z" fill="#c9ccd4" stroke="#3a3540" stroke-width="2" stroke-linejoin="round"/>` +
+      `<rect x="20" y="-4.5" width="8" height="9" rx="2" fill="#c82832" stroke="#6e0e12" stroke-width="1.5"/>` +
+      `</g>` +
+      `<circle cx="94" cy="332" r="6.5" fill="#d6d3ca" stroke="#3a3540" stroke-width="2.5"/>`);
 
     /* --- 标题压顶 --- */
     d.push(title);

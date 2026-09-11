@@ -66,6 +66,7 @@ window.SFX = (() => {
       wet.gain.value = 0.13;
       master.connect(conv); conv.connect(wet); wet.connect(comp); // 湿声并行
       resume();
+      preloadSamples();                                      // 预载本地采样
     } catch (e) {
       ctx = null; master = null; comp = null; conv = null; wet = null;
     }
@@ -312,7 +313,7 @@ window.SFX = (() => {
   var ARP_SEQ = [0, 1, 2, 3, 2, 1, 2, 3, 0, 1, 2, 3, 2, 3, 2, 1];
   var bgm = null;
 
-  function startBGM() {
+  function startSynthBGM() {
     init();
     if (!ctx || bgm) return;
     var STEP = 60 / 132 / 4;                 // 16分音符 ≈ 0.1136s
@@ -346,11 +347,87 @@ window.SFX = (() => {
   }
 
   function stopBGM() {
+    bgmPending = false;
+    if (bgmSrc) {
+      try { bgmSrc.stop(); } catch (e) {}
+      try { bgmSrc.disconnect(); } catch (e2) {}
+      bgmSrc = null;
+    }
     if (bgm) {
       clearInterval(bgm.timer);
       bgm = null;
     }
     delete loops.bgm;
+  }
+
+  var bgmPending = false;
+  function startBGM() {
+    init();
+    if (bgmSrc || (bgm && bgm.timer)) return;
+    if (ctx && bgmBuffer) {                  // 本地循环优先
+      try {
+        bgmSrc = ctx.createBufferSource();
+        bgmSrc.buffer = bgmBuffer;
+        bgmSrc.loop = true;
+        var g = ctx.createGain();
+        g.gain.value = 0.55;
+        bgmSrc.connect(g); g.connect(master);
+        bgmSrc.start();
+        loops.bgm = { stop: stopBGM };
+        return;
+      } catch (e) { bgmSrc = null; }
+    }
+    bgmPending = true;                       // 缓冲未就绪，就绪后自动起播
+    startSynthBGM();
+  }
+
+  /* ---------------- 本地采样音效层（Mixkit 免费授权，合成兜底） ---------------- */
+
+  var FILES = {
+    win0:   'assets/sfx/sfx_1936.mp3',   // Magical coin win（小奖）
+    win1:   'assets/sfx/sfx_1928.mp3',   // Slot machine win
+    win2:   'assets/sfx/sfx_1934.mp3',   // Payout award
+    win3:   'assets/sfx/sfx_1929.mp3',   // Win siren（大奖/头奖警报）
+    gwin:   'assets/sfx/sfx_1938.mp3',   // Melodic bonus collect（比倍赢）
+    glose:  'assets/sfx/sfx_1937.mp3',   // Bonus collect award（比倍输，短促低沉）
+    coin:   'assets/sfx/sfx_1939.mp3',   // Coins handling（投币）
+    insert: 'assets/sfx/sfx_1935.mp3',   // Payout award ding（收分）
+    go:     'assets/sfx/sfx_1933.mp3'    // Arcade slot machine wheel（开局）
+  };
+  var buffers = {};        // name → AudioBuffer（预加载）
+  var bgmBuffer = null;
+  var bgmSrc = null;
+
+  function decode(url, cb) {
+    if (!ctx) return;
+    fetch(url).then(function (r) { return r.ok ? r.arrayBuffer() : Promise.reject(r.status); })
+      .then(function (ab) { ctx.decodeAudioData(ab, function (buf) { cb(buf); }, function () {}); })
+      .catch(function () {});
+  }
+  function preloadSamples() {
+    if (!ctx) return;
+    Object.keys(FILES).forEach(function (name) {
+      if (buffers[name]) return;
+      decode(FILES[name], function (buf) { buffers[name] = buf; });
+    });
+    if (!bgmBuffer) {
+      decode('assets/bgm/bgm_loop.mp3', function (buf) {
+        bgmBuffer = buf;
+        if (bgmPending) { bgmPending = false; startBGM(); }
+      });
+    }
+  }
+
+  function playBuffer(buf, vol) {
+    if (!buf || !ctx) return;
+    try {
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      var g = ctx.createGain();
+      g.gain.value = vol == null ? 1 : vol;
+      src.connect(g); g.connect(master);
+      src.start();
+    } catch (e) {}
   }
 
   /* ---------------- 对外 API ---------------- */
@@ -359,6 +436,11 @@ window.SFX = (() => {
     init();
     if (!ctx) return null;
     if (name === 'gspin') return startGspin(opts);
+    // 真实采样优先（tick/gspin/allin/bet/luck/press 等高频/风格化音保持合成）
+    if (buffers[name] && name !== 'tick') {
+      playBuffer(buffers[name], name === 'win3' || name === 'win2' ? 0.95 : 0.85);
+      return null;
+    }
     var fn = SOUNDS[name];
     if (!fn) return null;                    // 未知音效：静默忽略
     try { fn(opts || {}); } catch (e) {}

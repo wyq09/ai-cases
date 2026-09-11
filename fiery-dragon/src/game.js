@@ -427,8 +427,14 @@ async function settle(cell, sym, mult, x3) {
     FX.coinBurst(p.x, p.y, clamp(winAll, 12, 90), {});
     FX.ring(p.x, p.y, '#ffd23e');
     if (winAll >= 200) { $('#machine').classList.add('winner'); FX.confetti(60); }
+    // 中 BAR：天女散花（bar100 与 JACKPOT 特效叠加）
+    if (sym === 'bar') {
+      FX.goddessScatter(p.x, p.y);
+      $('#machine').classList.add('winner');
+      if (!jpHit) FX.bigText('B A R !', { color: '#ff9a3d', sub: `中奖 +${winAll}`, dur: 2.2 });
+    }
     if (jpHit) FX.bigText('JACKPOT!', { color: '#ffd23e', sub: `中奖 +${winAll}`, dur: 3.0 });
-    else if (winAll >= 200) FX.bigText('大 奖 !', { color: '#ffd23e', sub: `中奖 +${winAll}`, dur: 1.9 });
+    else if (sym !== 'bar' && winAll >= 200) FX.bigText('大 奖 !', { color: '#ffd23e', sub: `中奖 +${winAll}`, dur: 1.9 });
     let jpWin = 0;
     if (jpHit) {
       jpWin = S.jp; S.jp = 0; renderJP();

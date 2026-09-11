@@ -15,7 +15,7 @@ window.FX = (() => {
 
   const TAU = Math.PI * 2;
   const POOL_MAX = 1500;               // 池容量：够 200 金币 + 大雨 + 彩带 + 星光
-  const T_COIN = 1, T_CONF = 2, T_SPARK = 3, T_RING = 4, T_FLASH = 5;
+  const T_COIN = 1, T_CONF = 2, T_SPARK = 3, T_RING = 4, T_FLASH = 5, T_PETAL = 6;
 
   // ---------- 运行时状态（无 DOM 环境下保持空安全，API 自动降级 no-op） ----------
   let cv = null, ctx = null;
@@ -265,7 +265,9 @@ window.FX = (() => {
         if (p.y - p.size > H + 8 || p.x < -80 || p.x > W + 80) p.on = false; // 落出屏底
         break;
       case T_CONF:
+      case T_PETAL:
         p.vy += p.g * dt;
+        p.vy = Math.min(p.vy, 160);            // 花瓣终速慢（飘）
         p.y += p.vy * dt;
         p.x += (p.vx + Math.sin(p.t * p.freq + p.ph) * p.amp) * dt;
         p.rot += p.vr * dt;
@@ -311,6 +313,32 @@ window.FX = (() => {
         ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
         ctx.fillStyle = 'rgba(255,255,255,0.35)'; // 上缘高光
         ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * 0.34);
+        ctx.restore();
+        break;
+      }
+      case T_PETAL: {
+        const fadeP = k > 0.75 ? (1 - k) / 0.25 : 1;
+        const squash = Math.sin(p.flip) * 0.72 + 0.28;   // 翻面
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.scale(squash, 1);
+        ctx.globalAlpha = fadeP;
+        const pg = ctx.createLinearGradient(0, -p.h, 0, p.h);
+        pg.addColorStop(0, '#fff6f0');
+        pg.addColorStop(0.45, p.color);
+        pg.addColorStop(1, p.dark);
+        ctx.fillStyle = pg;
+        ctx.beginPath();                                  // 花瓣：上尖下圆
+        ctx.moveTo(0, -p.h);
+        ctx.bezierCurveTo(p.w * 0.9, -p.h * 0.4, p.w * 0.8, p.h * 0.7, 0, p.h);
+        ctx.bezierCurveTo(-p.w * 0.8, p.h * 0.7, -p.w * 0.9, -p.h * 0.4, 0, -p.h);
+        ctx.fill();
+        ctx.globalAlpha = fadeP * 0.5;
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.beginPath();
+        ctx.ellipse(-p.w * 0.18, -p.h * 0.15, p.w * 0.22, p.h * 0.34, -0.4, 0, TAU);
+        ctx.fill();
         ctx.restore();
         break;
       }
@@ -659,5 +687,63 @@ window.FX = (() => {
     }
   }
 
-  return { init, coinBurst, coinRain, confetti, spark, flash, ring, bigText, stopAll };
+  // 花瓣雨：天女散花主粒子（顶部漫天飘落）
+  function petals(n) {
+    if (!ctx) return;
+    n = clamp(n | 0, 0, 400);
+    const colors = [
+      ['#ff8a9a', '#c2185b'], ['#ffb056', '#d84315'],   // 粉、橘
+      ['#ffe27a', '#e6a817'], ['#fff0f6', '#e48ab8']    // 金、白粉
+    ];
+    for (let i = 0; i < n; i++) {
+      const p = spawn();
+      if (!p) return;
+      p.type = T_PETAL;
+      p.x = rand(-40, W + 40);
+      p.y = rand(-80, -14);
+      p.vx = rand(-40, 40);
+      p.vy = rand(60, 150);
+      p.g = rand(18, 55);
+      p.t = 0; p.life = 7;
+      p.w = rand(8, 15);
+      p.h = rand(11, 19);
+      p.rot = rand(0, TAU);
+      p.vr = rand(-4.5, 4.5);
+      p.flip = rand(0, TAU);
+      p.vf = rand(3.5, 8);
+      p.amp = rand(60, 150);
+      p.freq = rand(1.4, 3.2);
+      p.ph = rand(0, TAU);
+      const c = colors[(Math.random() * colors.length) | 0];
+      p.color = c[0]; p.dark = c[1];
+      p.delay = rand(0, 1.6);
+      p.a = 1;
+    }
+  }
+
+  // 天女散花：中 BAR 大奖组合特效——花瓣漫天+金币多点喷发+冲击波+闪光
+  function goddessScatter(x, y) {
+    if (!ctx) return;
+    petals(140);
+    coinRain(36);
+    flash('#ffe9b8', 0.5);
+    ring(x, y, '#ffd23e');
+    // 环形多点金币爆（以 (x,y) 为心两圈）
+    const R1 = 120, R2 = 240;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * TAU;
+      coinBurst(x + Math.cos(a) * R1, y + Math.sin(a) * R1 * 0.6, 8, { up: 620, spread: 200 });
+    }
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * TAU + 0.4;
+      coinBurst(x + Math.cos(a) * R2, y + Math.sin(a) * R2 * 0.55, 6, { up: 700, spread: 240 });
+    }
+    spark(x, y, '#ffd23e', 40);
+    spark(x, y, '#ff8a9a', 24);
+    // 三波次闪（错峰）
+    setTimeout(() => flash('#ffd23e', 0.32), 260);
+    setTimeout(() => flash('#fff3d0', 0.28), 560);
+  }
+
+  return { init, coinBurst, coinRain, confetti, petals, goddessScatter, spark, flash, ring, bigText, stopAll };
 })();
