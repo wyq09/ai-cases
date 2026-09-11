@@ -3027,7 +3027,7 @@ function showMenu() {
   </div>`;
   ov.classList.add('show');
   ov.querySelector('.close-x').onclick = () => ov.classList.remove('show');
-  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('show'); }, { once: true });
+  ov.dataset.openAt = String(performance.now());
   ov.querySelectorAll('.switch').forEach(sw => sw.onclick = () => {
     const k = sw.dataset.k;
     if (k === 'muted') setMuted(!S.muted);
@@ -3156,7 +3156,7 @@ function showInfo() {
   </div>`;
   ov.classList.add('show');
   ov.querySelector('.close-x').onclick = () => ov.classList.remove('show');
-  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('show'); }, { once: true });
+  ov.dataset.openAt = String(performance.now());
 }
 
 /* ---------------- 开关 ---------------- */
@@ -3258,10 +3258,17 @@ function boot() {
   bindHold($('#btnSmall'), () => actGuess('small'), { delay: 9999 });
   bindHold($('#btnBig'), () => actGuess('big'), { delay: 9999 });
   bindHold($('#btnGo'), actGo, { delay: 9999 });
-  $('#menuBtn').addEventListener('pointerdown', e => { e.preventDefault(); SFX.init(); SFX.play('press'); showMenu(); });
-  $('#infoBtn').addEventListener('pointerdown', e => { e.preventDefault(); SFX.init(); SFX.play('press'); showInfo(); });
+  $('#menuBtn').addEventListener('click', () => { SFX.init(); SFX.play('press'); showMenu(); });
+  $('#infoBtn').addEventListener('click', () => { SFX.init(); SFX.play('press'); showInfo(); });
   $('#muteBtn').addEventListener('pointerdown', e => { e.preventDefault(); SFX.init(); setMuted(!S.muted); SFX.play('press'); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+  // 遮罩点空白关闭：350ms 保护窗防同一手势的合成 click 穿透误关
+  $('#overlay').addEventListener('click', e => {
+    if (e.target !== e.currentTarget) return;
+    if (performance.now() - (+e.currentTarget.dataset.openAt || 0) < 350) return;
+    e.currentTarget.classList.remove('show');
+    SFX.play('press');
+  });
   addEventListener('resize', resize);
   resize();
 
