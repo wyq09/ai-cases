@@ -19,6 +19,24 @@ const SYM_NAME  = {apple:'苹果',orange:'橙子',lemon:'柠檬',bell:'铃铛',m
 const LUCK_CELLS = [9,21];
 const MAX_BET = 99, MAX_CREDIT = 99999999, START_CREDIT = 100;
 
+/* ---------------- 天女散花配置（菜单可改，localStorage 持久化） ---------------- */
+const CFG_DEFAULT = {
+  bar50: 5, bar100: 10,          // 中 BAR 散出的中奖水果数
+  luckChance: 50,                // 中 LUCK 触发散花的概率 %
+  luckMin: 3, luckMax: 8,        // LUCK 散花水果数范围
+  wApple: 20, wOrange: 15, wLemon: 12, wBell: 12, wMelon: 10, wStar: 8, wSeven: 5  // 各水果抽中权重
+};
+let CFG = { ...CFG_DEFAULT };
+function saveCfg() {
+  try { localStorage.setItem('fd-cfg-v1', JSON.stringify(CFG)); } catch (e) {}
+}
+function loadCfg() {
+  try {
+    const c = JSON.parse(localStorage.getItem('fd-cfg-v1'));
+    if (c && typeof c === 'object') CFG = { ...CFG_DEFAULT, ...c };
+  } catch (e) {}
+}
+
 /* ---------------- 状态 ---------------- */
 const S = {
   credit: 0, bonus: 0, bonusBet: 0,
@@ -398,13 +416,22 @@ async function onLightStop(cell) {
     LUCK_CELLS.forEach(i => cellEls[i].classList.add('hitluck'));
     const p = centerInViewport(cellEls[cell]);
     FX.spark(p.x, p.y, '#7ad7ff', 26);
-    FX.bigText('LUCK!', { color: '#7ad7ff', sub: S.freeSpin ? '幸运连锁！' : '送免费一局', dur: 1500 });
+    // 按配置概率触发天女散花；免费局中再中 LUCK 必触发（防无限循环）
+    const doScatter = S.freeSpin || (Math.random() * 100 < CFG.luckChance);
+    FX.bigText('LUCK!', { color: '#7ad7ff', sub: doScatter ? '天女散花！' : '送免费一局', dur: 1500 });
     await sleep(1400);
     LUCK_CELLS.forEach(i => cellEls[i].classList.remove('hitluck'));
     $('#machine').classList.remove('lucky');
-    S.freeSpin = true;
-    S.phase = 'spinning';
-    runLight(await LocalServer.spin({ bets: { ...S.bets }, jp: S.jp }));
+    if (doScatter) {
+      const cnt = CFG.luckMin + Math.floor(Math.random() * (CFG.luckMax - CFG.luckMin + 1));
+      S.phase = 'scatter'; syncButtons();
+      await scatterRound(cell, cnt, 'L U C K');
+      await finishRound();
+    } else {
+      S.freeSpin = true;
+      S.phase = 'spinning';
+      runLight(await LocalServer.spin({ bets: { ...S.bets }, jp: S.jp }));
+    }
     return;
   }
   await settle(cell, sym, mult, x3);
@@ -450,16 +477,113 @@ async function settle(cell, sym, mult, x3) {
     $('#machine').classList.remove('winner');
     $('#jpCoin').classList.remove('jpburst');
     // 中奖格保留爆闪直到下局 GO
+    // BAR 天女散花：额外散出可配置数量的中奖水果
+    if (sym === 'bar') await scatterRound(cell, mult === 100 ? CFG.bar100 : CFG.bar50, 'B A R');
   } else {
     SFX.play('tick', { pitch: 0.5 });
     await sleep(500);
   }
-  // 清押注
+  await finishRound();
+}
+
+/* ---------------- 天女散花 ---------------- */
+// 结算收尾（清注 → 进比倍或回待机），正常结算与散花共用
+async function finishRound() {
   BET_ORDER.forEach(k => S.bets[k] = 0);
   renderBets();
   S.freeSpin = false;
   if (S.bonus > 0) enterBonus();
   else { S.phase = 'idle'; syncButtons(); startAttract(); save(); }
+}
+
+// 按权重随机抽 count 个中奖水果（含其所在格与赔付）
+// 赔付 = 押注 × 格倍率；未押的水果按 1 注保底送分（散花永远是真奖）
+function rollScatterFruits(count) {
+  const symCells = {};
+  CELLS.forEach(([sym], i) => {
+    if (sym !== 'luck' && sym !== 'bar') (symCells[sym] = symCells[sym] || []).push(i);
+  });
+  const WKEYS = [['apple','wApple'],['orange','wOrange'],['lemon','wLemon'],['bell','wBell'],['melon','wMelon'],['star','wStar'],['seven','wSeven']];
+  const picks = [];
+  for (let i = 0; i < count; i++) {
+    const sym = WKEYS[sampleWeights(WKEYS.map(([, k]) => Math.max(1, +CFG[k] || 0)))][0];
+    const cells = symCells[sym];
+    const cell = cells[Math.floor(Math.random() * cells.length)];
+    const pay = Math.max(1, S.bets[sym] || 0) * CELLS[cell][1] * (CELLS[cell][2] ? 3 : 1);
+    picks.push({ cell, sym, pay });
+  }
+  return picks;
+}
+
+// 格子中心（stage 坐标）
+function cellCenterStage(i) {
+  const st = $('#stage').getBoundingClientRect(), r = cellEls[i].getBoundingClientRect();
+  return { x: (r.left + r.width / 2 - st.left) / stageScale, y: (r.top + r.height / 2 - st.top) / stageScale };
+}
+
+// 单颗散花飞行物：delay 后从 fromCell 出发，弧线飞向 pick.cell 并落格结算
+function flyScatterToken(fromCell, pick, delay) {
+  return new Promise(res => {
+    setTimeout(() => {
+      const a = cellCenterStage(fromCell), b = cellCenterStage(pick.cell);
+      const el = document.createElement('div');
+      el.className = 'scatter-fly';
+      el.innerHTML = ART.coin();
+      $('#stage').appendChild(el);
+      const t0 = performance.now(), D = 480;
+      (function step(t) {
+        const k = clamp((t - t0) / D, 0, 1), e = k * k * (3 - 2 * k);
+        const x = a.x + (b.x - a.x) * e;
+        const y = a.y + (b.y - a.y) * e - Math.sin(k * Math.PI) * 70;
+        el.style.transform = `translate(${x - 19}px,${y - 19}px) scale(${1 - k * 0.2}) rotate(${k * 620}deg)`;
+        if (k < 1) requestAnimationFrame(step);
+        else {
+          el.remove();
+          const cel = cellEls[pick.cell];
+          cel.classList.add('hitwin');
+          setTimeout(() => cel.classList.remove('hitwin'), 1100);
+          S.bonus += pick.pay;
+          rollLed(ledBonus, bonusShown, S.bonus, 260);
+          const vp = centerInViewport(cel);
+          FX.spark(vp.x, vp.y, pick.pay > 0 ? '#ffd23e' : '#9ab0c0', 14);
+          if (pick.pay > 0) {
+            const tag = document.createElement('div');
+            tag.className = 'scatter-pay';
+            tag.textContent = '+' + pick.pay;
+            tag.style.left = vp.x + 'px'; tag.style.top = (vp.y - 26) + 'px';
+            document.body.appendChild(tag);
+            setTimeout(() => tag.remove(), 1000);
+          }
+          SFX.play(pick.pay > 0 ? 'tick' : 'tick', { pitch: pick.pay > 0 ? 1.5 : 0.7 });
+          res();
+        }
+      })(t0);
+    }, delay);
+  });
+}
+
+// 散花整轮：特效开场 → 光点排队出发逐个开奖 → 汇总大字
+async function scatterRound(fromCell, count, label) {
+  if (count <= 0) return;
+  S.phase = 'scatter'; syncButtons();
+  const p = centerInViewport(cellEls[fromCell]);
+  FX.goddessScatter(p.x, p.y);
+  SFX.play('win2');
+  $('#machine').classList.add('winner');
+  FX.bigText(label + ' 散花', { color: '#ff9a3d', sub: `散出 ${count} 个中奖水果`, dur: 1.8 });
+  await sleep(700);
+  const picks = rollScatterFruits(count);
+  const GAP = 300;                                  // 排队间隔
+  const flights = picks.map((pk, i) => flyScatterToken(fromCell, pk, i * GAP));
+  await Promise.all(flights);
+  const gained = picks.reduce((s, x) => s + x.pay, 0);
+  S.totalOut += gained;
+  bonusShown = -1; renderBonus();
+  FX.bigText('天女散花', { color: '#ffd23e', sub: `共中 +${gained}`, dur: 1.6 });
+  SFX.play(gained > 0 ? 'win1' : 'glose');
+  $('#machine').classList.remove('winner');
+  await sleep(1500);
+  save();
 }
 
 /* ---------------- 比倍（猜大小） ---------------- */
@@ -595,6 +719,29 @@ function showMenu() {
       <button class="mini" data-act="forcejp">下局必中头奖</button>
       <button class="mini red" data-act="reset">清空存档</button>
     </div>
+    <div class="row" style="display:block">
+      <span>天女散花设置</span><br>
+      <div style="margin-top:10px">
+        <span class="cfg-lab">BAR×50 散花 <input class="cfg-in" type="number" min="1" max="24" data-cfg="bar50"></span>
+        <span class="cfg-lab">BAR×100 散花 <input class="cfg-in" type="number" min="1" max="24" data-cfg="bar100"></span>
+      </div>
+      <div>
+        <span class="cfg-lab">LUCK 触发散花概率 <input class="cfg-in" type="number" min="0" max="100" data-cfg="luckChance"> %</span>
+        <span class="cfg-lab">散花水果数 <input class="cfg-in" type="number" min="1" max="24" data-cfg="luckMin" style="width:52px"> ~ <input class="cfg-in" type="number" min="1" max="24" data-cfg="luckMax" style="width:52px"></span>
+      </div>
+      <div style="margin-top:6px;color:#c9a86a;font-size:17px">水果抽中权重（押中该水果才有赔付）</div>
+      <div>
+        <span class="cfg-lab">苹果 <input class="cfg-in" type="number" min="0" max="99" data-cfg="wApple"></span>
+        <span class="cfg-lab">橙 <input class="cfg-in" type="number" min="0" max="99" data-cfg="wOrange"></span>
+        <span class="cfg-lab">柠檬 <input class="cfg-in" type="number" min="0" max="99" data-cfg="wLemon"></span>
+        <span class="cfg-lab">铃铛 <input class="cfg-in" type="number" min="0" max="99" data-cfg="wBell"></span>
+        <span class="cfg-lab">西瓜 <input class="cfg-in" type="number" min="0" max="99" data-cfg="wMelon"></span>
+        <span class="cfg-lab">星 <input class="cfg-in" type="number" min="0" max="99" data-cfg="wStar"></span>
+        <span class="cfg-lab">77 <input class="cfg-in" type="number" min="0" max="99" data-cfg="wSeven"></span>
+      </div>
+      <button class="mini" data-act="cfgdefault">恢复默认</button>
+      <span style="font-size:15px;color:#a8886a">改动即时生效并保存；散花水果押中按押注赔、未押按 1 注保底送分</span>
+    </div>
     <div class="row" style="font-size:16px;color:#a8886a">累计投入 ${S.totalIn} · 累计产出 ${S.totalOut} · 返奖率 ${S.totalIn ? Math.round(S.totalOut / S.totalIn * 100) : 0}%</div>
   </div>`;
   ov.classList.add('show');
@@ -612,8 +759,26 @@ function showMenu() {
     if (act === 'add100') addCredit(100);
     if (act === 'add1000') addCredit(1000);
     if (act === 'forcejp') { S.forcedCell = 3; toast('下局开灯必停 BAR×100'); }
+    if (act === 'cfgdefault') {
+      CFG = { ...CFG_DEFAULT }; saveCfg();
+      ov.querySelectorAll('.cfg-in').forEach(inp => { inp.value = CFG[inp.dataset.cfg]; });
+      toast('天女散花参数已恢复默认');
+    }
     if (act === 'reset') { localStorage.removeItem('fd-save-v1'); location.reload(); }
     SFX.play('press');
+  });
+  ov.querySelectorAll('.cfg-in').forEach(inp => {
+    inp.value = CFG[inp.dataset.cfg];
+    inp.onchange = () => {
+      const k = inp.dataset.cfg;
+      let v = Math.floor(+inp.value || 0);
+      const lim = { luckChance: [0, 100] }[k] || (k.startsWith('w') ? [0, 99] : [1, 24]);
+      v = clamp(v, lim[0], lim[1]);
+      if (k === 'luckMin' && v > CFG.luckMax) v = CFG.luckMax;
+      if (k === 'luckMax' && v < CFG.luckMin) v = CFG.luckMin;
+      inp.value = v; CFG[k] = v; saveCfg();
+      SFX.play('bet');
+    };
   });
 }
 function showInfo() {
@@ -683,6 +848,7 @@ function resize() {
 function boot() {
   // URL 调试参数
   const q = new URLSearchParams(location.search);
+  loadCfg();
   if (q.get('reset') === '1') { try { localStorage.removeItem('fd-save-v1'); } catch (e) {} }
   if (q.get('cell')) S.forcedCell = +q.get('cell');
   if (q.get('rig')) S.rig = q.get('rig');
