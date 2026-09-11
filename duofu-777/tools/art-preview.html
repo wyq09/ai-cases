@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>多福巨奖 ART 预览</title>
+<style>
+  body{background:#1c0726;margin:14px;font-family:Arial,sans-serif;color:#e8b455}
+  h3{margin:14px 0 6px;color:#ffcf4d;font-size:15px}
+  .grid{display:flex;flex-wrap:wrap;gap:10px}
+  .cell{width:112px;text-align:center;font-size:11px;color:#e8b455}
+  .cell img{width:96px;height:96px;display:block;margin:0 auto;background:rgba(0,0,0,.3);border-radius:8px}
+  .wide{width:auto}
+  .wide img{background:rgba(0,0,0,.3);border-radius:6px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="../src/art.js"></script>
+<script>
+const A = DF.ART, root = document.getElementById('root');
+function row(title, items, wide) {
+  const h = document.createElement('h3'); h.textContent = title; root.appendChild(h);
+  const g = document.createElement('div'); g.className = 'grid'; root.appendChild(g);
+  items.forEach(([label, src, w, h2]) => {
+    const c = document.createElement('div'); c.className = 'cell' + (wide ? ' wide' : '');
+    const i = new Image(); i.src = src; if (w) i.style.width = w + 'px'; if (h2) i.style.height = h2 + 'px';
+    if (!w && !h2 && wide) { i.style.width = '400px'; i.style.height = 'auto'; }
+    c.appendChild(i);
+    const l = document.createElement('div'); l.textContent = label; c.appendChild(l);
+    g.appendChild(c);
+  });
+}
+row('symbol()', ['10','J','Q','K','A','koi','frog','turtle','dragon','ingot','gong','wild'].map(k => [k, A.symbol(k)]));
+row('gold()', ['koi','frog','turtle','ingot'].map(k => ['g_' + k, A.gold(k)]));
+row('coin() / kidFu()', [['coin', A.coin()], ['kidFu', A.kidFu()]]);
+row('logo() 400x100', [['logo', A.logo()]], true);
+row('bgMain() 480x288', [['bgMain', A.bgMain(), 480, 288]], true);
+row('bgTop() 480x180', [['bgTop', A.bgTop(), 480, 180]], true);
+(function () {
+  const h = document.createElement('h3'); h.textContent = 'composite: bgMain + symbols'; root.appendChild(h);
+  const g = document.createElement('div'); g.className = 'grid'; root.appendChild(g);
+  const d = document.createElement('div');
+  d.style.cssText = 'width:480px;height:288px;border-radius:6px;display:flex;align-items:center;justify-content:center;gap:8px;background-image:url("' + A.bgMain() + '");background-size:cover';
+  [['10', A.symbol('10')], ['g_koi', A.gold('koi')], ['koi', A.symbol('koi')], ['dragon', A.symbol('dragon')], ['g_ingot', A.gold('ingot')], ['gong', A.symbol('gong')]].forEach(p => {
+    const im = new Image(); im.src = p[1]; im.style.cssText = 'width:54px;height:54px'; d.appendChild(im);
+  });
+  const c = document.createElement('div'); c.className = 'cell wide'; c.appendChild(d);
+  const l = document.createElement('div'); l.textContent = 'composite'; c.appendChild(l);
+  g.appendChild(c);
+})();
+</script>
+</body>
+</html>

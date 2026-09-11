@@ -1,0 +1,3933 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1d0830">
+<title>多福巨奖 777 · 澳门老虎机</title>
+<style>
+/* ================= 基础 ================= */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  background:#0b0414;color:#f6e7c8;overflow:hidden;position:fixed;inset:0;
+  touch-action:manipulation;overscroll-behavior:none;
+  -webkit-user-select:none;user-select:none;
+}
+button{font-family:inherit;border:none;background:none;color:inherit;cursor:pointer;touch-action:manipulation}
+b,label{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+
+/* ================= 舞台与机柜 ================= */
+#stage{height:100dvh;width:100vw;display:flex;align-items:center;justify-content:center;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+#cabinet{
+  width:min(1060px,100vw);height:100%;max-height:100dvh;display:flex;flex-direction:column;gap:6px;
+  padding:10px 10px 12px;position:relative;overflow:hidden;
+  background:linear-gradient(165deg,#41135f 0%,#20082f 48%,#310d4d 100%);
+  border:2px solid #6d2ec0;border-radius:22px;
+  box-shadow:0 0 0 3px #14051f,0 0 38px 8px rgba(150,60,255,.4),inset 0 0 70px rgba(0,0,0,.55);
+}
+/* 机柜霓虹呼吸 */
+#cabinet::after{content:"";position:absolute;inset:0;border-radius:20px;pointer-events:none;
+  box-shadow:inset 0 0 26px 4px rgba(178,107,255,.28);animation:neon 4.5s ease-in-out infinite}
+@keyframes neon{0%,100%{opacity:.55}50%{opacity:1}}
+
+/* ================= 顶屏：LOGO+四奖池 ================= */
+#logoWrap{display:flex;justify-content:center;flex:0 0 auto}
+#logoBox{height:52px;aspect-ratio:4.4/1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.6))}
+#logoBox svg,#logoBox img{width:100%;height:100%;display:block}
+#topScreen{
+  flex:0 0 auto;position:relative;border-radius:14px;padding:7px 9px;overflow:hidden;
+  border:2px solid #d9a83f;background:#3a0710;
+  box-shadow:inset 0 0 30px rgba(0,0,0,.6),0 0 12px rgba(217,168,63,.25);
+}
+#topBg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.85}
+#potRow{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.pot{position:relative;border:1.5px solid #caa14a;border-radius:9px;padding:4px 6px 5px;text-align:center;
+  background:linear-gradient(180deg,rgba(122,18,32,.92),rgba(58,7,16,.94));overflow:hidden}
+.pot{min-width:0}
+.pot-name{font-size:11px;font-weight:700;letter-spacing:1px;white-space:nowrap;overflow:hidden;color:#ffe9b0;
+  background:linear-gradient(180deg,#f8d67d,#d99b2e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  text-shadow:0 0 10px rgba(248,214,125,.25)}
+.pot-val{font-size:clamp(11px,1.6vw,17px);font-weight:800;color:#fff3cf;white-space:nowrap;letter-spacing:-.3px;text-shadow:0 0 8px rgba(255,190,80,.55)}
+.pot.grand .pot-val{color:#ffe08a}.pot.mini .pot-val{color:#ffd9d0}
+.pot-rail{display:flex;justify-content:center;gap:2px;margin-top:3px;height:5px}
+.pot-rail i{width:7px;height:5px;border-radius:2px;background:rgba(255,220,140,.16);border:1px solid rgba(255,220,140,.25)}
+.pot-rail.dots i.on{background:radial-gradient(circle at 30% 30%,#fff3c4,#f2b93c);box-shadow:0 0 5px rgba(255,200,90,.9);border-color:#fff0bd}
+.pot-rail.bar{position:relative;height:6px;border-radius:3px;background:rgba(255,220,140,.12);border:1px solid rgba(255,220,140,.28);overflow:hidden}
+.pot-rail.bar i{position:absolute;left:0;top:0;bottom:0;width:0%;border-radius:3px;
+  background:linear-gradient(90deg,#c9862e,#f2b93c 60%,#fff0bd);box-shadow:0 0 6px rgba(255,200,90,.8);transition:width .45s ease}
+.pot.full{animation:potFull .8s ease-in-out infinite}
+@keyframes potFull{0%,100%{box-shadow:0 0 6px 2px rgba(255,205,90,.5)}50%{box-shadow:0 0 18px 6px rgba(255,205,90,.95)}}
+.pot.bump .pot-val{animation:potBump .4s ease}
+@keyframes potBump{40%{transform:scale(1.22);color:#fff}}
+/* 侧赔付表（宽屏） */
+.payside{position:absolute;top:6px;bottom:6px;width:150px;display:none;flex-direction:column;gap:4px;
+  font-size:9px;color:#e8cfa0;pointer-events:none}
+#paySide{right:8px}#paySideL{left:8px}
+.payside .ps-row{display:flex;align-items:center;gap:5px;background:rgba(46,6,14,.9);
+  border:1px solid rgba(202,161,74,.65);border-radius:6px;padding:2px 6px;color:#ffdca0;font-size:10px;font-weight:700}
+.payside .ps-row img{width:22px;height:22px;flex:0 0 auto}
+.payside .ps-row .ps-pays{margin-left:auto;text-align:right;line-height:1.25;font-weight:800;color:#ffe9b0;font-size:10px}
+
+/* ================= 主屏 ================= */
+#mainScreen{flex:1 1 auto;min-height:0;position:relative;display:flex;flex-direction:column;border-radius:14px;
+  border:2px solid #d9a83f;overflow:hidden;background:#33040e;
+  box-shadow:inset 0 0 40px rgba(0,0,0,.65)}
+#mainBg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.9}
+#freeBanner{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:30;
+  padding:5px 18px;border-radius:999px;font-size:14px;font-weight:800;color:#5d1503;white-space:nowrap;
+  background:linear-gradient(180deg,#ffe9a8,#f0b64a);box-shadow:0 2px 14px rgba(255,190,80,.5);border:2px solid #fff3cf}
+#reelBox{position:relative;flex:1;display:flex;gap:4px;padding:10px 12px;min-height:0;z-index:5}
+.reel{position:relative;flex:1;overflow:hidden;border-radius:8px;background:linear-gradient(180deg,#20030a,#3a0813 30%,#2a050d);
+  box-shadow:inset 0 8px 14px rgba(0,0,0,.55),inset 0 -8px 14px rgba(0,0,0,.55)}
+.reel .strip{position:absolute;left:0;top:0;width:100%;will-change:transform}
+.cell{display:flex;align-items:center;justify-content:center;position:relative}
+.cell img{width:86%;height:86%;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+.cell.gold img{filter:drop-shadow(0 0 7px rgba(255,205,90,.75)) drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+.reel.blur .strip{filter:blur(1.6px)}
+#reelFrame{position:absolute;inset:0;pointer-events:none;z-index:20;border-radius:10px;
+  background:linear-gradient(160deg,rgba(255,255,255,.14),transparent 32%)}
+#reelFrame::before{content:"";position:absolute;left:10px;right:10px;top:calc(10px + var(--rowH));height:1.5px;
+  background:linear-gradient(90deg,transparent,rgba(255,215,130,.5),transparent)}
+#reelFrame::after{content:"";position:absolute;left:10px;right:10px;top:calc(10px + var(--rowH)*2);height:1.5px;
+  background:linear-gradient(90deg,transparent,rgba(255,215,130,.5),transparent)}
+.cell.hit::before{content:"";position:absolute;inset:2%;border-radius:12px;z-index:-1;
+  background:radial-gradient(circle,rgba(255,214,110,.5),rgba(255,180,60,.12) 70%);animation:hitGlow .5s ease-in-out infinite alternate}
+.cell.hit img{animation:hitZoom .5s ease-in-out infinite alternate}
+@keyframes hitGlow{from{opacity:.5}to{opacity:1}}
+@keyframes hitZoom{from{transform:scale(1)}to{transform:scale(1.14)}}
+#reelMsg{position:absolute;left:0;right:0;bottom:12%;text-align:center;z-index:25;pointer-events:none;
+  font-size:clamp(15px,2.6vw,24px);font-weight:900;letter-spacing:2px;
+  color:#ffe9b0;text-shadow:0 0 14px rgba(255,190,80,.9),0 2px 3px rgba(0,0,0,.7);opacity:0;transition:opacity .25s}
+#reelMsg.show{opacity:1}
+
+/* 底部信息条 */
+#bottomBar{position:relative;z-index:6;flex:0 0 auto;display:flex;gap:6px;padding:5px 10px 7px}
+.bb{flex:1;display:flex;align-items:center;gap:6px;background:linear-gradient(180deg,#170309,#3a0713);
+  border:1.5px solid #b98a35;border-radius:9px;padding:4px 10px;min-width:0}
+.bb label{font-size:11px;color:#d9b877;white-space:nowrap}
+.bb b{font-size:clamp(13px,2.4vw,19px);font-weight:800;color:#fff3cf;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bb.win b{color:#ffd257;text-shadow:0 0 10px rgba(255,190,60,.6)}
+
+/* ================= 按键面板 ================= */
+#deck{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:6px 10px 4px}
+#betRow{flex:1;display:flex;align-items:center;gap:6px;justify-content:center;min-width:0}
+.dbtn{flex:0 0 auto;min-width:52px;padding:8px 10px;border-radius:12px;font-size:13px;font-weight:800;color:#ffe6b3;
+  background:linear-gradient(180deg,#3c1560,#22093a);border:1.5px solid #a565e8;
+  box-shadow:0 2px 0 #160526,0 0 10px rgba(150,80,240,.35);display:flex;flex-direction:column;align-items:center;gap:1px}
+.dbtn small{font-size:9px;font-weight:600;color:#c9a5ee}
+.dbtn:active{transform:translateY(2px);box-shadow:0 0 0 #160526}
+.dbtn.on{background:linear-gradient(180deg,#a855f7,#6d28d9);color:#fff;box-shadow:0 2px 0 #3b0f6e,0 0 16px rgba(168,85,247,.7)}
+.dbtn:disabled{opacity:.38}
+#betGroup{flex:1;display:flex;align-items:center;gap:6px;justify-content:center}
+#betDots{display:flex;gap:5px}
+#betDots i{width:10px;height:10px;border-radius:50%;background:#3a1c5c;border:1.5px solid #8b5cf6}
+#betDots i.on{background:radial-gradient(circle at 32% 30%,#ffe9a8,#f0a92e);border-color:#fff0c2;box-shadow:0 0 7px rgba(255,200,90,.9)}
+#btnSpin{flex:0 0 auto;width:clamp(74px,13vw,104px);aspect-ratio:1;border-radius:50%;position:relative;
+  font-size:clamp(15px,2.6vw,21px);font-weight:900;letter-spacing:3px;color:#fff8e8;
+  background:radial-gradient(circle at 32% 28%,#ff7a52,#e02c1d 55%,#8f0f08 90%);
+  border:3px solid #ffdf9e;box-shadow:0 4px 0 #5c0703,0 0 22px rgba(255,90,50,.55),inset 0 -8px 14px rgba(120,10,0,.7);
+  text-shadow:0 2px 4px rgba(90,0,0,.6)}
+#btnSpin:active{transform:translateY(3px);box-shadow:0 1px 0 #5c0703,0 0 22px rgba(255,90,50,.55)}
+#btnSpin.stop{background:radial-gradient(circle at 32% 28%,#ffd97a,#f0a12e 55%,#9a6208 90%);color:#5d1503}
+#btnSpin:disabled{filter:grayscale(.7) brightness(.75)}
+
+/* ================= 弹层通用 ================= */
+.modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+  background:rgba(8,2,16,.72);backdrop-filter:blur(3px);padding:16px}
+.sheet{width:min(560px,94vw);max-height:86dvh;overflow:auto;border-radius:16px;padding:14px 16px 18px;
+  background:linear-gradient(170deg,#2c0a18,#160309 70%);border:2px solid #d9a83f;
+  box-shadow:0 10px 50px rgba(0,0,0,.7),0 0 20px rgba(217,168,63,.3)}
+.sheet h2{font-size:17px;text-align:center;color:#ffe2a0;letter-spacing:4px;margin-bottom:10px}
+.sheet .x{position:sticky;top:0;float:right;width:30px;height:30px;border-radius:50%;font-size:16px;color:#ffdca0;
+  background:rgba(120,20,40,.8);border:1px solid #d9a83f;z-index:2}
+.menu-list{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+.mitem{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;font-size:15px;font-weight:700;color:#ffe6b3;
+  background:linear-gradient(180deg,#3c1560,#22093a);border:1.5px solid #a565e8;text-align:left}
+.mitem:active{transform:scale(.98)}
+.mitem .ic{font-size:20px}
+.mitem small{margin-left:auto;font-size:11px;font-weight:500;color:#c9a5ee}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.stat-grid .st{background:rgba(60,10,26,.6);border:1px solid rgba(217,168,63,.5);border-radius:10px;padding:8px 10px}
+.stat-grid .st label{display:block;font-size:11px;color:#d9b877}
+.stat-grid .st b{font-size:16px;color:#fff3cf}
+/* 赔付表 */
+.pay-table{width:100%;border-collapse:collapse;font-size:12px}
+.pay-table th{color:#ffdca0;font-size:11px;padding:4px;border-bottom:1px solid rgba(217,168,63,.5)}
+.pay-table td{padding:4px 6px;border-bottom:1px solid rgba(217,168,63,.18);text-align:center}
+.pay-table td:first-child{text-align:left}
+.pay-table img{width:26px;height:26px;vertical-align:middle}
+.pay-table .gold-row{background:rgba(255,200,90,.06)}
+.rules{font-size:12px;line-height:1.75;color:#e8cfa0;margin-top:10px}
+.rules h3{color:#ffdca0;font-size:13px;margin:8px 0 3px}
+.rules b{color:#ffd257}
+
+/* 选奖 */
+#pickBonus{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 30%,rgba(90,20,10,.92),rgba(10,2,6,.96));padding:12px;gap:10px}
+#pickTitle{font-size:clamp(20px,4.5vw,30px);font-weight:900;letter-spacing:6px;
+  background:linear-gradient(180deg,#fff3c4,#f2b93c 60%,#c9862e);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 12px rgba(255,200,80,.8))}
+#pickSub{font-size:13px;color:#ffe6b3}
+#pickGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(6px,1.6vw,12px);width:min(480px,92vw)}
+.pcoin{aspect-ratio:1;border-radius:50%;position:relative;transition:transform .2s;
+  background:radial-gradient(circle at 32% 28%,#ffe9a8,#f2b93c 55%,#a8721f 90%);
+  border:3px solid #fff0c2;box-shadow:0 3px 0 #7a4e0e,0 0 14px rgba(255,200,90,.5)}
+.pcoin:not(.done):active{transform:scale(.92)}
+.pcoin .back{position:absolute;inset:14%;opacity:.9}
+.pcoin .face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  border-radius:50%;font-weight:900;transform:rotateY(180deg);backface-visibility:hidden}
+.pcoin.open .face{transform:rotateY(0)}
+.pcoin.open .back{opacity:0}
+.pcoin.done{opacity:.42;pointer-events:none}
+.pcoin.win{animation:pickWin .6s ease-in-out infinite;box-shadow:0 0 26px 8px rgba(255,210,90,.95)}
+@keyframes pickWin{50%{transform:scale(1.12)}}
+.pcoin .face .pf-name{font-size:clamp(12px,2.4vw,17px);letter-spacing:1px}
+.pcoin .face .pf-val{font-size:clamp(9px,1.8vw,12px);font-weight:700;opacity:.9}
+.pcoin.mini .face{background:radial-gradient(circle at 32% 28%,#ffd9c9,#f2937c 60%,#a83a26)}
+.pcoin.minor .face{background:radial-gradient(circle at 32% 28%,#c9e0ff,#7ca8f2 60%,#2a4ea8)}
+.pcoin.major .face{background:radial-gradient(circle at 32% 28%,#e2c9ff,#a87cf2 60%,#5a2aa8)}
+.pcoin.grand .face{background:radial-gradient(circle at 32% 28%,#fff3b0,#f2d23c 60%,#a8861f)}
+.pcoin.fu .face{background:radial-gradient(circle at 32% 28%,#d0ffe0,#7cf2a8 60%,#1fa85a)}
+#pickGot{display:flex;gap:14px;font-size:13px;font-weight:800;color:#ffe6b3;min-height:20px}
+#pickGot span{opacity:.35}#pickGot span.live{opacity:1}
+
+/* 大奖演出 */
+#bigWinOverlay{position:fixed;inset:0;z-index:85;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  background:radial-gradient(circle at 50% 42%,rgba(70,10,30,.88),rgba(8,1,10,.95));cursor:pointer}
+#bigWinLabel{font-size:clamp(34px,9vw,72px);font-weight:900;letter-spacing:8px;
+  background:linear-gradient(180deg,#fff8d8,#ffd257 45%,#e08a1e 75%,#8a4a08);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 18px rgba(255,190,60,.9));animation:bigIn .55s cubic-bezier(.2,1.6,.4,1)}
+@keyframes bigIn{from{transform:scale(.2);opacity:0}}
+#bigWinAmt{font-size:clamp(22px,5.5vw,44px);font-weight:900;color:#fff3cf;text-shadow:0 0 16px rgba(255,190,60,.8)}
+#bigWinHint{font-size:12px;color:#e8cfa0;opacity:.75;margin-top:14px}
+
+/* toast */
+#toast{position:fixed;left:50%;bottom:calc(14dvh + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:120;
+  background:rgba(20,4,30,.92);border:1.5px solid #d9a83f;color:#ffe6b3;font-size:13px;font-weight:700;
+  padding:9px 18px;border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.6);opacity:0;transition:opacity .25s;pointer-events:none;max-width:86vw;text-align:center}
+#toast.show{opacity:1}
+
+#fxLayer{position:fixed;inset:0;z-index:100;pointer-events:none}
+#configMount{position:fixed;inset:0;z-index:95;pointer-events:none}
+#configMount>*{pointer-events:auto}
+
+/* ================= 响应式 ================= */
+/* 竖屏手机：奖池 2×2、隐藏侧表、按键两行 */
+@media (max-width:719px){
+  #cabinet{border-radius:0;border-left:none;border-right:none;width:100%}
+  #logoBox{height:40px}
+  #potRow{grid-template-columns:repeat(2,1fr);gap:5px}
+  .pot-name{font-size:10px}
+  .pot-val{font-size:13px}
+  .pot-rail{height:4px}.pot-rail.bar{height:5px}
+  #reelBox{padding:8px 6px;gap:3px}
+  #bottomBar{padding:4px 6px 6px;gap:4px}
+  .bb{padding:3px 7px;gap:4px}
+  .bb label{font-size:9px}
+  .bb b{font-size:12px}
+  #deck{flex-wrap:wrap;justify-content:space-evenly;gap:6px;padding:4px 6px 6px}
+  #betRow{flex:1 0 100%}
+  .dbtn{min-width:46px;padding:7px 6px;font-size:12px}
+  #btnSpin{width:68px}
+}
+/* 宽屏（平板横/桌面）：顶部三栏 logo+奖池+侧赔付表 */
+@media (min-width:900px){
+  #topScreen{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:9px 12px}
+  #logoBox{grid-column:1;justify-self:start;height:58px;width:auto;aspect-ratio:auto;min-width:200px}
+  #potRow{grid-column:2;width:min(500px,46vw)}
+  .payside{display:flex;position:static;width:auto}
+  #paySide{grid-column:3;grid-row:1}
+  #paySideL{grid-column:1;grid-row:1;justify-self:start}
+}
+/* 超宽：机柜留边距 */
+@media (min-width:1100px){ #cabinet{height:min(100dvh - 24px,860px)} }
+/* 横屏矮屏（手机横放） */
+@media (max-height:479px) and (orientation:landscape){
+  #logoBox{height:34px}
+  #topScreen{padding:4px 8px}
+  #potRow{gap:5px}.pot{padding:2px 4px}.pot-name{font-size:9px}.pot-rail{display:none}
+  #reelBox{padding:6px 8px}
+  #deck{padding:2px 8px}.dbtn{padding:4px 8px;font-size:11px;min-width:44px}
+  #btnSpin{width:64px}
+  .bb{padding:2px 8px}.bb b{font-size:14px}
+}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="cabinet">
+    <header id="logoWrap"><div id="logoBox"></div></header>
+
+    <section id="topScreen">
+      <div id="potRow">
+        <div class="pot grand" id="pot-grand"><div class="pot-name">多福巨奖 GRAND</div><div class="pot-val">$0.00</div><div class="pot-rail"></div></div>
+        <div class="pot major" id="pot-major"><div class="pot-name">多财大奖 MAJOR</div><div class="pot-val">$0.00</div><div class="pot-rail"></div></div>
+        <div class="pot minor" id="pot-minor"><div class="pot-name">多福中奖 MINOR</div><div class="pot-val">$0.00</div><div class="pot-rail"></div></div>
+        <div class="pot mini"  id="pot-mini"><div class="pot-name">多福小奖 MINI</div><div class="pot-val">$0.00</div><div class="pot-rail"></div></div>
+      </div>
+      <aside id="paySideL" class="payside"></aside>
+      <aside id="paySide" class="payside"></aside>
+    </section>
+
+    <section id="mainScreen">
+      <div id="freeBanner" hidden>免费局 <b id="fsLeft">0</b> 次 · 累计 <b id="fsWin">$0.00</b></div>
+      <div id="reelBox"></div>
+      <div id="reelMsg"></div>
+      <div id="bottomBar">
+        <div class="bb"><label>余额</label><b id="creditVal">$0.00</b></div>
+        <div class="bb"><label>押注</label><b id="betVal">$8.00</b></div>
+        <div class="bb win"><label>赢分</label><b id="winVal">$0.00</b></div>
+      </div>
+    </section>
+
+    <section id="deck">
+      <div id="betRow">
+        <button class="dbtn" id="btnBetDown" aria-label="减押注"><span style="font-size:17px">−</span><small>押注</small></button>
+        <div id="betGroup"><div id="betDots"></div></div>
+        <button class="dbtn" id="btnBetUp" aria-label="加押注"><span style="font-size:17px">＋</span><small>押注</small></button>
+      </div>
+      <button class="dbtn" id="btnMenu" aria-label="菜单"><span style="font-size:17px">☰</span><small>菜单</small></button>
+      <button class="dbtn" id="btnAuto"><span style="font-size:17px">⟳</span><small>自动</small></button>
+      <button class="dbtn" id="btnTurbo"><span style="font-size:17px">»</span><small>加速</small></button>
+      <button id="btnSpin" aria-label="旋转"><span id="spinLabel">旋转</span></button>
+      <button class="dbtn" id="btnSound" aria-label="声音"><span style="font-size:17px">🔊</span><small>声音</small></button>
+    </section>
+  </div>
+</div>
+
+<div id="fxLayer"></div>
+<div id="configMount"></div>
+
+<div class="modal" id="menuModal" hidden>
+  <div class="sheet">
+    <button class="x" data-close="menuModal">✕</button>
+    <h2>菜 单</h2>
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="menu-list">
+      <button class="mitem" id="miPaytable"><span class="ic">📜</span>赔付表与玩法<small>243路·奖池·免费局</small></button>
+      <button class="mitem" id="miConfig"><span class="ic">⚙️</span>游戏配置<small>图标/音效/玩法/数据</small></button>
+      <button class="mitem" id="miRefill"><span class="ic">💰</span>补币 +10,000<small>演示用免费补给</small></button>
+      <button class="mitem" id="miResetRun"><span class="ic">♻️</span>重置进度<small>积分奖池轨道全部归零</small></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="paytableModal" hidden>
+  <div class="sheet" id="paytableSheet">
+    <button class="x" data-close="paytableModal">✕</button>
+    <h2>赔付表 · 玩法说明</h2>
+    <div id="paytableBody"></div>
+  </div>
+</div>
+
+<div class="modal" id="autoModal" hidden>
+  <div class="sheet" style="width:min(420px,92vw)">
+    <button class="x" data-close="autoModal">✕</button>
+    <h2>自动旋转</h2>
+    <div class="menu-list" id="autoList"></div>
+    <div class="rules" id="autoNote"></div>
+  </div>
+</div>
+
+<div id="pickBonus" hidden>
+  <div id="pickTitle">福 娃 选 奖</div>
+  <div id="pickSub">翻开金币，集齐 3 枚相同奖名即中该奖池</div>
+  <div id="pickGrid"></div>
+  <div id="pickGot"></div>
+</div>
+
+<div id="bigWinOverlay" hidden>
+  <div id="bigWinLabel">大 奖</div>
+  <div id="bigWinAmt">$0.00</div>
+  <div id="bigWinHint">轻点屏幕继续</div>
+</div>
+
+<div id="toast"></div>
+<script>
+/* ===== src/logic.js ===== */
+/* 多福巨奖 777 — 核心算法：滚轮条 / 243路结算(含福Wild) / 奖池 / 免费局 / 12币选奖 / RTP模拟
+   机制对齐官方《多福多財 DUO FU DUO CAI》说明书：押注档 8/18/38/68/88、福Wild 仅 2/3/4 轮、
+   3+ 金锣 10 次免费局(+10 追加、剔除低符)、12 金币选奖(结果预定)、四奖池每注注入 0.1%~1%。 */
+window.DF = window.DF || {};
+DF.LOGIC = (function () {
+  'use strict';
+
+  var LOW = ['10', 'J', 'Q', 'K', 'A'];
+  var PREM = ['koi', 'frog', 'turtle', 'dragon', 'ingot'];
+  var GOLD_POT = { frog: 'mini', koi: 'minor', turtle: 'major', ingot: 'grand' };
+  var GOLD_OF = { g_koi: 'koi', g_frog: 'frog', g_turtle: 'turtle', g_ingot: 'ingot' };
+  var POT_ORDER = ['grand', 'major', 'minor', 'mini'];
+  var POT_CN = { grand: '多福巨奖', major: '多财大奖', minor: '多福中奖', mini: '多福小奖', fu: '福' };
+  var POT_TIER = { mini: 1, minor: 2, major: 3, grand: 4 };
+  var WILD_REELS = [1, 2, 3];   // 福Wild 仅 2/3/4 轮（0 基）
+
+  // 每路赔付（× 押注 / payDivisor）
+  var PAYS = {
+    ingot:  { 3: 25, 4: 100, 5: 500 },
+    dragon: { 3: 15, 4: 50,  5: 250 },
+    turtle: { 3: 10, 4: 30,  5: 150 },
+    frog:   { 3: 8,  4: 20,  5: 120 },
+    koi:    { 3: 5,  4: 15,  5: 100 },
+    A:      { 3: 3,  4: 10,  5: 50 },
+    K:      { 3: 3,  4: 8,   5: 40 },
+    Q:      { 3: 2,  4: 6,   5: 30 },
+    J:      { 3: 2,  4: 5,   5: 25 },
+    '10':   { 3: 2,  4: 4,   5: 20 }
+  };
+  var SCATTER_PAY = { 3: 5, 4: 10, 5: 50 };  // × 押注
+
+  function defaultCfg() {
+    return {
+      startCredits: 10000,
+      betTiers: [8, 18, 38, 68, 88],
+      railNeed: { mini: 80, minor: 115, major: 160, grand: 215 },
+      pickWeights: { mini: 0.70, minor: 0.22, major: 0.065, grand: 0.015 },  // 选奖预定结果分布
+      fsRemove: ['10', 'J', 'Q'],
+      freeSpins: 10, freeRetrigger: 10, tier5Boost: 1.2, fsScale: 1.0,
+      stripGold: { frog: 1, koi: 1, turtle: 1, ingot: 1 },
+      wildPerReel: 1,
+      payDivisor: 12, winScale: 1.0, bigWinTiers: [15, 30],
+      jackpots: {
+        grand: { seed: 38888.88, grow: 0.010 },
+        major: { seed: 6888.88,  grow: 0.006 },
+        minor: { seed: 688.88,   grow: 0.003 },
+        mini:  { seed: 188.88,   grow: 0.0015 }
+      },
+      vols: { master: 1, bgm: 0.5, sfx: 1 },
+      icons: {}, sounds: {},
+      turbo: false, autoStopBigWin: true, sound: true
+    };
+  }
+
+  function mulberry32(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function mod(a, n) { return ((a % n) + n) % n; }
+  function shuffle(bag, rng) {
+    for (var i = bag.length - 1; i > 0; i--) {
+      var k = Math.floor((rng || Math.random)() * (i + 1));
+      var t = bag[i]; bag[i] = bag[k]; bag[k] = t;
+    }
+    return bag;
+  }
+
+  /* ---------- 滚轮条 ---------- */
+  function makeStrips(cfg, seed) {
+    cfg = cfg || {};
+    var rng = mulberry32(seed || 20260911);
+    var strips = [];
+    for (var r = 0; r < 5; r++) {
+      var bag = [];
+      LOW.forEach(function (s) { for (var i = 0; i < 7; i++) bag.push(s); });
+      bag.push('koi', 'koi', 'koi', 'koi', 'g_koi');
+      bag.push('frog', 'frog', 'frog', 'frog', 'g_frog');
+      bag.push('turtle', 'turtle', 'turtle', 'turtle', 'g_turtle');
+      bag.push('dragon', 'dragon', 'dragon', 'dragon', 'dragon');
+      bag.push('ingot', 'ingot', 'g_ingot');
+      bag.push('gong', 'gong');
+      for (var w = 0; w < (cfg.wildPerReel || 0); w++) bag.push('wild');   // 仅 2/3/4 轮
+      if (WILD_REELS.indexOf(r) < 0) bag.splice(bag.indexOf('wild'), Math.max(0, (cfg.wildPerReel || 0)));
+      // Fisher-Yates；金锣间距 <3 重洗（触发率与排列无关）
+      for (var tries = 0; tries < 60; tries++) {
+        shuffle(bag, rng);
+        var pos = [], ok = true;
+        for (var x = 0; x < bag.length; x++) if (bag[x] === 'gong') pos.push(x);
+        for (var y = 1; y < pos.length; y++) if (pos[y] - pos[y - 1] < 3) { ok = false; break; }
+        if (ok && pos.length > 1 && bag.length - pos[pos.length - 1] + pos[0] < 3) ok = false;
+        if (ok) break;
+      }
+      strips.push(bag);
+    }
+    return strips;
+  }
+
+  function stripView(strip, fs, cfg) {
+    if (!fs) return strip;
+    var rm = (cfg && cfg.fsRemove) || LOW;
+    return strip.filter(function (s) { return rm.indexOf(s) < 0; });
+  }
+
+  function cellOf(raw, opts) {
+    var s = GOLD_OF[raw] || raw;
+    var pot = GOLD_POT[s];
+    return {
+      s: s, gold: !!GOLD_OF[raw] && !!pot && (opts.fs || opts.tier >= POT_TIER[pot]), raw: raw
+    };
+  }
+
+  function spinOnce(strips, opts) {
+    var rng = opts.rng || Math.random;
+    var cfg = opts.cfg || {};
+    var grid = [], stops = [];
+    for (var c = 0; c < 5; c++) {
+      var view = stripView(strips[c], opts.fs, cfg);
+      var idx = Math.floor(rng() * view.length);
+      stops.push(idx);
+      var col = [];
+      for (var r = 0; r < 3; r++) col.push(cellOf(view[(idx + r) % view.length], opts));
+      grid.push(col);
+    }
+    return { stops: stops, grid: grid };
+  }
+
+  function gridFromStops(strips, stops, opts) {
+    var cfg = opts.cfg || {};
+    var grid = [];
+    for (var c = 0; c < 5; c++) {
+      var view = stripView(strips[c], opts.fs, cfg);
+      var col = [];
+      for (var r = 0; r < 3; r++) col.push(cellOf(view[mod(stops[c] + r, view.length)], opts));
+      grid.push(col);
+    }
+    return grid;
+  }
+
+  /* ---------- 243 路结算（福Wild 替代，仅出现在 2~4 轮充当替代符） ---------- */
+  function evalGrid(grid, bet, cfg, tier, fs) {
+    cfg = cfg || {};
+    var ways = [], win = 0;
+    var scale = (cfg.winScale || 1) * (tier >= 5 ? (cfg.tier5Boost || 1) : 1) * (fs ? (cfg.fsScale || 1) : 1);
+    var per = bet / (cfg.payDivisor || 8);
+    PREM.concat(LOW).forEach(function (s) {
+      // 首轮必须有真符号（Wild 不在第 1 轮，天然锚定，无重复计路）
+      var rows0 = [];
+      for (var r = 0; r < 3; r++) if (grid[0][r].s === s) rows0.push(r);
+      if (!rows0.length) return;
+      var n = 1, colRows = [rows0];
+      for (var c = 1; c < 5; c++) {
+        var rows = [];
+        for (r = 0; r < 3; r++) { var cs = grid[c][r].s; if (cs === s || cs === 'wild') rows.push(r); }
+        if (!rows.length) break;
+        n++; colRows.push(rows);
+      }
+      if (n >= 3 && PAYS[s] && PAYS[s][n]) {
+        var cnt = 1;
+        colRows.forEach(function (rr) { cnt *= rr.length; });
+        var amt = PAYS[s][n] * per * scale;
+        var combos = [[]];
+        colRows.forEach(function (rr) {
+          var next = [];
+          combos.forEach(function (pre) { rr.forEach(function (x) { next.push(pre.concat(x)); }); });
+          combos = next;
+        });
+        combos.forEach(function (path) {
+          ways.push({ s: s, n: n, amt: amt, cells: path.map(function (rr, i) { return { c: i, r: rr }; }) });
+        });
+        win += amt * cnt;
+      }
+    });
+    var sc = 0;
+    for (var c2 = 0; c2 < 5; c2++) for (var r2 = 0; r2 < 3; r2++) if (grid[c2][r2].s === 'gong') sc++;
+    var scPay = sc >= 3 ? (SCATTER_PAY[Math.min(sc, 5)] || 50) * bet * scale : 0;
+    return { ways: ways, win: win, scatterCount: sc, scatterPay: scPay };
+  }
+
+  function goldHits(grid) {
+    var hits = { mini: 0, minor: 0, major: 0, grand: 0 };
+    for (var c = 0; c < 5; c++) for (var r = 0; r < 3; r++) {
+      var cell = grid[c][r];
+      if (cell.gold && GOLD_POT[cell.s]) hits[GOLD_POT[cell.s]]++;
+    }
+    return hits;
+  }
+
+  /* ---------- 12 金币选奖（官方口径：结果预定，翻币是演出） ---------- */
+  // 预定中奖池（按权重）
+  function pickWon(cfg, rng) {
+    var w = cfg.pickWeights || { mini: 0.68, minor: 0.22, major: 0.08, grand: 0.02 };
+    var r = (rng || Math.random)(), acc = 0;
+    var keys = ['mini', 'minor', 'major', 'grand'];
+    for (var i = 0; i < keys.length; i++) { acc += w[keys[i]]; if (r < acc) return keys[i]; }
+    return 'mini';
+  }
+  // 12 币布局：中奖池×4 + 其余各×2 + 福×2（只有中奖池能凑满 3）
+  function pickPlan(cfg, won, rng) {
+    var others = ['mini', 'minor', 'major', 'grand'].filter(function (p) { return p !== won; });
+    var bag = [won, won, won, won, others[0], others[0], others[1], others[1], others[2], others[2], 'fu', 'fu'];
+    return shuffle(bag, rng);
+  }
+  function pickOutcome(plan, won) { return won; }  // 预定
+
+  /* ---------- RTP 模拟（稳态） ---------- */
+  function simulate(nRounds, cfg, seed, onProgress) {
+    cfg = cfg || defaultCfg();
+    var strips = makeStrips(cfg, seed || 1);
+    var rng = mulberry32(seed ? seed + 77 : 99);
+    var pots = {}, rails = {};
+    POT_ORDER.forEach(function (p) { pots[p] = cfg.jackpots[p].seed; rails[p] = 0; });
+    var need = cfg.railNeed;
+    var totalBet = 0, totalWin = 0, hits = 0, fsTrig = 0;
+    var potAwards = { mini: 0, minor: 0, major: 0, grand: 0 };
+    var potAwardAmt = 0, fsWinTotal = 0, baseWinTotal = 0, goldSpins = 0, wildSpins = 0;
+    var CHECK = Math.max(1000, Math.floor(nRounds / 20));
+
+    for (var i = 0; i < nRounds; i++) {
+      var tier = 1 + Math.floor(rng() * 5);
+      var bet = cfg.betTiers[tier - 1];
+      totalBet += bet;
+      POT_ORDER.forEach(function (p) { pots[p] += bet * cfg.jackpots[p].grow; });
+
+      var sp = spinOnce(strips, { tier: tier, rng: rng, cfg: cfg });
+      var ev = evalGrid(sp.grid, bet, cfg, tier, false);
+      if (sp.grid.some(function (col) { return col.some(function (cell) { return cell.s === 'wild'; }); })) wildSpins++;
+      var gh = goldHits(sp.grid), gAny = false;
+      for (var p0 in gh) { rails[p0] = Math.min(need[p0], rails[p0] + gh[p0]); if (gh[p0]) gAny = true; }
+      if (gAny) goldSpins++;
+
+      var roundWin = ev.win + ev.scatterPay;
+      baseWinTotal += roundWin;
+
+      var fsLeft = ev.scatterCount >= 3 ? cfg.freeSpins : 0;
+      var fsWin = 0;
+      if (fsLeft) {
+        fsTrig++;
+        var guard = 0;
+        while (fsLeft > 0 && guard++ < 500) {
+          fsLeft--;
+          var f = spinOnce(strips, { fs: true, tier: tier, rng: rng, cfg: cfg });
+          var fe = evalGrid(f.grid, bet, cfg, tier, true);
+          var fg = goldHits(f.grid);
+          for (var q in fg) rails[q] = Math.min(need[q], rails[q] + fg[q]);
+          fsWin += fe.win + fe.scatterPay;
+          if (fe.scatterCount >= 3) fsLeft += cfg.freeRetrigger;
+        }
+      }
+      roundWin += fsWin; fsWinTotal += fsWin;
+
+      var pickCount = 0;
+      for (;;) {
+        var full = POT_ORDER.filter(function (p) { return rails[p] >= need[p]; });
+        if (!full.length) break;
+        var won = pickWon(cfg, rng);
+        potAwards[won]++; potAwardAmt += pots[won];
+        roundWin += pots[won];
+        pots[won] = cfg.jackpots[won].seed;
+        full.forEach(function (p) { rails[p] = 0; });
+        if (++pickCount > 3) break;
+      }
+
+      totalWin += roundWin;
+      if (roundWin > 0) hits++;
+      if (onProgress && i % CHECK === 0) onProgress(i, totalWin / totalBet);
+    }
+    return {
+      rtp: totalWin / totalBet, baseRtp: baseWinTotal / totalBet,
+      fsRtp: fsWinTotal / totalBet, jackpotRtp: potAwardAmt / totalBet,
+      hitRate: hits / nRounds, fsRate: fsTrig / nRounds, goldRate: goldSpins / nRounds,
+      wildRate: wildSpins / nRounds,
+      pickRate: (potAwards.mini + potAwards.minor + potAwards.major + potAwards.grand) / nRounds,
+      potAwards: potAwards, rounds: nRounds
+    };
+  }
+
+  return {
+    LOW: LOW, PREM: PREM, GOLD_POT: GOLD_POT, GOLD_OF: GOLD_OF,
+    POT_ORDER: POT_ORDER, POT_CN: POT_CN, POT_TIER: POT_TIER, WILD_REELS: WILD_REELS,
+    PAYS: PAYS, SCATTER_PAY: SCATTER_PAY,
+    defaultCfg: defaultCfg, makeStrips: makeStrips, stripView: stripView,
+    spinOnce: spinOnce, gridFromStops: gridFromStops, evalGrid: evalGrid, goldHits: goldHits,
+    pickWon: pickWon, pickPlan: pickPlan, pickOutcome: pickOutcome,
+    simulate: simulate, mulberry32: mulberry32
+  };
+})();
+
+</script>
+<script>
+/* ===== src/art.js ===== */
+/* 多福巨奖 777 — ART 模块：全部资产程序化 SVG，data URL 导出 */
+window.DF = window.DF || {};
+const DF = window.DF;
+DF.ART = (() => {
+  const enc = s => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
+
+  /* ---- 公共渐变：g=金浮雕 t=金线性 r=红底 ---- */
+  const G = '<radialGradient id="g" cx="50%" cy="35%" r="75%"><stop offset="0" stop-color="#fff7cf"/><stop offset=".45" stop-color="#ffd964"/><stop offset=".8" stop-color="#e8a51e"/><stop offset="1" stop-color="#9a6406"/></radialGradient>';
+  const T = '<linearGradient id="t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3bd"/><stop offset=".5" stop-color="#ffcf4d"/><stop offset="1" stop-color="#c98a12"/></linearGradient>';
+  const R = '<radialGradient id="r" cx="50%" cy="35%" r="80%"><stop offset="0" stop-color="#e03535"/><stop offset=".6" stop-color="#b01218"/><stop offset="1" stop-color="#6d040b"/></radialGradient>';
+  const svg100 = (inner, extra) => '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs>' + G + T + R + (extra || '') + '</defs>' + inner + '</svg>';
+  const DK = '#6b3e00';
+
+  /* 元宝（ingot 碗堆 / gong 顶 共用），中心 x,y 缩放 s */
+  const ING = (x, y, s, rot) => '<g transform="translate(' + x + ' ' + y + ')' + (rot ? ' rotate(' + rot + ')' : '') + ' scale(' + s + ')">' +
+    '<path d="M-18 0 C-14 -6 -8 -9 0 -9 C8 -9 14 -6 18 0 C12 5 6 7 0 7 C-6 7 -12 5 -18 0 Z" fill="url(#g)" stroke="' + DK + '" stroke-width="2"/>' +
+    '<path d="M-18 1 C-21 -4 -19 -10 -14 -12 C-12 -8 -13 -3 -11 1 Z" fill="url(#t)" stroke="' + DK + '" stroke-width="1.6"/>' +
+    '<path d="M18 1 C21 -4 19 -10 14 -12 C12 -8 13 -3 11 1 Z" fill="url(#t)" stroke="' + DK + '" stroke-width="1.6"/></g>';
+
+  /* ---- 金鱼：大头飘逸双尾鳍 ---- */
+  const KOI =
+    '<path d="M38 28 C42 17 52 13 62 15 C56 21 50 26 46 31 Z" fill="url(#t)" stroke="' + DK + '" stroke-width="2"/>' +
+    '<path d="M12 50 C13 35 26 26 42 28 C55 30 64 39 66 49 C71 39 79 28 92 20 C88 32 87 42 84 49 C88 57 91 68 93 80 C82 71 72 61 67 53 C63 65 52 73 39 72 C24 71 11 63 12 50 Z" fill="url(#g)" stroke="' + DK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+    '<path d="M46 66 C52 62 60 62 65 66 C60 71 52 72 46 66 Z" fill="#f5b91e" stroke="' + DK + '" stroke-width="1.5"/>' +
+    '<path d="M40 34 C35 42 35 56 40 64" fill="none" stroke="#8a5a00" stroke-width="2" opacity=".55"/>' +
+    '<path d="M48 40 q5 4 0 9 M56 44 q4 4 0 8" fill="none" stroke="#8a5a00" stroke-width="1.6" opacity=".45"/>' +
+    '<ellipse cx="34" cy="38" rx="8" ry="5" fill="#fff" opacity=".4" transform="rotate(-22 34 38)"/>' +
+    '<circle cx="26" cy="42" r="4.6" fill="#fff" stroke="' + DK + '" stroke-width="1"/><circle cx="27" cy="43" r="2.2" fill="#241811"/><circle cx="26" cy="41.4" r=".9" fill="#fff"/>' +
+    '<path d="M13 51 q4 3.5 8 2.5" fill="none" stroke="' + DK + '" stroke-width="2" stroke-linecap="round"/>';
+
+  /* ---- 三足金蟾：含钱币嘴 ---- */
+  const FROG =
+    '<path d="M14 62 C10 74 20 82 30 78 C36 75 38 68 34 62 Z" fill="url(#g)" stroke="' + DK + '" stroke-width="2"/>' +
+    '<path d="M86 62 C90 74 80 82 70 78 C64 75 62 68 66 62 Z" fill="url(#g)" stroke="' + DK + '" stroke-width="2"/>' +
+    '<ellipse cx="50" cy="58" rx="29" ry="24" fill="url(#g)" stroke="' + DK + '" stroke-width="2.5"/>' +
+    '<ellipse cx="50" cy="67" rx="18" ry="12" fill="#ffe9a8" stroke="#c98a12" stroke-width="1.2"/>' +
+    '<path d="M38 75 C36 81 38 85 44 85 C48 85 49 81 47 77" fill="none" stroke="' + DK + '" stroke-width="4" stroke-linecap="round"/>' +
+    '<path d="M62 77 C60 81 61 85 65 85 C70 85 73 81 71 75" fill="none" stroke="' + DK + '" stroke-width="4" stroke-linecap="round"/>' +
+    '<circle cx="37" cy="32" r="9.5" fill="url(#g)" stroke="' + DK + '" stroke-width="2"/><circle cx="63" cy="32" r="9.5" fill="url(#g)" stroke="' + DK + '" stroke-width="2"/>' +
+    '<circle cx="37" cy="31" r="5.4" fill="#fff"/><circle cx="37.8" cy="31.8" r="2.6" fill="#241811"/><circle cx="36" cy="29.6" r="1.1" fill="#fff"/>' +
+    '<circle cx="63" cy="31" r="5.4" fill="#fff"/><circle cx="63.8" cy="31.8" r="2.6" fill="#241811"/><circle cx="62" cy="29.6" r="1.1" fill="#fff"/>' +
+    '<circle cx="46" cy="45" r="1.3" fill="' + DK + '"/><circle cx="54" cy="45" r="1.3" fill="' + DK + '"/>' +
+    '<path d="M33 50 Q50 60 67 50" fill="none" stroke="' + DK + '" stroke-width="2.5" stroke-linecap="round"/>' +
+    '<g transform="translate(50 57)"><circle r="7" fill="url(#t)" stroke="#7a4a00" stroke-width="1.5"/><rect x="-2.4" y="-2.4" width="4.8" height="4.8" fill="#8a4a06"/></g>';
+
+  /* ---- 长寿金龟：侧视壳纹 ---- */
+  const TURTLE =
+    '<path d="M18 50 C10 50 6 56 8 62 C13 63 18 60 20 55 Z" fill="url(#g)" stroke="' + DK + '" stroke-width="2"/>' +
+    '<path d="M30 60 C29 72 32 77 38 77 C42 77 43 72 41 66 Z" fill="url(#g)" stroke="' + DK + '" stroke-width="2"/>' +
+    '<path d="M58 62 C57 74 60 79 66 79 C70 79 71 74 69 68 Z" fill="url(#g)" stroke="' + DK + '" stroke-width="2"/>' +
+    '<path d="M17 58 C17 38 31 24 50 24 C69 24 83 38 83 56 C83 60 80 62 76 62 L24 62 C20 62 17 60 17 58 Z" fill="url(#g)" stroke="' + DK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+    '<path d="M17 55 L83 55 L83 58 C83 60 80 62 76 62 L24 62 C20 62 17 60 17 58 Z" fill="#c98a12" stroke="' + DK + '" stroke-width="1.5"/>' +
+    '<path d="M33 27 C31 38 31 50 32 60 M50 24 V60 M67 27 C69 38 69 50 68 60 M21 42 C36 48 64 48 79 42" fill="none" stroke="#8a5a00" stroke-width="1.8" opacity=".6"/>' +
+    '<path d="M78 38 C90 36 97 43 96 50 C95 57 88 61 81 58 C76.5 55.5 75 49 77 44 Z" fill="url(#g)" stroke="' + DK + '" stroke-width="2"/>' +
+    '<circle cx="88" cy="47" r="2.6" fill="#241811"/><circle cx="87.2" cy="46" r=".9" fill="#fff"/>' +
+    '<path d="M94 52 q-4 3 -8 2" fill="none" stroke="' + DK + '" stroke-width="1.8" stroke-linecap="round"/>' +
+    '<ellipse cx="40" cy="35" rx="12" ry="6" fill="#fff" opacity=".35" transform="rotate(-18 40 35)"/>';
+
+  /* ---- 金龙：正面盘旋，龙头为主 ---- */
+  const DRAGON =
+    '<path d="M50 8 L58 20 L72 12 L74 27 L90 26 L81 39 L94 49 L79 54 L84 70 L68 66 L60 82 L50 70 L40 82 L32 66 L16 70 L21 54 L6 49 L19 39 L10 26 L26 27 L28 12 L42 20 Z" fill="#e2951b" stroke="#7a4a00" stroke-width="2" stroke-linejoin="round"/>' +
+    '<path d="M36 22 C32 13 35 6 44 4 C40 12 41 18 45 23 Z" fill="url(#t)" stroke="' + DK + '" stroke-width="1.8"/>' +
+    '<path d="M64 22 C68 13 65 6 56 4 C60 12 59 18 55 23 Z" fill="url(#t)" stroke="' + DK + '" stroke-width="1.8"/>' +
+    '<path d="M50 20 C66 20 78 30 78 44 C78 58 66 67 50 67 C34 67 22 58 22 44 C22 30 34 20 50 20 Z" fill="url(#g)" stroke="' + DK + '" stroke-width="2.5"/>' +
+    '<path d="M22 42 C13 40 9 46 12 52 C17 54 21 51 23 47 Z" fill="url(#t)" stroke="' + DK + '" stroke-width="1.5"/>' +
+    '<path d="M78 42 C87 40 91 46 88 52 C83 54 79 51 77 47 Z" fill="url(#t)" stroke="' + DK + '" stroke-width="1.5"/>' +
+    '<path d="M30 36 Q38 30 45 35 M55 35 Q62 30 70 36" fill="none" stroke="#8a4a06" stroke-width="3" stroke-linecap="round"/>' +
+    '<circle cx="38" cy="42" r="5" fill="#fff" stroke="' + DK + '" stroke-width="1"/><circle cx="39" cy="43" r="2.4" fill="#241811"/><circle cx="37.4" cy="40.6" r="1" fill="#fff"/>' +
+    '<circle cx="62" cy="42" r="5" fill="#fff" stroke="' + DK + '" stroke-width="1"/><circle cx="61" cy="43" r="2.4" fill="#241811"/><circle cx="62.6" cy="40.6" r="1" fill="#fff"/>' +
+    '<rect x="40" y="50" width="20" height="11" rx="5.5" fill="#ffe08a" stroke="' + DK + '" stroke-width="1.8"/>' +
+    '<circle cx="45.5" cy="55.5" r="1.4" fill="' + DK + '"/><circle cx="54.5" cy="55.5" r="1.4" fill="' + DK + '"/>' +
+    '<path d="M42 64 Q50 70 58 64" fill="none" stroke="' + DK + '" stroke-width="2.2" stroke-linecap="round"/>' +
+    '<path d="M43 65 l2.5 4 2.5 -3.5 Z" fill="#fff"/><path d="M52 65.5 l2.5 3.5 2.5 -4 Z" fill="#fff"/>' +
+    '<path d="M26 50 C16 52 12 60 18 67 M74 50 C84 52 88 60 82 67" fill="none" stroke="#d99a15" stroke-width="2.5" stroke-linecap="round"/>' +
+    '<path d="M46 68 C47 76 53 76 54 68 C52 71 48 71 46 68 Z" fill="#e2951b" stroke="#7a4a00" stroke-width="1.2"/>';
+
+  /* ---- 元宝碗：金碗堆满元宝 ---- */
+  const BOWL =
+    ING(35, 40, 0.85, -10) + ING(65, 40, 0.85, 10) + ING(50, 46, 1) +
+    '<path d="M19 58 C19 76 32 86 50 86 C68 86 81 76 81 58 C70 64 30 64 19 58 Z" fill="url(#g)" stroke="' + DK + '" stroke-width="2.5"/>' +
+    '<path d="M21 60 C30 66 70 66 79 60 L78 66 C68 71 32 71 22 66 Z" fill="#a3121f"/>' +
+    '<ellipse cx="50" cy="57" rx="31" ry="7.5" fill="#ffe08a" stroke="' + DK + '" stroke-width="2.5"/>';
+
+  /* ---- 金锣：支架+顶元宝 ---- */
+  const GONG =
+    '<rect x="13" y="44" width="9" height="42" rx="3.5" fill="url(#t)" stroke="' + DK + '" stroke-width="1.8"/>' +
+    '<rect x="78" y="44" width="9" height="42" rx="3.5" fill="url(#t)" stroke="' + DK + '" stroke-width="1.8"/>' +
+    '<rect x="8" y="84" width="19" height="7" rx="3" fill="#c98a12" stroke="' + DK + '" stroke-width="1.5"/>' +
+    '<rect x="73" y="84" width="19" height="7" rx="3" fill="#c98a12" stroke="' + DK + '" stroke-width="1.5"/>' +
+    ING(50, 26, 0.8) +
+    '<rect x="7" y="34" width="86" height="10" rx="5" fill="url(#t)" stroke="' + DK + '" stroke-width="2"/>' +
+    '<circle cx="22" cy="39" r="1.8" fill="#8a4a06"/><circle cx="50" cy="39" r="1.8" fill="#8a4a06"/><circle cx="78" cy="39" r="1.8" fill="#8a4a06"/>' +
+    '<path d="M40 44 L44 49 M60 44 L56 49" stroke="' + DK + '" stroke-width="2"/>' +
+    '<circle cx="50" cy="66" r="22" fill="url(#g)" stroke="' + DK + '" stroke-width="2.5"/>' +
+    '<circle cx="50" cy="66" r="15.5" fill="none" stroke="#8a5a00" stroke-width="1.6" opacity=".8"/>' +
+    '<circle cx="50" cy="66" r="7.5" fill="#ffe08a" stroke="#8a5a00" stroke-width="1.5"/>' +
+    '<path d="M36 58 A19 19 0 0 1 47 47" fill="none" stroke="#fff" stroke-width="3" opacity=".5" stroke-linecap="round"/>' +
+    '<path d="M11 44 V53 M89 44 V53" stroke="#c31432" stroke-width="3.5" stroke-linecap="round"/>' +
+    '<circle cx="11" cy="56" r="2.5" fill="#c31432"/><circle cx="89" cy="56" r="2.5" fill="#c31432"/>';
+
+  const IN = { koi: KOI, frog: FROG, turtle: TURTLE, dragon: DRAGON, ingot: BOWL, gong: GONG };
+
+  /* ---- Wild 万能符：放射金光 + 双圈金边 + 大「福」+ WILD 标识 ---- */
+  const WILD =
+    '<circle cx="50" cy="50" r="49" fill="url(#r)"/>' +
+    '<g fill="#ffd76e" opacity=".55"><use href="#w"/><use href="#w" transform="rotate(30 50 50)"/><use href="#w" transform="rotate(60 50 50)"/><use href="#w" transform="rotate(90 50 50)"/><use href="#w" transform="rotate(120 50 50)"/><use href="#w" transform="rotate(150 50 50)"/><use href="#w" transform="rotate(180 50 50)"/><use href="#w" transform="rotate(210 50 50)"/><use href="#w" transform="rotate(240 50 50)"/><use href="#w" transform="rotate(270 50 50)"/><use href="#w" transform="rotate(300 50 50)"/><use href="#w" transform="rotate(330 50 50)"/></g>' +
+    '<circle cx="50" cy="50" r="46.5" fill="none" stroke="#8a1005" stroke-width="7"/>' +
+    '<circle cx="50" cy="50" r="46.5" fill="none" stroke="url(#t)" stroke-width="4.5"/>' +
+    '<circle cx="50" cy="50" r="40.5" fill="none" stroke="url(#t)" stroke-width="1.6" opacity=".9"/>' +
+    '<circle cx="50" cy="50" r="37" fill="#7a0a10" stroke="#8a5a00" stroke-width="1.5"/>' +
+    '<text x="50" y="46" text-anchor="middle" dominant-baseline="central" font-family="\'Songti SC\',\'STSong\',\'SimSun\',serif" font-weight="900" font-size="44" fill="url(#t)" stroke="#7a4a00" stroke-width="1.8" paint-order="stroke">福</text>' +
+    '<text x="50" y="74" text-anchor="middle" dominant-baseline="central" font-family="\'Arial Black\',Arial,sans-serif" font-weight="900" font-size="12" letter-spacing="2" fill="url(#t)" stroke="#5a2a00" stroke-width="2.6" paint-order="stroke">WILD</text>';
+
+  /* ---- 金身：红底放射金光 + 圆形金描边圈 ---- */
+  const goldWrap = inner => svg100(
+    '<circle cx="50" cy="50" r="49" fill="url(#r)"/>' +
+    '<g fill="#ffd76e" opacity=".5"><use href="#w"/><use href="#w" transform="rotate(45 50 50)"/><use href="#w" transform="rotate(90 50 50)"/><use href="#w" transform="rotate(135 50 50)"/><use href="#w" transform="rotate(180 50 50)"/><use href="#w" transform="rotate(225 50 50)"/><use href="#w" transform="rotate(270 50 50)"/><use href="#w" transform="rotate(315 50 50)"/></g>' +
+    '<g transform="translate(50 50) scale(.72) translate(-50 -50)">' + inner + '</g>' +
+    '<circle cx="50" cy="50" r="45.5" fill="none" stroke="#8a1005" stroke-width="6.5"/>' +
+    '<circle cx="50" cy="50" r="45.5" fill="none" stroke="url(#t)" stroke-width="3.5"/>',
+    '<path id="w" d="M50 50 L46.5 5 L53.5 5 Z"/>');
+
+  /* ---- 低符号：红底金框牌面 ---- */
+  const card = ch => svg100(
+    '<rect x="5" y="5" width="90" height="90" rx="12" fill="url(#r)" stroke="#4d0308" stroke-width="2"/>' +
+    '<ellipse cx="50" cy="54" rx="31" ry="26" fill="#ffd964" opacity=".14"/>' +
+    '<rect x="11" y="11" width="78" height="78" rx="8" fill="none" stroke="url(#t)" stroke-width="3.2"/>' +
+    '<rect x="16.5" y="16.5" width="67" height="67" rx="5" fill="none" stroke="#8a5a00" stroke-width="1.2" opacity=".65"/>' +
+    '<circle cx="50" cy="24" r="2" fill="url(#t)"/><circle cx="50" cy="76" r="2" fill="url(#t)"/>' +
+    '<text x="50" y="52" text-anchor="middle" dominant-baseline="central" font-family="\'Arial Black\',Arial,sans-serif" font-weight="900" font-size="' + (ch.length > 1 ? 38 : 50) + '" fill="url(#t)" stroke="#4a1a00" stroke-width="2.4" paint-order="stroke">' + ch + '</text>');
+
+  /* ---- 金币：浮雕福字 ---- */
+  const coinSvg = svg100(
+    '<circle cx="50" cy="50" r="46" fill="url(#g)" stroke="' + DK + '" stroke-width="3"/>' +
+    '<circle cx="50" cy="50" r="41" fill="none" stroke="#8a5a00" stroke-width="1.6" stroke-dasharray="5 4" opacity=".8"/>' +
+    '<circle cx="50" cy="50" r="34" fill="none" stroke="#a06a08" stroke-width="2" opacity=".7"/>' +
+    '<text x="50" y="53" text-anchor="middle" dominant-baseline="central" font-family="\'Songti SC\',\'STSong\',\'SimSun\',serif" font-weight="900" font-size="42" fill="url(#t)" stroke="#7a4a00" stroke-width="1.6" paint-order="stroke">福</text>' +
+    '<ellipse cx="33" cy="27" rx="13" ry="7" fill="#fff" opacity=".35" transform="rotate(-35 33 27)"/>');
+
+  /* ---- LOGO 多福巨奖 400x100 ---- */
+  const logoSvg = '<svg viewBox="0 0 400 100" xmlns="http://www.w3.org/2000/svg"><defs>' + T +
+    '<linearGradient id="lr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c8203a"/><stop offset="1" stop-color="#6e0710"/></linearGradient></defs>' +
+    '<rect x="3" y="8" width="394" height="84" rx="17" fill="url(#lr)" stroke="#5a0409" stroke-width="2"/>' +
+    '<rect x="8" y="12.5" width="384" height="75" rx="13" fill="none" stroke="url(#t)" stroke-width="4"/>' +
+    '<rect x="15" y="19" width="370" height="62" rx="9" fill="none" stroke="#f2c14e" stroke-width="1.4" opacity=".75"/>' +
+    '<g fill="#f2c14e"><circle cx="24" cy="24" r="2.6"/><circle cx="376" cy="24" r="2.6"/><circle cx="24" cy="76" r="2.6"/><circle cx="376" cy="76" r="2.6"/></g>' +
+    '<circle cx="54" cy="50" r="29" fill="#7a0a10" stroke="url(#t)" stroke-width="4"/>' +
+    '<circle cx="54" cy="50" r="23" fill="none" stroke="#f2c14e" stroke-width="1.2" opacity=".7"/>' +
+    '<text x="54" y="52" text-anchor="middle" dominant-baseline="central" font-family="\'Songti SC\',\'STSong\',\'SimSun\',serif" font-weight="900" font-size="34" fill="url(#t)">福</text>' +
+    '<text x="248" y="65" text-anchor="middle" font-family="\'Songti SC\',\'STSong\',\'SimSun\',serif" font-weight="900" font-size="56" letter-spacing="6" fill="#4a0406">多福巨奖</text>' +
+    '<text x="245" y="61" text-anchor="middle" font-family="\'Songti SC\',\'STSong\',\'SimSun\',serif" font-weight="900" font-size="56" letter-spacing="6" fill="url(#t)" stroke="#8a5a00" stroke-width="1.4" paint-order="stroke">多福巨奖</text></svg>';
+
+  /* ---- 主屏背景 800x480：紫红渐变+暗金回纹龙纹+四角金饰 ---- */
+  const bgMainSvg = '<svg viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg"><defs>' +
+    '<linearGradient id="bm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b1557"/><stop offset=".5" stop-color="#420d44"/><stop offset="1" stop-color="#1f0530"/></linearGradient>' +
+    '<radialGradient id="bmg" cx="50%" cy="42%" r="65%"><stop offset="0" stop-color="#a1307e" stop-opacity=".5"/><stop offset="1" stop-color="#a1307e" stop-opacity="0"/></radialGradient>' +
+    '<radialGradient id="bmv" cx="50%" cy="46%" r="72%"><stop offset=".62" stop-color="#12021c" stop-opacity="0"/><stop offset="1" stop-color="#12021c" stop-opacity=".55"/></radialGradient>' +
+    '<linearGradient id="t2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe9a0"/><stop offset="1" stop-color="#c98a12"/></linearGradient>' +
+    '<pattern id="bmm" width="26" height="14" patternUnits="userSpaceOnUse"><path d="M2 12 V2 H24 V9 H12 V5 H18" fill="none" stroke="#d9a441" stroke-width="2"/></pattern>' +
+    '<path id="bc" d="M4 44 V16 Q4 4 16 4 H44" fill="none" stroke="url(#t2)" stroke-width="5"/></defs>' +
+    '<rect width="800" height="480" fill="url(#bm)"/><rect width="800" height="480" fill="url(#bmg)"/>' +
+    '<g opacity=".08" fill="none" stroke="#ffd76e" stroke-width="7" stroke-linecap="round">' +
+    '<path d="M520 470 C560 380 500 330 560 250 C610 185 570 130 620 60"/><path d="M60 470 C100 400 40 340 90 270 C140 205 100 140 150 70"/></g>' +
+    '<g opacity=".09" fill="none" stroke="#ffd76e" stroke-width="4"><path d="M560 320 a22 15 0 0 1 44 0 M585 250 a22 15 0 0 1 44 0 M555 175 a22 15 0 0 1 44 0 M95 350 a22 15 0 0 1 44 0 M80 200 a22 15 0 0 1 44 0"/></g>' +
+    '<g opacity=".1" fill="none" stroke="#ffd76e" stroke-width="4" stroke-linecap="round"><path d="M240 420 q28 -24 56 0 q28 24 56 0 M440 60 q28 -24 56 0 q28 24 56 0"/></g>' +
+    '<rect x="0" y="8" width="800" height="14" fill="url(#bmm)" opacity=".4"/><rect x="0" y="458" width="800" height="14" fill="url(#bmm)" opacity=".4"/>' +
+    '<use href="#bc"/><use href="#bc" transform="translate(800 0) scale(-1 1)"/><use href="#bc" transform="translate(0 480) scale(1 -1)"/><use href="#bc" transform="translate(800 480) scale(-1 -1)"/>' +
+    '<rect width="800" height="480" fill="url(#bmv)"/></svg>';
+
+  /* ---- 顶部奖池屏背景 800x300：深红+金框+暗纹 ---- */
+  const bgTopSvg = '<svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg"><defs>' + T +
+    '<linearGradient id="bt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#96182a"/><stop offset=".55" stop-color="#5e0a14"/><stop offset="1" stop-color="#36050c"/></linearGradient>' +
+    '<radialGradient id="btg" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#d3404f" stop-opacity=".35"/><stop offset="1" stop-color="#d3404f" stop-opacity="0"/></radialGradient>' +
+    '<pattern id="btm" width="26" height="14" patternUnits="userSpaceOnUse"><path d="M2 12 V2 H24 V9 H12 V5 H18" fill="none" stroke="#d9a441" stroke-width="2"/></pattern></defs>' +
+    '<rect width="800" height="300" fill="url(#bt)"/><rect width="800" height="300" fill="url(#btg)"/>' +
+    '<g opacity=".12" fill="none" stroke="#ffd76e" stroke-width="4"><circle cx="110" cy="150" r="34"/><circle cx="110" cy="150" r="22"/><rect x="102" y="142" width="16" height="16"/><circle cx="690" cy="150" r="34"/><circle cx="690" cy="150" r="22"/><rect x="682" y="142" width="16" height="16"/></g>' +
+    '<g opacity=".1" fill="none" stroke="#ffd76e" stroke-width="4" stroke-linecap="round"><path d="M300 250 q25 -22 50 0 q25 22 50 0 M450 60 q25 -22 50 0 q25 22 50 0"/></g>' +
+    '<rect x="10" y="12" width="780" height="12" fill="url(#btm)" opacity=".45"/><rect x="10" y="276" width="780" height="12" fill="url(#btm)" opacity=".45"/>' +
+    '<rect x="6" y="6" width="788" height="288" rx="14" fill="none" stroke="url(#t)" stroke-width="6"/>' +
+    '<rect x="15" y="15" width="770" height="270" rx="10" fill="none" stroke="#f2c14e" stroke-width="1.5" opacity=".7"/>' +
+    '<g fill="#f2c14e"><circle cx="26" cy="26" r="3"/><circle cx="774" cy="26" r="3"/><circle cx="26" cy="274" r="3"/><circle cx="774" cy="274" r="3"/></g></svg>';
+
+  /* ---- 福娃孩童头像 ---- */
+  const kidSvg = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs>' +
+    '<radialGradient id="kf" cx="50%" cy="38%" r="70%"><stop offset="0" stop-color="#ffe9d2"/><stop offset=".7" stop-color="#f8c79b"/><stop offset="1" stop-color="#e8a878"/></radialGradient>' + T + '</defs>' +
+    '<path d="M16 100 C16 84 31 75 50 75 C69 75 84 84 84 100 Z" fill="#c31432" stroke="#7a0810" stroke-width="2"/>' +
+    '<path d="M22 96 C30 86 40 81 50 81 C60 81 70 86 78 96" fill="none" stroke="#f2c14e" stroke-width="2.5"/>' +
+    '<circle cx="50" cy="89" r="3.5" fill="url(#t)" stroke="#8a5a00" stroke-width="1"/>' +
+    '<circle cx="19" cy="50" r="5.5" fill="url(#kf)" stroke="#b5713d" stroke-width="1.5"/><circle cx="81" cy="50" r="5.5" fill="url(#kf)" stroke="#b5713d" stroke-width="1.5"/>' +
+    '<circle cx="50" cy="47" r="30" fill="url(#kf)" stroke="#b5713d" stroke-width="2"/>' +
+    '<circle cx="50" cy="9" r="6" fill="#33221a" stroke="#1c120c" stroke-width="1.5"/><rect x="43" y="10.5" width="14" height="4.5" rx="2.2" fill="#c31432"/>' +
+    '<path d="M19 46 C16 22 32 11 50 11 C68 11 84 22 81 46 C77 37 73 35 68 41 C65 32 57 30 53 39 C50 31 43 31 39 39 C35 31 27 33 23 42 C22 43 20 45 19 46 Z" fill="#33221a" stroke="#1c120c" stroke-width="2"/>' +
+    '<path d="M30 20 C36 15 44 13 52 14" stroke="#6b4a35" stroke-width="2" fill="none" opacity=".7" stroke-linecap="round"/>' +
+    '<path d="M31 44 Q37 40.5 43 44 M57 44 Q63 40.5 69 44" fill="none" stroke="#33221a" stroke-width="2.2" stroke-linecap="round"/>' +
+    '<circle cx="37" cy="50" r="4.6" fill="#241811"/><circle cx="35.6" cy="48.4" r="1.4" fill="#fff"/><circle cx="63" cy="50" r="4.6" fill="#241811"/><circle cx="61.6" cy="48.4" r="1.4" fill="#fff"/>' +
+    '<path d="M48.5 57 Q50 59 51.5 57" fill="none" stroke="#c08050" stroke-width="1.8" stroke-linecap="round"/>' +
+    '<path d="M42 62 Q50 71 58 62 Q50 66 42 62 Z" fill="#a8322a" stroke="#7a1a14" stroke-width="1.5"/>' +
+    '<circle cx="28" cy="57" r="4.2" fill="#ff9e9e" opacity=".55"/><circle cx="72" cy="57" r="4.2" fill="#ff9e9e" opacity=".55"/></svg>';
+
+  /* ---- 导出（memoized） ---- */
+  const cache = {};
+  const memo = (k, f) => cache[k] || (cache[k] = f());
+  const CARDS = { 10: 1, J: 1, Q: 1, K: 1, A: 1 };
+
+  return {
+    symbol(id) {
+      return memo('s' + id, () => enc(id === 'wild' ? svg100(WILD, '<path id="w" d="M50 50 L46.5 5 L53.5 5 Z"/>') : CARDS[id] ? card(id) : svg100(IN[id])));
+    },
+    gold(id) {
+      return memo('g' + id, () => enc(goldWrap(IN[id])));
+    },
+    coin: () => memo('coin', () => enc(coinSvg)),
+    logo: () => memo('logo', () => enc(logoSvg)),
+    bgMain: () => memo('bgMain', () => enc(bgMainSvg)),
+    bgTop: () => memo('bgTop', () => enc(bgTopSvg)),
+    kidFu: () => memo('kidFu', () => enc(kidSvg))
+  };
+})();
+
+</script>
+<script>
+/* ===== src/audio.js ===== */
+/* =========================================================================
+ * 多福巨奖 777 — DF.AUDIO 程序化合成音效引擎（WebAudio，无外部音频资源）
+ * 契约:
+ *   unlock()                          首手势调用，幂等，创建/resume AudioContext
+ *   play(name, {volume, rate})        一次性 cue；循环型 cue 自动转 startLoop
+ *   startLoop(name)/stopLoop(name)    循环型 cue（bgm / reelSpin）
+ *   duck(ms)                          BGM 闪避：压低后自动恢复
+ *   setBGMVolume/setSFXVolume/setMasterVolume(v)
+ *   applyOverrides({cue: dataURL})    自定义音效优先，解码失败回落合成
+ *   names                             全部 cue 名
+ * 信号链: voices → [sfxBus | bgmBus(×0.5)→bgmVol→duck→bgmFade] → comp → master → out
+ *         另有噪声 IR 混响发送（send → convolver → return → comp）
+ * ========================================================================= */
+window.DF = window.DF || {};
+DF.AUDIO = (() => {
+  'use strict';
+
+  /* ------------------------------ 基础状态 ------------------------------ */
+  const NAMES = ['bgm', 'reelSpin', 'reelStop', 'allStop', 'betUp', 'betDown',
+    'button', 'goldLand', 'railFill', 'countTick', 'wayWin', 'winSmall',
+    'winMid', 'winBig', 'jackpot', 'freeTrigger', 'pickReveal', 'pickMatch',
+    'coinRain', 'refill', 'error'];
+  const LOOP_CUES = { bgm: 1, reelSpin: 1 };
+
+  const BPM = 80;
+  const STEP = 60 / BPM / 2;          // 八分音符时长 (0.375s)
+  const LOOP_STEPS = 96;              // 12 小节 × 8 → 36s 无缝循环
+  const CHIME = [88, 91, 93, 96];     // 风铃音池 E6 G6 A6 C7（五声）
+
+  let ctx = null, comp = null, master = null, sfxBus = null;
+  let bgmBus = null, bgmVol = null, duckGain = null, bgmFade = null;
+  let revSend = null, noiseBuf = null, visBound = false;
+
+  const vols = { master: 1, bgm: 0.5, sfx: 1 }; // 默认对齐 cfg.vols
+
+  const loops = {};                   // name -> {playing, stop()}
+  let bgmTimer = null, bgmStep = 0, bgmTime = 0, bgmWanted = false;
+  const bgmLive = new Set();          // bgm 已调度声源，stopLoop 时强制停
+
+  const ovPending = {};               // cue -> dataURL（待解码）
+  const ovBuf = {};                   // cue -> AudioBuffer
+  const ovFailed = {};                // cue -> 1（解码失败，永久回落合成）
+
+  /* ------------------------------ 小工具 ------------------------------ */
+  const clamp01 = (x) => { x = +x; if (x !== x) x = 0; return Math.min(1, Math.max(0, x)); };
+  const now = () => ctx.currentTime;
+  const midi2f = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const rt = (o) => (o && o.rate > 0) ? +o.rate : 1;
+  const vv = (o) => (o && o.volume != null) ? clamp01(o.volume) : 1;
+
+  // 增益包络：快起音 + 指数衰减（尾音落到 0.0001 后统一 stop）
+  function envG(g, t, peak, a, d) {
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(Math.max(peak, 0.0001), t + a);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + a + d);
+  }
+
+  /* 声部容器 V：登记全部节点，done() 在最后一个声源结束时统一 stop+disconnect，
+   * sink 用于循环型（bgm）强制停止登记。 */
+  function V(bus, sink) {
+    const nodes = [], srcs = [];
+    let end = 0;
+    return {
+      g(val, dest) { const g = ctx.createGain(); g.gain.value = val == null ? 1 : val; nodes.push(g); g.connect(dest || bus); return g; },
+      f(type, fr, q, dest) { const F = ctx.createBiquadFilter(); F.type = type; F.frequency.value = Math.max(fr, 1); if (q != null) F.Q.value = q; nodes.push(F); F.connect(dest || bus); return F; },
+      o(type, fr, t0, dest, det) { const s = ctx.createOscillator(); s.type = type; s.frequency.setValueAtTime(Math.max(fr, 1), t0); if (det) s.detune.value = det; nodes.push(s); srcs.push(s); s.connect(dest || bus); s.start(t0); return s; },
+      n(t0, dest, loop) { const s = ctx.createBufferSource(); s.buffer = noiseBuf; if (loop) s.loop = true; nodes.push(s); srcs.push(s); s.connect(dest || bus); s.start(t0); return s; },
+      lfo(f, t0, param, amt) { const s = ctx.createOscillator(); s.frequency.value = f; const g = ctx.createGain(); g.gain.value = amt; nodes.push(s, g); srcs.push(s); s.connect(g); g.connect(param); s.start(t0); return s; },
+      wet(from, amt) { const g = ctx.createGain(); g.gain.value = amt; nodes.push(g); from.connect(g); g.connect(revSend); return g; },
+      keep(t1) { if (t1 > end) end = t1; },
+      done(margin) {
+        const stopAt = (end || now()) + (margin == null ? 0.05 : margin);
+        let n = srcs.length;
+        const clean = () => { if (--n > 0) return; for (const x of nodes) { try { x.disconnect(); } catch (_) {} } };
+        for (const s of srcs) { try { s.stop(stopAt); } catch (_) {} s.onended = clean; }
+        if (!n) clean();
+        if (sink) for (const s of srcs) { sink.add(s); s.addEventListener('ended', () => { sink.delete(s); }); }
+      }
+    };
+  }
+
+  /* --------------------------- 通用发声积木 --------------------------- */
+  function blip(v, t, f, vel, dec) {                 // 短 UI 音
+    const g = v.g(0); envG(g, t, vel, 0.004, dec);
+    const lp = v.f('lowpass', 6500, 0.7, g);
+    v.o('triangle', f, t, lp);
+    const g2 = v.g(0.25, lp); v.o('sine', f * 2, t, g2);
+  }
+  function pluckS(v, t, f, vel, dec, dest) {         // 古筝拨弦（SFX 亮版）
+    const g = v.g(0, dest); envG(g, t, vel, 0.003, dec);
+    const lp = v.f('lowpass', Math.min(f * 8, 9500), 0.8, g);
+    lp.frequency.setValueAtTime(Math.min(f * 8, 9500), t);
+    lp.frequency.exponentialRampToValueAtTime(Math.max(f * 2.2, 500), t + dec);
+    v.o('triangle', f, t, lp);
+    const g2 = v.g(0.35, lp); v.o('sine', f * 2.003, t, g2);
+    v.wet(g, 0.12);
+  }
+  function bellS(v, t, f, vel, dec, dest) {          // 铃/叮（含 2.756 非谐泛音）
+    const g = v.g(0, dest); envG(g, t, vel, 0.002, dec);
+    v.o('sine', f, t, g);
+    const g2 = v.g(0.32, g); v.o('sine', f * 2.756, t, g2);
+    const g3 = v.g(0.12, g); v.o('sine', f * 5.404, t, g3);
+    v.wet(g, 0.25);
+  }
+  function nzHit(v, t, vel, dec, type, freq, q, dest) { // 噪声打击
+    const g = v.g(0, dest); envG(g, t, vel, 0.001, dec);
+    const F = v.f(type, freq, q, g);
+    v.n(t, F);
+  }
+  function boom(v, t, vel, f0, f1, dec) {            // 低频落地
+    const g = v.g(0); envG(g, t, vel, 0.005, dec);
+    const o = v.o('sine', f0, t, g);
+    o.frequency.exponentialRampToValueAtTime(Math.max(f1, 1), t + dec * 0.6);
+    v.wet(g, 0.2);
+  }
+  function cymbal(v, t, vel, dec) {                  // 镲片气声
+    const g = v.g(0); envG(g, t, vel, 0.004, dec);
+    const hp = v.f('highpass', 6200, 0.7, g);
+    v.n(t, hp); v.wet(g, 0.4);
+  }
+  function chordPad(v, t, notes, dur, vel) {         // 和弦垫
+    const g = v.g(0);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vel, t + 0.07);
+    g.gain.setValueAtTime(vel, t + dur * 0.55);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const lp = v.f('lowpass', 2800, 0.5, g);
+    for (const m of notes) { v.o('triangle', midi2f(m), t, lp); const sg = v.g(0.5, lp); v.o('sawtooth', midi2f(m), t, sg, 6); }
+    v.wet(g, 0.25);
+  }
+  function horn(v, t, notes, dur, vel) {             // 号角 stab（失谐锯齿）
+    const g = v.g(0);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vel, t + 0.035);
+    g.gain.setValueAtTime(vel * 0.85, t + dur * 0.55);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const lp = v.f('lowpass', 2400, 0.4, g);
+    for (const m of notes) { v.o('sawtooth', midi2f(m), t, lp); v.o('sawtooth', midi2f(m), t, lp, 8); }
+    v.wet(g, 0.3);
+  }
+  function timpRoll(v, t, dur, vel) {                // 定音鼓滚（低通噪声+颤音）
+    const g = v.g(0);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vel, t + dur * 0.75);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.2);
+    const vg = v.g(1, g);
+    const lp = v.f('lowpass', 280, 0.6, vg);
+    v.n(t, lp, true);
+    v.lfo(13, t, vg.gain, 0.5);
+    v.wet(g, 0.15);
+  }
+  function coinPing(v, t, vel, f) {                  // 单枚金币叮
+    const g = v.g(0); envG(g, t, vel, 0.001, 0.09 + Math.random() * 0.08);
+    v.o('sine', f, t, g);
+    const g2 = v.g(0.5, g); v.o('sine', f * 1.34 + Math.random() * 40, t, g2);
+    v.wet(g, 0.3);
+  }
+  function shimmer(v, t, dur, vel) {                 // 高频沙沙幕
+    const g = v.g(0);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vel, t + dur * 0.35);
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    const hp = v.f('highpass', 7600, 0.7, g);
+    v.n(t, hp, true);
+    v.lfo(9, t, g.gain, vel * 0.5);
+    v.wet(g, 0.3);
+  }
+
+  /* ------------------------------ BGM 部分 ------------------------------ */
+  // 宫调式五声音阶 C D E G A；旋律手工编排 12 小节（36s），低音垫+轻鼓+风铃
+  const MEL = [
+    // A 段 (1-4)
+    [0,72,2],[2,76,1],[3,79,1],[4,81,2],[6,79,2],
+    [8,76,2],[10,74,2],[12,72,2],[14,67,2],
+    [16,69,2],[18,72,2],[20,76,2],[22,74,2],
+    [24,72,3],[28,64,1],[29,67,1],[30,69,1],[31,74,1],
+    // A' 段 (5-8)
+    [32,76,2],[34,79,1],[35,81,1],[36,84,2],[38,81,2],
+    [40,79,2],[42,76,2],[44,79,2],[46,81,2],
+    [48,79,1],[49,76,1],[50,74,2],[52,72,2],[54,69,2],
+    [56,72,2],[58,67,2],[60,64,2],[62,67,2],
+    // B 段 (9-12)，尾音 G4 引回 C5 无缝循环
+    [64,69,2],[66,72,2],[68,74,2],[70,76,2],
+    [72,79,3],[75,76,1],[76,74,2],[78,72,2],
+    [80,74,2],[82,76,2],[84,79,2],[86,81,2],
+    [88,84,4],[92,72,2],[94,67,2]
+  ];
+  const MELMAP = new Map();
+  for (const [s, m, l] of MEL) MELMAP.set(s, [m, l, (s % 4 === 0) ? 1 : 0.8]);
+  const ROOTS = [48, 48, 45, 43, 48, 48, 45, 43, 48, 45, 43, 43]; // C A G 循环
+
+  function zheng(midi, t, dur, vel) {                // 古筝拨弦：双失谐三角波+八度泛音+触弦噪声
+    const f = midi2f(midi);
+    const dec = Math.min(Math.max(dur, 0.5) + 0.9, 1.6);
+    const v = V(bgmBus, bgmLive);
+    const g = v.g(0); envG(g, t, vel, 0.004, dec);
+    const lp = v.f('lowpass', 3600, 0.7, g);
+    lp.frequency.setValueAtTime(3600, t);
+    lp.frequency.exponentialRampToValueAtTime(1100, t + dec);
+    const o1 = v.o('triangle', f, t, lp); o1.detune.value = -5;
+    v.o('triangle', f, t, lp, 6);
+    const g2 = v.g(0.35, lp); v.o('sine', f * 2, t, g2);
+    const ng = v.g(0); envG(ng, t, vel * 0.45, 0.001, 0.03);
+    const bp = v.f('bandpass', 2600, 1.2, ng);
+    v.n(t, bp);
+    v.wet(g, 0.18);
+    v.keep(t + dec + 0.1); v.done();
+  }
+  function bassPad(midi, t, dur, vel) {              // 低音垫：三角波+次八度正弦
+    const f = midi2f(midi);
+    const v = V(bgmBus, bgmLive);
+    const g = v.g(0);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vel, t + 0.12);
+    g.gain.setValueAtTime(vel, t + Math.max(dur - 0.05, 0.12));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.2);
+    const lp = v.f('lowpass', 420, 0.5, g);
+    v.o('triangle', f, t, lp);
+    const g2 = v.g(0.55, lp); v.o('sine', f / 2, t, g2);
+    v.keep(t + dur + 0.25); v.done();
+  }
+  function thump(t, vel) {                           // 轻鼓点
+    const v = V(bgmBus, bgmLive);
+    const g = v.g(0); envG(g, t, vel, 0.002, 0.16);
+    const o = v.o('sine', 120, t, g);
+    o.frequency.exponentialRampToValueAtTime(58, t + 0.10);
+    v.keep(t + 0.2); v.done();
+  }
+  function block(t, vel) {                           // 木鱼/梆子点
+    const v = V(bgmBus, bgmLive);
+    const g = v.g(0); envG(g, t, vel, 0.001, 0.05);
+    const bp = v.f('bandpass', 1900, 4, g);
+    v.n(t, bp);
+    v.keep(t + 0.1); v.done();
+  }
+  function chime(midi, t) {                          // 风铃
+    const f = midi2f(midi);
+    const v = V(bgmBus, bgmLive);
+    const g = v.g(0); envG(g, t, 0.05, 0.002, 2.6);
+    v.o('sine', f, t, g);
+    const g2 = v.g(0.4, g); v.o('sine', f * 2.02, t, g2);
+    v.wet(g, 0.6);
+    v.keep(t + 2.8); v.done();
+  }
+  function schedStep(step, t) {
+    const mel = MELMAP.get(step);
+    if (mel) zheng(mel[0], t, mel[1] * STEP, 0.15 * mel[2]);
+    const bar = ((step / 8) | 0) % 12, ib = step % 8;
+    const root = ROOTS[bar];
+    if (ib === 0) { bassPad(root, t, 4 * STEP, 0.12); thump(t, 0.13); }
+    else if (ib === 4) { bassPad(root + 7, t, 2 * STEP, 0.085); thump(t, 0.06); }
+    else if (ib === 6) { bassPad(root + 12, t, 2 * STEP, 0.06); }
+    if ((ib & 1) === 1 && Math.random() < 0.09) block(t, 0.05);
+    if (ib === 0 && (bar & 1) === 1 && Math.random() < 0.45) {  // 偶尔风铃点缀
+      const n = 1 + ((Math.random() * 3) | 0);
+      for (let i = 0; i < n; i++) chime(CHIME[(Math.random() * CHIME.length) | 0], t + Math.random() * STEP * 6);
+    }
+  }
+  function bgmTick() {
+    if (!loops.bgm || !loops.bgm.playing || !ctx) return;
+    const n = now();
+    if (bgmTime < n - 0.05) bgmTime = n + 0.05;      // 唤醒/卡顿后重新对齐
+    const ahead = n + 0.45;                          // look-ahead 调度，天然无缝
+    while (bgmTime < ahead) { schedStep(bgmStep % LOOP_STEPS, bgmTime); bgmStep++; bgmTime += STEP; }
+  }
+  function holdParam(p) {
+    const t = now();
+    if (p.cancelAndHoldAtTime) p.cancelAndHoldAtTime(t);
+    else { p.cancelScheduledValues(t); p.setValueAtTime(p.value, t); }
+  }
+  function startBgmSynth() {
+    loops.bgm.stop = stopBgmSynth;
+    const t = now();
+    holdParam(bgmFade.gain);
+    bgmFade.gain.setTargetAtTime(1, t, 0.3);
+    if (bgmStep >= LOOP_STEPS) bgmStep = 0;
+    bgmTime = t + 0.12;
+    if (!bgmTimer) bgmTimer = setInterval(bgmTick, 90);
+    bgmTick();
+  }
+  function stopBgmSynth() {
+    holdParam(bgmFade.gain);
+    bgmFade.gain.setTargetAtTime(0.0001, now(), 0.09);
+  }
+
+  /* ---------------------------- reelSpin 循环 ---------------------------- */
+  function startReelSpin() {
+    const L = loops.reelSpin, t = now();
+    const g = ctx.createGain(); g.gain.value = 0.0001; g.connect(sfxBus);
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 680; bp.Q.value = 1.1; bp.connect(g);
+    const lp2 = ctx.createBiquadFilter(); lp2.type = 'lowpass'; lp2.frequency.value = 230;
+    const g2 = ctx.createGain(); g2.gain.value = 0.5;
+    const nz = ctx.createBufferSource(); nz.buffer = noiseBuf; nz.loop = true;
+    nz.connect(bp); nz.connect(lp2); lp2.connect(g2); g2.connect(g);
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.7;   // 呼啸扫频
+    const lg = ctx.createGain(); lg.gain.value = 240; lfo.connect(lg); lg.connect(bp.frequency);
+    const fl = ctx.createOscillator(); fl.frequency.value = 15;      // 滚动颗粒抖动
+    const fg = ctx.createGain(); fg.gain.value = 0.07; fl.connect(fg); fg.connect(g.gain);
+    nz.start(t); lfo.start(t); fl.start(t);
+    g.gain.setTargetAtTime(0.45, t, 0.06);
+    const all = [nz, lfo, fl, g, bp, lp2, g2, lg, fg];
+    L.stop = () => {
+      const s = now();
+      try { g.gain.cancelScheduledValues(s); g.gain.setValueAtTime(g.gain.value, s); g.gain.setTargetAtTime(0.0001, s, 0.05); } catch (_) {}
+      for (const x of [nz, lfo, fl]) { try { x.stop(s + 0.25); } catch (_) {} }
+      nz.onended = () => { for (const x of all) { try { x.disconnect(); } catch (_) {} } };
+    };
+  }
+
+  /* ------------------------- 循环注册表启停 ------------------------- */
+  function startBufLoop(name, buf, vol) {            // 覆盖音效的循环（buffer 走此路径）
+    const L = loops[name], t = now();
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    const g = ctx.createGain(); g.gain.value = 0.0001;
+    src.connect(g); g.connect(name === 'bgm' ? bgmBus : sfxBus);
+    src.start(t);
+    g.gain.setTargetAtTime(vol, t, 0.08);
+    L.stop = () => {
+      const s = now();
+      try { g.gain.cancelScheduledValues(s); g.gain.setValueAtTime(g.gain.value, s); g.gain.setTargetAtTime(0.0001, s, 0.06); } catch (_) {}
+      try { src.stop(s + 0.35); } catch (_) {}
+      src.onended = () => { try { src.disconnect(); g.disconnect(); } catch (_) {} };
+    };
+  }
+  function startLoop(name) {
+    if (!LOOP_CUES[name]) return;
+    ensureCtx(); if (!ctx) return;
+    let L = loops[name];
+    if (L && L.playing) return;                      // 幂等
+    if (!L) L = loops[name] = { playing: false, stop: null };
+    const buf = getOv(name);
+    if (buf) startBufLoop(name, buf, name === 'bgm' ? 0.9 : 0.85);
+    else if (name === 'bgm') startBgmSynth();
+    else startReelSpin();
+    L.playing = true;
+  }
+  function stopLoop(name) {
+    const L = loops[name];
+    if (!L || !L.playing) return;                    // 幂等
+    L.playing = false;
+    if (name === 'bgm' && bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; }
+    if (L.stop) { try { L.stop(); } catch (_) {} L.stop = null; }
+    if (name === 'bgm') {                            // 停干净：斩掉所有已调度声源
+      const s = now();
+      bgmLive.forEach((x) => { try { x.stop(s + 0.4); } catch (_) {} });
+      bgmLive.clear();
+    }
+  }
+
+  /* --------------------------- 一次性 cue 合成 --------------------------- */
+  const SYNTH = {
+    // 滚轮制动：低频顿 + click + 轻金属泛音
+    reelStop(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      const g = v.g(0); envG(g, t, 0.85 * vel, 0.003, 0.13);
+      const s = v.o('sine', F(175), t, g);
+      s.frequency.exponentialRampToValueAtTime(Math.max(F(62), 1), T(0.09));
+      nzHit(v, t, 0.5 * vel, 0.03, 'highpass', F(2600), 0.7);
+      const g2 = v.g(0); envG(g2, t, 0.12 * vel, 0.002, 0.18);
+      v.o('triangle', F(988), T(0.004), g2);
+      v.keep(T(0.35)); v.done();
+    },
+    // 全部落定重音：更沉的落地 + 低通噪声 + 金属泛音簇
+    allStop(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      const g = v.g(0); envG(g, t, 0.9 * vel, 0.004, 0.28);
+      const s = v.o('sine', F(135), t, g);
+      s.frequency.exponentialRampToValueAtTime(Math.max(F(46), 1), T(0.22));
+      nzHit(v, t, 0.6 * vel, 0.06, 'lowpass', F(380), 0.8);
+      nzHit(v, t, 0.35 * vel, 0.025, 'highpass', F(3000), 0.7);
+      const mg = v.g(0); envG(mg, T(0.005), 0.16 * vel, 0.002, 0.7);
+      [659, 987, 1318].forEach((f, i) => {
+        const gi = v.g([1, 0.6, 0.35][i], mg);
+        v.o('triangle', F(f) * (1 + (i - 1) * 0.002), T(0.004 * i), gi);
+      });
+      v.wet(mg, 0.3);
+      v.keep(T(1.0)); v.done();
+    },
+    // 押注+：上行双音
+    betUp(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      blip(v, t, F(midi2f(79)), 0.30 * vel, 0.09);
+      blip(v, T(0.075), F(midi2f(84)), 0.34 * vel, 0.14);
+      v.keep(T(0.3)); v.done();
+    },
+    // 押注-：下行双音
+    betDown(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      blip(v, t, F(midi2f(84)), 0.30 * vel, 0.09);
+      blip(v, T(0.075), F(midi2f(79)), 0.32 * vel, 0.14);
+      v.keep(T(0.3)); v.done();
+    },
+    // 通用按键嗒
+    button(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      nzHit(v, t, 0.45 * vel, 0.02, 'bandpass', F(1900), 1.4);
+      const g = v.g(0); envG(g, t, 0.22 * vel, 0.001, 0.03);
+      v.o('sine', F(950), t, g);
+      v.keep(T(0.1)); v.done();
+    },
+    // 金身上桌：清亮叮（高频正弦+非谐泛音）
+    goldLand(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      nzHit(v, t, 0.18 * vel, 0.015, 'highpass', F(5000), 0.7);
+      bellS(v, t, F(1480), 0.42 * vel, 0.75);
+      v.keep(T(0.9)); v.done();
+    },
+    // 奖池轨道推进：五声上行 blip + 噪声 riser
+    railFill(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      [72, 74, 76, 79, 81, 84].forEach((m, i) => blip(v, T(i * 0.055), F(midi2f(m)), 0.26 * vel, 0.07));
+      const g = v.g(0);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.10 * vel, T(0.3));
+      g.gain.exponentialRampToValueAtTime(0.0001, T(0.42));
+      const bp = v.f('bandpass', F(500), 1.2, g);
+      bp.frequency.setValueAtTime(F(500), t);
+      bp.frequency.exponentialRampToValueAtTime(Math.max(F(3200), 1), T(0.35));
+      v.n(t, bp);
+      v.keep(T(0.5)); v.done();
+    },
+    // 计分滴答：opts.rate 变调（计分加速）
+    countTick(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      const g = v.g(0); envG(g, t, 0.35 * vel, 0.001, 0.022);
+      const lp = v.f('lowpass', 7000, 0.7, g);
+      v.o('square', F(1750), t, lp);
+      nzHit(v, t, 0.12 * vel, 0.012, 'highpass', F(4500), 0.7);
+      v.keep(T(0.06)); v.done();
+    },
+    // 中奖和弦闪：五声和弦轻拨 + E6 星光
+    wayWin(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      [72, 76, 79, 84].forEach((m, i) => pluckS(v, T(i * 0.02), F(midi2f(m)), 0.30 * vel, 0.4));
+      bellS(v, T(0.09), F(midi2f(88)), 0.12 * vel, 0.35);
+      v.keep(T(0.6)); v.done();
+    },
+    // 小赢 jingle ~0.8s：C5 E5 G5 C6 琶音 + 镲
+    winSmall(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      [72, 76, 79, 84].forEach((m, i) => pluckS(v, T(i * 0.08), F(midi2f(m)), (0.26 + i * 0.04) * vel, 0.5));
+      cymbal(v, T(0.24), 0.10 * vel, 0.4);
+      v.keep(T(0.9)); v.done();
+    },
+    // 中赢 jingle ~1.5s：五音琶音 + 和弦垫 + 镲 + 起鼓
+    winMid(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      boom(v, t, 0.25 * vel, F(150), F(60), 0.25);
+      [72, 76, 79, 84, 88].forEach((m, i) => pluckS(v, T(0.06 + i * 0.07), F(midi2f(m)), (0.24 + i * 0.03) * vel, 0.5));
+      chordPad(v, T(0.44), [84, 88, 91], 0.6, 0.10 * vel);
+      cymbal(v, T(0.44), 0.12 * vel, 0.55);
+      v.keep(T(1.4)); v.done();
+    },
+    // 大赢 jingle ~2.5s：定音鼓+八度速弹+和弦垫+高音收尾
+    winBig(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      boom(v, t, 0.5 * vel, F(120), F(42), 0.5);
+      timpRoll(v, t, 0.45, 0.18 * vel);
+      [72, 74, 76, 79, 81, 84, 86, 88].forEach((m, i) =>
+        pluckS(v, T(0.10 + i * 0.085), F(midi2f(m)), (0.22 + i * 0.018) * vel, 0.45));
+      chordPad(v, T(0.85), [72, 79, 84, 88], 0.9, 0.12 * vel);
+      cymbal(v, T(0.85), 0.14 * vel, 0.7);
+      bellS(v, T(1.75), F(midi2f(93)), 0.20 * vel, 0.7);
+      cymbal(v, T(1.75), 0.10 * vel, 0.5);
+      v.keep(T(2.5)); v.done();
+    },
+    // 奖池巨奖 ~4s：定音鼓滚 + 号角 fanfare + 五声速弹 + 金币雨 + 终止大叮
+    jackpot(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      timpRoll(v, t, 1.1, 0.30 * vel);
+      boom(v, t, 0.6 * vel, F(110), F(40), 0.6);
+      horn(v, T(0.02), [60, 64, 67], 0.16, 0.30 * vel);
+      horn(v, T(0.22), [60, 64, 67], 0.16, 0.32 * vel);
+      horn(v, T(0.42), [60, 64, 67], 0.16, 0.34 * vel);
+      horn(v, T(0.66), [67, 72, 74], 0.30, 0.36 * vel);
+      horn(v, T(1.10), [72, 76, 79, 84], 1.15, 0.34 * vel);
+      [72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96].forEach((m, i) =>
+        pluckS(v, T(1.15 + i * 0.06), F(midi2f(m)), (0.16 + i * 0.012) * vel, 0.35));
+      chordPad(v, T(2.05), [72, 76, 79, 84], 1.1, 0.13 * vel);
+      cymbal(v, T(1.10), 0.16 * vel, 0.9);
+      for (let i = 0; i < 22; i++)
+        coinPing(v, T(1.4 + Math.random() * 2.2), (0.05 + Math.random() * 0.05) * vel, F(2200 * Math.pow(2, Math.random() * 1.8)));
+      shimmer(v, T(1.4), 2.3, 0.05 * vel);
+      bellS(v, T(3.0), F(1568), 0.30 * vel, 1.0);
+      boom(v, T(3.0), 0.4 * vel, F(90), F(38), 0.7);
+      cymbal(v, T(3.0), 0.14 * vel, 0.9);
+      v.keep(T(4.1)); v.done();
+    },
+    // 免费局触发：金锣（低频非谐泛音长衰减）+ 噪声涌起（欢呼感）
+    freeTrigger(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      const f0 = F(98);
+      const g = v.g(0);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.5 * vel, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, T(3.8));
+      [[1, 1], [1.52, 0.55], [2.24, 0.42], [2.92, 0.30], [3.64, 0.22], [4.51, 0.14], [5.83, 0.09]]
+        .forEach(([ra, a]) => {
+          const gi = v.g(a, g);
+          const p = v.o('sine', f0 * ra * (1 + (Math.random() - 0.5) * 0.01), t, gi);
+          p.frequency.exponentialRampToValueAtTime(Math.max(f0 * ra * 0.985, 1), T(3.5));
+        });
+      nzHit(v, t, 0.5 * vel, 0.09, 'bandpass', F(420), 1.0);
+      boom(v, t, 0.5 * vel, F(60), F(36), 1.0);
+      v.wet(g, 0.35);
+      const cg = v.g(0);                              // 人群欢呼感：中频噪声涌起+微颤
+      cg.gain.setValueAtTime(0.0001, T(0.15));
+      cg.gain.linearRampToValueAtTime(0.09 * vel, T(0.7));
+      cg.gain.exponentialRampToValueAtTime(0.0001, T(2.8));
+      const bp = v.f('bandpass', F(950), 0.6, cg);
+      v.n(T(0.15), bp);
+      v.lfo(6, T(0.4), cg.gain, 0.02);
+      v.keep(T(4.0)); v.done();
+    },
+    // 翻币：啪嗒 + 上滑 + 短叮
+    pickReveal(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      nzHit(v, t, 0.4 * vel, 0.018, 'highpass', F(3800), 0.8);
+      const g = v.g(0); envG(g, T(0.02), 0.2 * vel, 0.002, 0.05);
+      const s = v.o('sine', F(620), T(0.02), g);
+      s.frequency.exponentialRampToValueAtTime(F(980), T(0.06));
+      bellS(v, T(0.06), F(2093), 0.20 * vel, 0.28);
+      v.keep(T(0.5)); v.done();
+    },
+    // 选奖凑齐：双音叮咚（E6 → C6 钟声）
+    pickMatch(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      bellS(v, t, F(1319), 0.30 * vel, 0.30);
+      bellS(v, T(0.14), F(1047), 0.34 * vel, 0.5);
+      v.keep(T(0.8)); v.done();
+    },
+    // 金币雨：密集随机高频叮 + 高频沙沙幕
+    coinRain(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      for (let i = 0; i < 26; i++)
+        coinPing(v, T(Math.random() * 1.25), (0.06 + Math.random() * 0.06) * vel, F(2400 * Math.pow(2, Math.random() * 1.7)));
+      shimmer(v, t, 1.4, 0.045 * vel);
+      v.keep(T(1.6)); v.done();
+    },
+    // 补币流入：颤动噪声带下扫 + 散落叮 + 落定
+    refill(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      const g = v.g(0);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.16 * vel, T(0.08));
+      g.gain.setValueAtTime(0.16 * vel, T(0.5));
+      g.gain.exponentialRampToValueAtTime(0.0001, T(0.78));
+      const bp = v.f('bandpass', F(4200), 1.1, g);
+      bp.frequency.setValueAtTime(F(4200), t);
+      bp.frequency.exponentialRampToValueAtTime(Math.max(F(1400), 1), T(0.7));
+      v.n(t, bp);
+      v.lfo(17, t, g.gain, 0.07 * vel);
+      for (let i = 0; i < 10; i++)
+        coinPing(v, T(0.05 + Math.random() * 0.6), (0.05 + Math.random() * 0.04) * vel, F(2600 * Math.pow(2, Math.random() * 1.5)));
+      boom(v, T(0.72), 0.25 * vel, F(170), F(70), 0.18);
+      v.keep(T(1.0)); v.done();
+    },
+    // 无效操作：低鸣双降音
+    error(t, o) {
+      const R = rt(o), vel = vv(o), v = V(sfxBus), T = (d) => t + d / R, F = (f) => f * R;
+      const lp = v.f('lowpass', F(650), 0.7);
+      const g = v.g(0, lp);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.4 * vel, t + 0.012);
+      g.gain.setValueAtTime(0.4 * vel, T(0.10));
+      g.gain.exponentialRampToValueAtTime(0.0001, T(0.16));
+      const s1 = v.o('sawtooth', F(196), t, lp);
+      s1.frequency.exponentialRampToValueAtTime(Math.max(F(165), 1), T(0.14));
+      const g2 = v.g(0, lp);
+      g2.gain.setValueAtTime(0.0001, T(0.20));
+      g2.gain.linearRampToValueAtTime(0.4 * vel, T(0.21));
+      g2.gain.setValueAtTime(0.4 * vel, T(0.30));
+      g2.gain.exponentialRampToValueAtTime(0.0001, T(0.40));
+      const s2 = v.o('sawtooth', F(175), T(0.20), lp);
+      s2.frequency.exponentialRampToValueAtTime(Math.max(F(130), 1), T(0.38));
+      v.keep(T(0.5)); v.done();
+    }
+  };
+
+  /* ------------------------------ 引擎基建 ------------------------------ */
+  function makeNoise(sec) {
+    const rate = ctx.sampleRate, len = (sec * rate) | 0;
+    const b = ctx.createBuffer(1, len, rate), d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    return b;
+  }
+  function makeIR(sec, decay) {                      // 噪声指数衰减立体声 IR
+    const rate = ctx.sampleRate, len = (sec * rate) | 0;
+    const buf = ctx.createBuffer(2, len, rate);
+    for (let c = 0; c < 2; c++) {
+      const d = buf.getChannelData(c);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
+    return buf;
+  }
+  function onVis() {                                 // 页面隐藏自动停 BGM，恢复显示后续播
+    if (!ctx) return;
+    if (document.hidden) {
+      if (loops.bgm && loops.bgm.playing) { bgmWanted = true; stopLoop('bgm'); }
+    } else {
+      if (bgmWanted) {
+        bgmWanted = false;
+        if (ctx.state === 'suspended') { try { ctx.resume(); } catch (_) {} }
+        startLoop('bgm');
+      }
+    }
+  }
+  function ensureCtx() {
+    if (ctx) return ctx;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    ctx = new AC();
+    comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -14; comp.knee.value = 20; comp.ratio.value = 5;
+    comp.attack.value = 0.004; comp.release.value = 0.24;
+    master = ctx.createGain(); master.gain.value = vols.master;
+    comp.connect(master); master.connect(ctx.destination);
+    sfxBus = ctx.createGain(); sfxBus.gain.value = vols.sfx; sfxBus.connect(comp);
+    bgmBus = ctx.createGain(); bgmBus.gain.value = 0.5;      // BGM 单独 ×0.5，不喧宾
+    bgmVol = ctx.createGain(); bgmVol.gain.value = vols.bgm;
+    duckGain = ctx.createGain(); duckGain.gain.value = 1;
+    bgmFade = ctx.createGain(); bgmFade.gain.value = 0;      // 循环淡入淡出
+    bgmBus.connect(bgmVol); bgmVol.connect(duckGain); duckGain.connect(bgmFade); bgmFade.connect(comp);
+    revSend = ctx.createGain(); revSend.gain.value = 1;
+    const cv = ctx.createConvolver(); cv.buffer = makeIR(1.8, 2.4);
+    const rv = ctx.createGain(); rv.gain.value = 0.30;
+    revSend.connect(cv); cv.connect(rv); rv.connect(comp);
+    noiseBuf = makeNoise(1.5);
+    if (!visBound && typeof document !== 'undefined' && document.addEventListener) {
+      visBound = true;
+      document.addEventListener('visibilitychange', onVis);
+    }
+    flushOverrides();
+    return ctx;
+  }
+
+  /* ------------------------------ 覆盖音效 ------------------------------ */
+  function dataURLToAB(url) {
+    const i = url.indexOf(',');
+    const b64 = i >= 0 ? url.slice(i + 1) : url;
+    const bin = atob(b64);
+    const u8 = new Uint8Array(bin.length);
+    for (let j = 0; j < bin.length; j++) u8[j] = bin.charCodeAt(j);
+    return u8.buffer;
+  }
+  function decodeUrl(url, cb) {                      // 兼容回调式与 Promise 式
+    let ab;
+    try { ab = dataURLToAB(url); } catch (e) { cb(e); return; }
+    let settled = false;
+    const ok = (b) => { if (!settled) { settled = true; cb(null, b); } };
+    const bad = (e) => { if (!settled) { settled = true; cb(e || new Error('decodeAudioData failed')); } };
+    try {
+      const p = ctx.decodeAudioData(ab, ok, bad);
+      if (p && typeof p.then === 'function') p.then(ok).catch(bad);
+    } catch (e) { bad(e); }
+  }
+  function flushOverrides() {
+    if (!ctx) return;
+    for (const k of Object.keys(ovPending)) {
+      if (ovFailed[k]) { delete ovPending[k]; continue; }
+      decodeUrl(ovPending[k], (err, buf) => {
+        if (err || !buf) {
+          ovFailed[k] = 1; delete ovBuf[k];
+          console.warn('[DF.AUDIO] 音效覆盖解码失败，回落合成:', k, err);
+        } else ovBuf[k] = buf;
+        delete ovPending[k];
+      });
+    }
+  }
+  function applyOverrides(map) {
+    if (!map) return;
+    for (const k in map) {
+      if (NAMES.indexOf(k) < 0) continue;
+      const url = map[k];
+      if (!url || typeof url !== 'string') continue;
+      ovPending[k] = url; delete ovFailed[k]; delete ovBuf[k];
+    }
+    if (ctx) flushOverrides();                       // ctx 未建则推迟到 unlock 时解码
+  }
+  const getOv = (name) => ovBuf[name] || null;
+  function playBuf(buf, opts, t) {
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    src.playbackRate.value = opts.rate > 0 ? opts.rate : 1;
+    const g = ctx.createGain(); g.gain.value = opts.volume != null ? clamp01(opts.volume) : 1;
+    src.connect(g); g.connect(sfxBus);
+    src.start(t);
+    src.onended = () => { try { src.disconnect(); g.disconnect(); } catch (_) {} };
+  }
+
+  /* ------------------------------ 公开接口 ------------------------------ */
+  function unlock() {                                // 幂等；首次手势调用
+    ensureCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended' && ctx.resume) { try { ctx.resume(); } catch (_) {} }
+  }
+  function play(name, opts) {
+    opts = opts || {};
+    if (LOOP_CUES[name]) { startLoop(name); return; } // 循环型防御性转发
+    ensureCtx(); if (!ctx) return;
+    if (ctx.state !== 'running') { try { ctx.resume(); } catch (_) {} }
+    if (ctx.state !== 'running') return;             // 未解锁不排队，避免手势后爆音
+    const t = now() + 0.02;
+    const buf = getOv(name);
+    if (buf) { playBuf(buf, opts, t); return; }
+    const fn = SYNTH[name];
+    if (!fn) return;
+    try { fn(t, opts); } catch (e) { console.warn('[DF.AUDIO] 合成失败:', name, e); }
+  }
+  function duck(ms) {                                // BGM 闪避后自动恢复
+    if (!ctx || !duckGain) return;
+    const g = duckGain.gain, t = now(), d = Math.max(50, +ms || 800) / 1000;
+    holdParam(g);
+    g.linearRampToValueAtTime(0.12, t + 0.08);
+    g.setValueAtTime(0.12, t + d);
+    g.linearRampToValueAtTime(1, t + d + 0.45);
+  }
+  function setMasterVolume(v) { vols.master = clamp01(v); if (master) master.gain.setTargetAtTime(vols.master, now(), 0.03); }
+  function setBGMVolume(v) { vols.bgm = clamp01(v); if (bgmVol) bgmVol.gain.setTargetAtTime(vols.bgm, now(), 0.03); }
+  function setSFXVolume(v) { vols.sfx = clamp01(v); if (sfxBus) sfxBus.gain.setTargetAtTime(vols.sfx, now(), 0.03); }
+
+  return { unlock, play, startLoop, stopLoop, duck, setBGMVolume, setSFXVolume, setMasterVolume, applyOverrides, names: NAMES };
+})();
+
+</script>
+<script>
+/* ===== src/fx.js ===== */
+/* 多福巨奖 777 — FX 模块：Canvas2D 粒子特效叠加层
+   零依赖 / 不用阴影模糊（发光 = 径向渐变 + lighter 半透明叠色）/ 粒子对象池
+   金币为离屏预渲染翻转帧（scaleX 模拟翻转），风格红金喜庆澳门赌场 */
+window.DF = window.DF || {};
+DF.FX = (() => {
+  'use strict';
+  const TAU = Math.PI * 2;
+  const SPR = 2;                 // 离屏贴图超采样倍率（= DPR 上限）
+  const MAX_PARTS = 900;         // 粒子总量上限（保护低端机）
+  const rnd = (a, b) => a + Math.random() * (b - a);
+
+  /* ---------------- 模块状态 ---------------- */
+  let host = null, canvas = null, ctx = null;
+  let W = 0, H = 0, dpr = 1;
+  let rafId = 0, loopOn = false, hiddenPaused = false, lastTs = 0;
+
+  const parts = [];              // 活跃粒子  kind: 0金币 1彩带 2星光
+  const pool = [];               // 空闲对象池
+  const flashes = [];            // 全屏闪光
+  const rings = [];              // 冲击波圆环
+  const texts = new Set();       // bigText DOM（stopAll 一并清理）
+
+  /* ---------------- 颜色工具 ---------------- */
+  function toRgb(c) {
+    if (typeof c !== 'string' || !c) return { r: 255, g: 214, b: 100 };
+    let m = c.match(/^#([0-9a-f]{3})$/i);
+    if (m) return {
+      r: parseInt(m[1][0] + m[1][0], 16), g: parseInt(m[1][1] + m[1][1], 16), b: parseInt(m[1][2] + m[1][2], 16)
+    };
+    m = c.match(/^#([0-9a-f]{6})/i);
+    if (m) { const v = parseInt(m[1], 16); return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 }; }
+    m = c.match(/rgba?\(([^)]+)\)/i);
+    if (m) { const p = m[1].split(','); return { r: +p[0] || 0, g: +p[1] || 0, b: +p[2] || 0 }; }
+    return { r: 255, g: 214, b: 100 };
+  }
+  const rgba = (c, a) => 'rgba(' + c.r + ',' + c.g + ',' + c.b + ',' + a + ')';
+
+  /* ---------------- 金币离屏贴图：10 帧翻转（scaleX = cos） ----------------
+     配色参照原机金币：金径向渐变 + 深金描边 + 虚线内圈 + 浮雕「福」+ 高光 */
+  const NFR = 10, COIN = 46;
+  let coinFrames = null;
+
+  function coinFace(c, S) {
+    const R = S / 2 - 2;
+    const g = c.createRadialGradient(-R * 0.35, -R * 0.42, R * 0.14, 0, 0, R);
+    g.addColorStop(0, '#fff7cf'); g.addColorStop(.45, '#ffd964');
+    g.addColorStop(.8, '#e8a51e'); g.addColorStop(1, '#9a6406');
+    c.beginPath(); c.arc(0, 0, R, 0, TAU); c.fillStyle = g; c.fill();
+    c.lineWidth = 3; c.strokeStyle = '#6b3e00'; c.stroke();
+    c.beginPath(); c.arc(0, 0, R * 0.8, 0, TAU);
+    c.lineWidth = 1.6; c.setLineDash([5, 4]); c.strokeStyle = 'rgba(138,90,0,.8)'; c.stroke(); c.setLineDash([]);
+    c.beginPath(); c.arc(0, 0, R * 0.64, 0, TAU);
+    c.lineWidth = 2; c.strokeStyle = 'rgba(160,106,8,.7)'; c.stroke();
+    c.font = '900 ' + (R * 1.02).toFixed(1) + 'px "Songti SC","STSong","SimSun","Noto Serif SC",serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
+    const tg = c.createLinearGradient(0, -R * 0.62, 0, R * 0.62);
+    tg.addColorStop(0, '#fff3bd'); tg.addColorStop(.5, '#ffcf4d'); tg.addColorStop(1, '#c98a12');
+    c.lineWidth = 3; c.strokeStyle = '#7a4a00';
+    c.strokeText('福', 0, R * 0.06);
+    c.fillStyle = tg; c.fillText('福', 0, R * 0.06);
+    c.save(); c.rotate(-0.62);
+    c.beginPath(); c.ellipse(-R * 0.36, -R * 0.5, R * 0.32, R * 0.15, 0, 0, TAU);
+    c.fillStyle = 'rgba(255,255,255,.35)'; c.fill(); c.restore();
+  }
+
+  function buildCoins() {
+    if (coinFrames) return;
+    const P = COIN * SPR;
+    coinFrames = [];
+    for (let i = 0; i < NFR; i++) {
+      const sx = Math.cos(i / NFR * Math.PI);          // 1 → -1 翻转
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = P;
+      const c = cv.getContext('2d');
+      const ax = Math.abs(sx);
+      if (ax < 0.15) {                                  // 侧面：窄厚边
+        c.setTransform(1, 0, 0, 1, P / 2, P / 2);
+        const w = Math.max(2.4, COIN * SPR * ax * 0.9);
+        const g = c.createLinearGradient(-w, 0, w, 0);
+        g.addColorStop(0, '#8a5a10'); g.addColorStop(.5, '#ffe9a0'); g.addColorStop(1, '#8a5a10');
+        c.beginPath(); c.ellipse(0, 0, w / 2, COIN * SPR * 0.47, 0, 0, TAU);
+        c.fillStyle = g; c.fill();
+        c.lineWidth = SPR; c.strokeStyle = '#6b3e00'; c.stroke();
+      } else {                                          // 正/背面
+        c.setTransform(1, 0, 0, 1, P / 2, P / 2);
+        c.scale(SPR * sx, SPR);
+        coinFace(c, COIN);
+        if (sx < 0) {                                   // 背面略暗
+          c.beginPath(); c.arc(0, 0, COIN / 2 - 2, 0, TAU);
+          c.fillStyle = 'rgba(96,50,0,.26)'; c.fill();
+        }
+      }
+      coinFrames.push(cv);
+    }
+  }
+
+  /* ---------------- 星光离屏贴图（4/6 角星芒 + 径向光晕），按色缓存 ---------------- */
+  const SPARK_S = 64;
+  const sparkCache = new Map();
+  function sparkSprites(color) {
+    const key = color || '#ffd964';
+    let s = sparkCache.get(key);
+    if (s) return s;
+    const rgb = toRgb(key);
+    const mk = pts => {
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = SPARK_S * SPR;
+      const c = cv.getContext('2d');
+      c.setTransform(SPR, 0, 0, SPR, cv.width / 2, cv.height / 2);   // 逻辑坐标：中心原点，按 SPR 超采样
+      const R = SPARK_S / 2 * 0.95;
+      let g = c.createRadialGradient(0, 0, 0, 0, 0, R);           // 径向渐变光晕（替代阴影模糊）
+      g.addColorStop(0, rgba(rgb, .5)); g.addColorStop(.35, rgba(rgb, .16)); g.addColorStop(1, rgba(rgb, 0));
+      c.fillStyle = g; c.beginPath(); c.arc(0, 0, R, 0, TAU); c.fill();
+      const r2 = R * 0.15;                                        // 星芒
+      c.beginPath();
+      for (let i = 0; i < pts; i++) {
+        const a0 = i / pts * TAU, a1 = (i + 0.5) / pts * TAU;
+        c.lineTo(Math.cos(a0) * R, Math.sin(a0) * R);
+        c.lineTo(Math.cos(a1) * r2, Math.sin(a1) * r2);
+      }
+      c.closePath();
+      g = c.createRadialGradient(0, 0, 0, 0, 0, R);
+      g.addColorStop(0, '#ffffff'); g.addColorStop(.3, rgba(rgb, .95)); g.addColorStop(1, rgba(rgb, .5));
+      c.fillStyle = g; c.fill();
+      c.beginPath(); c.arc(0, 0, R * 0.11, 0, TAU); c.fillStyle = '#fff'; c.fill();
+      return cv;
+    };
+    s = { a: mk(4), b: mk(6) };
+    sparkCache.set(key, s);
+    return s;
+  }
+
+  /* ---------------- 对象池 ---------------- */
+  const acquire = () => pool.pop() || {};
+  const release = p => { if (pool.length < 1200) pool.push(p); };
+  function addPart(p) {
+    if (parts.length < MAX_PARTS) parts.push(p); else release(p);
+  }
+  function recycle(i, p) {
+    parts[i] = parts[parts.length - 1]; parts.pop(); release(p);
+  }
+
+  /* ---------------- 粒子物理 ---------------- */
+  function step(p, dt) {
+    p.age += dt;
+    p.vy += p.g * dt;
+    if (p.drag) { const d = Math.max(0, 1 - p.drag * dt); p.vx *= d; p.vy *= d; }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.rot += p.vr * dt;
+    p.frame += p.vf * dt;
+    if (p.sway) p.x += Math.sin(p.phase + p.age * p.swf) * p.sway * dt;
+    p.dead = p.age >= p.life ||
+      (p.vy > 0 && p.y - p.size > H + 70) ||
+      p.x < -160 || p.x > W + 160;
+  }
+
+  /* ---------------- 绘制 ---------------- */
+  function drawCoin(p) {
+    let fi = p.frame % NFR; if (fi < 0) fi += NFR;
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    ctx.drawImage(coinFrames[fi | 0], -p.size / 2, -p.size / 2, p.size, p.size);
+    ctx.restore();
+  }
+  function drawConfetti(p) {
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    ctx.scale(1, 0.22 + Math.abs(Math.sin(p.phase + p.age * p.swf)) * 0.78);  // 翻面飘动
+    ctx.fillStyle = p.color;
+    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    ctx.restore();
+  }
+  function drawSpark(p) {
+    const tt = p.age / p.life;
+    const sp = sparkSprites(p.color);
+    const k = p.size * (1 - tt * 0.5);
+    ctx.globalAlpha = Math.max(0, 1 - tt * tt);
+    ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    ctx.drawImage(p.six ? sp.b : sp.a, -k / 2, -k / 2, k, k);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function drawRings(dt) {
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const r = rings[i];
+      r.t += dt;
+      const tt = r.t / r.dur;
+      if (tt >= 1) { rings.splice(i, 1); continue; }
+      const rad = 16 + (r.max - 16) * (1 - Math.pow(1 - tt, 2.2));
+      const a = Math.pow(1 - tt, 1.4);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.lineWidth = 3 + 9 * (1 - tt);
+      ctx.strokeStyle = rgba(r.rgb, a * 0.9);
+      ctx.beginPath(); ctx.arc(r.x, r.y, rad, 0, TAU); ctx.stroke();
+      ctx.lineWidth = 1.5 + 3 * (1 - tt);
+      ctx.strokeStyle = 'rgba(255,255,255,' + (a * 0.55).toFixed(3) + ')';
+      ctx.beginPath(); ctx.arc(r.x, r.y, rad * 0.9, 0, TAU); ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+  function drawFlashes(dt) {
+    for (let i = flashes.length - 1; i >= 0; i--) {
+      const f = flashes[i];
+      f.t += dt;
+      const tt = f.t / f.dur;
+      if (tt >= 1) { flashes.splice(i, 1); continue; }
+      ctx.fillStyle = rgba(f.rgb, f.a * Math.pow(1 - tt, 1.7));
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  /* ---------------- 主循环（rAF 驱动，空闲自停，页面隐藏暂停） ---------------- */
+  function tick(ts) {
+    rafId = 0;
+    if (!loopOn || !ctx) return;
+    let dt = lastTs ? (ts - lastTs) / 1000 : 0.0166;
+    lastTs = ts;
+    if (!(dt > 0)) dt = 0.0166;
+    if (dt > 0.05) dt = 0.05;
+
+    ctx.clearRect(0, 0, W, H);
+    drawRings(dt);
+
+    for (let i = parts.length - 1; i >= 0; i--) {       // 金币 / 彩带
+      const p = parts[i];
+      if (p.kind === 2) continue;
+      step(p, dt);
+      if (p.dead) { recycle(i, p); continue; }
+      if (p.kind === 0) drawCoin(p); else drawConfetti(p);
+    }
+
+    ctx.globalCompositeOperation = 'lighter';            // 星光叠色发光
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      if (p.kind !== 2) continue;
+      step(p, dt);
+      if (p.dead) { recycle(i, p); continue; }
+      drawSpark(p);
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+
+    drawFlashes(dt);
+
+    if (parts.length || flashes.length || rings.length) {
+      rafId = requestAnimationFrame(tick);
+    } else { loopOn = false; lastTs = 0; }
+  }
+  function kick() {
+    if (!ctx || loopOn || hiddenPaused) return;
+    loopOn = true; lastTs = 0;
+    rafId = requestAnimationFrame(tick);
+  }
+  function onVis() {
+    if (document.hidden) {
+      hiddenPaused = true;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+      loopOn = false;
+    } else {
+      hiddenPaused = false;
+      if (parts.length || flashes.length || rings.length) kick();
+    }
+  }
+
+  /* ---------------- 尺寸 / 初始化 ---------------- */
+  function resize() {
+    if (!canvas || !ctx) return;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = Math.max(1, Math.round(W * dpr));
+    canvas.height = Math.max(1, Math.round(H * dpr));
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function init(hostEl) {
+    host = hostEl || document.body;
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.className = 'df-fx-canvas';
+      canvas.style.cssText =
+        'position:fixed;left:0;top:0;margin:0;padding:0;' +
+        'width:100%;height:100%;pointer-events:none;';
+      ctx = canvas.getContext('2d');
+      document.addEventListener('visibilitychange', onVis);
+      window.addEventListener('resize', resize);
+      window.addEventListener('orientationchange', resize);
+    }
+    if (canvas.parentNode !== host) host.appendChild(canvas);
+    resize();
+  }
+
+  /* ---------------- 发射器 ---------------- */
+  function coinBurst(x, y, n, opt) {
+    if (!ctx) return;
+    buildCoins();
+    opt = opt || {};
+    const spread = opt.spread == null ? 1.05 : opt.spread;
+    const g = opt.gravity == null ? 1500 : opt.gravity;
+    const pw = opt.power || 1;
+    n = Math.max(0, n | 0);
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + rnd(-spread, spread);
+      const sp = rnd(380, 860) * pw;
+      const p = acquire();
+      p.kind = 0; p.x = x + rnd(-8, 8); p.y = y + rnd(-6, 6);
+      p.vx = Math.cos(a) * sp; p.vy = Math.sin(a) * sp;
+      p.g = g; p.drag = 0; p.size = rnd(20, 38);
+      p.rot = rnd(0, TAU); p.vr = rnd(-6, 6);
+      p.frame = rnd(0, NFR); p.vf = rnd(5, 13);
+      p.age = 0; p.life = rnd(1.8, 2.6);
+      p.sway = 0; p.swf = 0; p.phase = 0;
+      addPart(p);
+    }
+    kick();
+  }
+
+  function coinRain(n) {
+    if (!ctx) return;
+    buildCoins();
+    n = Math.max(0, n | 0);
+    for (let i = 0; i < n; i++) {
+      const p = acquire();
+      p.kind = 0;
+      p.x = rnd(10, Math.max(20, W - 10));
+      p.y = -rnd(20, 60) - (i / (n + 1)) * H * 0.55 - rnd(0, 90);
+      p.vx = rnd(-70, 70); p.vy = rnd(-30, 60);
+      p.g = rnd(620, 820); p.drag = 0; p.size = rnd(24, 44);
+      p.rot = rnd(0, TAU); p.vr = rnd(-5, 5);
+      p.frame = rnd(0, NFR); p.vf = rnd(4, 11);
+      p.age = 0; p.life = 5.5;
+      p.sway = rnd(10, 46); p.swf = rnd(3, 7); p.phase = rnd(0, TAU);
+      addPart(p);
+    }
+    kick();
+  }
+
+  const CONF_COLORS = ['#ffd964', '#f2c14e', '#fff3bd', '#e03535', '#c31432', '#ff9e3d'];
+  function confetti(n) {
+    if (!ctx) return;
+    n = Math.max(0, n | 0);
+    for (let i = 0; i < n; i++) {
+      const L = (i & 1) === 0;                                  // 左右双炮台
+      const a = -Math.PI / 2 + (L ? 1 : -1) * rnd(0.12, 0.72);
+      const sp = rnd(650, 1300);
+      const p = acquire();
+      p.kind = 1;
+      p.x = L ? -12 : W + 12;
+      p.y = H * rnd(0.78, 0.98);
+      p.vx = Math.cos(a) * sp; p.vy = Math.sin(a) * sp;
+      p.g = rnd(820, 1000); p.drag = 0.4;
+      p.w = rnd(6, 10); p.h = rnd(9, 17); p.size = Math.max(p.w, p.h);
+      p.rot = rnd(0, TAU); p.vr = rnd(-9, 9);
+      p.frame = 0; p.vf = 0;
+      p.age = 0; p.life = rnd(2.2, 3.4);
+      p.sway = rnd(24, 70); p.swf = rnd(6, 12); p.phase = rnd(0, TAU);
+      p.color = CONF_COLORS[(Math.random() * CONF_COLORS.length) | 0];
+      addPart(p);
+    }
+    kick();
+  }
+
+  function spark(x, y, color, n, opt) {
+    if (!ctx) return;
+    opt = opt || {};
+    const g = opt.gravity == null ? 240 : opt.gravity;
+    const pw = opt.power || 1;
+    const col = color || '#ffd964';
+    n = Math.max(0, n | 0);
+    for (let i = 0; i < n; i++) {
+      const a = rnd(0, TAU);
+      const sp = rnd(90, 430) * pw;
+      const p = acquire();
+      p.kind = 2; p.x = x; p.y = y;
+      p.vx = Math.cos(a) * sp; p.vy = Math.sin(a) * sp;
+      p.g = g; p.drag = 2.1; p.size = rnd(13, 30);
+      p.rot = rnd(0, TAU); p.vr = rnd(-6.5, 6.5);
+      p.frame = 0; p.vf = 0;
+      p.age = 0; p.life = rnd(0.45, 0.85);
+      p.sway = 0; p.swf = 0; p.phase = 0;
+      p.color = col;
+      p.six = Math.random() < 0.45;             // 4 角 / 6 角星混发
+      addPart(p);
+    }
+    kick();
+  }
+
+  function flash(color, alpha) {
+    if (!ctx) return;
+    flashes.push({
+      rgb: toRgb(color), a: alpha == null ? 0.75 : Math.max(0, Math.min(1, alpha)),
+      t: 0, dur: 0.34
+    });
+    kick();
+  }
+
+  function ring(x, y, color) {
+    if (!ctx) return;
+    rings.push({
+      x, y, rgb: toRgb(color), t: 0, dur: 0.55,
+      max: Math.max(90, Math.min(W, H) * 0.22)
+    });
+    kick();
+  }
+
+  /* ---------------- bigText：DOM 金渐变描边大字（弹入 → 停留 1.4s → 淡出自毁） ---------------- */
+  function bigText(text, opt) {
+    if (!host || typeof text !== 'string' || !text) return;
+    opt = opt || {};
+    const scale = opt.scale || 1;
+    const vw = Math.max(window.innerWidth, 320);
+    let fs = Math.min(vw * 0.135, 122) * scale;
+    if (text.length > 5) fs *= 5 / text.length;
+    fs = Math.round(fs);
+    const fam = '"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Heiti SC",sans-serif';
+
+    const wrap = document.createElement('div');
+    texts.add(wrap);
+    wrap.style.cssText =
+      'position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);' +
+      'display:flex;flex-direction:column;align-items:center;pointer-events:none;' +
+      'white-space:nowrap;z-index:2147483000;will-change:transform,opacity;';
+
+    const glow = document.createElement('div');               // 径向渐变光环底
+    const gs = Math.round(fs * (text.length * 0.8 + 2.2));
+    glow.style.cssText =
+      'position:absolute;left:50%;top:46%;width:' + gs + 'px;height:' + gs + 'px;' +
+      'transform:translate(-50%,-50%);border-radius:50%;' +
+      'background:radial-gradient(circle,rgba(255,206,84,.4) 0%,rgba(216,52,52,.24) 36%,' +
+      'rgba(120,10,16,.1) 55%,rgba(0,0,0,0) 70%);';
+    wrap.appendChild(glow);
+
+    const stack = document.createElement('div');
+    stack.style.cssText = 'position:relative;filter:drop-shadow(0 8px 22px rgba(40,0,0,.5));text-align:center;';
+    const base = 'font-family:' + fam + ';font-weight:900;font-size:' + fs +
+      'px;line-height:1.14;letter-spacing:.05em;text-align:center;';
+    const stroke = document.createElement('div');              // 深红描边层
+    stroke.textContent = text;
+    stroke.style.cssText = base + 'position:absolute;left:0;top:0;width:100%;color:transparent;' +
+      '-webkit-text-stroke:' + Math.max(5, Math.round(fs * 0.1)) + 'px #6e060d;';
+    const fill = document.createElement('div');                // 金渐变填充层
+    fill.textContent = text;
+    fill.style.cssText = base + 'position:relative;' + (opt.color
+      ? 'color:' + opt.color + ';'
+      : 'background:linear-gradient(180deg,#fff8dc 6%,#ffe9a2 30%,#ffcf4d 52%,#eda91c 74%,#ffc23a 100%);' +
+        '-webkit-background-clip:text;background-clip:text;color:transparent;');
+    stack.appendChild(stroke); stack.appendChild(fill);
+    wrap.appendChild(stack);
+
+    if (opt.sub) {                                             // 金色小字副标题
+      const sub = document.createElement('div');
+      sub.textContent = String(opt.sub);
+      const ss = Math.max(16, Math.round(fs * 0.32));
+      sub.style.cssText =
+        'position:relative;margin-top:' + Math.max(6, Math.round(fs * 0.1)) + 'px;' +
+        'font-family:' + fam + ';font-weight:800;font-size:' + ss + 'px;letter-spacing:.14em;' +
+        'color:#ffd964;text-shadow:0 2px 0 #6e2a00,0 0 16px rgba(255,190,70,.55),0 4px 10px rgba(0,0,0,.6);';
+      wrap.appendChild(sub);
+    }
+
+    host.appendChild(wrap);
+
+    const DUR = 2400;                                          // 弹入(.26) → 停留≈1.4s → 淡出
+    const kf = [
+      { transform: 'translate(-50%,-50%) scale(.18) rotate(-5deg)', opacity: 0 },
+      { transform: 'translate(-50%,-50%) scale(1.16) rotate(1.5deg)', opacity: 1, offset: 0.16 },
+      { transform: 'translate(-50%,-50%) scale(.97)', opacity: 1, offset: 0.24 },
+      { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: 0.26 },
+      { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: 0.85 },
+      { transform: 'translate(-50%,-50%) scale(1.09)', opacity: 0 }
+    ];
+    let tm = 0;
+    const done = () => {
+      if (tm) { clearTimeout(tm); tm = 0; }
+      if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+      texts.delete(wrap);
+    };
+    tm = setTimeout(done, DUR + 300);                          // 兜底自毁（动画时钟异常时仍能清理）
+    if (wrap.animate) {
+      const an = wrap.animate(kf, { duration: DUR, easing: 'cubic-bezier(.22,.9,.32,1.08)', fill: 'both' });
+      an.onfinish = done; an.oncancel = done;
+    }
+  }
+
+  /* ---------------- 全部清空 ---------------- */
+  function stopAll() {
+    for (let i = 0; i < parts.length; i++) release(parts[i]);
+    parts.length = 0;
+    flashes.length = 0;
+    rings.length = 0;
+    texts.forEach(el => { if (el.parentNode) el.parentNode.removeChild(el); });
+    texts.clear();
+    if (ctx) ctx.clearRect(0, 0, W, H);
+  }
+
+  return {
+    init, coinBurst, coinRain, confetti, spark,
+    flash, ring, bigText, stopAll
+  };
+})();
+
+</script>
+<script>
+/* ===== src/config-panel.js ===== */
+/* 多福巨奖 777 — DF.CONFIG_PANEL 游戏内配置面板（图标/音效/玩法/数据 四标签）
+   面板持有 work 副本（open 时从 DF.cfg 深拷贝），所有编辑改 work 后立即
+   onChange(完整 cfg 深拷贝快照)；持久化由主线负责，本模块不碰 localStorage。 */
+window.DF = window.DF || {};
+DF.CONFIG_PANEL = (() => {
+  'use strict';
+
+  /* ------------------------------ 常量 ------------------------------ */
+  var TABS = [
+    { key: 'icons', label: '图标' },
+    { key: 'sound', label: '音效' },
+    { key: 'play',  label: '玩法' },
+    { key: 'data',  label: '数据' }
+  ];
+  var TAB_ALIAS = { 图标: 'icons', 音效: 'sound', 玩法: 'play', 数据: 'data' };
+
+  // 可替换图标清单：12 滚轮符号 + 4 金身 + 金币
+  var ICON_DEFS = [
+    { id: '10',      name: '10',        kind: 'sym',  group: '滚轮符号' },
+    { id: 'J',       name: 'J',         kind: 'sym',  group: '滚轮符号' },
+    { id: 'Q',       name: 'Q',         kind: 'sym',  group: '滚轮符号' },
+    { id: 'K',       name: 'K',         kind: 'sym',  group: '滚轮符号' },
+    { id: 'A',       name: 'A',         kind: 'sym',  group: '滚轮符号' },
+    { id: 'koi',     name: '金鱼',      kind: 'sym',  group: '滚轮符号' },
+    { id: 'frog',    name: '金蟾',      kind: 'sym',  group: '滚轮符号' },
+    { id: 'turtle',  name: '金龟',      kind: 'sym',  group: '滚轮符号' },
+    { id: 'dragon',  name: '金龙',      kind: 'sym',  group: '滚轮符号' },
+    { id: 'ingot',   name: '元宝碗',    kind: 'sym',  group: '滚轮符号' },
+    { id: 'gong',    name: '金锣',      kind: 'sym',  group: '滚轮符号' },
+    { id: 'wild',    name: '福WILD',    kind: 'sym',  group: '滚轮符号' },
+    { id: 'g_koi',   name: '金身·金鱼', kind: 'gold', group: '金身符号' },
+    { id: 'g_frog',  name: '金身·金蟾', kind: 'gold', group: '金身符号' },
+    { id: 'g_turtle',name: '金身·金龟', kind: 'gold', group: '金身符号' },
+    { id: 'g_ingot', name: '金身·元宝', kind: 'gold', group: '金身符号' },
+    { id: 'coin',    name: '金币',      kind: 'coin', group: '其他' }
+  ];
+
+  var FALLBACK_CUES = ['bgm', 'reelSpin', 'reelStop', 'allStop', 'betUp', 'betDown',
+    'button', 'goldLand', 'railFill', 'countTick', 'wayWin', 'winSmall',
+    'winMid', 'winBig', 'jackpot', 'freeTrigger', 'pickReveal', 'pickMatch',
+    'coinRain', 'refill', 'error'];
+  var CUE_CN = {
+    bgm: '背景音乐', reelSpin: '滚轮滚动', reelStop: '滚轮制动', allStop: '全部落定',
+    betUp: '加注', betDown: '减注', button: '按键嗒', goldLand: '金身上桌',
+    railFill: '轨道推进', countTick: '计分滴答', wayWin: '中奖和弦',
+    winSmall: '小奖铃', winMid: '中奖铃', winBig: '大奖号角', jackpot: '奖池演出',
+    freeTrigger: '免费局锣响', pickReveal: '翻币', pickMatch: '凑齐叮咚',
+    coinRain: '金币雨', refill: '补币流入', error: '错误提示'
+  };
+  var VOL_CN = { master: '总音量', bgm: 'BGM 音量', sfx: '音效音量' };
+
+  // DF.cfg 缺失/缺字段时的兜底 schema（与 DF.LOGIC.defaultCfg 对齐）
+  function fallbackCfg() {
+    return {
+      startCredits: 10000,
+      betTiers: [8, 18, 38, 68, 88],
+      railNeed: { mini: 80, minor: 115, major: 160, grand: 215 },
+      pickWeights: { mini: 0.70, minor: 0.22, major: 0.065, grand: 0.015 },
+      fsRemove: ['10', 'J', 'Q'],
+      freeSpins: 10, freeRetrigger: 10, tier5Boost: 1.2, fsScale: 1.0,
+      stripGold: { frog: 1, koi: 1, turtle: 1, ingot: 1 },
+      wildPerReel: 1,
+      payDivisor: 12, winScale: 1.0, bigWinTiers: [15, 30],
+      jackpots: {
+        grand: { seed: 38888.88, grow: 0.010 },
+        major: { seed: 6888.88,  grow: 0.006 },
+        minor: { seed: 688.88,   grow: 0.003 },
+        mini:  { seed: 188.88,   grow: 0.0015 }
+      },
+      vols: { master: 1, bgm: 0.5, sfx: 1 },
+      icons: {}, sounds: {},
+      turbo: false, autoStopBigWin: true, sound: true
+    };
+  }
+
+  /* ------------------------------ 状态 ------------------------------ */
+  var container = null, rootEl = null, bodyEl = null, msgEl = null, fileInput = null;
+  var tabBtns = {}, paneEls = {}, paneRendered = {};
+  var work = null;            // 面板内工作副本（完整 cfg）
+  var cbs = [];               // onChange 回调列表
+  var visible = false;
+  var curTab = 'icons';
+  var pending = null;         // {type:'icon'|'sound'|'cfgjson', id}
+  var resetArmed = false, resetTimer = 0, msgTimer = 0;
+
+  /* ------------------------------ 工具 ------------------------------ */
+  function deep(o) { return JSON.parse(JSON.stringify(o)); }
+  function snap() { return deep(work); }
+  function emit() {
+    var s = snap();
+    cbs.forEach(function (cb) { try { cb(s); } catch (e) { console.warn('[DF.CONFIG_PANEL] onChange 回调异常:', e); } });
+  }
+  function el(tag, cls, txt) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (txt != null) e.textContent = txt;
+    return e;
+  }
+  function btn(label, onClick, cls) {
+    var b = el('button', 'dfcp-btn' + (cls ? ' ' + cls : ''), label);
+    b.type = 'button';
+    b.addEventListener('click', onClick);
+    return b;
+  }
+  function cueList() {
+    try {
+      if (DF.AUDIO && Array.isArray(DF.AUDIO.names) && DF.AUDIO.names.length) return DF.AUDIO.names.slice();
+    } catch (e) { /* 忽略 */ }
+    return FALLBACK_CUES.slice();
+  }
+  function hasArt() {
+    return !!(DF.ART && typeof DF.ART.symbol === 'function' &&
+      typeof DF.ART.gold === 'function' && typeof DF.ART.coin === 'function');
+  }
+  function defaultIconSrc(def) {
+    try {
+      if (def.kind === 'coin') return DF.ART.coin();
+      if (def.kind === 'gold') return DF.ART.gold(def.id.slice(2)); // 去 g_ 前缀
+      return DF.ART.symbol(def.id);
+    } catch (e) { return ''; }
+  }
+  function iconSrc(def) {
+    return (work.icons && work.icons[def.id]) || defaultIconSrc(def);
+  }
+  function showMsg(text) {
+    if (!msgEl) return;
+    msgEl.textContent = text;
+    msgEl.classList.add('show');
+    clearTimeout(msgTimer);
+    msgTimer = setTimeout(function () { msgEl.classList.remove('show'); }, 2400);
+  }
+  // work 缺失字段用兜底 schema 补齐（快照始终是完整 cfg）
+  function normalize(w) {
+    var base = fallbackCfg();
+    Object.keys(base).forEach(function (k) {
+      if (w[k] === undefined) w[k] = deep(base[k]);
+    });
+    if (!w.vols || typeof w.vols !== 'object') w.vols = { master: 1, bgm: 0.5, sfx: 1 };
+    ['master', 'bgm', 'sfx'].forEach(function (k) {
+      if (typeof w.vols[k] !== 'number') w.vols[k] = base.vols[k];
+    });
+    if (!w.icons || typeof w.icons !== 'object') w.icons = {};
+    if (!w.sounds || typeof w.sounds !== 'object') w.sounds = {};
+    return w;
+  }
+
+  // file → canvas 压缩 → dataURL（参照 merge-watermelon readImageToDataURL）
+  function readImageToDataURL(file, maxSize, mime, quality, cb) {
+    var fr = new FileReader();
+    fr.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var s = Math.min(1, maxSize / Math.max(img.width || 1, img.height || 1));
+        var cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round((img.width || maxSize) * s));
+        cv.height = Math.max(1, Math.round((img.height || maxSize) * s));
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        cb(cv.toDataURL(mime, quality));
+      };
+      img.onerror = function () { cb(null); };
+      img.src = fr.result;
+    };
+    fr.onerror = function () { cb(null); };
+    fr.readAsDataURL(file);
+  }
+  function readFileAs(file, as, cb) {
+    var fr = new FileReader();
+    fr.onload = function () { cb(fr.result); };
+    fr.onerror = function () { cb(null); };
+    if (as === 'text') fr.readAsText(file); else fr.readAsDataURL(file);
+  }
+
+  function deepMerge(dst, src) {
+    Object.keys(src).forEach(function (k) {
+      var v = src[k];
+      if (v && typeof v === 'object' && !Array.isArray(v) &&
+          dst[k] && typeof dst[k] === 'object' && !Array.isArray(dst[k])) {
+        deepMerge(dst[k], v);
+      } else {
+        dst[k] = deep(v);
+      }
+    });
+    return dst;
+  }
+
+  /* ------------------------------ 样式 ------------------------------ */
+  var CSS = `
+.dfcp-root{position:fixed;inset:0;z-index:95;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+.dfcp-root[hidden]{display:none!important}
+.dfcp-mask{position:absolute;inset:0;background:rgba(8,2,16,.72);backdrop-filter:blur(3px);opacity:0;transition:opacity .25s}
+.dfcp-drawer{position:absolute;top:0;right:0;bottom:0;width:min(430px,94vw);display:flex;flex-direction:column;
+  background:linear-gradient(170deg,#2c0f42,#160326 70%);border-left:2px solid #d9a83f;
+  box-shadow:-10px 0 50px rgba(0,0,0,.7),0 0 20px rgba(217,168,63,.3);
+  transform:translateX(100%);transition:transform .28s cubic-bezier(.25,.9,.35,1)}
+.dfcp-root.open .dfcp-mask{opacity:1}
+.dfcp-root.open .dfcp-drawer{transform:none}
+.dfcp-head{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 14px 8px}
+.dfcp-head b{font-size:17px;letter-spacing:4px;color:#ffe2a0}
+.dfcp-x{width:34px;height:34px;border-radius:50%;font-size:16px;color:#ffdca0;background:rgba(120,20,40,.85);
+  border:1.5px solid #d9a83f;flex:0 0 auto}
+.dfcp-x:active{transform:scale(.92)}
+.dfcp-tabs{flex:0 0 auto;display:flex;gap:6px;padding:4px 12px 10px;border-bottom:1px solid rgba(217,168,63,.35)}
+.dfcp-tab{flex:1;min-height:42px;border-radius:11px;font-size:14px;font-weight:800;letter-spacing:2px;color:#c9a5ee;
+  background:rgba(40,10,64,.6);border:1.5px solid rgba(165,101,232,.5)}
+.dfcp-tab.on{color:#5d1503;background:linear-gradient(180deg,#ffe08a,#f0a12e 60%,#c9862e);border-color:#fff0c2;
+  box-shadow:0 2px 10px rgba(255,190,60,.4)}
+.dfcp-tab:active{transform:scale(.97)}
+.dfcp-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  padding:10px 12px calc(18px + env(safe-area-inset-bottom))}
+.dfcp-sec{margin:0 0 12px;border-radius:13px;overflow:hidden;background:rgba(52,16,84,.35);border:1px solid rgba(217,168,63,.3)}
+.dfcp-sec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;
+  font-size:13px;font-weight:800;letter-spacing:2px;color:#ffd257;user-select:none}
+.dfcp-sec>summary::-webkit-details-marker{display:none}
+.dfcp-sec>summary::after{content:"▾";margin-left:auto;color:#c9a5ee;transition:transform .2s}
+.dfcp-sec:not([open])>summary::after{transform:rotate(-90deg)}
+.dfcp-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid rgba(217,168,63,.15);min-height:56px}
+.dfcp-item:first-of-type{border-top:none}
+.dfcp-ico{width:46px;height:46px;flex:0 0 auto;object-fit:contain;border-radius:9px;
+  background:rgba(10,2,20,.55);border:1.5px solid rgba(217,168,63,.55)}
+.dfcp-meta{flex:1;min-width:0}
+.dfcp-meta b{display:block;font-size:14px;color:#fff3cf}
+.dfcp-meta small{display:block;font-size:11px;color:#9d86c9;margin-top:2px}
+.dfcp-meta small.custom{color:#ffd257}
+.dfcp-btn{min-height:38px;padding:7px 13px;border-radius:10px;font-size:13px;font-weight:700;color:#ffe6b3;
+  background:linear-gradient(180deg,#3c1560,#22093a);border:1.5px solid #a565e8;flex:0 0 auto}
+.dfcp-btn:active{transform:scale(.96)}
+.dfcp-btn.gold{color:#5d1503;background:linear-gradient(180deg,#ffe08a,#f0a12e 60%,#c9862e);border-color:#fff0c2;font-weight:800}
+.dfcp-btn.danger{color:#ffd7cf;background:linear-gradient(180deg,#6e1420,#42060e);border-color:#e0573f}
+.dfcp-btn.wide{width:100%;min-height:46px;font-size:15px;letter-spacing:2px}
+.dfcp-note{font-size:12px;line-height:1.7;color:#c9a5ee;padding:10px 4px 6px}
+.dfcp-cue{display:flex;align-items:center;gap:8px;padding:7px 12px;border-top:1px solid rgba(217,168,63,.15);min-height:54px;flex-wrap:wrap}
+.dfcp-cue .dfcp-meta{flex:1 1 96px}
+.dfcp-cue .dfcp-btn{min-height:34px;padding:5px 10px;font-size:12px}
+.dfcp-frow{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid rgba(217,168,63,.15);min-height:54px;flex-wrap:wrap}
+.dfcp-frow:first-child{border-top:none}
+.dfcp-flabel{flex:1 1 92px;font-size:14px;font-weight:700;color:#ffe6b3}
+.dfcp-flabel small{display:block;font-size:11px;font-weight:500;color:#9d86c9;margin-top:2px}
+.dfcp-num{box-sizing:border-box;width:86px;min-height:40px;padding:6px 8px;border-radius:10px;text-align:center;font-size:15px;font-weight:700;
+  color:#fff3cf;background:rgba(10,2,20,.7);border:1.5px solid #d9a83f;-webkit-appearance:none;appearance:none}
+.dfcp-num:focus{outline:none;border-color:#ffd257;box-shadow:0 0 8px rgba(255,210,87,.5)}
+.dfcp-arr{display:flex;gap:6px;flex-wrap:wrap}
+.dfcp-arr .dfcp-cell{display:flex;flex-direction:column;align-items:center;gap:3px}
+.dfcp-arr .dfcp-cell i{font-style:normal;font-size:10px;color:#c9a5ee}
+.dfcp-arr .dfcp-num{width:62px;min-height:38px;font-size:14px}
+.dfcp-slider{flex:1 1 130px;min-height:34px;accent-color:#f2b93c;cursor:pointer}
+.dfcp-val{flex:0 0 44px;text-align:center;font-size:13px;font-weight:800;color:#ffd257}
+.dfcp-chk{width:24px;height:24px;accent-color:#f2b93c;cursor:pointer;flex:0 0 auto}
+.dfcp-data{display:flex;flex-direction:column;gap:10px;padding:12px 4px}
+.dfcp-data p{margin:0;font-size:12px;line-height:1.7;color:#c9a5ee}
+.dfcp-msg{position:absolute;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(8px);
+  max-width:86%;background:rgba(20,4,30,.94);border:1.5px solid #d9a83f;color:#ffe6b3;font-size:13px;font-weight:700;
+  padding:9px 18px;border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.6);opacity:0;transition:all .25s;pointer-events:none;
+  text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dfcp-msg.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (max-width:640px){
+  .dfcp-drawer{top:auto;left:0;right:0;bottom:0;width:auto;height:86dvh;border-radius:18px 18px 0 0;
+    border-left:none;border-top:2px solid #d9a83f;transform:translateY(100%)}
+  .dfcp-root.open .dfcp-drawer{transform:none}
+  .dfcp-num{width:78px}
+}`;
+  var styleEl = null;
+
+  /* ------------------------------ DOM 构建 ------------------------------ */
+  function buildSkeleton() {
+    styleEl = document.createElement('style');
+    styleEl.textContent = CSS;
+    document.head.appendChild(styleEl);
+
+    rootEl = el('div', 'dfcp-root');
+    rootEl.hidden = true;
+
+    var mask = el('div', 'dfcp-mask');
+    mask.addEventListener('click', close);
+    rootEl.appendChild(mask);
+
+    var drawer = el('aside', 'dfcp-drawer');
+    var head = el('div', 'dfcp-head');
+    head.appendChild(el('b', null, '设 置'));
+    var x = btn('✕', close, '');
+    x.className = 'dfcp-x';
+    head.appendChild(x);
+    drawer.appendChild(head);
+
+    var tabs = el('div', 'dfcp-tabs');
+    TABS.forEach(function (t) {
+      var b = el('button', 'dfcp-tab', t.label);
+      b.type = 'button';
+      b.addEventListener('click', function () { setTab(t.key); });
+      tabBtns[t.key] = b;
+      tabs.appendChild(b);
+    });
+    drawer.appendChild(tabs);
+
+    bodyEl = el('div', 'dfcp-body');
+    TABS.forEach(function (t) {
+      var p = el('section', 'dfcp-pane');
+      p.hidden = true;
+      paneEls[t.key] = p;
+      bodyEl.appendChild(p);
+    });
+    drawer.appendChild(bodyEl);
+
+    msgEl = el('div', 'dfcp-msg');
+    drawer.appendChild(msgEl);
+
+    fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.hidden = true;
+    fileInput.addEventListener('change', onFilePicked);
+
+    rootEl.appendChild(drawer);
+    rootEl.appendChild(fileInput);
+    container.appendChild(rootEl);
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && visible) close();
+    });
+  }
+
+  function setTab(key) {
+    curTab = key;
+    TABS.forEach(function (t) {
+      tabBtns[t.key].classList.toggle('on', t.key === key);
+      var render = { icons: renderIconsPane, sound: renderSoundPane, play: renderPlayPane, data: renderDataPane }[t.key];
+      if (t.key === key) { render(paneEls[t.key]); paneEls[t.key].hidden = false; }
+      else paneEls[t.key].hidden = true;
+    });
+    bodyEl.scrollTop = 0;
+  }
+
+  /* ------------------------------ 图标页 ------------------------------ */
+  function iconRow(def) {
+    var row = el('div', 'dfcp-item');
+    var img = el('img', 'dfcp-ico');
+    img.alt = def.name;
+    img.src = iconSrc(def);
+    row.appendChild(img);
+
+    var meta = el('div', 'dfcp-meta');
+    meta.appendChild(el('b', null, def.name));
+    var badge = el('small', work.icons[def.id] ? 'custom' : null, work.icons[def.id] ? '已自定义' : '默认图');
+    meta.appendChild(badge);
+    row.appendChild(meta);
+
+    row.appendChild(btn('上传', function () {
+      pending = { type: 'icon', id: def.id };
+      fileInput.accept = 'image/*';
+      fileInput.value = '';
+      fileInput.click();
+    }));
+    row.appendChild(btn('恢复默认', function () {
+      if (!work.icons[def.id]) { showMsg(def.name + '：已是默认图'); return; }
+      delete work.icons[def.id];
+      img.src = iconSrc(def);
+      badge.textContent = '默认图';
+      badge.className = '';
+      emit();
+    }));
+    return row;
+  }
+
+  function renderIconsPane(pane) {
+    pane.textContent = '';
+    pane.appendChild(el('div', 'dfcp-note',
+      '替换滚轮符号 / 金身 / 金币图片，上传后自动压缩到 128px 并立即生效。'));
+
+    var groups = [{ title: '滚轮符号', open: true }, { title: '金身符号', open: true }, { title: '其他', open: true }];
+    groups.forEach(function (g) {
+      var det = el('details', 'dfcp-sec');
+      det.open = g.open;
+      var sum = el('summary', null, g.title);
+      det.appendChild(sum);
+      ICON_DEFS.forEach(function (def) { if (def.group === g.title) det.appendChild(iconRow(def)); });
+      pane.appendChild(det);
+    });
+  }
+
+  /* ------------------------------ 音效页 ------------------------------ */
+  function cueRow(cue) {
+    var row = el('div', 'dfcp-cue');
+    var meta = el('div', 'dfcp-meta');
+    meta.appendChild(el('b', null, CUE_CN[cue] || cue));
+    var badge = el('small', work.sounds[cue] ? 'custom' : null,
+      work.sounds[cue] ? '已自定义' : cue);
+    meta.appendChild(badge);
+    row.appendChild(meta);
+
+    row.appendChild(btn('上传自定义', function () {
+      pending = { type: 'sound', id: cue };
+      fileInput.accept = 'audio/*';
+      fileInput.value = '';
+      fileInput.click();
+    }));
+    row.appendChild(btn('恢复', function () {
+      if (!work.sounds[cue]) { showMsg((CUE_CN[cue] || cue) + '：已是合成音效'); return; }
+      delete work.sounds[cue];
+      badge.textContent = cue;
+      badge.className = '';
+      emit();
+    }));
+    return row;
+  }
+
+  function volRow(key) {
+    var row = el('div', 'dfcp-frow');
+    var lab = el('div', 'dfcp-flabel', VOL_CN[key]);
+    row.appendChild(lab);
+    var range = document.createElement('input');
+    range.className = 'dfcp-slider';
+    range.type = 'range';
+    range.min = '0'; range.max = '1'; range.step = '0.05';
+    range.value = String(work.vols[key]);
+    var val = el('span', 'dfcp-val', Number(work.vols[key]).toFixed(2));
+    range.addEventListener('input', function () {
+      work.vols[key] = parseFloat(range.value);
+      val.textContent = Number(range.value).toFixed(2);
+      emit();
+    });
+    row.appendChild(range);
+    row.appendChild(val);
+    return row;
+  }
+
+  function renderSoundPane(pane) {
+    pane.textContent = '';
+    pane.appendChild(el('div', 'dfcp-note',
+      '为音效 cue 上传自定义音频（wav/mp3/ogg），恢复后回到程序化合成。'));
+
+    var det = el('details', 'dfcp-sec');
+    det.open = true;
+    det.appendChild(el('summary', null, '音效清单（' + cueList().length + ' 个）'));
+    cueList().forEach(function (cue) { det.appendChild(cueRow(cue)); });
+    pane.appendChild(det);
+
+    var volSec = el('details', 'dfcp-sec');
+    volSec.open = true;
+    volSec.appendChild(el('summary', null, '音量与开关'));
+    ['master', 'bgm', 'sfx'].forEach(function (k) { volSec.appendChild(volRow(k)); });
+
+    var sndRow = el('div', 'dfcp-frow');
+    sndRow.appendChild(el('div', 'dfcp-flabel', '声音开关'));
+    var chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.className = 'dfcp-chk';
+    chk.checked = !!work.sound;
+    chk.addEventListener('change', function () { work.sound = chk.checked; emit(); });
+    sndRow.appendChild(chk);
+    volSec.appendChild(sndRow);
+    pane.appendChild(volSec);
+  }
+
+  /* ------------------------------ 玩法页 ------------------------------ */
+  function numField(attrs, get, set) {
+    var input = document.createElement('input');
+    input.className = 'dfcp-num';
+    input.type = 'number';
+    input.inputMode = 'decimal';
+    Object.keys(attrs).forEach(function (k) { input.setAttribute(k, attrs[k]); });
+    input.value = String(get());
+    input.addEventListener('change', function () {
+      var v = parseFloat(input.value);
+      if (isNaN(v)) { input.value = String(get()); showMsg('请输入有效数字'); return; }
+      if (attrs.min != null) v = Math.max(parseFloat(attrs.min), v);
+      if (attrs.max != null) v = Math.min(parseFloat(attrs.max), v);
+      set(v);
+      input.value = String(v);
+      emit();
+    });
+    return input;
+  }
+  function fieldRow(label, hint, control) {
+    var row = el('div', 'dfcp-frow');
+    var lab = el('div', 'dfcp-flabel', label);
+    if (hint) lab.appendChild(el('small', null, hint));
+    row.appendChild(lab);
+    row.appendChild(control);
+    return row;
+  }
+  function checkRow(label, get, set) {
+    var row = el('div', 'dfcp-frow');
+    row.appendChild(el('div', 'dfcp-flabel', label));
+    var chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.className = 'dfcp-chk';
+    chk.checked = !!get();
+    chk.addEventListener('change', function () { set(chk.checked); emit(); });
+    row.appendChild(chk);
+    return row;
+  }
+  function arrRow(label, cells) {
+    // cells: [{sub, attrs, get, set}]
+    var arr = el('div', 'dfcp-arr');
+    cells.forEach(function (c) {
+      var cell = el('div', 'dfcp-cell');
+      if (c.sub) cell.appendChild(el('i', null, c.sub));
+      cell.appendChild(numField(c.attrs, c.get, c.set));
+      arr.appendChild(cell);
+    });
+    return fieldRow(label, null, arr);
+  }
+
+  function renderPlayPane(pane) {
+    pane.textContent = '';
+    var sec = el('details', 'dfcp-sec');
+    sec.open = true;
+    sec.appendChild(el('summary', null, '积分与押注'));
+    sec.appendChild(fieldRow('初始积分', null,
+      numField({ min: '0', step: '100' }, function () { return work.startCredits; },
+        function (v) { work.startCredits = v; })));
+    sec.appendChild(arrRow('押注档位', work.betTiers.map(function (_, i) {
+      return {
+        sub: '档' + (i + 1),
+        attrs: { min: '1', step: '1' },
+        get: function () { return work.betTiers[i]; },
+        set: function (v) { work.betTiers[i] = v; }
+      };
+    })));
+    pane.appendChild(sec);
+
+    var rail = el('details', 'dfcp-sec');
+    rail.open = true;
+    rail.appendChild(el('summary', null, '奖池轨道需求'));
+    var railCells = [
+      { key: 'mini', cn: '小奖' }, { key: 'minor', cn: '中奖' },
+      { key: 'major', cn: '大奖' }, { key: 'grand', cn: '巨奖' }
+    ].map(function (r) {
+      return {
+        sub: r.cn,
+        attrs: { min: '1', step: '1' },
+        get: function () { return work.railNeed[r.key]; },
+        set: function (v) { work.railNeed[r.key] = v; }
+      };
+    });
+    rail.appendChild(arrRow('轨道需求', railCells));
+    pane.appendChild(rail);
+
+    var fs = el('details', 'dfcp-sec');
+    fs.open = true;
+    fs.appendChild(el('summary', null, '免费局'));
+    fs.appendChild(fieldRow('免费局次数', null,
+      numField({ min: '3', max: '50', step: '1' }, function () { return work.freeSpins; },
+        function (v) { work.freeSpins = v; })));
+    fs.appendChild(fieldRow('追加次数', '再触发 3+ 金锣时追加',
+      numField({ min: '0', max: '50', step: '1' }, function () { return work.freeRetrigger; },
+        function (v) { work.freeRetrigger = v; })));
+    pane.appendChild(fs);
+
+    var win = el('details', 'dfcp-sec');
+    win.open = true;
+    win.appendChild(el('summary', null, '赔付与大奖'));
+    var tierArr = el('div', 'dfcp-arr');
+    [['大奖 ≥', 0], ['超级大奖 ≥', 1]].forEach(function (p) {
+      var cell = el('div', 'dfcp-cell');
+      cell.appendChild(el('i', null, p[0]));
+      cell.appendChild(numField({ min: '1', step: '1' },
+        function () { return work.bigWinTiers[p[1]]; },
+        function (v) { work.bigWinTiers[p[1]] = v; }));
+      tierArr.appendChild(cell);
+    });
+    win.appendChild(fieldRow('大奖倍率阈值', '本轮赢分 ÷ 押注', tierArr));
+
+    var srow = el('div', 'dfcp-frow');
+    srow.appendChild(el('div', 'dfcp-flabel', '中奖倍率 winScale'));
+    var srange = document.createElement('input');
+    srange.className = 'dfcp-slider';
+    srange.type = 'range';
+    srange.min = '0.5'; srange.max = '2'; srange.step = '0.05';
+    srange.value = String(work.winScale);
+    var sval = el('span', 'dfcp-val', '×' + Number(work.winScale).toFixed(2));
+    srange.addEventListener('input', function () {
+      work.winScale = parseFloat(srange.value);
+      sval.textContent = '×' + Number(srange.value).toFixed(2);
+      emit();
+    });
+    srow.appendChild(srange);
+    srow.appendChild(sval);
+    win.appendChild(srow);
+
+    win.appendChild(fieldRow('每路赔付除数', '越小赢越大',
+      numField({ min: '1', step: '1' }, function () { return work.payDivisor; },
+        function (v) { work.payDivisor = v; })));
+    win.appendChild(checkRow('大奖自动停', function () { return work.autoStopBigWin; },
+      function (v) { work.autoStopBigWin = v; }));
+    win.appendChild(checkRow('快速旋转', function () { return work.turbo; },
+      function (v) { work.turbo = v; }));
+    pane.appendChild(win);
+  }
+
+  /* ------------------------------ 数据页 ------------------------------ */
+  function renderDataPane(pane) {
+    pane.textContent = '';
+    var wrap = el('div', 'dfcp-data');
+
+    wrap.appendChild(el('p', null, '导出当前全部配置（含自定义图标/音效的 dataURL）为 JSON 文件；导入会覆盖当前配置并立即生效。'));
+
+    var exp = btn('导出配置 JSON', function () {
+      try {
+        var blob = new Blob([JSON.stringify(snap(), null, 2)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'df777-config.json';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 3000);
+        showMsg('已导出 df777-config.json');
+      } catch (e) { showMsg('导出失败：' + e.message); }
+    }, 'gold wide');
+    wrap.appendChild(exp);
+
+    var imp = btn('导入配置 JSON', function () {
+      pending = { type: 'cfgjson' };
+      fileInput.accept = '.json,application/json';
+      fileInput.value = '';
+      fileInput.click();
+    }, 'wide');
+    wrap.appendChild(imp);
+
+    var rst = btn('一键恢复出厂', function () {
+      if (!resetArmed) {
+        resetArmed = true;
+        rst.textContent = '再点一次确认恢复出厂';
+        rst.classList.add('danger');
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(function () {
+          resetArmed = false;
+          if (rst.isConnected) { rst.textContent = '一键恢复出厂'; rst.classList.remove('danger'); }
+        }, 3000);
+        return;
+      }
+      resetArmed = false;
+      clearTimeout(resetTimer);
+      var base = fallbackCfg();
+      try { if (DF.LOGIC && typeof DF.LOGIC.defaultCfg === 'function') base = DF.LOGIC.defaultCfg(); } catch (e) { /* 忽略 */ }
+      base = normalize(base);
+      base.icons = {};
+      base.sounds = {};
+      base.vols = deep(work.vols);   // 保留音量听感设置
+      base.sound = !!work.sound;
+      work = base;
+      emit();
+      setTab(curTab);               // 重绘当前页（切页时其余页会重绘）
+      showMsg('已恢复出厂设置（保留音量）');
+    }, 'danger wide');
+    wrap.appendChild(rst);
+
+    wrap.appendChild(el('p', null, '提示：积分、奖池等运行时进度存于游戏存档，此处仅管理配置。'));
+    pane.appendChild(wrap);
+  }
+
+  /* ------------------------------ 文件选择分发 ------------------------------ */
+  function onFilePicked() {
+    var f = fileInput.files && fileInput.files[0];
+    var req = pending;
+    pending = null;
+    fileInput.value = '';
+    if (!f || !req) return;
+
+    if (req.type === 'icon') {
+      readImageToDataURL(f, 128, 'image/png', 0.92, function (dataURL) {
+        if (!dataURL) { showMsg('图片读取失败'); return; }
+        work.icons[req.id] = dataURL;
+        emit();
+        setTab('icons');  // 重绘以刷新该行预览
+        showMsg('图标已更新：' + (ICON_DEFS.filter(function (d) { return d.id === req.id; })[0] || {}).name);
+      });
+    } else if (req.type === 'sound') {
+      readFileAs(f, 'url', function (dataURL) {
+        if (!dataURL) { showMsg('音频读取失败'); return; }
+        work.sounds[req.id] = dataURL;
+        emit();
+        setTab('sound');
+        showMsg('音效已更新：' + (CUE_CN[req.id] || req.id));
+      });
+    } else if (req.type === 'cfgjson') {
+      readFileAs(f, 'text', function (text) {
+        var obj;
+        try { obj = JSON.parse(text); } catch (e) { showMsg('JSON 解析失败'); return; }
+        if (!obj || typeof obj !== 'object' || Array.isArray(obj)) { showMsg('配置格式不正确'); return; }
+        work = normalize(deepMerge(work, obj));
+        emit();
+        setTab(curTab);
+        showMsg('配置已导入并生效');
+      });
+    }
+  }
+
+  /* ------------------------------ 对外 API ------------------------------ */
+  function tabKey(t) {
+    if (t == null) return null;
+    return TAB_ALIAS[t] || (TABS.some(function (x) { return x.key === t; }) ? t : null);
+  }
+  function mount(containerEl) {
+    var host = containerEl || document.body;
+    if (container === host && rootEl && rootEl.isConnected) return;
+    if (rootEl && rootEl.isConnected && rootEl.parentNode) rootEl.parentNode.removeChild(rootEl);
+    if (styleEl && styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
+    container = host;
+    buildSkeleton();
+    if (visible) { rootEl.hidden = false; rootEl.classList.add('open'); setTab(curTab); }
+  }
+  function open(tab) {
+    if (!rootEl || !rootEl.isConnected) mount(document.body);
+    work = normalize(deep((typeof DF !== 'undefined' && DF.cfg) ? DF.cfg : fallbackCfg()));
+    var k = tabKey(tab);
+    visible = true;
+    rootEl.hidden = false;
+    void rootEl.offsetWidth;   // 强制回流，保证抽屉滑入过渡生效
+    rootEl.classList.add('open');
+    setTab(k || curTab || 'icons');
+  }
+  function close() {
+    if (!rootEl) return;
+    visible = false;
+    rootEl.classList.remove('open');
+    setTimeout(function () { if (!visible && rootEl) rootEl.hidden = true; }, 300);
+  }
+  function isOpen() { return !!visible; }
+  function onChange(cb) {
+    if (typeof cb !== 'function') return function () {};
+    cbs.push(cb);
+    return function () {
+      var i = cbs.indexOf(cb);
+      if (i >= 0) cbs.splice(i, 1);
+    };
+  }
+
+  return { mount: mount, open: open, close: close, isOpen: isOpen, onChange: onChange };
+})();
+
+</script>
+<script>
+/* ===== src/reels.js ===== */
+/* 多福巨奖 777 — 滚轮动画引擎：DOM 回收格 + rAF 虚拟滚动 + 落轮回弹 */
+window.DF = window.DF || {};
+DF.REELS = (function () {
+  'use strict';
+
+  var CELL_N = 7;               // 每轮格数：1 上过冲 + 3 可见 + 3 下余量
+  var reelEls = [], stripEls = [], cellEls = [], imgEls = [];
+  var H = 100;                  // 单格高 px，layout() 实测
+  var resolveSrc = function () { return ''; }; // rawId -> 图片 dataURL
+  var raf = 0;
+  var reels = [];               // 运行时状态
+  var mod = function (a, n) { return ((a % n) + n) % n; };
+
+  function makeReel(c) {
+    var reel = document.createElement('div');
+    reel.className = 'reel';
+    var strip = document.createElement('div');
+    strip.className = 'strip';
+    var cells = [], imgs = [];
+    for (var k = 0; k < CELL_N; k++) {
+      var cell = document.createElement('div');
+      cell.className = 'cell';
+      var img = document.createElement('img');
+      img.draggable = false;
+      cell.appendChild(img);
+      strip.appendChild(cell);
+      cells.push(cell); imgs.push(img);
+    }
+    reel.appendChild(strip);
+    return { reel: reel, strip: strip, cells: cells, imgs: imgs };
+  }
+
+  function mount(container, cfg) {
+    container.innerHTML = '';
+    reelEls = []; stripEls = []; cellEls = []; imgEls = []; reels = [];
+    for (var c = 0; c < 5; c++) {
+      var m = makeReel(c);
+      container.appendChild(m.reel);
+      reelEls.push(m.reel); stripEls.push(m.strip);
+      cellEls.push(m.cells); imgEls.push(m.imgs);
+      reels.push({ pos: 0, v: 0, phase: 'idle', view: null, S: 0, t0: 0 });
+    }
+    layout();
+    window.addEventListener('resize', layout);
+    window.addEventListener('load', layout);
+    if (window.ResizeObserver) new ResizeObserver(layout).observe(container);
+    // 字体/图片就绪后再量一次，并连测两帧防止布局抖动
+    requestAnimationFrame(function () { requestAnimationFrame(layout); });
+    setTimeout(layout, 300);
+    setTimeout(layout, 900);
+  }
+
+  function layout() {
+    for (var c = 0; c < 5; c++) {
+      var h = reelEls[c].clientHeight;
+      if (h > 0) H = h / 3;
+      var w = reelEls[c].clientWidth;
+      for (var k = 0; k < CELL_N; k++) {
+        cellEls[c][k].style.height = H + 'px';
+      }
+      stripEls[c].style.height = (H * CELL_N) + 'px';
+      reelEls[c].style.setProperty('--cw', w + 'px');
+      reelEls[c].style.setProperty('--rowH', H + 'px');
+    }
+    renderAll();
+  }
+
+  // 视图数组：label 与滚动都用它
+  function setViews(views, stops) {
+    for (var c = 0; c < 5; c++) {
+      reels[c].view = views[c];
+      reels[c].pos = stops ? stops[c] : Math.floor(Math.random() * views[c].length);
+      reels[c].phase = 'idle';
+      reelEls[c].classList.remove('blur');
+    }
+    renderAll();
+  }
+
+  function renderAll() {
+    for (var c = 0; c < 5; c++) renderReel(c);
+  }
+
+  function renderReel(c) {
+    var r = reels[c];
+    if (!r.view) return;
+    var base = Math.floor(r.pos), f = r.pos - base;
+    stripEls[c].style.transform = 'translate3d(0,' + (-(1 + f) * H).toFixed(2) + 'px,0)';
+    var len = r.view.length;
+    for (var k = 0; k < CELL_N; k++) {
+      var raw = r.view[mod(base + k - 1, len)];
+      var img = imgEls[c][k];
+      var gold = raw.charAt(0) === 'g';
+      var src = resolveSrc(raw);
+      if (img.dataset.raw !== raw || img.dataset.src !== src) {
+        img.src = src; img.dataset.raw = raw; img.dataset.src = src;
+      }
+      cellEls[c][k].classList.toggle('gold', gold && src === img.dataset.src);
+    }
+  }
+
+  /* ---------- 旋转 ---------- */
+  // spinTo(stops, views, opts) -> Promise(allSettled)
+  // opts: {turbo, startDelay, stagger, onReelStop(c), forceStopSignal:{stop:false}}
+  function spinTo(stops, views, opts) {
+    opts = opts || {};
+    var turbo = !!opts.turbo;
+    var VMAX = turbo ? 52 : 26;              // 格/秒
+    var ACC = turbo ? 0.09 : 0.13;           // 加速段秒
+    var STAG = turbo ? 55 : 170;             // 逐轮停间隔 ms
+    var BASE = turbo ? 260 : 620;            // 首轮最短旋转 ms
+    var OVERSHOOT = turbo ? 0.35 : 0.6;      // 过冲格数
+    var startAt = performance.now() + (opts.startDelay || 0);
+    var promises = [];
+    var now0 = performance.now();
+
+    for (var c = 0; c < 5; c++) {
+      (function (c) {
+        var r = reels[c];
+        r.view = views[c];
+        r.S = mod(stops[c], views[c].length);
+        // 总行程：至少两圈 + 逐轮递增，保证节奏
+        var extra = (turbo ? 1 : 2) * views[c].length + c * 3 + 6;
+        r.pos = r.S + extra;
+        r.phase = 'wait';
+        r.v = 0;
+        r.t0 = startAt + (opts.startDelay ? 0 : 0);
+        r.stopAt = startAt + BASE + c * STAG;
+        r.decelDur = turbo ? 240 : 480;
+        r.overshoot = OVERSHOOT;
+        reelEls[c].classList.add('blur');
+        promises.push(new Promise(function (res) { r.resolve = res; }));
+      })(c);
+    }
+
+    var tPrev = performance.now();
+    var iv = 0;
+    function frame(t) {
+      try {
+      var dt = Math.min(0.25, (t - tPrev) / 1000);
+      tPrev = t;
+      var allDone = true;
+      for (var c = 0; c < 5; c++) {
+        var r = reels[c];
+        if (r.phase === 'done') continue;
+        allDone = false;
+        if (dt <= 0) continue;
+        if (r.phase === 'wait') {
+          if (t >= r.t0) { r.phase = 'acc'; r.tp = t; }
+          continue;
+        }
+        if (r.phase === 'acc') {
+          var k = Math.min(1, (t - r.tp) / (ACC * 1000));
+          r.v = VMAX * (k * k);
+          r.pos -= r.v * dt;
+          if (k >= 1) { r.phase = 'cruise'; }
+        } else if (r.phase === 'cruise') {
+          var slam = opts.forceStopSignal && opts.forceStopSignal.stop && t > now0 + 350;
+          if (t >= r.stopAt || slam) {
+            r.phase = 'decel';
+            r.tp = t;
+            // 减速目标：落点 + 过冲（沿运动方向再往前）
+            var target = r.S - r.overshoot;      // pos 减小方向，过冲 = 更小
+            // 保证减速距离 ≥ 当前速度 * 一点半径
+            var minDist = r.v * (r.decelDur / 1000) * 0.5;
+            while (r.pos - target < minDist) target -= r.view.length;
+            r.from = r.pos;
+            r.to = target;
+          } else {
+            r.pos -= r.v * dt;
+          }
+        }
+        if (r.phase === 'decel') {
+          var k2 = Math.min(1, (t - r.tp) / r.decelDur);
+          var e = 1 - Math.pow(1 - k2, 3);       // easeOutCubic
+          r.pos = r.from + (r.to - r.from) * e;
+          if (k2 >= 1) {
+            r.phase = 'bounce';
+            r.tp = t;
+            r.from = r.to;
+            r.to = r.S;
+          }
+        } else if (r.phase === 'bounce') {
+          var k3 = Math.min(1, (t - r.tp) / 200);
+          var eb = Math.sin(k3 * Math.PI / 2);   // easeOutSine 回弹
+          r.pos = r.from + (r.to - r.from) * eb;
+          if (k3 >= 1) {
+            r.pos = r.S;
+            r.phase = 'done';
+            reelEls[c].classList.remove('blur');
+            renderReel(c);
+            if (opts.onReelStop) opts.onReelStop(c);
+            if (r.resolve) { r.resolve(); r.resolve = null; }
+            continue;
+          }
+        }
+        renderReel(c);
+      }
+      if (allDone) { clearInterval(iv); return; }
+      raf = requestAnimationFrame(frame);
+      } catch (e) {
+        console.error('reel frame error', e);
+        raf = requestAnimationFrame(frame);
+      }
+    }
+    // rAF + 定时器双驱动：页面被遮挡 rAF 节流/暂停时仍能走完（后台降速但不停）
+    tPrev = performance.now();
+    raf = requestAnimationFrame(frame);
+    iv = setInterval(function () { frame(performance.now()); }, 120);
+    return Promise.all(promises);
+  }
+
+  // 立即停（用户拍停）
+  function slamStop() {
+    if (!slamStop.signal) slamStop.signal = { stop: false };
+    slamStop.signal.stop = true;
+  }
+  function resetSlam() { slamStop.signal = { stop: false }; }
+
+  /* ---------- 高亮 ---------- */
+  function cellAt(c, r) { return cellEls[c][r + 1]; }  // 落定后 f=0，行 r → k=r+1
+  function highlight(cells, on) {
+    cells.forEach(function (p) {
+      var el = cellAt(p.c, p.r);
+      if (el) el.classList.toggle('hit', !!on);
+    });
+  }
+  function clearHighlight() {
+    for (var c = 0; c < 5; c++) for (var k = 0; k < CELL_N; k++) cellEls[c][k].classList.remove('hit');
+  }
+
+  return {
+    mount: mount, layout: layout, setViews: setViews,
+    spinTo: spinTo, slamStop: slamStop, resetSlam: resetSlam,
+    highlight: highlight, clearHighlight: clearHighlight,
+    setResolver: function (fn) { resolveSrc = fn; renderAll(); },
+    cellAt: cellAt
+  };
+})();
+
+</script>
+<script>
+/* ===== src/game.js ===== */
+/* 多福巨奖 777 — 主线：状态机 / 持久化 / 押注 / 自动 / 免费局 / 选奖 / 演出 / 接线 */
+window.DF = window.DF || {};
+DF.GAME = (function () {
+  'use strict';
+
+  var L = DF.LOGIC, A = DF.AUDIO, R = DF.REELS;
+  var noop = function () {};
+  var NOOP_FX = new Proxy({ spark: noop, coinRain: noop, bigText: noop, coinBurst: noop,
+    confetti: noop, flash: noop, ring: noop, stopAll: noop, init: noop,
+    sparkCells: noop, sparkAtReel: noop }, {
+    get: function (t, k) { return k in t ? t[k] : noop; }
+  });
+  function F() { return DF.FX || NOOP_FX; }   // 惰性解析（fx.js 后置装载，缺省空实现）
+  var $ = function (id) { return document.getElementById(id); };
+  var STATE_KEY = 'df777_state_v1', CFG_KEY = 'df777_config_v1';
+  var QS = new URLSearchParams(location.search);
+
+  /* ---------- 配置与状态 ---------- */
+  function deepMerge(base, ext) {
+    if (ext === null || ext === undefined) return base;
+    if (Array.isArray(ext)) return ext.slice();
+    if (typeof ext !== 'object') return ext;
+    var out = (typeof base === 'object' && base !== null && !Array.isArray(base)) ? Object.assign({}, base) : {};
+    Object.keys(ext).forEach(function (k) { out[k] = deepMerge(out[k], ext[k]); });
+    return out;
+  }
+  // ?reset=1 必须在读取任何存储前生效
+  if (new URLSearchParams(location.search).get('reset') === '1') {
+    try { localStorage.removeItem(STATE_KEY); localStorage.removeItem(CFG_KEY); } catch (e) {}
+  }
+  var cfg = L.defaultCfg();
+  try {
+    var savedCfg = JSON.parse(localStorage.getItem(CFG_KEY) || 'null');
+    if (savedCfg) cfg = deepMerge(cfg, savedCfg);
+  } catch (e) {}
+
+  var S = null;
+  function freshState() {
+    var pots = {};
+    L.POT_ORDER.forEach(function (p) { pots[p] = cfg.jackpots[p].seed; });
+    return {
+      v: 1, credits: cfg.startCredits, jackpots: pots,
+      rails: { mini: 0, minor: 0, major: 0, grand: 0 },
+      betIdx: Math.min(2, cfg.betTiers.length - 1),
+      stats: { spins: 0, bet: 0, win: 0, maxWin: 0, picks: 0, fs: 0 },
+      ts: Date.now(), stripSeed: (Math.random() * 1e9) | 0
+    };
+  }
+  function loadState() {
+    try {
+      var d = JSON.parse(localStorage.getItem(STATE_KEY) || 'null');
+      if (d && d.v === 1) {
+        d.rails = deepMerge({ mini: 0, minor: 0, major: 0, grand: 0 }, d.rails);
+        L.POT_ORDER.forEach(function (p) {
+          d.jackpots[p] = Math.max(cfg.jackpots[p].seed, +d.jackpots[p] || cfg.jackpots[p].seed);
+        });
+        d.stats = deepMerge({ spins: 0, bet: 0, win: 0, maxWin: 0, picks: 0, fs: 0 }, d.stats);
+        return d;
+      }
+    } catch (e) {}
+    return null;
+  }
+  function saveState() {
+    if (!S) return;
+    S.ts = Date.now();
+    try { localStorage.setItem(STATE_KEY, JSON.stringify(S)); } catch (e) {}
+  }
+  function saveCfg() {
+    try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {}
+  }
+
+  // 离线奖池漂移：每小时 +seed×0.02%，封顶 +5%
+  function offlineDrift() {
+    if (!S) return;
+    var hrs = Math.max(0, (Date.now() - (S.ts || Date.now())) / 36e5);
+    if (hrs < 0.02) return;
+    L.POT_ORDER.forEach(function (p) {
+      var add = Math.min(hrs * cfg.jackpots[p].seed * 0.0002, cfg.jackpots[p].seed * 0.05);
+      S.jackpots[p] += add;
+    });
+  }
+
+  /* ---------- 工具 ---------- */
+  function fmt(n) {
+    return '$' + (typeof n === 'number' ? n : 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  var r2 = function (v) { return Math.round(v * 100) / 100; };
+  var delay = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  var toastTimer = 0;
+  function toast(msg, ms) {
+    var el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, ms || 2200);
+  }
+  function countUp(el, from, to, dur, tick) {
+    return new Promise(function (res) {
+      var t0 = performance.now(), done = false;
+      el._skip = function () { done = true; };
+      (function step(t) {
+        var k = done ? 1 : Math.min(1, (t - t0) / dur);
+        var v = from + (to - from) * (1 - Math.pow(1 - k, 2));
+        v = to >= from ? Math.max(from, Math.min(to, v)) : Math.min(from, Math.max(to, v));
+        el.textContent = fmt(v);
+        if (k < 1) requestAnimationFrame(step); else res();
+      })(t0);
+      if (tick) {
+        var iv = setInterval(function () {
+          if (done) { clearInterval(iv); return; }
+          A.play('countTick', { rate: 1 + Math.random() * 0.3 });
+        }, 90);
+        setTimeout(function () { clearInterval(iv); }, dur + 150);
+      }
+    });
+  }
+  function skippable(ms) {
+    return new Promise(function (res) {
+      var t = setTimeout(done, ms);
+      function done() { clearTimeout(t); document.removeEventListener('pointerdown', done); res(); }
+      document.addEventListener('pointerdown', done);
+    });
+  }
+
+  /* ---------- 全局句柄 ---------- */
+  var strips = [], viewBase = [], viewFS = [];
+  var busy = false;            // 演出/旋转/选奖进行中
+  var fsLeft = 0, fsWinAcc = 0, fsActive = false;
+  var autoLeft = 0;            // 0=关；Infinity=∞
+  var lastWin = 0;
+  var rig = QS.get('rig') || '';
+
+  function buildStrips() {
+    strips = L.makeStrips(cfg, S.stripSeed || 20260911);
+    rebuildViews();
+  }
+  function rebuildViews() {
+    viewBase = []; viewFS = [];
+    for (var c = 0; c < 5; c++) {
+      viewBase.push(L.stripView(strips[c], false, cfg));
+      viewFS.push(L.stripView(strips[c], true, cfg));
+    }
+  }
+  function viewsFor(fs) { return fs ? viewFS : viewBase; }
+
+  /* ---------- UI 刷新 ---------- */
+  function updateBar() {
+    $('creditVal').textContent = fmt(S.credits);
+    $('betVal').textContent = fmt(bet());
+    $('winVal').textContent = fmt(lastWin);
+  }
+  function bet() { return cfg.betTiers[S.betIdx]; }
+  function tier() { return S.betIdx + 1; }
+
+  function updatePots(bump) {
+    L.POT_ORDER.forEach(function (p) {
+      var el = $('pot-' + p);
+      el.querySelector('.pot-val').textContent = fmt(S.jackpots[p]);
+      var rail = el.querySelector('.pot-rail');
+      var need = cfg.railNeed[p];
+      if (need <= 20) {
+        if (!rail.classList.contains('dots')) { rail.className = 'pot-rail dots'; }
+        if (rail.childElementCount !== need) {
+          rail.innerHTML = '';
+          for (var i = 0; i < need; i++) rail.appendChild(document.createElement('i'));
+        }
+        var dots = rail.children;
+        for (var j = 0; j < need; j++) dots[j].classList.toggle('on', j < S.rails[p]);
+      } else {
+        if (!rail.classList.contains('bar')) { rail.className = 'pot-rail bar'; rail.innerHTML = '<i></i>'; }
+        rail.firstChild.style.width = Math.min(100, S.rails[p] / need * 100).toFixed(1) + '%';
+      }
+      el.classList.toggle('full', S.rails[p] >= need);
+      if (bump === p || (Array.isArray(bump) && bump.indexOf(p) >= 0)) {
+        el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+      }
+    });
+  }
+  function updateDots() {
+    var d = $('betDots');
+    if (d.childElementCount !== cfg.betTiers.length) {
+      d.innerHTML = '';
+      cfg.betTiers.forEach(function () { d.appendChild(document.createElement('i')); });
+    }
+    for (var i = 0; i < d.children.length; i++) d.children[i].classList.toggle('on', i <= S.betIdx);
+  }
+  function updateButtons() {
+    var idle = !busy;
+    $('btnBetDown').disabled = !idle || fsActive || S.betIdx === 0;
+    $('btnBetUp').disabled = !idle || fsActive || S.betIdx >= cfg.betTiers.length - 1;
+    $('btnAuto').classList.toggle('on', autoLeft > 0);
+    $('btnAuto').querySelector('small').textContent =
+      autoLeft === Infinity ? '自动∞' : autoLeft > 0 ? '剩' + autoLeft : '自动';
+    $('btnTurbo').classList.toggle('on', !!cfg.turbo);
+    $('btnSpin').disabled = false;
+    $('spinLabel').textContent = busy && phaseSpin ? '停止' : (fsActive ? '免费' : '旋转');
+    $('btnSound').style.opacity = cfg.sound ? 1 : 0.45;
+    $('btnSound').firstChild.textContent = cfg.sound ? '🔊' : '🔇';
+  }
+  var phaseSpin = false;   // 正在滚轮旋转（用于旋转/停止按钮语义）
+  function updateFreeBanner() {
+    var b = $('freeBanner');
+    b.hidden = !fsActive;
+    if (fsActive) {
+      $('fsLeft').textContent = fsLeft;
+      $('fsWin').textContent = fmt(fsWinAcc);
+    }
+  }
+
+  /* ---------- 图标解析（默认 SVG + 用户覆盖） ---------- */
+  function resolveSrc(raw) {
+    var ov = cfg.icons && cfg.icons[raw];
+    if (ov) return ov;
+    if (raw === 'coin') return DF.ART.coin();
+    if (raw.indexOf('g_') === 0) return DF.ART.gold(raw.slice(2));
+    if (raw === 'gong') return DF.ART.symbol('gong');
+    return DF.ART.symbol(raw);
+  }
+
+  /* ---------- 旋转核心 ---------- */
+  var pendingPicks = [];   // 待选奖的已满轨道 [{pot}]
+  var rigQueue = null;     // rig 覆盖的 stops
+
+  function findStop(view, want, row) {
+    for (var i = 0; i < view.length; i++) {
+      if (view[(i + row) % view.length] === want) return i;
+    }
+    return null;
+  }
+  // 测试演出：构造必中 stops
+  function applyRig(fs, spinResult) {
+    if (!rig) return spinResult;
+    var views = viewsFor(fs), stops = spinResult.stops.slice();
+    var ok = true;
+    function set(sym, row, reels) {
+      reels.forEach(function (c) {
+        var i = findStop(views[c], sym, row);
+        if (i === null) ok = false; else stops[c] = i;
+      });
+    }
+    if (rig === 'win') { set('ingot', 1, [0, 1, 2]); }
+    else if (rig === 'bigwin') { set('ingot', 1, [0, 1, 2, 3, 4]); }
+    else if (rig === 'fs') { set('gong', 0, [0, 2, 4]); }
+    else if (rig === 'gold') { set('g_frog', 1, [0, 2]); }
+    if (ok && rig !== 'fs') { /* fs 也走 stops */ }
+    rigQueue = null;
+    if (ok) { spinResult.stops = stops; spinResult.rigged = rig; }
+    rig = '';  // 一次性
+    return spinResult;
+  }
+
+  function spinRound(fs) {
+    return new Promise(function (resolve) {
+      if (S.credits < bet() && !fs) { toast('余额不足，请补币'); A.play('error'); resolve(false); return; }
+      busy = true; phaseSpin = true; lastWin = 0;
+      if (!fs) {
+        S.credits = r2(S.credits - bet());
+        S.stats.bet = r2(S.stats.bet + bet());
+        S.stats.spins++;
+        L.POT_ORDER.forEach(function (p) { S.jackpots[p] = r2(S.jackpots[p] + bet() * cfg.jackpots[p].grow); });
+      } else {
+        fsLeft--;
+      }
+      updateBar(); updatePots(); updateFreeBanner(); updateButtons();
+      $('winVal').textContent = fmt(0);
+      R.clearHighlight();
+      $('reelMsg').classList.remove('show');
+
+      A.play('spinStart');
+      A.startLoop('reelSpin');
+      R.resetSlam();
+
+      var res = L.spinOnce(strips, { fs: !!fs, tier: tier(), cfg: cfg, rng: Math.random });
+      if (rig) res = applyRig(!!fs, res);
+      var stops = res.stops;
+
+      R.spinTo(stops, viewsFor(!!fs), {
+        turbo: !!cfg.turbo,
+        forceStopSignal: R.slamStop.signal,
+        onReelStop: function (c) {
+          try {
+          A.play('reelStop');
+          // 金身落桌提示
+          var view = viewsFor(!!fs)[c];
+          var tierN = tier();
+          for (var r = 0; r < 3; r++) {
+            var raw = view[(stops[c] + r) % view.length];
+            var pot = L.GOLD_POT[L.GOLD_OF[raw] || ''];
+            if (raw.indexOf('g_') === 0 && pot && (fs || tierN >= L.POT_TIER[pot])) {
+              A.play('goldLand');
+              F().sparkAtReel(c, r);
+              break;
+            }
+          }
+          } catch (e) { console.warn('onReelStop', e); }
+        }
+      }).then(function () {
+        A.stopLoop('reelSpin');
+        A.play('allStop');
+        phaseSpin = false;
+        updateButtons();
+        var grid = L.gridFromStops(strips, stops, { fs: !!fs, tier: tier(), cfg: cfg });
+        resolve({ stops: stops, grid: grid, fs: !!fs });
+      });
+    });
+  }
+
+  /* ---------- 结算与演出 ---------- */
+  function settle(round) {
+    return new Promise(function (resolve) {
+      var fs = round.fs, grid = round.grid;
+      var ev = L.evalGrid(grid, bet(), cfg, tier(), fs);
+      var gh = L.goldHits(grid);
+      var bumped = [];
+      for (var p in gh) {
+        if (gh[p]) {
+          S.rails[p] = Math.min(cfg.railNeed[p], S.rails[p] + gh[p]);
+          bumped.push(p);
+          A.play('railFill');
+          if (S.rails[p] >= cfg.railNeed[p]) pendingPicks.push(p);
+        }
+      }
+      if (bumped.length) updatePots(bumped);
+
+      var win = r2(ev.win + ev.scatterPay);
+      var winParts = [];
+
+      // 免费局触发/追加
+      var fsTriggered = false;
+      if (ev.scatterCount >= 3 && !fs) { fsTriggered = true; }
+      if (ev.scatterCount >= 3 && fs) { fsLeft += cfg.freeRetrigger; toast('🎉 再中 ' + cfg.freeRetrigger + ' 次免费局！'); A.play('freeTrigger'); updateFreeBanner(); }
+
+      (function present() {
+        var chain = Promise.resolve();
+        if (win > 0) {
+          lastWin = win;
+          $('winVal').textContent = fmt(win);
+          var x = win / bet();
+          var bigLevel = x >= cfg.bigWinTiers[1] ? 2 : x >= cfg.bigWinTiers[0] ? 1 : 0;
+          chain = chain.then(function () {
+            if (bigLevel > 0) {
+              A.duck(bigLevel === 2 ? 3600 : 2400);
+              A.play(bigLevel === 2 ? 'winBig' : 'winMid');
+              F().coinRain(bigLevel === 2 ? 46 : 26);
+              F().bigText(bigLevel === 2 ? '超级大奖!' : '大奖!', { color: '#ffd257' });
+              $('bigWinLabel').textContent = bigLevel === 2 ? '超 级 大 奖' : '大 奖';
+              $('bigWinOverlay').hidden = false;
+              return countUp($('bigWinAmt'), 0, win, bigLevel === 2 ? 2600 : 1700, true).then(function () {
+                return skippable(bigLevel === 2 ? 1500 : 1100);
+              }).then(function () { $('bigWinOverlay').hidden = true; });
+            }
+            A.play('winSmall');
+            return countUp($('winVal'), 0, win, Math.min(1600, 350 + win / bet() * 60), true);
+          });
+          // 逐路展示（去重最多 10 条）
+          var seen = {}, ways = [];
+          ev.ways.forEach(function (w) {
+            var k = w.s + 'x' + w.n;
+            if (!seen[k]) { seen[k] = 1; ways.push(w); }
+          });
+          ways = ways.slice(0, 10);
+          ways.forEach(function (w) {
+            chain = chain.then(function () {
+              R.highlight(w.cells, true);
+              var cn = { ingot: '元宝碗', dragon: '金龙', turtle: '金龟', frog: '金蟾', koi: '金鱼' }[w.s] || w.s;
+              var msg = $('reelMsg');
+              msg.textContent = cn + ' ×' + w.n + '  ' + fmt(w.amt);
+              msg.classList.add('show');
+              A.play('wayWin');
+              F().sparkCells(w.cells);
+              return skippable(cfg.turbo ? 380 : 750).then(function () {
+                R.highlight(w.cells, false);
+                msg.classList.remove('show');
+              });
+            });
+          });
+        }
+        if (fsTriggered) {
+          chain = chain.then(function () {
+            A.duck(2600);
+            A.play('freeTrigger');
+            F().bigText('免费局!', { color: '#ffe9b0', sub: cfg.freeSpins + ' 次' });
+            fsActive = true; fsLeft = cfg.freeSpins; fsWinAcc = 0;
+            S.stats.fs++;
+            updateFreeBanner();
+            return delay(1400);
+          });
+        }
+        chain.then(function () { resolve({ win: win, ev: ev }); });
+      })();
+    });
+  }
+
+  /* ---------- 选奖（官方口径：12 金币，结果预定，翻币是演出） ---------- */
+  function runPick() {
+    return new Promise(function (resolve) {
+      var won = L.pickWon(cfg, Math.random);            // 命运已定
+      var coins = L.pickPlan(cfg, won, Math.random);    // 12 币布局：中奖池×4 + 其余各×2 + 福×2
+      var cnt = { mini: 0, minor: 0, major: 0, grand: 0 };
+      var gotEl = $('pickGot'), gridEl = $('pickGrid');
+      gotEl.innerHTML = '';
+      ['mini', 'minor', 'major', 'grand'].forEach(function (p) {
+        var sp = document.createElement('span');
+        sp.id = 'pickGot-' + p;
+        sp.textContent = L.POT_CN[p] + ' 0/3';
+        gotEl.appendChild(sp);
+      });
+      gridEl.innerHTML = '';
+      var coinEls = coins.map(function (pot) {
+        var b = document.createElement('button');
+        b.className = 'pcoin ' + pot;
+        var faceName = pot === 'fu' ? '福' : L.POT_CN[pot];
+        var faceEn = pot === 'fu' ? 'FU' : pot.toUpperCase();
+        b.innerHTML = '<span class="back"><img src="' + DF.ART.coin() + '" style="width:100%;height:100%"></span>' +
+          '<span class="face"><span class="pf-name">' + faceName + '</span><span class="pf-val">' + faceEn + '</span></span>';
+        b._pot = pot; b._open = false;
+        gridEl.appendChild(b);
+        return b;
+      });
+      $('pickTitle').textContent = '福 娃 选 奖';
+      $('pickSub').textContent = '翻开金币 · 集齐 3 枚相同奖名即中该奖池';
+      $('pickBonus').hidden = false;
+      A.duck(4000);
+      A.play('freeTrigger');
+
+      var wonPot = null, idleT = 0, done = false;
+      function reveal(b, byUser) {
+        if (b._open || done) return;
+        b._open = true;
+        b.classList.add('open');
+        A.play('pickReveal');
+        if (cnt[b._pot] !== undefined) {
+          cnt[b._pot]++;
+          var g = $('pickGot-' + b._pot);
+          g.textContent = L.POT_CN[b._pot] + ' ' + Math.min(cnt[b._pot], 3) + '/3';
+          g.classList.add('live');
+          if (cnt[b._pot] >= 3 && !wonPot) {
+            wonPot = b._pot;
+            b.classList.add('win');
+            finish();
+            return;
+          }
+        }
+        if (byUser) {
+          var r = b.getBoundingClientRect();
+          F().spark(r.left + r.width / 2, r.top + r.height / 2, '#ffd257', 10);
+        }
+      }
+      function finish() {
+        done = true;
+        clearTimeout(idleT);
+        coinEls.forEach(function (b, i) {
+          setTimeout(function () {
+            if (!b._open) { b._open = true; b.classList.add('open'); }
+            b.classList.add('done');
+          }, 300 + i * 80);
+        });
+        setTimeout(function () {
+          A.play('pickMatch');
+          var amt = S.jackpots[wonPot];
+          showJackpotWin(wonPot, amt).then(function () {
+            S.credits = r2(S.credits + amt);
+            S.stats.win = r2(S.stats.win + amt);
+            S.stats.picks++;
+            S.jackpots[wonPot] = cfg.jackpots[wonPot].seed;
+            // 清零中奖池轨道 + 本批已满轨道
+            L.POT_ORDER.forEach(function (p) {
+              if (p === wonPot || S.rails[p] >= cfg.railNeed[p]) S.rails[p] = 0;
+            });
+            pendingPicks = [];
+            updateBar(); updatePots();
+            $('pickBonus').hidden = true;
+            saveState();
+            resolve(wonPot);
+          });
+        }, 300 + coins.length * 80 + 300);
+      }
+      gridEl.addEventListener('click', function (e) {
+        var b = e.target.closest('.pcoin');
+        if (!b || b._open || done) return;
+        A.play('button');
+        reveal(b, true);
+      });
+      // 20s 无操作自动翻
+      (function armIdle() {
+        clearTimeout(idleT);
+        idleT = setTimeout(function () {
+          var rest = coinEls.filter(function (b) { return !b._open && !done; });
+          if (rest.length) { reveal(rest[(Math.random() * rest.length) | 0], false); armIdle(); }
+        }, 20000);
+      })();
+    });
+  }
+
+  function showJackpotWin(pot, amt) {
+    return new Promise(function (res) {
+      A.play('jackpot');
+      F().coinRain(60);
+      F().bigText(L.POT_CN[pot] + '!', { color: '#ffe08a' });
+      $('bigWinLabel').textContent = L.POT_CN[pot];
+      $('bigWinOverlay').hidden = false;
+      countUp($('bigWinAmt'), 0, amt, 2400, true).then(function () {
+        return skippable(1600);
+      }).then(function () {
+        $('bigWinOverlay').hidden = true;
+        res();
+      });
+    });
+  }
+
+  /* ---------- 回合编排 ---------- */
+  async function playRound(fs) {
+    var round = await spinRound(fs);
+    if (!round) return false;                       // 余额不足
+    var out = await settle(round);
+    var win = out.win;
+
+    if (fs) {
+      fsWinAcc = r2(fsWinAcc + win);
+      S.stats.win = r2(S.stats.win + win);
+      S.credits = r2(S.credits + win);
+      S.stats.maxWin = Math.max(S.stats.maxWin, win);
+      updateBar(); updateFreeBanner();
+    } else {
+      lastWin = win;
+      S.stats.win = r2(S.stats.win + win);
+      S.credits = r2(S.credits + win);
+      S.stats.maxWin = Math.max(S.stats.maxWin, win);
+      updateBar();
+    }
+
+    // 免费局循环
+    if (fsActive) {
+      if (fsLeft > 0) {
+        saveState();
+        await delay(cfg.turbo ? 350 : 800);
+        return playRound(true);
+      }
+      // 免费局结束
+      fsActive = false;
+      updateFreeBanner();
+      A.play('winMid');
+      F().bigText('免费局结束', { color: '#ffe9b0', sub: '共赢 ' + fmt(fsWinAcc) });
+      await delay(1600);
+    }
+
+    // 选奖（轨道满）
+    while (pendingPicks.length) {
+      var p = pendingPicks[0];
+      await runPick();
+      await delay(500);
+    }
+
+    // 大奖自动停
+    if (autoLeft > 0 && cfg.autoStopBigWin && win >= bet() * cfg.bigWinTiers[0]) {
+      autoLeft = 0;
+      toast('已按设置停止自动');
+    }
+
+    saveState();
+    busy = false;
+    updateButtons(); updateBar();
+    return true;
+  }
+
+  function autoNext() {
+    if (autoLeft <= 0) return;
+    if (S.credits < bet()) { autoLeft = 0; toast('余额不足，自动停止'); updateButtons(); return; }
+    if (autoLeft !== Infinity) autoLeft--;
+    updateButtons();
+    setTimeout(function () { if (!busy && autoLeft >= 0) playRound(false).then(function (ok) { if (ok) autoNext(); }); },
+      cfg.turbo ? 350 : 750);
+  }
+
+  function startSpin() {
+    if (busy) {
+      if (phaseSpin) { R.slamStop(); }
+      return;
+    }
+    if (fsActive) return;
+    A.unlock();
+    playRound(false);
+  }
+
+  /* ---------- 菜单 / 赔付表 / 统计 ---------- */
+  function renderStats() {
+    var g = $('statGrid');
+    var st = S.stats;
+    var rtp = st.bet > 0 ? (st.win / st.bet * 100).toFixed(1) + '%' : '—';
+    g.innerHTML =
+      '<div class="st"><label>余额</label><b>' + fmt(S.credits) + '</b></div>' +
+      '<div class="st"><label>总旋转</label><b>' + st.spins + '</b></div>' +
+      '<div class="st"><label>总押注</label><b>' + fmt(st.bet) + '</b></div>' +
+      '<div class="st"><label>总赢分</label><b>' + fmt(st.win) + '</b></div>' +
+      '<div class="st"><label>最大单赢</label><b>' + fmt(st.maxWin) + '</b></div>' +
+      '<div class="st"><label>实际回报</label><b>' + rtp + '</b></div>' +
+      '<div class="st"><label>选奖次数</label><b>' + st.picks + '</b></div>' +
+      '<div class="st"><label>免费局触发</label><b>' + st.fs + '</b></div>';
+  }
+
+  var SYM_CN = { ingot: '元宝碗', dragon: '金龙', turtle: '金龟', frog: '金蟾', koi: '金鱼', gong: '金锣', wild: '福WILD', A: 'A', K: 'K', Q: 'Q', J: 'J', '10': '10' };
+  function renderPaytable() {
+    var b = $('paytableBody');
+    var rows = L.PREM.concat(L.LOW).map(function (s) {
+      var p = L.PAYS[s], img = resolveSrc(s);
+      return '<tr><td><img src="' + img + '"> ' + SYM_CN[s] + '</td><td>' + p[3] + '</td><td>' + p[4] + '</td><td>' + p[5] + '</td></tr>';
+    }).join('');
+    var goldRows = L.PREM.filter(function (s) { return L.GOLD_POT[s]; }).map(function (s) {
+      var p = L.GOLD_POT[s];
+      return '<tr class="gold-row"><td><img src="' + resolveSrc('g_' + s) + '"> 金' + SYM_CN[s] + '</td><td colspan="3">填充「' + L.POT_CN[p] + '」轨道 ' +
+        cfg.railNeed[p] + ' 格 → 福娃选奖</td></tr>';
+    }).join('');
+    b.innerHTML =
+      '<table class="pay-table"><tr><th>符号（每路赢分 = 赔付 × 押注 ÷ ' + cfg.payDivisor + '）</th><th>3连</th><th>4连</th><th>5连</th></tr>' + rows + '</table>' +
+      '<table class="pay-table" style="margin-top:10px"><tr><th>金身符号（押注档位解锁）</th><th colspan="3">奖池轨道</th></tr>' + goldRows + '</table>' +
+      '<div class="rules">' +
+      '<h3>243 路</h3>5 轮 3 行全 ways 玩法：符号从<b>最左轮</b>起在相邻轮出现即连成路，任意行位组合各算一路。' +
+      '<h3>福 WILD</h3><img src="' + resolveSrc('wild') + '" style="width:22px;vertical-align:middle"> 福字万能符只出现在 <b>2/3/4 轮</b>，替代除金锣外任意符号，帮你连成更多路。' +
+      '<h3>押注档与金身</h3>押注 5 档（' + cfg.betTiers.join('/') + '）：档1 开金蟾、档2 +金鱼、档3 +金龟、档4 +金元宝、档5 全开且所有中奖 <b>×' + cfg.tier5Boost + '</b>。金身落桌为其奖池轨道 +1。' +
+      '<h3>四大奖池 · 福娃选奖</h3>任一轨道填满 → 进入选奖：<b>12 枚金币</b>盖置翻牌，集齐 3 枚相同奖名即中该奖池（多福巨奖 <b>' + fmt(S.jackpots.grand) + '</b> 起）。中奖池回落到起点，其余轨道保留。' +
+      '<h3>免费局</h3>任意位置 <b>3 个金锣</b> → ' + cfg.freeSpins + ' 次免费局（按触发押注计）；免费局剔除 ' + cfg.fsRemove.join('/') + ' 低符、金身按押注档开启；再中 3 锣 +' + cfg.freeRetrigger + ' 次。' +
+      '<h3>大奖演出</h3>单轮赢分 ≥ <b>' + cfg.bigWinTiers[0] + '×</b> 押注中大奖，≥ <b>' + cfg.bigWinTiers[1] + '×</b> 中超级大奖。' +
+      '</div>';
+    var sideRows = L.PREM.concat(['gong']).slice(0, 6).map(function (s) {
+      var p = L.PAYS[s] || { 3: '—', 4: '—', 5: '—' };
+      return '<div class="ps-row"><img src="' + resolveSrc(s) + '">' + SYM_CN[s] +
+        '<span class="ps-pays">' + p[3] + '/' + p[4] + '/' + p[5] + '</span></div>';
+    }).join('');
+    $('paySide').innerHTML = sideRows;
+    $('paySideL').innerHTML = sideRows;
+  }
+
+  /* ---------- 押注 / 自动 / 加速 ---------- */
+  function changeBet(d) {
+    if (busy || fsActive) { toast('旋转中不能改押注'); A.play('error'); return; }
+    var ni = S.betIdx + d;
+    if (ni < 0 || ni >= cfg.betTiers.length) { A.play('error'); return; }
+    S.betIdx = ni;
+    A.play(d > 0 ? 'betUp' : 'betDown');
+    updateBar(); updateDots(); updateButtons(); renderPaytable(); saveState();
+  }
+  function setAuto(n) {
+    if (n > 0 && S.credits < bet()) { toast('余额不足，请先补币'); A.play('error'); return; }
+    autoLeft = n;
+    $('autoModal').hidden = true;
+    updateButtons();
+    if (autoLeft > 0 && !busy && !fsActive) {
+      if (autoLeft !== Infinity) autoLeft--;
+      playRound(false).then(function (ok) { if (ok) autoNext(); });
+    }
+  }
+
+  /* ---------- 弹层 ---------- */
+  function openModal(id) { $(id).hidden = false; A.play('button'); }
+  document.addEventListener('click', function (e) {
+    var x = e.target.closest('[data-close]');
+    if (x) { $(x.dataset.close).hidden = true; A.play('button'); }
+  });
+
+  function buildAutoList() {
+    var list = $('autoList');
+    list.innerHTML = '';
+    [10, 25, 50, 100, Infinity, 0].forEach(function (n) {
+      var b = document.createElement('button');
+      b.className = 'mitem';
+      b.innerHTML = n === 0 ? '<span class="ic">⏹</span>停止自动' :
+        '<span class="ic">⟳</span>自动 ' + (n === Infinity ? '∞（直到手动停）' : n + ' 次');
+      b.addEventListener('click', function () { setAuto(n); });
+      list.appendChild(b);
+    });
+    $('autoNote').innerHTML = '自动旋转中遇到<b>免费局/选奖</b>会先演完再停；大奖自动停可在「游戏配置 → 玩法」关闭。';
+  }
+
+  /* ---------- 配置面板回调 ---------- */
+  function applyAudioCfg() {
+    A.setMasterVolume(cfg.sound ? cfg.vols.master : 0);
+    A.setBGMVolume(cfg.vols.bgm);
+    A.setSFXVolume(cfg.vols.sfx);
+    A.applyOverrides(cfg.sounds || {});
+  }
+  function onCfgChange(newCfg) {
+    cfg = deepMerge(L.defaultCfg(), newCfg);
+    saveCfg();
+    applyAudioCfg();
+    R.setResolver(resolveSrc);
+    if (S.betIdx >= cfg.betTiers.length) S.betIdx = cfg.betTiers.length - 1;
+    buildStrips();
+    var fs = fsActive;
+    if (!busy) R.setViews(viewsFor(fs), null);
+    updateBar(); updateDots(); updatePots(); updateButtons(); renderPaytable(); renderStats();
+    toast('配置已生效');
+  }
+
+  /* ---------- 事件绑定 ---------- */
+  function bindEvents() {
+    $('btnSpin').addEventListener('click', startSpin);
+    $('btnBetDown').addEventListener('click', function () { A.unlock(); changeBet(-1); });
+    $('btnBetUp').addEventListener('click', function () { A.unlock(); changeBet(1); });
+    $('btnTurbo').addEventListener('click', function () {
+      cfg.turbo = !cfg.turbo; A.play('button'); updateButtons(); saveCfg();
+    });
+    $('btnAuto').addEventListener('click', function () {
+      A.unlock(); A.play('button');
+      if (autoLeft > 0) { setAuto(0); } else { openModal('autoModal'); }
+    });
+    $('btnSound').addEventListener('click', function () {
+      cfg.sound = !cfg.sound; applyAudioCfg(); updateButtons(); saveCfg();
+      if (cfg.sound) { A.unlock(); A.startLoop('bgm'); toast('声音开'); } else toast('声音关');
+    });
+    $('btnMenu').addEventListener('click', function () { renderStats(); openModal('menuModal'); });
+    $('miPaytable').addEventListener('click', function () { renderPaytable(); openModal('paytableModal'); });
+    $('miConfig').addEventListener('click', function () {
+      $('menuModal').hidden = true;
+      DF.CONFIG_PANEL.open();
+    });
+    $('miRefill').addEventListener('click', function () {
+      S.credits = r2(S.credits + 10000);
+      A.play('refill'); F().coinRain(18);
+      updateBar(); renderStats(); saveState();
+      toast('已补充 10,000，玩得开心！');
+    });
+    $('miResetRun').addEventListener('click', function () {
+      localStorage.removeItem(STATE_KEY);
+      localStorage.removeItem(CFG_KEY);
+      location.replace(location.pathname + '?fresh=' + Date.now());
+    });
+    $('autoModal').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
+    $('bigWinOverlay').addEventListener('click', function () { this.hidden = true; });
+    $('bigWinOverlay').addEventListener('pointerdown', function () {
+      var el = $('bigWinAmt'); if (el._skip) el._skip();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.code === 'Space') { e.preventDefault(); startSpin(); }
+      else if (e.code === 'ArrowUp') changeBet(1);
+      else if (e.code === 'ArrowDown') changeBet(-1);
+    });
+
+    // 首次手势：解锁音频 + BGM
+    var once = function () {
+      A.unlock();
+      if (cfg.sound) A.startLoop('bgm');
+      document.removeEventListener('pointerdown', once);
+      document.removeEventListener('keydown', once);
+    };
+    document.addEventListener('pointerdown', once);
+    document.addEventListener('keydown', once);
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) saveState();
+    });
+    window.addEventListener('beforeunload', saveState);
+    window.addEventListener('pagehide', saveState);
+  }
+
+  /* ---------- 侧赔付表 / 顶屏 ---------- */
+  function buildTop() {
+    $('logoBox').innerHTML = '<img src="' + DF.ART.logo() + '" alt="多福巨奖" style="width:100%;height:100%">';
+    $('mainScreen').insertAdjacentHTML('afterbegin',
+      '<img id="mainBg" src="' + DF.ART.bgMain() + '" alt="">');
+    $('topScreen').insertAdjacentHTML('afterbegin',
+      '<img id="topBg" src="' + DF.ART.bgTop() + '" alt="">');
+  }
+
+  /* ---------- 测试钩子 ---------- */
+  function exposeTestHooks() {
+    window.__df = {
+      version: '1.0',
+      get state() { return S; },
+      get cfg() { return cfg; },
+      get fs() { return { active: fsActive, left: fsLeft, acc: fsWinAcc }; },
+      get busy() { return busy; },
+      get pendingPicks() { return pendingPicks.slice(); },
+      grid: function () {
+        // 当前落定网格
+        var out = [];
+        for (var c = 0; c < 5; c++) {
+          var col = [];
+          for (var r = 0; r < 3; r++) {
+            var cell = R.cellAt(c, r);
+            col.push(cell ? (cell.querySelector('img').dataset.raw || '?') : '?');
+          }
+          out.push(col);
+        }
+        return out;
+      },
+      spin: function () { startSpin(); },
+      rig: function (name) { rig = name; },
+      setCredits: function (v) { S.credits = r2(v); updateBar(); saveState(); },
+      fillRail: function (pot, n) {
+        S.rails[pot] = n == null ? cfg.railNeed[pot] : n;
+        if (S.rails[pot] >= cfg.railNeed[pot] && pendingPicks.indexOf(pot) < 0) pendingPicks.push(pot);
+        updatePots();
+      },
+      setAuto: setAuto, save: saveState,
+      fmt: fmt
+    };
+  }
+
+  /* ---------- 启动 ---------- */
+  function boot() {
+    S = loadState() || freshState();
+    offlineDrift();
+
+    buildTop();
+    R.mount($('reelBox'));
+    R.setResolver(resolveSrc);
+    buildStrips();
+    R.setViews(viewBase, null);
+    layoutTopRails();
+
+    if (DF.FX && DF.FX.init) {
+      DF.FX.init($('fxLayer'));
+      DF.FX.sparkCells = function (cells) {
+      cells.forEach(function (p) {
+        var el = R.cellAt(p.c, p.r);
+        if (!el) return;
+        var b = el.getBoundingClientRect();
+        F().spark(b.left + b.width / 2, b.top + b.height / 2, '#ffd257', 8);
+      });
+    };
+      DF.FX.sparkAtReel = function (c, r) { DF.FX.sparkCells([{ c: c, r: r }]); };
+    }
+    applyAudioCfg();
+    if (QS.get('muted') === '1') { cfg.sound = false; applyAudioCfg(); }
+
+    if (DF.CONFIG_PANEL) {
+      DF.CONFIG_PANEL.mount($('configMount'));
+      DF.CONFIG_PANEL.onChange(onCfgChange);
+    }
+
+    updateBar(); updateDots(); updatePots(); updateButtons(); updateFreeBanner();
+    renderPaytable(); buildAutoList(); renderStats();
+    bindEvents();
+    exposeTestHooks();
+
+    if (QS.get('bet')) {
+      var idx = cfg.betTiers.indexOf(+QS.get('bet'));
+      if (idx >= 0) { S.betIdx = idx; updateBar(); updateDots(); }
+    }
+    if (QS.get('auto')) setAuto(+QS.get('auto') || 0);
+
+    setTimeout(function () {
+      if (!localStorage.getItem(STATE_KEY)) toast('欢迎光临！已赠送 ' + fmt(S.credits) + ' 开始游戏');
+      else toast('已恢复上次进度');
+    }, 400);
+  }
+
+  function layoutTopRails() { updatePots(); }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+
+  return { boot: boot };
+})();
+
+</script>
+
+</body>
+</html>

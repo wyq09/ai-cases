@@ -6,9 +6,13 @@ AI 辅助产出的案例集合 —— 方案 · 演示 · 视觉作品。
 
 ## Cases
 
+- [duofu-777](./duofu-777/) — 多福巨奖 · 澳门赌场 243 路老虎机复刻：四大递增奖池、福娃选奖、免费局、福 WILD 与金身押注档，WebAudio 合成 21 种音效、全 SVG 程序化资产、图标音效玩法全开放配置、积分刷新不丢（[在线游玩](https://case.youyongai.com/duofu-777/)）
+
 - [xiangan-airport-film](./xiangan-airport-film/) — 向海而翔 · 厦门翔安国际机场：45 秒 Blender 三维与实景宣传片，1080p、24fps、原创配乐（[在线播放](https://case.youyongai.com/xiangan-airport-film/)）
 
 - [hecheng-haowu](./hecheng-haowu/) — 合成好物 · 微信小游戏 1:1 复刻：拖拽合成升级、配送员生成商品、X5 一键合成，任务得体力与补分签到全闭环，44 个手绘 SVG 图标（[在线游玩](https://case.youyongai.com/hecheng-haowu/)）
+
+- [skynomad-n90](./skynomad-n90/) — SKYNOMAD N90 · 3D 全场景配置器：Blender 程序化建模 SUV，实时切换天气/季节/环境/车漆/时刻，模型压缩至 102 KB，移动端可用（[在线预览](https://case.youyongai.com/skynomad-n90/)）
 
 - [tibet-wild](./tibet-wild) — 荒原之上 · 藏南秘境 × 藏北无人区 私人自驾远征，23 页横向翻页 PPT（[在线预览](https://case.youyongai.com/tibet-wild/ppt/)）
 - [watch-customizer](./watch-customizer) — ATELIER · 3D 腕表自定义工坊：拖拽旋转、PBR 材质实时预览、背带动画换装、本地时间实时扫秒、复杂功能悬停辉光、摄像头 AR 试戴（[在线预览](https://case.youyongai.com/watch-customizer/)）
