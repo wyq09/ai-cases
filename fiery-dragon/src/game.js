@@ -348,7 +348,7 @@ function actBetAll() {
 /* ---------------- 动作：GO / 跑灯 ---------------- */
 async function actGo() {
   SFX.init();
-  if (S.phase === 'bonusIdle') collectBonus();
+  if (S.phase === 'bonusIdle') { collectBonus(); return; }   // 比倍态 GO=只收分
   if (S.phase !== 'idle') return;
   if (totalBet() === 0) { toast('请先押注（绿色按钮押分）'); SFX.play('glose'); return; }
   S.phase = 'spinning'; syncButtons();
@@ -475,6 +475,8 @@ function adjBonusBet(d) {
   if (S.phase !== 'bonusIdle') return;
   S.bonusBet = clamp(S.bonusBet + d, 0, S.bonus);
   renderCenterLED();
+  // 轮盘中央同步显示当前比倍额（LED 被轮盘遮挡时的可视反馈）
+  $('#wheelTip').innerHTML = `比倍额 <span style="color:#ffd23e">${S.bonusBet}</span><small>← → 调整 · 猜对翻倍 · 7 通杀</small>`;
   SFX.play('bet', {});
 }
 async function actGuess(dir) {
@@ -491,12 +493,12 @@ async function actGuess(dir) {
     S.bonus += S.bonusBet; // 本金保留 + 赢一份
     SFX.play('gwin');
     FX.spark(p.x, p.y - 40, '#ffd23e', 30);
-    $('#wheelTip').innerHTML = `${n <= 6 ? '小' : '大'} ${n} ✓ 翻倍！<small>继续猜 或 GO 收分</small>`;
+    $('#wheelTip').innerHTML = `${n <= 6 ? '小' : '大'} ${n} 中！翻倍<small>继续猜 或 GO 收分</small>`;
   } else {
     S.bonus -= S.bonusBet;
     SFX.play('glose');
     FX.flash('#ff3018', .4);
-    $('#wheelTip').innerHTML = `${n === 7 ? '7 通杀' : (n <= 6 ? '小' : '大') + ' ' + n} ✗ 输了<small>${S.bonus > 0 ? '还可继续' : '下次再来'}</small>`;
+    $('#wheelTip').innerHTML = `${n === 7 ? '7 通杀' : (n <= 6 ? '小' : '大') + ' ' + n} 没中<small>${S.bonus > 0 ? '还可继续' : '下次再来'}</small>`;
   }
   bonusShown = -1; renderBonus();
   $('#wheelTip').style.opacity = '1';

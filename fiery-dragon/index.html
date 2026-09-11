@@ -120,7 +120,7 @@ svg{display:block}
   background:rgba(20,8,4,.72);border:1px solid #caa14e;border-radius:8px;padding:1px 9px;
   color:#ffd23e;font-size:15px;font-weight:700;letter-spacing:1px;font-family:Georgia,serif;white-space:nowrap}
 /* 中央 LED（比倍额） */
-#centerLED{position:absolute;left:50%;top:59%;transform:translateX(-50%);z-index:3;width:128px;height:52px;
+#centerLED{position:absolute;left:50%;top:59%;transform:translateX(-50%);z-index:9;width:128px;height:52px;
   border-radius:8px;background:linear-gradient(180deg,#151008,#0a0703);border:2px solid #241a10;
   box-shadow:inset 0 3px 8px rgba(0,0,0,.9),0 1px 0 rgba(255,220,150,.25);
   display:flex;align-items:center;justify-content:center}
@@ -138,7 +138,7 @@ svg{display:block}
 .wnum.seven{color:#ff6a4d}
 .wnum.lit{background:linear-gradient(180deg,#ffd23e,#e88a10);color:#4a1d02;box-shadow:0 0 22px 4px rgba(255,180,40,.75),inset 0 0 0 2px #fff0c0}
 .wnum.kill{background:linear-gradient(180deg,#7a1410,#3f0806)}
-#wheelTip{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;color:#ffe9b0;font-weight:800;font-size:27px;letter-spacing:2px;text-shadow:0 2px 6px #000;z-index:2;width:220px}
+#wheelTip{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);text-align:center;color:#ffe9b0;font-weight:800;font-size:27px;letter-spacing:2px;text-shadow:0 2px 6px #000;z-index:2;width:240px}
 #wheelTip small{display:block;font-size:15px;color:#d9b98a;margin-top:8px;letter-spacing:1px;font-weight:400}
 
 /* ============ 按钮排 ============ */
@@ -2451,7 +2451,7 @@ function actBetAll() {
 /* ---------------- 动作：GO / 跑灯 ---------------- */
 async function actGo() {
   SFX.init();
-  if (S.phase === 'bonusIdle') collectBonus();
+  if (S.phase === 'bonusIdle') { collectBonus(); return; }   // 比倍态 GO=只收分
   if (S.phase !== 'idle') return;
   if (totalBet() === 0) { toast('请先押注（绿色按钮押分）'); SFX.play('glose'); return; }
   S.phase = 'spinning'; syncButtons();
@@ -2578,6 +2578,8 @@ function adjBonusBet(d) {
   if (S.phase !== 'bonusIdle') return;
   S.bonusBet = clamp(S.bonusBet + d, 0, S.bonus);
   renderCenterLED();
+  // 轮盘中央同步显示当前比倍额（LED 被轮盘遮挡时的可视反馈）
+  $('#wheelTip').innerHTML = `比倍额 <span style="color:#ffd23e">${S.bonusBet}</span><small>← → 调整 · 猜对翻倍 · 7 通杀</small>`;
   SFX.play('bet', {});
 }
 async function actGuess(dir) {
@@ -2594,12 +2596,12 @@ async function actGuess(dir) {
     S.bonus += S.bonusBet; // 本金保留 + 赢一份
     SFX.play('gwin');
     FX.spark(p.x, p.y - 40, '#ffd23e', 30);
-    $('#wheelTip').innerHTML = `${n <= 6 ? '小' : '大'} ${n} ✓ 翻倍！<small>继续猜 或 GO 收分</small>`;
+    $('#wheelTip').innerHTML = `${n <= 6 ? '小' : '大'} ${n} 中！翻倍<small>继续猜 或 GO 收分</small>`;
   } else {
     S.bonus -= S.bonusBet;
     SFX.play('glose');
     FX.flash('#ff3018', .4);
-    $('#wheelTip').innerHTML = `${n === 7 ? '7 通杀' : (n <= 6 ? '小' : '大') + ' ' + n} ✗ 输了<small>${S.bonus > 0 ? '还可继续' : '下次再来'}</small>`;
+    $('#wheelTip').innerHTML = `${n === 7 ? '7 通杀' : (n <= 6 ? '小' : '大') + ' ' + n} 没中<small>${S.bonus > 0 ? '还可继续' : '下次再来'}</small>`;
   }
   bonusShown = -1; renderBonus();
   $('#wheelTip').style.opacity = '1';
