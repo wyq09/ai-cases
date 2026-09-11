@@ -37,6 +37,66 @@ function loadCfg() {
   } catch (e) {}
 }
 
+/* ---------------- 图标自定义（localStorage 存 dataURL，128×128 压缩） ---------------- */
+const ICONS_KEY = 'fd-icons-v1';
+let ICONS = {};
+function loadIcons() {
+  try { ICONS = JSON.parse(localStorage.getItem(ICONS_KEY)) || {}; } catch (e) { ICONS = {}; }
+}
+function saveIcons() {
+  try { localStorage.setItem(ICONS_KEY, JSON.stringify(ICONS)); } catch (e) { toast('存储空间不足，图标未保存'); }
+}
+function compressImage(file, size, cb) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = size;
+    const cx = cv.getContext('2d');
+    const s = Math.max(size / img.width, size / img.height);
+    const w = img.width * s, h = img.height * s;
+    cx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+    URL.revokeObjectURL(url);
+    cb(cv.toDataURL('image/png'));
+  };
+  img.onerror = () => URL.revokeObjectURL(url);
+  img.src = url;
+}
+function applyCustomIcons() {
+  // 灯环格子 + 押注按钮：有自定义图标则替换为 <img>
+  cellEls.forEach((cel, i) => {
+    const sym = CELLS[i][0];
+    if (sym === 'luck') return;
+    const holder = cel.querySelector('.sym') || cel.querySelector('.cellbar');
+    if (!holder) return;
+    if (ICONS[sym]) holder.innerHTML = `<img src="${ICONS[sym]}" style="width:100%;height:100%;object-fit:contain" alt="">`;
+    else {
+      // 恢复默认：按格型重画
+      const [sym2, mult, x3] = CELLS[i];
+      if (sym2 === 'bar') holder.innerHTML = `<span class="b">BAR</span><span class="m">X${mult}</span><span class="b">BAR</span>`;
+      else holder.innerHTML = `${ART.symbol(sym2)}`;
+    }
+  });
+  BET_ORDER.forEach(k => {
+    const b = bbtnEls[k];
+    const holder = b.querySelector('.bsym') || b.querySelector('.bbar');
+    if (!holder) return;
+    if (ICONS[k]) holder.innerHTML = `<img src="${ICONS[k]}" style="width:100%;height:100%;object-fit:contain" alt="">`;
+    else if (k === 'bar') holder.innerHTML = `<span class="bbar"><i>BAR</i><i>BAR</i><i>BAR</i></span>`;
+    else holder.innerHTML = `${ART.symbol(k)}`;
+  });
+}
+function setIcon(sym, file) {
+  compressImage(file, 128, dataUrl => {
+    ICONS[sym] = dataUrl; saveIcons(); applyCustomIcons();
+    SFX.play('bet'); toast('图标已更新');
+  });
+}
+function clearIcon(sym) {
+  delete ICONS[sym]; saveIcons(); applyCustomIcons();
+  SFX.play('press'); toast('已恢复默认图标');
+}
+
 /* ---------------- 状态 ---------------- */
 const S = {
   credit: 0, bonus: 0, bonusBet: 0,
@@ -746,6 +806,16 @@ function showMenu() {
       <button class="mini" data-act="cfgdefault">恢复默认</button>
       <span style="font-size:15px;color:#a8886a">改动即时生效并保存；散花水果押中按押注赔、未押按 1 注保底送分</span>
     </div>
+    <div class="row" style="display:block">
+      <span>图标自定义</span>
+      <div style="color:#c9a86a;font-size:16px;margin-top:4px">点击方块上传图片替换灯环与押注按钮图标（长按恢复默认）</div>
+      <div id="iconGrid" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px"></div>
+    </div>
+    <div class="row" style="display:block">
+      <span>音频自定义</span>
+      <div style="color:#c9a86a;font-size:16px;margin-top:4px">上传 mp3/ogg 替换对应音效（≤800KB，立即生效并保存）</div>
+      <div id="audioGrid" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+    </div>
     <div class="row" style="font-size:16px;color:#a8886a">累计投入 ${S.totalIn} · 累计产出 ${S.totalOut} · 返奖率 ${S.totalIn ? Math.round(S.totalOut / S.totalIn * 100) : 0}%</div>
   </div>`;
   ov.classList.add('show');
@@ -784,7 +854,86 @@ function showMenu() {
       SFX.play('bet');
     };
   });
+  buildIconGrid(ov);
+  buildAudioGrid(ov);
 }
+/* ---------------- 菜单：图标/音频自定义 ---------------- */
+const SYM_LABEL = { apple:'苹果', orange:'橙子', lemon:'柠檬', bell:'铃铛', melon:'西瓜', star:'星星', seven:'77', bar:'BAR' };
+function buildIconGrid(ov) {
+  const grid = ov.querySelector('#iconGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  BET_ORDER.forEach(k => {
+    const cell = document.createElement('div');
+    cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px';
+    const prev = document.createElement('div');
+    prev.style.cssText = `width:64px;height:64px;border-radius:10px;background:#f4ebcd;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;box-shadow:inset 0 0 0 2px #cdbb90`;
+    prev.innerHTML = ICONS[k] ? `<img src="${ICONS[k]}" style="width:100%;height:100%;object-fit:contain">`
+      : (k === 'bar' ? `<div style="font-family:'Arial Black';font-size:11px;font-weight:900;background:#111;color:#fff;padding:2px">BAR</div>` : ART.symbol(k));
+    prev.querySelector('svg') && (prev.querySelector('svg').style.cssText = 'width:80%;height:80%');
+    const lab = document.createElement('span');
+    lab.style.cssText = 'font-size:15px;color:#e8d5a8';
+    lab.textContent = (ICONS[k] ? '● ' : '') + SYM_LABEL[k];
+    // 点击上传
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*'; inp.style.display = 'none';
+    inp.onchange = () => { if (inp.files[0]) setIcon(k, inp.files[0]); buildIconGrid(ov); };
+    prev.onclick = () => inp.click();
+    // 长按恢复默认
+    let lpTimer = null;
+    prev.addEventListener('pointerdown', () => {
+      lpTimer = setTimeout(() => { lpTimer = 'fired'; clearIcon(k); buildIconGrid(ov); }, 700);
+    });
+    ['pointerup', 'pointerleave'].forEach(ev => prev.addEventListener(ev, () => { if (lpTimer && lpTimer !== 'fired') clearTimeout(lpTimer); lpTimer = null; }));
+    cell.appendChild(prev); cell.appendChild(lab); cell.appendChild(inp);
+    grid.appendChild(cell);
+  });
+}
+const AUDIO_SLOTS = [
+  ['bgm', '背景音乐'], ['win0', '小奖音'], ['win1', '中奖音'], ['win2', '大奖音'],
+  ['win3', '头奖音'], ['gwin', '比倍中'], ['glose', '比倍输'], ['insert', '收分音']
+];
+function buildAudioGrid(ov) {
+  const grid = ov.querySelector('#audioGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  AUDIO_SLOTS.forEach(([name, label]) => {
+    const has = SFX.hasCustomAudio(name);
+    const b = document.createElement('button');
+    b.className = 'mini';
+    b.style.cssText = 'font-size:17px;padding:8px 12px;margin:2px';
+    b.textContent = (has ? '● ' : '') + label + (has ? '(自定义)' : '');
+    b.onclick = () => {
+      const inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = 'audio/*';
+      inp.onchange = () => {
+        const file = inp.files[0];
+        if (!file) return;
+        if (file.size > 800 * 1024) { toast('文件过大（限 800KB）'); return; }
+        const fr = new FileReader();
+        fr.onload = () => {
+          if (SFX.setCustomAudio(name, fr.result)) {
+            toast(label + ' 已替换');
+            if (name === 'bgm' && S.bgmOn) { SFX.stopBGM(); SFX.startBGM(); }
+            buildAudioGrid(ov);
+          } else toast('保存失败（存储空间不足）');
+        };
+        fr.readAsDataURL(file);
+      };
+      inp.click();
+    };
+    // 右键/长按清除 → 简化：已自定义的再次点击前先询问？直接加清除小按钮
+    const cell = document.createElement('div');
+    cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;margin:2px';
+    const clr = document.createElement('span');
+    clr.style.cssText = 'font-size:13px;color:#a8886a;cursor:pointer;text-align:center';
+    clr.textContent = has ? '恢复默认' : ' ';
+    clr.onclick = () => { if (has) { SFX.clearCustomAudio(name); toast(label + ' 已恢复默认'); buildAudioGrid(ov); } };
+    cell.appendChild(b); cell.appendChild(clr);
+    grid.appendChild(cell);
+  });
+}
+
 function showInfo() {
   const ov = $('#overlay');
   const rows = BET_ORDER.map(k => `<tr><td>${SYM_NAME[k]}</td><td>${MULT[k]} 倍</td></tr>`).join('');
@@ -853,6 +1002,7 @@ function boot() {
   // URL 调试参数
   const q = new URLSearchParams(location.search);
   loadCfg();
+  loadIcons();
   if (q.get('reset') === '1') { try { localStorage.removeItem('fd-save-v1'); } catch (e) {} }
   if (q.get('cell')) S.forcedCell = +q.get('cell');
   if (q.get('rig')) S.rig = q.get('rig');
@@ -865,6 +1015,7 @@ function boot() {
     if (sv && !sv.getAttribute('preserveAspectRatio')) sv.setAttribute('preserveAspectRatio', 'xMidYMid slice');
   }
   buildRing(); buildPaytable(); buildBetLeds(); buildBetBtns(); buildWheel(); buildTicker(); buildBulbs();
+  applyCustomIcons();
 
   // LED
   ledBonus = new Led7($('#ledBonus'), 8, { scale: 0.78 });
@@ -908,7 +1059,7 @@ function boot() {
   resize();
 
   syncButtons(); startAttract();
-  window.__fd = { S, LocalServer, forceCell: c => S.forcedCell = c }; // 调试钩子
+  window.__fd = { S, LocalServer, CFG: () => CFG, setIcon, clearIcon, forceCell: c => S.forcedCell = c }; // 调试钩子
 }
 
 document.addEventListener('DOMContentLoaded', boot);

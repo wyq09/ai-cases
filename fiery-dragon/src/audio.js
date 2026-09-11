@@ -67,6 +67,7 @@ window.SFX = (() => {
       master.connect(conv); conv.connect(wet); wet.connect(comp); // 湿声并行
       resume();
       preloadSamples();                                      // 预载本地采样
+      loadCustomAudio();                                     // 载入用户自定义音频
     } catch (e) {
       ctx = null; master = null; comp = null; conv = null; wet = null;
     }
@@ -364,10 +365,11 @@ window.SFX = (() => {
   function startBGM() {
     init();
     if (bgmSrc || (bgm && bgm.timer)) return;
-    if (ctx && bgmBuffer) {                  // 本地循环优先
+    var buf = bgmCustomBuffer || bgmBuffer;  // 自定义 BGM 优先
+    if (ctx && buf) {
       try {
         bgmSrc = ctx.createBufferSource();
-        bgmSrc.buffer = bgmBuffer;
+        bgmSrc.buffer = buf;
         bgmSrc.loop = true;
         var g = ctx.createGain();
         g.gain.value = 0.55;
@@ -395,7 +397,9 @@ window.SFX = (() => {
     go:     'assets/sfx/sfx_1933.mp3'    // Arcade slot machine wheel（开局）
   };
   var buffers = {};        // name → AudioBuffer（预加载）
+  var customBuf = {};      // name → AudioBuffer（用户自定义采样，最高优先级）
   var bgmBuffer = null;
+  var bgmCustomBuffer = null;
   var bgmSrc = null;
 
   function decode(url, cb) {
@@ -403,6 +407,10 @@ window.SFX = (() => {
     fetch(url).then(function (r) { return r.ok ? r.arrayBuffer() : Promise.reject(r.status); })
       .then(function (ab) { ctx.decodeAudioData(ab, function (buf) { cb(buf); }, function () {}); })
       .catch(function () {});
+  }
+  function decodeAB(ab, cb) {
+    if (!ctx) return;
+    try { ctx.decodeAudioData(ab, function (buf) { cb(buf); }, function () {}); } catch (e) {}
   }
   function preloadSamples() {
     if (!ctx) return;
@@ -413,9 +421,56 @@ window.SFX = (() => {
     if (!bgmBuffer) {
       decode('assets/bgm/bgm_loop.mp3', function (buf) {
         bgmBuffer = buf;
-        if (bgmPending) { bgmPending = false; startBGM(); }
+        if (bgmPending && !bgmCustomBuffer) { bgmPending = false; startBGM(); }
       });
     }
+  }
+
+  /* ---- 用户自定义音频（localStorage dataURL，最高优先级） ---- */
+  var CUSTOM_KEY = 'fd-audio-v1';
+  function loadCustomAudio() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(CUSTOM_KEY) || '{}');
+      Object.keys(saved).forEach(function (name) {
+        if (name === 'bgm') {
+          fetch(saved[name]).then(function (r) { return r.arrayBuffer(); })
+            .then(function (ab) { decodeAB(ab, function (buf) { bgmCustomBuffer = buf; if (bgmPending) { bgmPending = false; startBGM(); } }); })
+            .catch(function () {});
+        } else {
+          fetch(saved[name]).then(function (r) { return r.arrayBuffer(); })
+            .then(function (ab) { decodeAB(ab, function (buf) { customBuf[name] = buf; }); })
+            .catch(function () {});
+        }
+      });
+    } catch (e) {}
+  }
+  function setCustomAudio(name, dataUrl) {
+    try {
+      var saved = JSON.parse(localStorage.getItem(CUSTOM_KEY) || '{}');
+      saved[name] = dataUrl;
+      localStorage.setItem(CUSTOM_KEY, JSON.stringify(saved));
+    } catch (e) { return false; }
+    if (!ctx) init();
+    fetch(dataUrl).then(function (r) { return r.arrayBuffer(); })
+      .then(function (ab) {
+        decodeAB(ab, function (buf) {
+          if (name === 'bgm') { bgmCustomBuffer = buf; if (bgmSrc) { stopBGM(); startBGM(); } }
+          else customBuf[name] = buf;
+        });
+      }).catch(function () {});
+    return true;
+  }
+  function clearCustomAudio(name) {
+    try {
+      var saved = JSON.parse(localStorage.getItem(CUSTOM_KEY) || '{}');
+      delete saved[name];
+      localStorage.setItem(CUSTOM_KEY, JSON.stringify(saved));
+    } catch (e) {}
+    if (name === 'bgm') { bgmCustomBuffer = null; if (bgmSrc) { stopBGM(); startBGM(); } }
+    else delete customBuf[name];
+  }
+  function hasCustomAudio(name) {
+    try { return !!JSON.parse(localStorage.getItem(CUSTOM_KEY) || '{}')[name]; } catch (e) { return false; }
   }
 
   function playBuffer(buf, vol) {
@@ -436,7 +491,11 @@ window.SFX = (() => {
     init();
     if (!ctx) return null;
     if (name === 'gspin') return startGspin(opts);
-    // 真实采样优先（tick/gspin/allin/bet/luck/press 等高频/风格化音保持合成）
+    // 用户自定义采样 > 本地文件采样 > 合成（tick 等高频/风格化音保持合成）
+    if (name !== 'tick' && customBuf[name]) {
+      playBuffer(customBuf[name], name === 'win3' || name === 'win2' ? 0.95 : 0.88);
+      return null;
+    }
     if (buffers[name] && name !== 'tick') {
       playBuffer(buffers[name], name === 'win3' || name === 'win2' ? 0.95 : 0.85);
       return null;
@@ -472,6 +531,9 @@ window.SFX = (() => {
     toggleMuted: function () { setMuted(!muted); return muted; },
     isMuted: function () { return muted; },
     startBGM: startBGM,
-    stopBGM: stopBGM
+    stopBGM: stopBGM,
+    setCustomAudio: setCustomAudio,
+    clearCustomAudio: clearCustomAudio,
+    hasCustomAudio: hasCustomAudio
   };
 })();
