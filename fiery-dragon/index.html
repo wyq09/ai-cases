@@ -2534,7 +2534,7 @@ async function onLightStop(cell) {
     FX.spark(p.x, p.y, '#7ad7ff', 26);
     // 按配置概率触发天女散花；免费局中再中 LUCK 必触发（防无限循环）
     const doScatter = S.freeSpin || (Math.random() * 100 < CFG.luckChance);
-    FX.bigText('LUCK!', { color: '#7ad7ff', sub: doScatter ? '天女散花！' : '送免费一局', dur: 1500 });
+    FX.bigText('LUCK!', { color: '#7ad7ff', sub: doScatter ? '天女散花！' : '送免费一局', dur: 1.1 });
     await sleep(1400);
     LUCK_CELLS.forEach(i => cellEls[i].classList.remove('hitluck'));
     $('#machine').classList.remove('lucky');
@@ -2637,48 +2637,8 @@ function cellCenterStage(i) {
   return { x: (r.left + r.width / 2 - st.left) / stageScale, y: (r.top + r.height / 2 - st.top) / stageScale };
 }
 
-// 单颗散花飞行物：delay 后从 fromCell 出发，弧线飞向 pick.cell 并落格结算
-function flyScatterToken(fromCell, pick, delay) {
-  return new Promise(res => {
-    setTimeout(() => {
-      const a = cellCenterStage(fromCell), b = cellCenterStage(pick.cell);
-      const el = document.createElement('div');
-      el.className = 'scatter-fly';
-      el.innerHTML = ART.coin();
-      $('#stage').appendChild(el);
-      const t0 = performance.now(), D = 480;
-      (function step(t) {
-        const k = clamp((t - t0) / D, 0, 1), e = k * k * (3 - 2 * k);
-        const x = a.x + (b.x - a.x) * e;
-        const y = a.y + (b.y - a.y) * e - Math.sin(k * Math.PI) * 70;
-        el.style.transform = `translate(${x - 19}px,${y - 19}px) scale(${1 - k * 0.2}) rotate(${k * 620}deg)`;
-        if (k < 1) requestAnimationFrame(step);
-        else {
-          el.remove();
-          const cel = cellEls[pick.cell];
-          cel.classList.add('hitwin');
-          setTimeout(() => cel.classList.remove('hitwin'), 1100);
-          S.bonus += pick.pay;
-          rollLed(ledBonus, bonusShown, S.bonus, 260);
-          const vp = centerInViewport(cel);
-          FX.spark(vp.x, vp.y, pick.pay > 0 ? '#ffd23e' : '#9ab0c0', 14);
-          if (pick.pay > 0) {
-            const tag = document.createElement('div');
-            tag.className = 'scatter-pay';
-            tag.textContent = '+' + pick.pay;
-            tag.style.left = vp.x + 'px'; tag.style.top = (vp.y - 26) + 'px';
-            document.body.appendChild(tag);
-            setTimeout(() => tag.remove(), 1000);
-          }
-          SFX.play(pick.pay > 0 ? 'tick' : 'tick', { pitch: pick.pay > 0 ? 1.5 : 0.7 });
-          res();
-        }
-      })(t0);
-    }, delay);
-  });
-}
-
-// 散花整轮：特效开场 → 光点排队出发逐个开奖 → 汇总大字
+// 散花整轮：单一 rAF 时间轴驱动——光点按 GAP 间隔排队出发、弧线飞向目标格、
+// 落格亮灯结算并保持常亮到轮次末（不受 setTimeout 节流影响，节奏恒定）
 async function scatterRound(fromCell, count, label) {
   if (count <= 0) return;
   S.phase = 'scatter'; syncButtons();
@@ -2686,19 +2646,63 @@ async function scatterRound(fromCell, count, label) {
   FX.goddessScatter(p.x, p.y);
   SFX.play('win2');
   $('#machine').classList.add('winner');
-  FX.bigText(label + ' 散花', { color: '#ff9a3d', sub: `散出 ${count} 个中奖水果`, dur: 1.8 });
-  await sleep(700);
   const picks = rollScatterFruits(count);
-  const GAP = 300;                                  // 排队间隔
-  const flights = picks.map((pk, i) => flyScatterToken(fromCell, pk, i * GAP));
-  await Promise.all(flights);
+  const GAP = 620, FLY = 640;                        // 出发间隔 / 单颗飞行时长
+  const a = cellCenterStage(fromCell);
+  const items = picks.map((pk, i) => ({
+    pick: pk, start: i * GAP, el: null, done: false,
+    b: cellCenterStage(pk.cell)
+  }));
+  const litCells = new Set();
+  await new Promise(res => {
+    const t0 = performance.now();
+    (function frame(t) {
+      const el = t - t0;
+      let alive = false;
+      for (const it of items) {
+        if (it.done) continue;
+        alive = true;
+        const k = clamp((el - it.start) / FLY, 0, 1);
+        if (!it.el) {
+          if (k <= 0) { alive = true; continue; }
+          it.el = document.createElement('div');
+          it.el.className = 'scatter-fly';
+          it.el.innerHTML = ART.coin();
+          $('#stage').appendChild(it.el);
+        }
+        if (k < 1) {
+          const e = k * k * (3 - 2 * k);
+          const x = a.x + (it.b.x - a.x) * e;
+          const y = a.y + (it.b.y - a.y) * e - Math.sin(k * Math.PI) * 80;
+          it.el.style.transform = `translate(${x - 19}px,${y - 19}px) scale(${1 - k * 0.15}) rotate(${k * 540}deg)`;
+        } else {
+          it.el.remove(); it.el = null; it.done = true;
+          const cel = cellEls[it.pick.cell];
+          cel.classList.add('hitwin'); litCells.add(cel);
+          S.bonus += it.pick.pay;
+          rollLed(ledBonus, bonusShown, S.bonus, 240);
+          const vp = centerInViewport(cel);
+          FX.spark(vp.x, vp.y, '#ffd23e', 16);
+          const tag = document.createElement('div');
+          tag.className = 'scatter-pay';
+          tag.textContent = '+' + it.pick.pay;
+          tag.style.left = vp.x + 'px'; tag.style.top = (vp.y - 26) + 'px';
+          document.body.appendChild(tag);
+          setTimeout(() => tag.remove(), 1000);
+          SFX.play('tick', { pitch: 1.2 + Math.random() * 0.5 });
+        }
+      }
+      if (alive) requestAnimationFrame(frame); else res();
+    })(t0);
+  });
   const gained = picks.reduce((s, x) => s + x.pay, 0);
   S.totalOut += gained;
   bonusShown = -1; renderBonus();
-  FX.bigText('天女散花', { color: '#ffd23e', sub: `共中 +${gained}`, dur: 1.6 });
+  FX.bigText(label === 'L U C K' ? '天女散花' : '天女散花', { color: '#ffd23e', sub: `${label} 散出 ${count} 个水果 · 共中 +${gained}`, dur: 1.7 });
   SFX.play(gained > 0 ? 'win1' : 'glose');
   $('#machine').classList.remove('winner');
   await sleep(1500);
+  litCells.forEach(c => c.classList.remove('hitwin'));
   save();
 }
 
