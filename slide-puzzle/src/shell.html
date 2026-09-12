@@ -15,7 +15,17 @@
   #stage{
     position:absolute;left:50%;top:50%;width:720px;height:1280px;
     transform-origin:center;
-    background:radial-gradient(130% 92% at 50% 30%,#f6e2ae 0%,#e9cd90 52%,#cfa963 100%);
+    /* 主题变量默认值 = 原味木木；game.js 运行时按主题覆盖 */
+    --bg-a:#f6e2ae;--bg-b:#e9cd90;--bg-c:#cfa963;
+    --round-a:#a95f2f;--round-b:#8a4823;--round-c:#743a1c;--round-edge:#5f2f15;--round-ring:#ecd7a6;
+    --pill-a:#a85a2e;--pill-b:#8a4423;--pill-border:#f0ddb6;--cream:#f7e6c4;
+    --plaque-a:#95522a;--plaque-b:#6f3a1e;--plaque-ring:#c9a05e;
+    --frame-a:#b0793f;--frame-b:#9a6430;--frame-edge:#7c4a22;--recess:#6d3b24;
+    --tile-a:#fdefce;--tile-b:#f7dfa4;--tile-c:#efcd88;--tile-border:#bb8a4e;--tile-inner:rgba(122,74,34,.28);
+    --num:#5b2410;
+    --wpill-face:#f7e4b2;--wpill-border:#b5713a;--wpill-rim:#f2dfb2;--wpill-edge:rgba(122,66,25,.55);--wpill-text:#6b3212;
+    transform-origin:center;
+    background:radial-gradient(130% 92% at 50% 30%,var(--bg-a) 0%,var(--bg-b) 52%,var(--bg-c) 100%);
   }
   #stage::before{
     content:'';position:absolute;inset:0;pointer-events:none;
@@ -24,26 +34,27 @@
   .pressable{cursor:pointer}
   .pressable.pressed{transform:translateY(2px) scale(.98)}
 
-  /* ---- 左上圆钮 ---- */
+  /* ---- 顶部圆钮 ---- */
   .round-btn{
     position:absolute;width:78px;height:78px;border-radius:50%;z-index:30;
-    background:radial-gradient(circle at 35% 28%,#a95f2f 0%,#8a4823 55%,#743a1c 100%);
-    border:2px solid #5f2f15;
-    box-shadow:0 0 0 5px #ecd7a6,0 0 0 6px rgba(96,50,18,.55),0 5px 9px rgba(96,50,18,.35),inset 0 2px 3px rgba(255,225,170,.45);
+    background:radial-gradient(circle at 35% 28%,var(--round-a) 0%,var(--round-b) 55%,var(--round-c) 100%);
+    border:2px solid var(--round-edge);
+    box-shadow:0 0 0 5px var(--round-ring),0 0 0 6px rgba(96,50,18,.55),0 5px 9px rgba(96,50,18,.35),inset 0 2px 3px rgba(255,225,170,.45);
     display:flex;align-items:center;justify-content:center;
   }
   .round-btn img{width:38px;height:38px;pointer-events:none}
   .round-btn.pressed{transform:translateY(2px)}
   #btnBack{left:20px;top:56px}
   #btnSound{left:118px;top:56px}
+  #btnGear{right:20px;top:56px}
 
   /* ---- 状态行 ---- */
   #statusRow{position:absolute;left:0;top:164px;width:720px;height:64px;z-index:25}
   .pill{
     position:absolute;top:4px;height:56px;border-radius:28px;
-    background:linear-gradient(#a85a2e,#8a4423);border:2.5px solid #f0ddb6;
+    background:linear-gradient(var(--pill-a),var(--pill-b));border:2.5px solid var(--pill-border);
     box-shadow:0 0 0 2px rgba(96,50,18,.5),inset 0 2px 3px rgba(255,215,160,.35),0 3px 6px rgba(96,50,18,.3);
-    display:flex;align-items:center;justify-content:center;gap:10px;color:#f7e6c4;font-size:30px;
+    display:flex;align-items:center;justify-content:center;gap:10px;color:var(--cream);font-size:30px;
   }
   .pill img{width:30px;height:30px}
   #imgFoot{width:36px;height:36px}
@@ -51,15 +62,15 @@
   #pillSteps{right:28px;width:156px}
   #plaque{
     position:absolute;left:50%;transform:translateX(-50%);top:0;width:272px;height:78px;
-    border-radius:16px;background:linear-gradient(#95522a,#6f3a1e);
-    box-shadow:0 0 0 3px #c9a05e,0 0 0 5px rgba(96,50,18,.45),0 4px 8px rgba(96,50,18,.35),inset 0 2px 3px rgba(255,215,160,.3);
+    border-radius:16px;background:linear-gradient(var(--plaque-a),var(--plaque-b));
+    box-shadow:0 0 0 3px var(--plaque-ring),0 0 0 5px rgba(96,50,18,.45),0 4px 8px rgba(96,50,18,.35),inset 0 2px 3px rgba(255,215,160,.3);
     display:flex;align-items:center;justify-content:center;color:#f5e3bd;font-size:32px;letter-spacing:2px;
     z-index:26;
   }
   #plaque.pressed{transform:translateX(-50%) translateY(2px)}
   #plaque::before,#plaque::after{
     content:'';position:absolute;top:50%;width:10px;height:10px;border-radius:50%;transform:translateY(-50%);
-    background:#4a2412;box-shadow:inset 0 1px 2px #000,0 1px 0 rgba(255,210,150,.25);
+    background:rgba(40,18,6,.55);box-shadow:inset 0 1px 2px rgba(0,0,0,.6),0 1px 0 rgba(255,210,150,.25);
   }
   #plaque::before{left:26px}
   #plaque::after{right:26px}
@@ -67,25 +78,25 @@
   /* ---- 棋盘 ---- */
   #board{
     position:absolute;left:12px;top:228px;width:696px;border-radius:22px;
-    background:linear-gradient(#b0793f,#9a6430);border:2px solid #7c4a22;
+    background:linear-gradient(var(--frame-a),var(--frame-b));border:2px solid var(--frame-edge);
     box-shadow:inset 0 2px 3px rgba(255,225,170,.4),inset 0 -3px 6px rgba(70,30,5,.35),0 6px 16px rgba(96,50,18,.35);
     padding:12px;z-index:10;
   }
   #grid{
-    position:relative;width:668px;height:668px;border-radius:12px;background:#6d3b24;
+    position:relative;width:668px;height:668px;border-radius:12px;background:var(--recess);
     box-shadow:inset 0 3px 8px rgba(40,15,0,.55),inset 0 -1px 2px rgba(255,190,120,.15);
     touch-action:none;
   }
   .tile{
     position:absolute;left:0;top:0;border-radius:15px;
-    background:linear-gradient(155deg,#fdefce 0%,#f7dfa4 55%,#efcd88 100%);
-    border:2px solid #bb8a4e;
-    box-shadow:inset 0 0 0 2px rgba(122,74,34,.22),inset 0 2px 3px rgba(255,255,255,.65),inset 0 -3px 5px rgba(150,95,40,.28),0 3px 5px rgba(70,35,10,.4);
+    background:linear-gradient(155deg,var(--tile-a) 0%,var(--tile-b) 55%,var(--tile-c) 100%);
+    border:2px solid var(--tile-border);
+    box-shadow:inset 0 0 0 2px var(--tile-inner),inset 0 2px 3px rgba(255,255,255,.65),inset 0 -3px 5px rgba(150,95,40,.28),0 3px 5px rgba(70,35,10,.4);
     display:flex;align-items:center;justify-content:center;
     transition:transform .14s ease-out;will-change:transform;cursor:pointer;
   }
-  .tile::after{content:'';position:absolute;inset:6.5%;border-radius:10px;border:2px solid rgba(122,74,34,.28);pointer-events:none}
-  .tile .num{color:#5b2410;text-shadow:0 1px 0 rgba(255,255,255,.4);pointer-events:none}
+  .tile::after{content:'';position:absolute;inset:6.5%;border-radius:10px;border:2px solid var(--tile-inner);pointer-events:none}
+  .tile .num{color:var(--num);text-shadow:0 1px 0 rgba(255,255,255,.4);pointer-events:none}
   .tile.shake{animation:shk .18s}
   @keyframes shk{25%{margin-left:-4px}75%{margin-left:4px}}
 
@@ -93,11 +104,11 @@
   #bottomBar{position:absolute;left:0;top:984px;width:720px;height:76px;display:flex;justify-content:center;gap:76px;z-index:20}
   .wood-pill{
     height:76px;min-width:216px;padding:0 30px;border-radius:38px;
-    background:#f7e4b2;
+    background:var(--wpill-face);
     background-image:repeating-linear-gradient(0deg,rgba(190,140,70,.14) 0 2px,transparent 2px 8px);
-    border:4px solid #b5713a;
-    box-shadow:0 0 0 3px #f2dfb2,0 0 0 4.5px rgba(122,66,25,.55),0 5px 9px rgba(96,50,18,.3),inset 0 2px 2px rgba(255,255,255,.6);
-    display:flex;align-items:center;justify-content:center;gap:14px;color:#6b3212;font-size:34px;
+    border:4px solid var(--wpill-border);
+    box-shadow:0 0 0 3px var(--wpill-rim),0 0 0 4.5px var(--wpill-edge),0 5px 9px rgba(96,50,18,.3),inset 0 2px 2px rgba(255,255,255,.6);
+    display:flex;align-items:center;justify-content:center;gap:14px;color:var(--wpill-text);font-size:34px;
   }
   .wood-pill img{width:38px;height:38px;pointer-events:none}
   .wood-pill.small{height:64px;min-width:180px;font-size:30px;border-radius:32px}
@@ -124,11 +135,13 @@
     padding:34px 30px;text-align:center;color:#5b2410;
   }
   .card h2{font-size:44px;color:#6b3212;margin-bottom:16px;font-weight:400}
+  .card h3{font-size:30px;color:#6b3212;margin:18px 0 6px;font-weight:400}
   .card .trophy{width:84px;height:84px;margin:0 auto 8px;display:block}
   .stat-row{display:flex;justify-content:space-between;font-size:30px;padding:12px 10px;border-bottom:1px dashed rgba(122,74,34,.35)}
   .stat-row .new{color:#c2571f}
   .card .btns{display:flex;justify-content:center;gap:28px;margin-top:28px}
   .card p.help{font-size:27px;line-height:1.65;text-align:left;margin:6px 4px 10px}
+  .hist-row{display:flex;justify-content:space-between;font-size:25px;padding:9px 10px;border-bottom:1px dashed rgba(122,74,34,.25);color:#6b4018}
 
   #toast{
     position:absolute;left:50%;bottom:200px;transform:translateX(-50%) translateY(20px);
@@ -143,6 +156,7 @@
   <div id="bgLeaves"></div>
   <div id="btnBack" class="round-btn pressable"><img id="imgBack" alt="返回"></div>
   <div id="btnSound" class="round-btn pressable"><img id="imgSound" alt="声音"></div>
+  <div id="btnGear" class="round-btn pressable"><img id="imgGear" alt="设置"></div>
   <div id="statusRow">
     <div id="pillTime" class="pill"><img id="imgTimer" alt=""><span id="timeVal">00:00</span></div>
     <div id="plaque" class="pressable"><span id="sizeVal">5×5</span></div>
@@ -163,6 +177,7 @@
       <div class="stat-row"><span>用时</span><span id="winTime">00:00</span></div>
       <div class="stat-row"><span>步数</span><span id="winSteps">0</span></div>
       <div class="stat-row"><span>最佳用时</span><span id="winBest">--</span></div>
+      <div class="stat-row"><span>通关次数</span><span id="winClears">1</span></div>
       <div class="btns">
         <div id="btnAgain" class="wood-pill small pressable"><span>再来一局</span></div>
         <div id="btnWinClose" class="wood-pill small pressable"><span>关闭</span></div>
@@ -172,8 +187,11 @@
   <div id="helpOverlay" class="overlay">
     <div class="card">
       <h2>数字华容道</h2>
-      <p class="help">点按与空格相邻的数字块使其滑入空格，也可在棋盘上滑动。把数字按 1、2、3… 的顺序排好即获胜。点「提示」自动归位一个数字，长按「提示」可自动演示。点中间牌匾切换 3×3 ~ 6×6。</p>
+      <p class="help">点按与空格相邻的数字块使其滑入空格，也可在棋盘上滑动。把数字按 1、2、3… 的顺序排好即获胜。点「提示」自动归位一个数字，长按「提示」可自动演示。点中间牌匾切换 3×3 ~ 10×10，右上 ⚙ 打开设置换主题色。</p>
+      <h3>最佳纪录</h3>
       <div id="bestList"></div>
+      <h3>最近战绩</h3>
+      <div id="histList"></div>
       <div class="btns">
         <div id="btnSettings" class="wood-pill small pressable"><span>设置</span></div>
         <div id="btnHelpClose" class="wood-pill small pressable"><span>知道了</span></div>

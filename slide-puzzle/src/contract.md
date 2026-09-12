@@ -1,6 +1,6 @@
 # 数字华容道 slide-puzzle — 模块契约
 
-单文件 H5 复刻：木质卡通数字滑块拼图（经典 15-puzzle，截图为 5×5）。支持 3×3~6×6。
+单文件 H5 复刻：木质卡通数字滑块拼图（经典 15-puzzle，截图为 5×5）。支持 3×3~10×10，六款主题配色，通关战绩历史。
 开发期分模块文件，build.py 合并为单文件 index.html。**全部程序化生成，零外部资源**（无图片/音频/字体文件）。
 无框架无构建依赖，手机端自适应。
 
@@ -33,7 +33,7 @@
 - 重置：重新打乱，步数/计时清零。
 - 提示（行为为**推测**，原版不可考）：点按 = 自动把一个数字归位（带动画，逐步走）；**长按 600ms = 自动演示**连续归位直到完成，任意点按中断。
 - 胜利：1..N²-1 顺序排列 → 落叶粒子爆发 + 胜利音效 + 结算弹层（用时/步数/最佳纪录，按尺寸存 best）。
-- 求解器：加权 A*（w≈2.2，manhattan+linear conflict，节点预算 ≥40 万），提示取计划第一步；预算耗尽返回 null（极罕见）。
+- 求解器：n≤6 加权 A*（manhattan+linear conflict，w 按尺寸 2.2~4）；n≥7 或 A* 失败用 planSeq 顺序归位求解器（单块 moveTileTo + 行尾/列尾 planPair 双块 A* + 残局 BFS，全尺寸稳定可解）。
 
 ## LOGIC（主线自写，子代理勿实现）
 
@@ -102,7 +102,7 @@ SP.CONFIG_PANEL = { mount(el), open(tab?), close(), isOpen(), onChange(cb) };
 
 ## DOM 骨架（主线负责壳与全部接线）
 
-`#stage > #bgLeaves / #topBar(#btnBack #btnSound) / #statusRow(#pillTime #timeVal | #plaque #sizeVal | #pillSteps #stepVal) / #board > #grid(.tile×N²-1) / #bottomBar(#btnReset #btnHint) / #fxCanvas`；弹层 `#winOverlay #helpOverlay #cfgHost #toast`。
+`#stage > #bgLeaves / #topBar(#btnBack #btnSound #btnGear) / #statusRow(#pillTime #timeVal | #plaque #sizeVal | #pillSteps #stepVal) / #board > #grid(.tile×N²-1) / #bottomBar(#btnReset #btnHint) / #fxCanvas`；弹层 `#winOverlay #helpOverlay #cfgHost #toast`。
 
 ## 主线负责（勿动他人模块）
 

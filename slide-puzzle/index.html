@@ -15,7 +15,17 @@
   #stage{
     position:absolute;left:50%;top:50%;width:720px;height:1280px;
     transform-origin:center;
-    background:radial-gradient(130% 92% at 50% 30%,#f6e2ae 0%,#e9cd90 52%,#cfa963 100%);
+    /* 主题变量默认值 = 原味木木；game.js 运行时按主题覆盖 */
+    --bg-a:#f6e2ae;--bg-b:#e9cd90;--bg-c:#cfa963;
+    --round-a:#a95f2f;--round-b:#8a4823;--round-c:#743a1c;--round-edge:#5f2f15;--round-ring:#ecd7a6;
+    --pill-a:#a85a2e;--pill-b:#8a4423;--pill-border:#f0ddb6;--cream:#f7e6c4;
+    --plaque-a:#95522a;--plaque-b:#6f3a1e;--plaque-ring:#c9a05e;
+    --frame-a:#b0793f;--frame-b:#9a6430;--frame-edge:#7c4a22;--recess:#6d3b24;
+    --tile-a:#fdefce;--tile-b:#f7dfa4;--tile-c:#efcd88;--tile-border:#bb8a4e;--tile-inner:rgba(122,74,34,.28);
+    --num:#5b2410;
+    --wpill-face:#f7e4b2;--wpill-border:#b5713a;--wpill-rim:#f2dfb2;--wpill-edge:rgba(122,66,25,.55);--wpill-text:#6b3212;
+    transform-origin:center;
+    background:radial-gradient(130% 92% at 50% 30%,var(--bg-a) 0%,var(--bg-b) 52%,var(--bg-c) 100%);
   }
   #stage::before{
     content:'';position:absolute;inset:0;pointer-events:none;
@@ -24,26 +34,27 @@
   .pressable{cursor:pointer}
   .pressable.pressed{transform:translateY(2px) scale(.98)}
 
-  /* ---- 左上圆钮 ---- */
+  /* ---- 顶部圆钮 ---- */
   .round-btn{
     position:absolute;width:78px;height:78px;border-radius:50%;z-index:30;
-    background:radial-gradient(circle at 35% 28%,#a95f2f 0%,#8a4823 55%,#743a1c 100%);
-    border:2px solid #5f2f15;
-    box-shadow:0 0 0 5px #ecd7a6,0 0 0 6px rgba(96,50,18,.55),0 5px 9px rgba(96,50,18,.35),inset 0 2px 3px rgba(255,225,170,.45);
+    background:radial-gradient(circle at 35% 28%,var(--round-a) 0%,var(--round-b) 55%,var(--round-c) 100%);
+    border:2px solid var(--round-edge);
+    box-shadow:0 0 0 5px var(--round-ring),0 0 0 6px rgba(96,50,18,.55),0 5px 9px rgba(96,50,18,.35),inset 0 2px 3px rgba(255,225,170,.45);
     display:flex;align-items:center;justify-content:center;
   }
   .round-btn img{width:38px;height:38px;pointer-events:none}
   .round-btn.pressed{transform:translateY(2px)}
   #btnBack{left:20px;top:56px}
   #btnSound{left:118px;top:56px}
+  #btnGear{right:20px;top:56px}
 
   /* ---- 状态行 ---- */
   #statusRow{position:absolute;left:0;top:164px;width:720px;height:64px;z-index:25}
   .pill{
     position:absolute;top:4px;height:56px;border-radius:28px;
-    background:linear-gradient(#a85a2e,#8a4423);border:2.5px solid #f0ddb6;
+    background:linear-gradient(var(--pill-a),var(--pill-b));border:2.5px solid var(--pill-border);
     box-shadow:0 0 0 2px rgba(96,50,18,.5),inset 0 2px 3px rgba(255,215,160,.35),0 3px 6px rgba(96,50,18,.3);
-    display:flex;align-items:center;justify-content:center;gap:10px;color:#f7e6c4;font-size:30px;
+    display:flex;align-items:center;justify-content:center;gap:10px;color:var(--cream);font-size:30px;
   }
   .pill img{width:30px;height:30px}
   #imgFoot{width:36px;height:36px}
@@ -51,15 +62,15 @@
   #pillSteps{right:28px;width:156px}
   #plaque{
     position:absolute;left:50%;transform:translateX(-50%);top:0;width:272px;height:78px;
-    border-radius:16px;background:linear-gradient(#95522a,#6f3a1e);
-    box-shadow:0 0 0 3px #c9a05e,0 0 0 5px rgba(96,50,18,.45),0 4px 8px rgba(96,50,18,.35),inset 0 2px 3px rgba(255,215,160,.3);
+    border-radius:16px;background:linear-gradient(var(--plaque-a),var(--plaque-b));
+    box-shadow:0 0 0 3px var(--plaque-ring),0 0 0 5px rgba(96,50,18,.45),0 4px 8px rgba(96,50,18,.35),inset 0 2px 3px rgba(255,215,160,.3);
     display:flex;align-items:center;justify-content:center;color:#f5e3bd;font-size:32px;letter-spacing:2px;
     z-index:26;
   }
   #plaque.pressed{transform:translateX(-50%) translateY(2px)}
   #plaque::before,#plaque::after{
     content:'';position:absolute;top:50%;width:10px;height:10px;border-radius:50%;transform:translateY(-50%);
-    background:#4a2412;box-shadow:inset 0 1px 2px #000,0 1px 0 rgba(255,210,150,.25);
+    background:rgba(40,18,6,.55);box-shadow:inset 0 1px 2px rgba(0,0,0,.6),0 1px 0 rgba(255,210,150,.25);
   }
   #plaque::before{left:26px}
   #plaque::after{right:26px}
@@ -67,25 +78,25 @@
   /* ---- 棋盘 ---- */
   #board{
     position:absolute;left:12px;top:228px;width:696px;border-radius:22px;
-    background:linear-gradient(#b0793f,#9a6430);border:2px solid #7c4a22;
+    background:linear-gradient(var(--frame-a),var(--frame-b));border:2px solid var(--frame-edge);
     box-shadow:inset 0 2px 3px rgba(255,225,170,.4),inset 0 -3px 6px rgba(70,30,5,.35),0 6px 16px rgba(96,50,18,.35);
     padding:12px;z-index:10;
   }
   #grid{
-    position:relative;width:668px;height:668px;border-radius:12px;background:#6d3b24;
+    position:relative;width:668px;height:668px;border-radius:12px;background:var(--recess);
     box-shadow:inset 0 3px 8px rgba(40,15,0,.55),inset 0 -1px 2px rgba(255,190,120,.15);
     touch-action:none;
   }
   .tile{
     position:absolute;left:0;top:0;border-radius:15px;
-    background:linear-gradient(155deg,#fdefce 0%,#f7dfa4 55%,#efcd88 100%);
-    border:2px solid #bb8a4e;
-    box-shadow:inset 0 0 0 2px rgba(122,74,34,.22),inset 0 2px 3px rgba(255,255,255,.65),inset 0 -3px 5px rgba(150,95,40,.28),0 3px 5px rgba(70,35,10,.4);
+    background:linear-gradient(155deg,var(--tile-a) 0%,var(--tile-b) 55%,var(--tile-c) 100%);
+    border:2px solid var(--tile-border);
+    box-shadow:inset 0 0 0 2px var(--tile-inner),inset 0 2px 3px rgba(255,255,255,.65),inset 0 -3px 5px rgba(150,95,40,.28),0 3px 5px rgba(70,35,10,.4);
     display:flex;align-items:center;justify-content:center;
     transition:transform .14s ease-out;will-change:transform;cursor:pointer;
   }
-  .tile::after{content:'';position:absolute;inset:6.5%;border-radius:10px;border:2px solid rgba(122,74,34,.28);pointer-events:none}
-  .tile .num{color:#5b2410;text-shadow:0 1px 0 rgba(255,255,255,.4);pointer-events:none}
+  .tile::after{content:'';position:absolute;inset:6.5%;border-radius:10px;border:2px solid var(--tile-inner);pointer-events:none}
+  .tile .num{color:var(--num);text-shadow:0 1px 0 rgba(255,255,255,.4);pointer-events:none}
   .tile.shake{animation:shk .18s}
   @keyframes shk{25%{margin-left:-4px}75%{margin-left:4px}}
 
@@ -93,11 +104,11 @@
   #bottomBar{position:absolute;left:0;top:984px;width:720px;height:76px;display:flex;justify-content:center;gap:76px;z-index:20}
   .wood-pill{
     height:76px;min-width:216px;padding:0 30px;border-radius:38px;
-    background:#f7e4b2;
+    background:var(--wpill-face);
     background-image:repeating-linear-gradient(0deg,rgba(190,140,70,.14) 0 2px,transparent 2px 8px);
-    border:4px solid #b5713a;
-    box-shadow:0 0 0 3px #f2dfb2,0 0 0 4.5px rgba(122,66,25,.55),0 5px 9px rgba(96,50,18,.3),inset 0 2px 2px rgba(255,255,255,.6);
-    display:flex;align-items:center;justify-content:center;gap:14px;color:#6b3212;font-size:34px;
+    border:4px solid var(--wpill-border);
+    box-shadow:0 0 0 3px var(--wpill-rim),0 0 0 4.5px var(--wpill-edge),0 5px 9px rgba(96,50,18,.3),inset 0 2px 2px rgba(255,255,255,.6);
+    display:flex;align-items:center;justify-content:center;gap:14px;color:var(--wpill-text);font-size:34px;
   }
   .wood-pill img{width:38px;height:38px;pointer-events:none}
   .wood-pill.small{height:64px;min-width:180px;font-size:30px;border-radius:32px}
@@ -124,11 +135,13 @@
     padding:34px 30px;text-align:center;color:#5b2410;
   }
   .card h2{font-size:44px;color:#6b3212;margin-bottom:16px;font-weight:400}
+  .card h3{font-size:30px;color:#6b3212;margin:18px 0 6px;font-weight:400}
   .card .trophy{width:84px;height:84px;margin:0 auto 8px;display:block}
   .stat-row{display:flex;justify-content:space-between;font-size:30px;padding:12px 10px;border-bottom:1px dashed rgba(122,74,34,.35)}
   .stat-row .new{color:#c2571f}
   .card .btns{display:flex;justify-content:center;gap:28px;margin-top:28px}
   .card p.help{font-size:27px;line-height:1.65;text-align:left;margin:6px 4px 10px}
+  .hist-row{display:flex;justify-content:space-between;font-size:25px;padding:9px 10px;border-bottom:1px dashed rgba(122,74,34,.25);color:#6b4018}
 
   #toast{
     position:absolute;left:50%;bottom:200px;transform:translateX(-50%) translateY(20px);
@@ -143,6 +156,7 @@
   <div id="bgLeaves"></div>
   <div id="btnBack" class="round-btn pressable"><img id="imgBack" alt="返回"></div>
   <div id="btnSound" class="round-btn pressable"><img id="imgSound" alt="声音"></div>
+  <div id="btnGear" class="round-btn pressable"><img id="imgGear" alt="设置"></div>
   <div id="statusRow">
     <div id="pillTime" class="pill"><img id="imgTimer" alt=""><span id="timeVal">00:00</span></div>
     <div id="plaque" class="pressable"><span id="sizeVal">5×5</span></div>
@@ -163,6 +177,7 @@
       <div class="stat-row"><span>用时</span><span id="winTime">00:00</span></div>
       <div class="stat-row"><span>步数</span><span id="winSteps">0</span></div>
       <div class="stat-row"><span>最佳用时</span><span id="winBest">--</span></div>
+      <div class="stat-row"><span>通关次数</span><span id="winClears">1</span></div>
       <div class="btns">
         <div id="btnAgain" class="wood-pill small pressable"><span>再来一局</span></div>
         <div id="btnWinClose" class="wood-pill small pressable"><span>关闭</span></div>
@@ -172,8 +187,11 @@
   <div id="helpOverlay" class="overlay">
     <div class="card">
       <h2>数字华容道</h2>
-      <p class="help">点按与空格相邻的数字块使其滑入空格，也可在棋盘上滑动。把数字按 1、2、3… 的顺序排好即获胜。点「提示」自动归位一个数字，长按「提示」可自动演示。点中间牌匾切换 3×3 ~ 6×6。</p>
+      <p class="help">点按与空格相邻的数字块使其滑入空格，也可在棋盘上滑动。把数字按 1、2、3… 的顺序排好即获胜。点「提示」自动归位一个数字，长按「提示」可自动演示。点中间牌匾切换 3×3 ~ 10×10，右上 ⚙ 打开设置换主题色。</p>
+      <h3>最佳纪录</h3>
       <div id="bestList"></div>
+      <h3>最近战绩</h3>
+      <div id="histList"></div>
       <div class="btns">
         <div id="btnSettings" class="wood-pill small pressable"><span>设置</span></div>
         <div id="btnHelpClose" class="wood-pill small pressable"><span>知道了</span></div>
@@ -244,8 +262,8 @@ SP.LOGIC = (() => {
     return b;
   }
 
-  // ---- 加权 A*：manhattan + linear conflict，w=2.2，不追求最优但完备 ----
-  function plan(board, n, opt) {
+  // ---- 加权 A*：manhattan + linear conflict，w=2.2，不追求最优但完备（n≤6 用） ----
+  function planAstar(board, n, opt) {
     opt = opt || {};
     // 权重按尺寸自适应：不追求最短路，只要稳定快速可达（6×6 实测 w=8 全解 ≤0.7s）
     const W = opt.w || (n <= 4 ? 2.2 : n === 5 ? 4 : 8);
@@ -345,7 +363,257 @@ SP.LOGIC = (() => {
     return null;
   }
 
-  return { solved, blankOf, isSolved, solvable, shuffle, canMove, applyMove, plan };
+  // ---- 双块归位子问题：只追踪 a/b 两枚滑块与空格的位置做加权 A* ----
+  // 状态空间 N³（n=10 时 10⁶），配合 locked 墙壁，必达且毫秒级。行尾/列尾机动统一走这里。
+  function planPair(board, n, a, aHome, b, bHome, moves, locked) {
+    const N = n * n;
+    const startA = board.indexOf(a), startB = board.indexOf(b), startBlank = board.indexOf(0);
+    const key = (pa, pb, bk) => (pa * N + pb) * N + bk;
+    const heur = (pa, pb) =>
+      Math.abs(((pa / n) | 0) - ((aHome / n) | 0)) + Math.abs((pa % n) - (aHome % n)) +
+      Math.abs(((pb / n) | 0) - ((bHome / n) | 0)) + Math.abs((pb % n) - (bHome % n));
+    const W = 3;
+    const startKey = key(startA, startB, startBlank);
+    const startH = heur(startA, startB);
+    if (startH === 0) return true;
+    const seen = new Uint8Array(N * N * N);
+    const prev = new Map(); // key -> [prevKey, swapCell]
+    seen[startKey] = 1;
+    const heap = []; // {f, pa, pb, bk}
+    const push = (node) => {
+      heap.push(node);
+      let i = heap.length - 1;
+      while (i > 0) {
+        const p = (i - 1) >> 1;
+        if (heap[p].f <= heap[i].f) break;
+        const t = heap[p]; heap[p] = heap[i]; heap[i] = t; i = p;
+      }
+    };
+    const pop = () => {
+      const top = heap[0], last = heap.pop();
+      if (heap.length) {
+        heap[0] = last;
+        let i = 0;
+        for (;;) {
+          const l = 2 * i + 1, r = l + 1;
+          let m = i;
+          if (l < heap.length && heap[l].f < heap[m].f) m = l;
+          if (r < heap.length && heap[r].f < heap[m].f) m = r;
+          if (m === i) break;
+          const t = heap[m]; heap[m] = heap[i]; heap[i] = t; i = m;
+        }
+      }
+      return top;
+    };
+    push({ f: W * startH, pa: startA, pb: startB, bk: startBlank, g: 0 });
+    prev.set(startKey, null);
+    let expansions = 0;
+    const budget = 200000;
+    while (heap.length) {
+      const cur = pop();
+      const ck = key(cur.pa, cur.pb, cur.bk);
+      if (cur.pa === aHome && cur.pb === bHome) {
+        // 回溯：生成真实滑块序列
+        const path = [];
+        let k = ck;
+        while (prev.get(k)) {
+          const [pk, swapCell] = prev.get(k);
+          path.push(swapCell);
+          k = pk;
+        }
+        path.reverse();
+        for (const sc of path) {
+          const bk = board.indexOf(0);
+          moves.push(sc);
+          board[bk] = board[sc]; board[sc] = 0;
+        }
+        return true;
+      }
+      if (++expansions > budget) return false;
+      const r = (cur.bk / n) | 0, c = cur.bk % n;
+      for (let d = 0; d < 4; d++) {
+        const nr = r + (d === 0 ? -1 : d === 1 ? 1 : 0);
+        const nc = c + (d === 2 ? -1 : d === 3 ? 1 : 0);
+        if (nr < 0 || nr >= n || nc < 0 || nc >= n) continue;
+        const ni = nr * n + nc;
+        if (locked[ni]) continue;
+        const pa = ni === cur.pa ? cur.bk : cur.pa;
+        const pb = ni === cur.pb ? cur.bk : cur.pb;
+        const nk = key(pa, pb, ni);
+        if (seen[nk]) continue;
+        seen[nk] = 1;
+        const g = cur.g + 1;
+        prev.set(nk, [ck, ni]);
+        push({ f: g + W * heur(pa, pb), pa, pb, bk: ni, g });
+      }
+    }
+    return false;
+  }
+
+  // ---- 顺序归位求解器：逐行/列锁定，行尾列尾用 planPair 双块机动，残局 BFS ----
+  function planSeq(board, n) {
+    const N = n * n;
+    const b = board.slice();
+    const locked = new Array(N).fill(false);
+    const moves = [];
+    const blankNow = () => b.indexOf(0);
+
+    function blankPath(dst, avoid) {
+      const bk = blankNow();
+      if (bk === dst) return [];
+      const prev = new Array(N).fill(-1);
+      prev[bk] = bk;
+      const q = [bk];
+      while (q.length) {
+        const cur = q.shift();
+        if (cur === dst) break;
+        const r = (cur / n) | 0, c = cur % n;
+        for (let d = 0; d < 4; d++) {
+          const nr = r + (d === 0 ? -1 : d === 1 ? 1 : 0);
+          const nc = c + (d === 2 ? -1 : d === 3 ? 1 : 0);
+          if (nr < 0 || nr >= n || nc < 0 || nc >= n) continue;
+          const ni = nr * n + nc;
+          if (locked[ni] || avoid.has(ni) || prev[ni] !== -1) continue;
+          prev[ni] = cur;
+          q.push(ni);
+        }
+      }
+      if (prev[dst] === -1) return null;
+      const path = [];
+      let x = dst;
+      while (x !== bk) { path.push(x); x = prev[x]; }
+      return path.reverse();
+    }
+
+    function slideTo(dst, avoid) {
+      const path = blankPath(dst, avoid);
+      if (path === null) return false;
+      for (const sc of path) {
+        const bk = blankNow();
+        moves.push(sc);
+        b[bk] = b[sc]; b[sc] = 0;
+      }
+      return true;
+    }
+
+    // 把数字 v 一步步挪到 dst；protected 里的格子上数字不可被扰动
+    function moveTileTo(v, dst, protectedSet) {
+      let guard = 0;
+      while (b[dst] !== v) {
+        if (++guard > 4 * N) return false;
+        const from = b.indexOf(v);
+        const fr = (from / n) | 0, fc = from % n;
+        const dr = ((dst / n) | 0) - fr, dc = (dst % n) - fc;
+        const stepH = dc !== 0 ? from + Math.sign(dc) : -1;
+        const stepV = dr !== 0 ? from + Math.sign(dr) * n : -1;
+        const okH = stepH >= 0 && !locked[stepH] && !protectedSet.has(stepH);
+        const okV = stepV >= 0 && !locked[stepV] && !protectedSet.has(stepV);
+        let step;
+        if (okH && (Math.abs(dc) >= Math.abs(dr) || !okV)) step = stepH;
+        else if (okV) step = stepV;
+        else return false;
+        const avoid = new Set(protectedSet);
+        avoid.add(from);
+        if (!slideTo(step, avoid)) return false;
+        const bk = blankNow();
+        b[bk] = v; b[from] = 0;
+        moves.push(from);
+      }
+      return true;
+    }
+
+    // 阶段一：逐行锁定 0..n-3 行；每行最后两格用 planPair 双块机动
+    for (let r = 0; r <= n - 3; r++) {
+      for (let c = 0; c <= n - 3; c++) {
+        const v = r * n + c + 1, dst = r * n + c;
+        if (!moveTileTo(v, dst, new Set())) return null;
+        locked[dst] = true;
+      }
+      const A = r * n + n - 1, B = r * n + n;            // A→(r,n-2) B→(r,n-1)
+      if (!planPair(b, n, A, r * n + (n - 2), B, r * n + (n - 1), moves, locked)) return null;
+      locked[r * n + n - 1] = true;
+      locked[r * n + n - 2] = true;
+    }
+
+    // 阶段二：最后两行逐列锁定 0..n-4 列（planPair 双块机动）
+    for (let c = 0; c <= n - 4; c++) {
+      const t1 = (n - 2) * n + c + 1, t2 = (n - 1) * n + c + 1;
+      const P = (n - 2) * n + c, Q = P + 1, R = (n - 1) * n + c + 1, S = (n - 1) * n + c;
+      if (!planPair(b, n, t1, P, t2, S, moves, locked)) return null;
+      locked[P] = true;
+      locked[S] = true;
+    }
+
+    // 残局：剩下 2×3（或更小），BFS 精确解
+    {
+      const freeCells = [];
+      for (let i = 0; i < N; i++) if (!locked[i]) freeCells.push(i);
+      const idxIn = new Map(freeCells.map((g, k) => [g, k]));
+      const start = freeCells.map(g => b[g]).join(',');
+      const goal = freeCells.map(g => {
+        const t = solved(n)[g];
+        return t === 0 ? 0 : t;
+      }).join(',');
+      if (start !== goal) {
+        const prev = new Map([[start, null]]);
+        const q = [start];
+        let found = false;
+        while (q.length && !found) {
+          const cur = q.shift();
+          const arr = cur.split(',').map(Number);
+          const bkLocal = arr.indexOf(0);
+          const gCell = freeCells[bkLocal];
+          const gr = (gCell / n) | 0, gc = gCell % n;
+          for (let d = 0; d < 4; d++) {
+            const nr = gr + (d === 0 ? -1 : d === 1 ? 1 : 0);
+            const nc = gc + (d === 2 ? -1 : d === 3 ? 1 : 0);
+            if (nr < 0 || nr >= n || nc < 0 || nc >= n) continue;
+            const ni = nr * n + nc;
+            if (!idxIn.has(ni)) continue;
+            const swapLocal = idxIn.get(ni);
+            const arr2 = arr.slice();
+            arr2[bkLocal] = arr[swapLocal];
+            arr2[swapLocal] = 0;
+            const key = arr2.join(',');
+            if (prev.has(key)) continue;
+            prev.set(key, [cur, ni]); // ni 是被滑入空格的格子（全局索引）
+            if (key === goal) { found = true; break; }
+            q.push(key);
+          }
+        }
+        if (!found) return null;
+        // 回溯路径
+        const path = [];
+        let cur = goal;
+        while (prev.get(cur)) {
+          const [parent, mv] = prev.get(cur);
+          path.push(mv);
+          cur = parent;
+        }
+        path.reverse();
+        moves.push(...path);
+      }
+    }
+
+    // 自校验：模拟一遍必须复原
+    let check = board.slice();
+    for (const mv of moves) {
+      check = applyMove(check, n, mv);
+      if (!check) return null;
+    }
+    return isSolved(check) ? moves : null;
+  }
+
+  // 路由：小棋盘用 A*（解更短），大棋盘/失败兜底用顺序求解器
+  function plan(board, n, opt) {
+    if (n <= 6) {
+      const p = planAstar(board, n, opt);
+      if (p) return p;
+    }
+    return planSeq(board, n);
+  }
+
+  return { solved, blankOf, isSolved, solvable, shuffle, canMove, applyMove, plan, planAstar, planSeq };
 })();
 
 </script>
@@ -999,7 +1267,8 @@ SP.CONFIG_PANEL = (function () {
   'use strict';
 
   /* ---------------- 常量与默认值兜底 ---------------- */
-  var FALLBACK = { n: 5, leaves: true, sound: true, vols: { sfx: 0.9 }, picture: null, sounds: {} };
+  var FALLBACK = { n: 5, theme: 'wood', leaves: true, sound: true, vols: { sfx: 0.9 }, picture: null, sounds: {} };
+  var THEME_IDS = ['wood', 'sakura', 'mint', 'ocean', 'grape', 'orange'];
   var TAB_ALIAS = {
     'play': 'play', '玩法': 'play',
     'pic': 'pic', 'picture': 'pic', 'img': 'pic', '图片': 'pic',
@@ -1017,7 +1286,8 @@ SP.CONFIG_PANEL = (function () {
     var d = deepCopy(FALLBACK);
     if (!raw || typeof raw !== 'object') return d;
     var n = Number(raw.n);
-    if (n >= 3 && n <= 6 && Math.floor(n) === n) d.n = n;
+    if (n >= 3 && n <= 10 && Math.floor(n) === n) d.n = n;
+    if (typeof raw.theme === 'string' && THEME_IDS.indexOf(raw.theme) !== -1) d.theme = raw.theme;
     if (typeof raw.leaves === 'boolean') d.leaves = raw.leaves;
     if (typeof raw.sound === 'boolean') d.sound = raw.sound;
     if (raw.vols && typeof raw.vols === 'object') {
@@ -1092,6 +1362,10 @@ SP.CONFIG_PANEL = (function () {
     '.spcp-seg{display:flex;gap:6px;background:rgba(168,112,60,.16);border:2px solid #b98a4e;border-radius:14px;padding:3px;}',
     '.spcp-seg button{flex:1;min-height:44px;border:none;border-radius:10px;cursor:pointer;',
       'font:700 15px/1 Georgia,\'Songti SC\',serif;color:#7a4a22;background:transparent;}',
+    '.spcp-themes{display:flex;flex-wrap:wrap;gap:10px;}',
+    '.spcp-theme{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:22px;border:2px solid rgba(122,74,34,.35);background:#fff8e8;cursor:pointer;font:inherit;font-size:24px;color:#5b2410;}',
+    '.spcp-theme .spcp-dot{width:26px;height:26px;border-radius:50%;border:2px solid rgba(122,74,34,.35);}',
+    '.spcp-theme.spcp-on{border-color:#a8703c;background:linear-gradient(180deg,#fdeecd,#f7dfa4);box-shadow:0 0 0 3px rgba(168,112,60,.25);font-weight:700;}',
     '.spcp-seg button.spcp-on{color:#f7e6c4;background:linear-gradient(180deg,#a85a2e,#8a4423);',
       'box-shadow:inset 0 2px 4px rgba(0,0,0,.28),0 1px 0 rgba(255,250,230,.5);}',
     '.spcp-switch{position:relative;display:inline-block;width:58px;height:34px;flex:0 0 auto;cursor:pointer;}',
@@ -1176,7 +1450,19 @@ SP.CONFIG_PANEL = (function () {
   }
 
   function panelPlayHTML() {
-    var seg = [3, 4, 5, 6].map(function (n) {
+    function themeBtns() {
+      var T = (typeof window !== 'undefined' && window.SP && window.SP.THEMES) || null;
+      var ids = T ? Object.keys(T) : THEME_IDS;
+      return ids.map(function (id) {
+        var t = T[id];
+        var name = (t && t.name) || id;
+        var sw = (t && t.vars) ? [t.vars['--bg-a'], t.vars['--frame-b'] || t.vars['--pill-b']] : ['#f4e2b2', '#8a4823'];
+        return '<button type="button" class="spcp-theme" data-theme="' + id + '" aria-label="' + name + '">' +
+                 '<span class="spcp-dot" style="background:linear-gradient(135deg,' + sw[0] + ' 0%,' + sw[1] + ' 100%)"></span>' + name +
+               '</button>';
+      }).join('');
+    }
+    var seg = [3, 4, 5, 6, 7, 8, 9, 10].map(function (n) {
       return '<button type="button" data-n="' + n + '">' + n + '×' + n + '</button>';
     }).join('');
     return '' +
@@ -1184,6 +1470,10 @@ SP.CONFIG_PANEL = (function () {
         '<div class="spcp-row spcp-col">' +
           '<div class="spcp-rowlabel">棋盘尺寸<span class="spcp-rowsub">切换后立即生效并重开一局</span></div>' +
           '<div class="spcp-seg" data-role="seg">' + seg + '</div>' +
+        '</div>' +
+        '<div class="spcp-row spcp-col">' +
+          '<div class="spcp-rowlabel">主题配色<span class="spcp-rowsub">选一个心情，立刻换装</span></div>' +
+          '<div class="spcp-themes" data-role="themes">' + themeBtns() + '</div>' +
         '</div>' +
         '<div class="spcp-row">' +
           '<div class="spcp-rowlabel">落叶动画<span class="spcp-rowsub">胜利时的落叶庆祝效果</span></div>' +
@@ -1292,6 +1582,12 @@ SP.CONFIG_PANEL = (function () {
     if (e.target.closest('.spcp-mask') || e.target.closest('.spcp-close')) { close(); return; }
     var tab = e.target.closest('.spcp-tab');
     if (tab) { showTab(tab.getAttribute('data-tab')); return; }
+    var th = e.target.closest('[data-theme]');
+    if (th && work) {
+      work.theme = th.getAttribute('data-theme');
+      notify(); syncUI();
+      return;
+    }
     var seg = e.target.closest('.spcp-seg button');
     if (seg && work) {
       var n = Number(seg.getAttribute('data-n'));
@@ -1483,6 +1779,9 @@ SP.CONFIG_PANEL = (function () {
       b.classList.toggle('spcp-on', Number(b.getAttribute('data-n')) === work.n);
       b.setAttribute('aria-pressed', Number(b.getAttribute('data-n')) === work.n ? 'true' : 'false');
     });
+    Array.prototype.forEach.call(root.querySelectorAll('[data-theme]'), function (b) {
+      b.classList.toggle('spcp-on', b.getAttribute('data-theme') === (work.theme || 'wood'));
+    });
     ui.leaves.checked = !!work.leaves;
     ui.sound.checked = !!work.sound;
     ui.vol.value = String(clamp01(work.vols.sfx));
@@ -1601,7 +1900,7 @@ SP.GAME = (() => {
   }
 
   function defaultCfg() {
-    return { n: 5, leaves: true, sound: true, vols: { sfx: 0.9 }, picture: null, sounds: {} };
+    return { n: 5, theme: 'wood', leaves: true, sound: true, vols: { sfx: 0.9 }, picture: null, sounds: {} };
   }
   let cfg = defaultCfg();
   try {
@@ -1609,9 +1908,74 @@ SP.GAME = (() => {
     if (raw) cfg = deepMerge(defaultCfg(), JSON.parse(raw));
   } catch (e) {}
   window.SP.defaultCfg = defaultCfg;
+  Object.defineProperty(window.SP, 'cfg', { get() { return cfg; } }); // 面板 open() 读取实时配置
+
+  // ---- 主题色 ----
+  const THEMES = {
+    wood:   { name: '原味木木', vars: {} }, // 保持 CSS 默认值
+    sakura: { name: '樱花朵朵', vars: {
+      '--bg-a': '#ffecf2', '--bg-b': '#ffd9e6', '--bg-c': '#f2aec7',
+      '--round-a': '#ef8fb2', '--round-b': '#e06a94', '--round-c': '#c95079', '--round-edge': '#a83a60', '--round-ring': '#ffe3ee',
+      '--pill-a': '#e58bab', '--pill-b': '#d16d8d', '--pill-border': '#ffe3ee',
+      '--plaque-a': '#dd7c9f', '--plaque-b': '#c25a7e', '--plaque-ring': '#ffc9dc',
+      '--frame-a': '#f2a7c3', '--frame-b': '#e58bab', '--frame-edge': '#c25a7e', '--recess': '#b25577',
+      '--tile-a': '#fff5f8', '--tile-b': '#ffe4ee', '--tile-c': '#fdd2e2', '--tile-border': '#e8a8c0', '--tile-inner': 'rgba(180,70,110,.25)',
+      '--num': '#a83a60',
+      '--wpill-face': '#ffe9f1', '--wpill-border': '#e58bab', '--wpill-rim': '#ffd9e6', '--wpill-edge': 'rgba(180,60,100,.5)', '--wpill-text': '#a83a60',
+    } },
+    mint:   { name: '薄荷奶绿', vars: {
+      '--bg-a': '#eafcf2', '--bg-b': '#d0f2e0', '--bg-c': '#9cd4b8',
+      '--round-a': '#79c99e', '--round-b': '#55ae81', '--round-c': '#3f9269', '--round-edge': '#2f7a55', '--round-ring': '#ddf5e8',
+      '--pill-a': '#67b98e', '--pill-b': '#4da377', '--pill-border': '#ddf5e8',
+      '--plaque-a': '#5cae83', '--plaque-b': '#43906a', '--plaque-ring': '#b8e8cf',
+      '--frame-a': '#7cc6a0', '--frame-b': '#5fae87', '--frame-edge': '#3f8a68', '--recess': '#337457',
+      '--tile-a': '#f4fdf8', '--tile-b': '#dcf4e7', '--tile-c': '#c5ead6', '--tile-border': '#93ccb0', '--tile-inner': 'rgba(47,110,80,.25)',
+      '--num': '#2f6e50',
+      '--wpill-face': '#e9f9f0', '--wpill-border': '#67b98e', '--wpill-rim': '#d0f2e0', '--wpill-edge': 'rgba(40,100,70,.5)', '--wpill-text': '#2f6e50',
+    } },
+    ocean:  { name: '海盐蓝蓝', vars: {
+      '--bg-a': '#eaf5ff', '--bg-b': '#d2e9fc', '--bg-c': '#9cc6ee',
+      '--round-a': '#6fa9e6', '--round-b': '#4f8cc7', '--round-c': '#3a72a8', '--round-edge': '#2d5f8f', '--round-ring': '#dbeffd',
+      '--pill-a': '#6aa6e0', '--pill-b': '#5089c4', '--pill-border': '#dbeffd',
+      '--plaque-a': '#619dd8', '--plaque-b': '#457cb4', '--plaque-ring': '#bcdcf7',
+      '--frame-a': '#7db4e8', '--frame-b': '#5f9bd6', '--frame-edge': '#3d6fa5', '--recess': '#2f5f92',
+      '--tile-a': '#f2f9ff', '--tile-b': '#ddeefd', '--tile-c': '#c8e2fa', '--tile-border': '#94bde0', '--tile-inner': 'rgba(45,90,140,.25)',
+      '--num': '#2d5f8f',
+      '--wpill-face': '#e9f4ff', '--wpill-border': '#6aa6e0', '--wpill-rim': '#d2e9fc', '--wpill-edge': 'rgba(40,80,130,.5)', '--wpill-text': '#2d5f8f',
+    } },
+    grape:  { name: '香芋啵啵', vars: {
+      '--bg-a': '#f3ecfd', '--bg-b': '#e3d5f8', '--bg-c': '#bfa3e6',
+      '--round-a': '#a984d8', '--round-b': '#8d64c2', '--round-c': '#744ea6', '--round-edge': '#5b3a8c', '--round-ring': '#ebddf9',
+      '--pill-a': '#a07fd0', '--pill-b': '#8765b8', '--pill-border': '#ebddf9',
+      '--plaque-a': '#9673c8', '--plaque-b': '#7a58aa', '--plaque-ring': '#d9c6f2',
+      '--frame-a': '#b394de', '--frame-b': '#9a76c9', '--frame-edge': '#6f4fa0', '--recess': '#5c3f8a',
+      '--tile-a': '#f9f5ff', '--tile-b': '#ece0fa', '--tile-c': '#ddd0f7', '--tile-border': '#b49ada', '--tile-inner': 'rgba(90,60,140,.25)',
+      '--num': '#5b3a8c',
+      '--wpill-face': '#f2ebfd', '--wpill-border': '#a07fd0', '--wpill-rim': '#e3d5f8', '--wpill-edge': 'rgba(80,50,130,.5)', '--wpill-text': '#5b3a8c',
+    } },
+    orange: { name: '蜜橘拿铁', vars: {
+      '--bg-a': '#fff3e0', '--bg-b': '#ffe3c0', '--bg-c': '#f0b878',
+      '--round-a': '#ef9e52', '--round-b': '#dd7f33', '--round-c': '#c26722', '--round-edge': '#9c4f14', '--round-ring': '#ffe8cc',
+      '--pill-a': '#e89a4d', '--pill-b': '#d07f2f', '--pill-border': '#ffe8cc',
+      '--plaque-a': '#de8c40', '--plaque-b': '#c26f22', '--plaque-ring': '#ffd9a8',
+      '--frame-a': '#f0a860', '--frame-b': '#e08d40', '--frame-edge': '#b06020', '--recess': '#96501c',
+      '--tile-a': '#fff8ee', '--tile-b': '#ffe9c9', '--tile-c': '#fcdaa8', '--tile-border': '#e8b070', '--tile-inner': 'rgba(140,80,20,.25)',
+      '--num': '#96501c',
+      '--wpill-face': '#fff2df', '--wpill-border': '#e89a4d', '--wpill-rim': '#ffe3c0', '--wpill-edge': 'rgba(140,80,20,.5)', '--wpill-text': '#96501c',
+    } },
+  };
+  function applyTheme() {
+    const t = THEMES[cfg.theme] || THEMES.wood;
+    const st = $('stage');
+    for (const k of Object.keys(t.vars)) st.style.setProperty(k, t.vars[k]);
+    if (!t.vars['--bg-a']) { // 回到默认：清空覆盖
+      for (const k of ['--bg-a','--bg-b','--bg-c','--round-a','--round-b','--round-c','--round-edge','--round-ring','--pill-a','--pill-b','--pill-border','--plaque-a','--plaque-b','--plaque-ring','--frame-a','--frame-b','--frame-edge','--recess','--tile-a','--tile-b','--tile-c','--tile-border','--tile-inner','--num','--wpill-face','--wpill-border','--wpill-rim','--wpill-edge','--wpill-text']) st.style.removeProperty(k);
+    }
+  }
+  window.SP.THEMES = THEMES;
 
   // ---- 局内状态 ----
-  let S = { n: cfg.n, board: null, steps: 0, elapsed: 0, running: false, lastStart: 0, won: false, best: {} };
+  let S = { n: cfg.n, board: null, steps: 0, elapsed: 0, running: false, lastStart: 0, won: false, best: {}, clears: {}, history: [] };
   try {
     const raw = localStorage.getItem(LS_ST);
     if (raw) {
@@ -1759,6 +2123,9 @@ SP.GAME = (() => {
     const prev = S.best[key];
     const isNew = !prev || S.elapsed < prev.t;
     if (isNew) S.best[key] = { t: S.elapsed, s: S.steps };
+    S.clears[key] = (S.clears[key] || 0) + 1;
+    S.history.unshift({ n: S.n, t: S.elapsed, s: S.steps, d: new Date().toISOString() });
+    if (S.history.length > 300) S.history.length = 300;
     save();
     A().play('win');
     const r = board.getBoundingClientRect();
@@ -1769,6 +2136,7 @@ SP.GAME = (() => {
     $('winTime').textContent = fmt(S.elapsed);
     $('winSteps').textContent = S.steps;
     $('winBest').textContent = fmt(S.best[key].t) + (isNew ? ' （新纪录！）' : '');
+    $('winClears').textContent = S.clears[key] + ' 次';
     setTimeout(() => { $('winOverlay').classList.add('show'); }, 650);
   }
 
@@ -1819,7 +2187,7 @@ SP.GAME = (() => {
     if (!demo) return;
     if (demo.i >= demo.p.length || S.won) { cancelDemo(); return; }
     doMove(demo.p[demo.i++], { demo: true });
-    if (demo) demo.timer = setTimeout(demoStep, 150);
+    if (demo) demo.timer = setTimeout(demoStep, S.n >= 7 ? 70 : 150);
   }
   function cancelDemo() {
     if (demo) { clearTimeout(demo.timer); demo = null; }
@@ -1866,7 +2234,7 @@ SP.GAME = (() => {
   }
 
   pressable('btnReset', () => { newGame(); toast('已重新打乱'); });
-  pressable('btnBack', () => { renderBest(); $('helpOverlay').classList.add('show'); });
+  pressable('btnBack', () => { renderBest(); renderHistory(); $('helpOverlay').classList.add('show'); });
   pressable('btnHelpClose', () => $('helpOverlay').classList.remove('show'));
   pressable('btnSettings', () => {
     if (SP.CONFIG_PANEL) SP.CONFIG_PANEL.open();
@@ -1874,8 +2242,12 @@ SP.GAME = (() => {
   });
   pressable('btnAgain', () => { $('winOverlay').classList.remove('show'); newGame(); });
   pressable('btnWinClose', () => $('winOverlay').classList.remove('show'));
+  pressable('btnGear', () => {
+    if (SP.CONFIG_PANEL) SP.CONFIG_PANEL.open('play');
+    else toast('设置未就绪');
+  });
   pressable('plaque', () => {
-    const n = S.n >= 6 ? 3 : S.n + 1;
+    const n = S.n >= 10 ? 3 : S.n + 1;
     newGame(n);
     toast(`已切换 ${n}×${n}`);
   });
@@ -1929,15 +2301,36 @@ SP.GAME = (() => {
   }
   function syncLeaves() { $('bgLeaves').style.display = cfg.leaves ? '' : 'none'; }
 
-  // ---- 最佳纪录 ----
+  // ---- 最佳纪录 & 战绩历史 ----
+  const SIZES = [3, 4, 5, 6, 7, 8, 9, 10];
   function renderBest() {
     const host = $('bestList');
     host.innerHTML = '';
-    for (const n of [3, 4, 5, 6]) {
+    for (const n of SIZES) {
       const b = S.best[String(n)];
       const row = document.createElement('div');
       row.className = 'stat-row';
       row.innerHTML = `<span>${n}×${n}</span><span>${b ? fmt(b.t) + ' / ' + b.s + '步' : '--'}</span>`;
+      host.appendChild(row);
+    }
+  }
+  function renderHistory() {
+    const host = $('histList');
+    host.innerHTML = '';
+    const list = (S.history || []).slice(0, 8);
+    if (!list.length) {
+      const row = document.createElement('div');
+      row.className = 'hist-row';
+      row.innerHTML = '<span>还没有通关记录，加油！</span><span>--</span>';
+      host.appendChild(row);
+      return;
+    }
+    for (const h of list) {
+      const row = document.createElement('div');
+      row.className = 'hist-row';
+      const d = new Date(h.d);
+      const date = (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      row.innerHTML = `<span>${h.n}×${h.n} · ${fmt(h.t)} · ${h.s}步</span><span>${date}</span>`;
       host.appendChild(row);
     }
   }
@@ -1963,6 +2356,7 @@ SP.GAME = (() => {
       A().applyOverrides(cfg.sounds || {});
       syncLeaves();
       syncSoundIcon();
+      applyTheme();
       applyPicture();
       if (cfg.n !== wasN) newGame(cfg.n);
       saveCfg();
@@ -1977,18 +2371,20 @@ SP.GAME = (() => {
     $('imgFoot').src = SP.ART.icon('foot');
     $('imgReset').src = SP.ART.icon('reset');
     $('imgBulb').src = SP.ART.icon('bulb');
+    $('imgGear').src = SP.ART.icon('gear');
     $('imgTrophy').src = SP.ART.icon('trophy');
     syncSoundIcon();
   }
 
   // ---- 启动 ----
   if (Q.get('n')) {
-    const n = Math.min(6, Math.max(3, parseInt(Q.get('n'), 10) || 5));
+    const n = Math.min(10, Math.max(3, parseInt(Q.get('n'), 10) || 5));
     if (n !== S.n) { S.n = n; S.board = null; }
   }
   fit();
   resumeOrNew();
   paintIcons();
+  applyTheme();
   syncLeaves();
   A().setVolume(cfg.vols ? cfg.vols.sfx : 0.9);
   A().setMuted(!cfg.sound);
@@ -2008,6 +2404,8 @@ SP.GAME = (() => {
     get demo() { return !!demo; },
     move(i) { return doMove(i); },
     newGame,
+    applyTheme,
+    renderHistory,
     hintOne, startDemo, cancelDemo,
     rig(name) {
       if (name === 'one') {

@@ -28,7 +28,7 @@ SP.GAME = (() => {
   }
 
   function defaultCfg() {
-    return { n: 5, leaves: true, sound: true, vols: { sfx: 0.9 }, picture: null, sounds: {} };
+    return { n: 5, theme: 'wood', leaves: true, sound: true, vols: { sfx: 0.9 }, picture: null, sounds: {} };
   }
   let cfg = defaultCfg();
   try {
@@ -36,9 +36,74 @@ SP.GAME = (() => {
     if (raw) cfg = deepMerge(defaultCfg(), JSON.parse(raw));
   } catch (e) {}
   window.SP.defaultCfg = defaultCfg;
+  Object.defineProperty(window.SP, 'cfg', { get() { return cfg; } }); // 面板 open() 读取实时配置
+
+  // ---- 主题色 ----
+  const THEMES = {
+    wood:   { name: '原味木木', vars: {} }, // 保持 CSS 默认值
+    sakura: { name: '樱花朵朵', vars: {
+      '--bg-a': '#ffecf2', '--bg-b': '#ffd9e6', '--bg-c': '#f2aec7',
+      '--round-a': '#ef8fb2', '--round-b': '#e06a94', '--round-c': '#c95079', '--round-edge': '#a83a60', '--round-ring': '#ffe3ee',
+      '--pill-a': '#e58bab', '--pill-b': '#d16d8d', '--pill-border': '#ffe3ee',
+      '--plaque-a': '#dd7c9f', '--plaque-b': '#c25a7e', '--plaque-ring': '#ffc9dc',
+      '--frame-a': '#f2a7c3', '--frame-b': '#e58bab', '--frame-edge': '#c25a7e', '--recess': '#b25577',
+      '--tile-a': '#fff5f8', '--tile-b': '#ffe4ee', '--tile-c': '#fdd2e2', '--tile-border': '#e8a8c0', '--tile-inner': 'rgba(180,70,110,.25)',
+      '--num': '#a83a60',
+      '--wpill-face': '#ffe9f1', '--wpill-border': '#e58bab', '--wpill-rim': '#ffd9e6', '--wpill-edge': 'rgba(180,60,100,.5)', '--wpill-text': '#a83a60',
+    } },
+    mint:   { name: '薄荷奶绿', vars: {
+      '--bg-a': '#eafcf2', '--bg-b': '#d0f2e0', '--bg-c': '#9cd4b8',
+      '--round-a': '#79c99e', '--round-b': '#55ae81', '--round-c': '#3f9269', '--round-edge': '#2f7a55', '--round-ring': '#ddf5e8',
+      '--pill-a': '#67b98e', '--pill-b': '#4da377', '--pill-border': '#ddf5e8',
+      '--plaque-a': '#5cae83', '--plaque-b': '#43906a', '--plaque-ring': '#b8e8cf',
+      '--frame-a': '#7cc6a0', '--frame-b': '#5fae87', '--frame-edge': '#3f8a68', '--recess': '#337457',
+      '--tile-a': '#f4fdf8', '--tile-b': '#dcf4e7', '--tile-c': '#c5ead6', '--tile-border': '#93ccb0', '--tile-inner': 'rgba(47,110,80,.25)',
+      '--num': '#2f6e50',
+      '--wpill-face': '#e9f9f0', '--wpill-border': '#67b98e', '--wpill-rim': '#d0f2e0', '--wpill-edge': 'rgba(40,100,70,.5)', '--wpill-text': '#2f6e50',
+    } },
+    ocean:  { name: '海盐蓝蓝', vars: {
+      '--bg-a': '#eaf5ff', '--bg-b': '#d2e9fc', '--bg-c': '#9cc6ee',
+      '--round-a': '#6fa9e6', '--round-b': '#4f8cc7', '--round-c': '#3a72a8', '--round-edge': '#2d5f8f', '--round-ring': '#dbeffd',
+      '--pill-a': '#6aa6e0', '--pill-b': '#5089c4', '--pill-border': '#dbeffd',
+      '--plaque-a': '#619dd8', '--plaque-b': '#457cb4', '--plaque-ring': '#bcdcf7',
+      '--frame-a': '#7db4e8', '--frame-b': '#5f9bd6', '--frame-edge': '#3d6fa5', '--recess': '#2f5f92',
+      '--tile-a': '#f2f9ff', '--tile-b': '#ddeefd', '--tile-c': '#c8e2fa', '--tile-border': '#94bde0', '--tile-inner': 'rgba(45,90,140,.25)',
+      '--num': '#2d5f8f',
+      '--wpill-face': '#e9f4ff', '--wpill-border': '#6aa6e0', '--wpill-rim': '#d2e9fc', '--wpill-edge': 'rgba(40,80,130,.5)', '--wpill-text': '#2d5f8f',
+    } },
+    grape:  { name: '香芋啵啵', vars: {
+      '--bg-a': '#f3ecfd', '--bg-b': '#e3d5f8', '--bg-c': '#bfa3e6',
+      '--round-a': '#a984d8', '--round-b': '#8d64c2', '--round-c': '#744ea6', '--round-edge': '#5b3a8c', '--round-ring': '#ebddf9',
+      '--pill-a': '#a07fd0', '--pill-b': '#8765b8', '--pill-border': '#ebddf9',
+      '--plaque-a': '#9673c8', '--plaque-b': '#7a58aa', '--plaque-ring': '#d9c6f2',
+      '--frame-a': '#b394de', '--frame-b': '#9a76c9', '--frame-edge': '#6f4fa0', '--recess': '#5c3f8a',
+      '--tile-a': '#f9f5ff', '--tile-b': '#ece0fa', '--tile-c': '#ddd0f7', '--tile-border': '#b49ada', '--tile-inner': 'rgba(90,60,140,.25)',
+      '--num': '#5b3a8c',
+      '--wpill-face': '#f2ebfd', '--wpill-border': '#a07fd0', '--wpill-rim': '#e3d5f8', '--wpill-edge': 'rgba(80,50,130,.5)', '--wpill-text': '#5b3a8c',
+    } },
+    orange: { name: '蜜橘拿铁', vars: {
+      '--bg-a': '#fff3e0', '--bg-b': '#ffe3c0', '--bg-c': '#f0b878',
+      '--round-a': '#ef9e52', '--round-b': '#dd7f33', '--round-c': '#c26722', '--round-edge': '#9c4f14', '--round-ring': '#ffe8cc',
+      '--pill-a': '#e89a4d', '--pill-b': '#d07f2f', '--pill-border': '#ffe8cc',
+      '--plaque-a': '#de8c40', '--plaque-b': '#c26f22', '--plaque-ring': '#ffd9a8',
+      '--frame-a': '#f0a860', '--frame-b': '#e08d40', '--frame-edge': '#b06020', '--recess': '#96501c',
+      '--tile-a': '#fff8ee', '--tile-b': '#ffe9c9', '--tile-c': '#fcdaa8', '--tile-border': '#e8b070', '--tile-inner': 'rgba(140,80,20,.25)',
+      '--num': '#96501c',
+      '--wpill-face': '#fff2df', '--wpill-border': '#e89a4d', '--wpill-rim': '#ffe3c0', '--wpill-edge': 'rgba(140,80,20,.5)', '--wpill-text': '#96501c',
+    } },
+  };
+  function applyTheme() {
+    const t = THEMES[cfg.theme] || THEMES.wood;
+    const st = $('stage');
+    for (const k of Object.keys(t.vars)) st.style.setProperty(k, t.vars[k]);
+    if (!t.vars['--bg-a']) { // 回到默认：清空覆盖
+      for (const k of ['--bg-a','--bg-b','--bg-c','--round-a','--round-b','--round-c','--round-edge','--round-ring','--pill-a','--pill-b','--pill-border','--plaque-a','--plaque-b','--plaque-ring','--frame-a','--frame-b','--frame-edge','--recess','--tile-a','--tile-b','--tile-c','--tile-border','--tile-inner','--num','--wpill-face','--wpill-border','--wpill-rim','--wpill-edge','--wpill-text']) st.style.removeProperty(k);
+    }
+  }
+  window.SP.THEMES = THEMES;
 
   // ---- 局内状态 ----
-  let S = { n: cfg.n, board: null, steps: 0, elapsed: 0, running: false, lastStart: 0, won: false, best: {} };
+  let S = { n: cfg.n, board: null, steps: 0, elapsed: 0, running: false, lastStart: 0, won: false, best: {}, clears: {}, history: [] };
   try {
     const raw = localStorage.getItem(LS_ST);
     if (raw) {
@@ -186,6 +251,9 @@ SP.GAME = (() => {
     const prev = S.best[key];
     const isNew = !prev || S.elapsed < prev.t;
     if (isNew) S.best[key] = { t: S.elapsed, s: S.steps };
+    S.clears[key] = (S.clears[key] || 0) + 1;
+    S.history.unshift({ n: S.n, t: S.elapsed, s: S.steps, d: new Date().toISOString() });
+    if (S.history.length > 300) S.history.length = 300;
     save();
     A().play('win');
     const r = board.getBoundingClientRect();
@@ -196,6 +264,7 @@ SP.GAME = (() => {
     $('winTime').textContent = fmt(S.elapsed);
     $('winSteps').textContent = S.steps;
     $('winBest').textContent = fmt(S.best[key].t) + (isNew ? ' （新纪录！）' : '');
+    $('winClears').textContent = S.clears[key] + ' 次';
     setTimeout(() => { $('winOverlay').classList.add('show'); }, 650);
   }
 
@@ -246,7 +315,7 @@ SP.GAME = (() => {
     if (!demo) return;
     if (demo.i >= demo.p.length || S.won) { cancelDemo(); return; }
     doMove(demo.p[demo.i++], { demo: true });
-    if (demo) demo.timer = setTimeout(demoStep, 150);
+    if (demo) demo.timer = setTimeout(demoStep, S.n >= 7 ? 70 : 150);
   }
   function cancelDemo() {
     if (demo) { clearTimeout(demo.timer); demo = null; }
@@ -293,7 +362,7 @@ SP.GAME = (() => {
   }
 
   pressable('btnReset', () => { newGame(); toast('已重新打乱'); });
-  pressable('btnBack', () => { renderBest(); $('helpOverlay').classList.add('show'); });
+  pressable('btnBack', () => { renderBest(); renderHistory(); $('helpOverlay').classList.add('show'); });
   pressable('btnHelpClose', () => $('helpOverlay').classList.remove('show'));
   pressable('btnSettings', () => {
     if (SP.CONFIG_PANEL) SP.CONFIG_PANEL.open();
@@ -301,8 +370,12 @@ SP.GAME = (() => {
   });
   pressable('btnAgain', () => { $('winOverlay').classList.remove('show'); newGame(); });
   pressable('btnWinClose', () => $('winOverlay').classList.remove('show'));
+  pressable('btnGear', () => {
+    if (SP.CONFIG_PANEL) SP.CONFIG_PANEL.open('play');
+    else toast('设置未就绪');
+  });
   pressable('plaque', () => {
-    const n = S.n >= 6 ? 3 : S.n + 1;
+    const n = S.n >= 10 ? 3 : S.n + 1;
     newGame(n);
     toast(`已切换 ${n}×${n}`);
   });
@@ -356,15 +429,36 @@ SP.GAME = (() => {
   }
   function syncLeaves() { $('bgLeaves').style.display = cfg.leaves ? '' : 'none'; }
 
-  // ---- 最佳纪录 ----
+  // ---- 最佳纪录 & 战绩历史 ----
+  const SIZES = [3, 4, 5, 6, 7, 8, 9, 10];
   function renderBest() {
     const host = $('bestList');
     host.innerHTML = '';
-    for (const n of [3, 4, 5, 6]) {
+    for (const n of SIZES) {
       const b = S.best[String(n)];
       const row = document.createElement('div');
       row.className = 'stat-row';
       row.innerHTML = `<span>${n}×${n}</span><span>${b ? fmt(b.t) + ' / ' + b.s + '步' : '--'}</span>`;
+      host.appendChild(row);
+    }
+  }
+  function renderHistory() {
+    const host = $('histList');
+    host.innerHTML = '';
+    const list = (S.history || []).slice(0, 8);
+    if (!list.length) {
+      const row = document.createElement('div');
+      row.className = 'hist-row';
+      row.innerHTML = '<span>还没有通关记录，加油！</span><span>--</span>';
+      host.appendChild(row);
+      return;
+    }
+    for (const h of list) {
+      const row = document.createElement('div');
+      row.className = 'hist-row';
+      const d = new Date(h.d);
+      const date = (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      row.innerHTML = `<span>${h.n}×${h.n} · ${fmt(h.t)} · ${h.s}步</span><span>${date}</span>`;
       host.appendChild(row);
     }
   }
@@ -390,6 +484,7 @@ SP.GAME = (() => {
       A().applyOverrides(cfg.sounds || {});
       syncLeaves();
       syncSoundIcon();
+      applyTheme();
       applyPicture();
       if (cfg.n !== wasN) newGame(cfg.n);
       saveCfg();
@@ -404,18 +499,20 @@ SP.GAME = (() => {
     $('imgFoot').src = SP.ART.icon('foot');
     $('imgReset').src = SP.ART.icon('reset');
     $('imgBulb').src = SP.ART.icon('bulb');
+    $('imgGear').src = SP.ART.icon('gear');
     $('imgTrophy').src = SP.ART.icon('trophy');
     syncSoundIcon();
   }
 
   // ---- 启动 ----
   if (Q.get('n')) {
-    const n = Math.min(6, Math.max(3, parseInt(Q.get('n'), 10) || 5));
+    const n = Math.min(10, Math.max(3, parseInt(Q.get('n'), 10) || 5));
     if (n !== S.n) { S.n = n; S.board = null; }
   }
   fit();
   resumeOrNew();
   paintIcons();
+  applyTheme();
   syncLeaves();
   A().setVolume(cfg.vols ? cfg.vols.sfx : 0.9);
   A().setMuted(!cfg.sound);
@@ -435,6 +532,8 @@ SP.GAME = (() => {
     get demo() { return !!demo; },
     move(i) { return doMove(i); },
     newGame,
+    applyTheme,
+    renderHistory,
     hintOne, startDemo, cancelDemo,
     rig(name) {
       if (name === 'one') {

@@ -10,7 +10,8 @@ SP.CONFIG_PANEL = (function () {
   'use strict';
 
   /* ---------------- 常量与默认值兜底 ---------------- */
-  var FALLBACK = { n: 5, leaves: true, sound: true, vols: { sfx: 0.9 }, picture: null, sounds: {} };
+  var FALLBACK = { n: 5, theme: 'wood', leaves: true, sound: true, vols: { sfx: 0.9 }, picture: null, sounds: {} };
+  var THEME_IDS = ['wood', 'sakura', 'mint', 'ocean', 'grape', 'orange'];
   var TAB_ALIAS = {
     'play': 'play', '玩法': 'play',
     'pic': 'pic', 'picture': 'pic', 'img': 'pic', '图片': 'pic',
@@ -28,7 +29,8 @@ SP.CONFIG_PANEL = (function () {
     var d = deepCopy(FALLBACK);
     if (!raw || typeof raw !== 'object') return d;
     var n = Number(raw.n);
-    if (n >= 3 && n <= 6 && Math.floor(n) === n) d.n = n;
+    if (n >= 3 && n <= 10 && Math.floor(n) === n) d.n = n;
+    if (typeof raw.theme === 'string' && THEME_IDS.indexOf(raw.theme) !== -1) d.theme = raw.theme;
     if (typeof raw.leaves === 'boolean') d.leaves = raw.leaves;
     if (typeof raw.sound === 'boolean') d.sound = raw.sound;
     if (raw.vols && typeof raw.vols === 'object') {
@@ -103,6 +105,10 @@ SP.CONFIG_PANEL = (function () {
     '.spcp-seg{display:flex;gap:6px;background:rgba(168,112,60,.16);border:2px solid #b98a4e;border-radius:14px;padding:3px;}',
     '.spcp-seg button{flex:1;min-height:44px;border:none;border-radius:10px;cursor:pointer;',
       'font:700 15px/1 Georgia,\'Songti SC\',serif;color:#7a4a22;background:transparent;}',
+    '.spcp-themes{display:flex;flex-wrap:wrap;gap:10px;}',
+    '.spcp-theme{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:22px;border:2px solid rgba(122,74,34,.35);background:#fff8e8;cursor:pointer;font:inherit;font-size:24px;color:#5b2410;}',
+    '.spcp-theme .spcp-dot{width:26px;height:26px;border-radius:50%;border:2px solid rgba(122,74,34,.35);}',
+    '.spcp-theme.spcp-on{border-color:#a8703c;background:linear-gradient(180deg,#fdeecd,#f7dfa4);box-shadow:0 0 0 3px rgba(168,112,60,.25);font-weight:700;}',
     '.spcp-seg button.spcp-on{color:#f7e6c4;background:linear-gradient(180deg,#a85a2e,#8a4423);',
       'box-shadow:inset 0 2px 4px rgba(0,0,0,.28),0 1px 0 rgba(255,250,230,.5);}',
     '.spcp-switch{position:relative;display:inline-block;width:58px;height:34px;flex:0 0 auto;cursor:pointer;}',
@@ -187,7 +193,19 @@ SP.CONFIG_PANEL = (function () {
   }
 
   function panelPlayHTML() {
-    var seg = [3, 4, 5, 6].map(function (n) {
+    function themeBtns() {
+      var T = (typeof window !== 'undefined' && window.SP && window.SP.THEMES) || null;
+      var ids = T ? Object.keys(T) : THEME_IDS;
+      return ids.map(function (id) {
+        var t = T[id];
+        var name = (t && t.name) || id;
+        var sw = (t && t.vars) ? [t.vars['--bg-a'], t.vars['--frame-b'] || t.vars['--pill-b']] : ['#f4e2b2', '#8a4823'];
+        return '<button type="button" class="spcp-theme" data-theme="' + id + '" aria-label="' + name + '">' +
+                 '<span class="spcp-dot" style="background:linear-gradient(135deg,' + sw[0] + ' 0%,' + sw[1] + ' 100%)"></span>' + name +
+               '</button>';
+      }).join('');
+    }
+    var seg = [3, 4, 5, 6, 7, 8, 9, 10].map(function (n) {
       return '<button type="button" data-n="' + n + '">' + n + '×' + n + '</button>';
     }).join('');
     return '' +
@@ -195,6 +213,10 @@ SP.CONFIG_PANEL = (function () {
         '<div class="spcp-row spcp-col">' +
           '<div class="spcp-rowlabel">棋盘尺寸<span class="spcp-rowsub">切换后立即生效并重开一局</span></div>' +
           '<div class="spcp-seg" data-role="seg">' + seg + '</div>' +
+        '</div>' +
+        '<div class="spcp-row spcp-col">' +
+          '<div class="spcp-rowlabel">主题配色<span class="spcp-rowsub">选一个心情，立刻换装</span></div>' +
+          '<div class="spcp-themes" data-role="themes">' + themeBtns() + '</div>' +
         '</div>' +
         '<div class="spcp-row">' +
           '<div class="spcp-rowlabel">落叶动画<span class="spcp-rowsub">胜利时的落叶庆祝效果</span></div>' +
@@ -303,6 +325,12 @@ SP.CONFIG_PANEL = (function () {
     if (e.target.closest('.spcp-mask') || e.target.closest('.spcp-close')) { close(); return; }
     var tab = e.target.closest('.spcp-tab');
     if (tab) { showTab(tab.getAttribute('data-tab')); return; }
+    var th = e.target.closest('[data-theme]');
+    if (th && work) {
+      work.theme = th.getAttribute('data-theme');
+      notify(); syncUI();
+      return;
+    }
     var seg = e.target.closest('.spcp-seg button');
     if (seg && work) {
       var n = Number(seg.getAttribute('data-n'));
@@ -493,6 +521,9 @@ SP.CONFIG_PANEL = (function () {
     ui.segBtns.forEach(function (b) {
       b.classList.toggle('spcp-on', Number(b.getAttribute('data-n')) === work.n);
       b.setAttribute('aria-pressed', Number(b.getAttribute('data-n')) === work.n ? 'true' : 'false');
+    });
+    Array.prototype.forEach.call(root.querySelectorAll('[data-theme]'), function (b) {
+      b.classList.toggle('spcp-on', b.getAttribute('data-theme') === (work.theme || 'wood'));
     });
     ui.leaves.checked = !!work.leaves;
     ui.sound.checked = !!work.sound;
