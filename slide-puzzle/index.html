@@ -1,0 +1,2031 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>数字华容道</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;position:fixed;inset:0}
+  body{
+    background:#d9ba81;
+    font-family:Georgia,'Times New Roman','Songti SC','STSong',serif;
+    touch-action:none;-webkit-user-select:none;user-select:none;
+  }
+  #stage{
+    position:absolute;left:50%;top:50%;width:720px;height:1280px;
+    transform-origin:center;
+    background:radial-gradient(130% 92% at 50% 30%,#f6e2ae 0%,#e9cd90 52%,#cfa963 100%);
+  }
+  #stage::before{
+    content:'';position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(90deg,rgba(140,95,40,.04) 0 3px,transparent 3px 11px);
+  }
+  .pressable{cursor:pointer}
+  .pressable.pressed{transform:translateY(2px) scale(.98)}
+
+  /* ---- 左上圆钮 ---- */
+  .round-btn{
+    position:absolute;width:78px;height:78px;border-radius:50%;z-index:30;
+    background:radial-gradient(circle at 35% 28%,#a95f2f 0%,#8a4823 55%,#743a1c 100%);
+    border:2px solid #5f2f15;
+    box-shadow:0 0 0 5px #ecd7a6,0 0 0 6px rgba(96,50,18,.55),0 5px 9px rgba(96,50,18,.35),inset 0 2px 3px rgba(255,225,170,.45);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .round-btn img{width:38px;height:38px;pointer-events:none}
+  .round-btn.pressed{transform:translateY(2px)}
+  #btnBack{left:20px;top:56px}
+  #btnSound{left:118px;top:56px}
+
+  /* ---- 状态行 ---- */
+  #statusRow{position:absolute;left:0;top:164px;width:720px;height:64px;z-index:25}
+  .pill{
+    position:absolute;top:4px;height:56px;border-radius:28px;
+    background:linear-gradient(#a85a2e,#8a4423);border:2.5px solid #f0ddb6;
+    box-shadow:0 0 0 2px rgba(96,50,18,.5),inset 0 2px 3px rgba(255,215,160,.35),0 3px 6px rgba(96,50,18,.3);
+    display:flex;align-items:center;justify-content:center;gap:10px;color:#f7e6c4;font-size:30px;
+  }
+  .pill img{width:30px;height:30px}
+  #imgFoot{width:36px;height:36px}
+  #pillTime{left:28px;width:172px}
+  #pillSteps{right:28px;width:156px}
+  #plaque{
+    position:absolute;left:50%;transform:translateX(-50%);top:0;width:272px;height:78px;
+    border-radius:16px;background:linear-gradient(#95522a,#6f3a1e);
+    box-shadow:0 0 0 3px #c9a05e,0 0 0 5px rgba(96,50,18,.45),0 4px 8px rgba(96,50,18,.35),inset 0 2px 3px rgba(255,215,160,.3);
+    display:flex;align-items:center;justify-content:center;color:#f5e3bd;font-size:32px;letter-spacing:2px;
+    z-index:26;
+  }
+  #plaque.pressed{transform:translateX(-50%) translateY(2px)}
+  #plaque::before,#plaque::after{
+    content:'';position:absolute;top:50%;width:10px;height:10px;border-radius:50%;transform:translateY(-50%);
+    background:#4a2412;box-shadow:inset 0 1px 2px #000,0 1px 0 rgba(255,210,150,.25);
+  }
+  #plaque::before{left:26px}
+  #plaque::after{right:26px}
+
+  /* ---- 棋盘 ---- */
+  #board{
+    position:absolute;left:12px;top:228px;width:696px;border-radius:22px;
+    background:linear-gradient(#b0793f,#9a6430);border:2px solid #7c4a22;
+    box-shadow:inset 0 2px 3px rgba(255,225,170,.4),inset 0 -3px 6px rgba(70,30,5,.35),0 6px 16px rgba(96,50,18,.35);
+    padding:12px;z-index:10;
+  }
+  #grid{
+    position:relative;width:668px;height:668px;border-radius:12px;background:#6d3b24;
+    box-shadow:inset 0 3px 8px rgba(40,15,0,.55),inset 0 -1px 2px rgba(255,190,120,.15);
+    touch-action:none;
+  }
+  .tile{
+    position:absolute;left:0;top:0;border-radius:15px;
+    background:linear-gradient(155deg,#fdefce 0%,#f7dfa4 55%,#efcd88 100%);
+    border:2px solid #bb8a4e;
+    box-shadow:inset 0 0 0 2px rgba(122,74,34,.22),inset 0 2px 3px rgba(255,255,255,.65),inset 0 -3px 5px rgba(150,95,40,.28),0 3px 5px rgba(70,35,10,.4);
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .14s ease-out;will-change:transform;cursor:pointer;
+  }
+  .tile::after{content:'';position:absolute;inset:6.5%;border-radius:10px;border:2px solid rgba(122,74,34,.28);pointer-events:none}
+  .tile .num{color:#5b2410;text-shadow:0 1px 0 rgba(255,255,255,.4);pointer-events:none}
+  .tile.shake{animation:shk .18s}
+  @keyframes shk{25%{margin-left:-4px}75%{margin-left:4px}}
+
+  /* ---- 底部按钮 ---- */
+  #bottomBar{position:absolute;left:0;top:984px;width:720px;height:76px;display:flex;justify-content:center;gap:76px;z-index:20}
+  .wood-pill{
+    height:76px;min-width:216px;padding:0 30px;border-radius:38px;
+    background:#f7e4b2;
+    background-image:repeating-linear-gradient(0deg,rgba(190,140,70,.14) 0 2px,transparent 2px 8px);
+    border:4px solid #b5713a;
+    box-shadow:0 0 0 3px #f2dfb2,0 0 0 4.5px rgba(122,66,25,.55),0 5px 9px rgba(96,50,18,.3),inset 0 2px 2px rgba(255,255,255,.6);
+    display:flex;align-items:center;justify-content:center;gap:14px;color:#6b3212;font-size:34px;
+  }
+  .wood-pill img{width:38px;height:38px;pointer-events:none}
+  .wood-pill.small{height:64px;min-width:180px;font-size:30px;border-radius:32px}
+  .wood-pill.small img{width:32px;height:32px}
+
+  /* ---- 背景落叶 / 特效层 ---- */
+  #bgLeaves{position:absolute;inset:0;overflow:hidden;z-index:1;pointer-events:none}
+  .bgleaf{position:absolute;top:-70px;animation:bgfall linear forwards}
+  .bgleaf img{display:block;animation:bgsway ease-in-out infinite alternate}
+  @keyframes bgfall{to{transform:translateY(1420px) rotate(520deg)}}
+  @keyframes bgsway{from{transform:translateX(-26px) rotate(-14deg)}to{transform:translateX(26px) rotate(14deg)}}
+  #fxCanvas{position:absolute;inset:0;z-index:60;pointer-events:none}
+
+  /* ---- 弹层 ---- */
+  .overlay{
+    position:absolute;inset:0;background:rgba(64,32,10,.55);z-index:100;
+    display:none;align-items:center;justify-content:center;
+  }
+  .overlay.show{display:flex}
+  .card{
+    width:540px;max-height:1080px;overflow:auto;background:linear-gradient(#fbf0cd,#f3dda4);
+    border-radius:26px;border:5px solid #a8703c;
+    box-shadow:0 0 0 3px rgba(122,66,25,.5),0 10px 24px rgba(50,20,0,.4);
+    padding:34px 30px;text-align:center;color:#5b2410;
+  }
+  .card h2{font-size:44px;color:#6b3212;margin-bottom:16px;font-weight:400}
+  .card .trophy{width:84px;height:84px;margin:0 auto 8px;display:block}
+  .stat-row{display:flex;justify-content:space-between;font-size:30px;padding:12px 10px;border-bottom:1px dashed rgba(122,74,34,.35)}
+  .stat-row .new{color:#c2571f}
+  .card .btns{display:flex;justify-content:center;gap:28px;margin-top:28px}
+  .card p.help{font-size:27px;line-height:1.65;text-align:left;margin:6px 4px 10px}
+
+  #toast{
+    position:absolute;left:50%;bottom:200px;transform:translateX(-50%) translateY(20px);
+    background:rgba(80,40,15,.92);color:#f7e6c4;padding:14px 30px;border-radius:26px;font-size:28px;
+    opacity:0;transition:.25s;z-index:120;pointer-events:none;white-space:nowrap;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bgLeaves"></div>
+  <div id="btnBack" class="round-btn pressable"><img id="imgBack" alt="返回"></div>
+  <div id="btnSound" class="round-btn pressable"><img id="imgSound" alt="声音"></div>
+  <div id="statusRow">
+    <div id="pillTime" class="pill"><img id="imgTimer" alt=""><span id="timeVal">00:00</span></div>
+    <div id="plaque" class="pressable"><span id="sizeVal">5×5</span></div>
+    <div id="pillSteps" class="pill"><img id="imgFoot" alt=""><span id="stepVal">0</span></div>
+  </div>
+  <div id="board">
+    <div id="grid"></div>
+  </div>
+  <div id="bottomBar">
+    <div id="btnReset" class="wood-pill pressable"><img id="imgReset" alt=""><span>重置</span></div>
+    <div id="btnHint" class="wood-pill pressable"><img id="imgBulb" alt=""><span>提示</span></div>
+  </div>
+  <canvas id="fxCanvas"></canvas>
+  <div id="winOverlay" class="overlay">
+    <div class="card">
+      <img id="imgTrophy" class="trophy" alt="">
+      <h2>拼好啦！</h2>
+      <div class="stat-row"><span>用时</span><span id="winTime">00:00</span></div>
+      <div class="stat-row"><span>步数</span><span id="winSteps">0</span></div>
+      <div class="stat-row"><span>最佳用时</span><span id="winBest">--</span></div>
+      <div class="btns">
+        <div id="btnAgain" class="wood-pill small pressable"><span>再来一局</span></div>
+        <div id="btnWinClose" class="wood-pill small pressable"><span>关闭</span></div>
+      </div>
+    </div>
+  </div>
+  <div id="helpOverlay" class="overlay">
+    <div class="card">
+      <h2>数字华容道</h2>
+      <p class="help">点按与空格相邻的数字块使其滑入空格，也可在棋盘上滑动。把数字按 1、2、3… 的顺序排好即获胜。点「提示」自动归位一个数字，长按「提示」可自动演示。点中间牌匾切换 3×3 ~ 6×6。</p>
+      <div id="bestList"></div>
+      <div class="btns">
+        <div id="btnSettings" class="wood-pill small pressable"><span>设置</span></div>
+        <div id="btnHelpClose" class="wood-pill small pressable"><span>知道了</span></div>
+      </div>
+    </div>
+  </div>
+  <div id="cfgHost"></div>
+  <div id="toast"></div>
+</div>
+<script>
+/* ===== src/logic.js ===== */
+/* ===== src/logic.js — 棋盘数学与求解器（主线负责） ===== */
+window.SP = window.SP || {};
+SP.LOGIC = (() => {
+  'use strict';
+
+  function solved(n) {
+    const b = new Array(n * n);
+    for (let i = 0; i < n * n; i++) b[i] = (i + 1) % (n * n);
+    return b;
+  }
+
+  function blankOf(board) { return board.indexOf(0); }
+
+  function isSolved(b) {
+    const N = b.length;
+    for (let i = 0; i < N - 1; i++) if (b[i] !== i + 1) return false;
+    return b[N - 1] === 0;
+  }
+
+  // 可解性：N 奇 → 逆序数偶；N 偶 → (逆序数 + 空格行[自底 1 计]) 为奇
+  function solvable(board, n) {
+    const a = board.filter(v => v !== 0);
+    let inv = 0;
+    for (let i = 0; i < a.length; i++)
+      for (let j = i + 1; j < a.length; j++) if (a[i] > a[j]) inv++;
+    if (n % 2 === 1) return inv % 2 === 0;
+    const rowFromBottom = n - ((blankOf(board) / n) | 0);
+    return (inv + rowFromBottom) % 2 === 1;
+  }
+
+  function shuffle(n, rng) {
+    rng = rng || Math.random;
+    const N = n * n;
+    let board;
+    do {
+      board = Array.from({ length: N }, (_, i) => (i + 1) % N);
+      for (let i = N - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        const t = board[i]; board[i] = board[j]; board[j] = t;
+      }
+    } while (!solvable(board, n) || isSolved(board));
+    return board;
+  }
+
+  function canMove(board, n, i) {
+    const bk = blankOf(board);
+    const br = (bk / n) | 0, bc = bk % n;
+    const r = (i / n) | 0, c = i % n;
+    return Math.abs(br - r) + Math.abs(bc - c) === 1;
+  }
+
+  function applyMove(board, n, i) {
+    if (i < 0 || i >= board.length || !canMove(board, n, i)) return null;
+    const b = board.slice();
+    const bk = blankOf(b);
+    b[bk] = b[i]; b[i] = 0;
+    return b;
+  }
+
+  // ---- 加权 A*：manhattan + linear conflict，w=2.2，不追求最优但完备 ----
+  function plan(board, n, opt) {
+    opt = opt || {};
+    // 权重按尺寸自适应：不追求最短路，只要稳定快速可达（6×6 实测 w=8 全解 ≤0.7s）
+    const W = opt.w || (n <= 4 ? 2.2 : n === 5 ? 4 : 8);
+    const budget = opt.budget || 400000;
+    const N = n * n;
+    const gr = new Int16Array(N), gc = new Int16Array(N);
+    for (let v = 0; v < N; v++) {
+      const p = v === 0 ? N - 1 : v - 1;
+      gr[v] = (p / n) | 0; gc[v] = p % n;
+    }
+    function heur(b) {
+      let md = 0, lc = 0;
+      for (let r = 0; r < n; r++) {
+        const cols = [];
+        for (let c = 0; c < n; c++) {
+          const v = b[r * n + c];
+          if (v === 0) continue;
+          md += Math.abs(gr[v] - r) + Math.abs(gc[v] - c);
+          if (gr[v] === r) cols.push(gc[v]);
+        }
+        for (let i = 0; i < cols.length; i++)
+          for (let j = i + 1; j < cols.length; j++) if (cols[i] > cols[j]) lc += 2;
+      }
+      for (let c = 0; c < n; c++) {
+        const rows = [];
+        for (let r = 0; r < n; r++) {
+          const v = b[r * n + c];
+          if (v === 0) continue;
+          if (gc[v] === c) rows.push(gr[v]);
+        }
+        for (let i = 0; i < rows.length; i++)
+          for (let j = i + 1; j < rows.length; j++) if (rows[i] > rows[j]) lc += 2;
+      }
+      return md + lc;
+    }
+
+    if (isSolved(board)) return [];
+    // 简易二叉堆
+    const heap = [];
+    function push(node, f) {
+      heap.push({ f, node });
+      let i = heap.length - 1;
+      while (i > 0) {
+        const p = (i - 1) >> 1;
+        if (heap[p].f <= heap[i].f) break;
+        const t = heap[p]; heap[p] = heap[i]; heap[i] = t; i = p;
+      }
+    }
+    function pop() {
+      const top = heap[0], last = heap.pop();
+      if (heap.length) {
+        heap[0] = last;
+        let i = 0;
+        for (;;) {
+          const l = 2 * i + 1, r = l + 1;
+          let m = i;
+          if (l < heap.length && heap[l].f < heap[m].f) m = l;
+          if (r < heap.length && heap[r].f < heap[m].f) m = r;
+          if (m === i) break;
+          const t = heap[m]; heap[m] = heap[i]; heap[i] = t; i = m;
+        }
+      }
+      return top.node;
+    }
+
+    const startH = heur(board);
+    push({ b: board.slice(), g: 0, h: startH, parent: null, move: -1, blank: blankOf(board) }, W * startH);
+    const seen = new Map();
+    seen.set(board.join(','), 0);
+    let cnt = 0;
+    while (heap.length) {
+      const cur = pop();
+      if (cur.h === 0) {
+        const path = [];
+        let x = cur;
+        while (x && x.move >= 0) { path.push(x.move); x = x.parent; }
+        return path.reverse();
+      }
+      if (++cnt > budget) return null;
+      const b = cur.b, bk = cur.blank, r = (bk / n) | 0, c = bk % n;
+      const g2 = cur.g + 1;
+      for (let d = 0; d < 4; d++) {
+        const nr = r + (d === 0 ? -1 : d === 1 ? 1 : 0);
+        const nc = c + (d === 2 ? -1 : d === 3 ? 1 : 0);
+        if (nr < 0 || nr >= n || nc < 0 || nc >= n) continue;
+        const ni = nr * n + nc;
+        const bb = b.slice();
+        bb[bk] = b[ni]; bb[ni] = 0;
+        const key = bb.join(',');
+        const prev = seen.get(key);
+        if (prev !== undefined && prev <= g2) continue;
+        const h2 = heur(bb);
+        seen.set(key, g2);
+        push({ b: bb, g: g2, h: h2, parent: cur, move: ni, blank: ni }, g2 + W * h2);
+      }
+    }
+    return null;
+  }
+
+  return { solved, blankOf, isSolved, solvable, shuffle, canMove, applyMove, plan };
+})();
+
+</script>
+<script>
+/* ===== src/art.js ===== */
+/* slide-puzzle 程序化 SVG 美术：SP.ART.icon(id) / SP.ART.leaf(i)
+ * 风格：奶油 #f7e6c4 图形 + 深棕 #5b2410 细节，圆角卡通粗笔画（深棕描边保证浅底可读） */
+window.SP = window.SP || {};
+SP.ART = (() => {
+  const CR = '#f7e6c4', DK = '#5b2410', VN = '#b5541c';
+  const W = b => '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">' + b + '</svg>';
+  const uri = s => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
+  // 双层描线：深棕晕边 + 奶油芯
+  const duo = (d, w) => '<path d="' + d + '" fill="none" stroke="' + DK + '" stroke-width="' + (w + 4.5) + '" stroke-linecap="round" stroke-linejoin="round"/><path d="' + d + '" fill="none" stroke="' + CR + '" stroke-width="' + w + '" stroke-linecap="round" stroke-linejoin="round"/>';
+  // 奶油填充形 + 深棕描边
+  const fs = (d, sw) => '<path d="' + d + '" fill="' + CR + '" stroke="' + DK + '" stroke-width="' + (sw || 3) + '" stroke-linejoin="round"/>';
+
+  const icons = {};
+
+  // 左箭头：粗圆箭头 + 短杆
+  icons.back = duo('M20.5 10.5 L9.5 24 L20.5 37.5', 8) + duo('M12.5 24 H39', 8);
+
+  // 扬声器主体
+  const SPK = fs('M6.5 18 h7.5 l10 -8 v28 l-10 -8 H6.5 z');
+  const WAVES = duo('M30 18.5 a9 9 0 0 1 0 11', 4.5) + duo('M35.5 13 a16 16 0 0 1 0 22', 4.5);
+  icons.sndOn = SPK + WAVES;
+  icons.sndOff = SPK + WAVES + duo('M11 9.5 L38.5 37', 5);
+
+  // 秒表
+  icons.timer =
+    '<rect x="20" y="3.5" width="8" height="7" rx="2.6" fill="' + CR + '" stroke="' + DK + '" stroke-width="2.6"/>' +
+    '<path d="M24 16.4 v3 M12.6 27.5 h2.6 M35.4 27.5 h-2.6" stroke="' + DK + '" stroke-width="2.4" stroke-linecap="round" fill="none"/>' +
+    '<circle cx="24" cy="27.5" r="14.5" fill="none" stroke="' + DK + '" stroke-width="9.5"/>' +
+    '<circle cx="24" cy="27.5" r="14.5" fill="none" stroke="' + CR + '" stroke-width="5.5"/>' +
+    '<path d="M24 27.5 V19 M24 27.5 L30 32.5" fill="none" stroke="' + CR + '" stroke-width="6.2" stroke-linecap="round"/>' +
+    '<path d="M24 27.5 V19 M24 27.5 L30 32.5" fill="none" stroke="' + DK + '" stroke-width="3" stroke-linecap="round"/>' +
+    '<circle cx="24" cy="27.5" r="2.3" fill="' + DK + '"/>';
+
+  // 脚印：裸足印——大趾右上（大）、3 小趾弧列、饱满脚掌，斜轴 12°
+  icons.foot =
+    '<g transform="rotate(12 24 24)" fill="' + CR + '" stroke="' + DK + '">' +
+    '<ellipse cx="23.5" cy="28" rx="9.2" ry="13.8" stroke-width="3"/>' +
+    '<ellipse cx="33.5" cy="9" rx="7" ry="5.6" transform="rotate(18 33.5 9)" stroke-width="2.6"/>' +
+    '<circle cx="23" cy="7.5" r="3.1" stroke-width="1.9"/>' +
+    '<circle cx="17" cy="11.5" r="2.8" stroke-width="1.9"/>' +
+    '<circle cx="13.4" cy="16.6" r="2.6" stroke-width="1.9"/>' +
+    '</g>';
+
+  // 双循环箭头（半边旋转复制）
+  const rArc = 'M35.1 16.3 A13.5 13.5 0 0 0 12.9 16.3';
+  const rHead = '<path d="M9.2 21.6 L9.1 13.7 L16.7 18.9 z" fill="' + CR + '" stroke="' + DK + '" stroke-width="2.6" stroke-linejoin="round"/>';
+  const rHalf = duo(rArc, 5.5) + rHead;
+  icons.reset = rHalf + '<g transform="rotate(180 24 24)">' + rHalf + '</g>';
+
+  // 灯泡
+  icons.bulb =
+    fs('M24 5.2 c7.6 0 13.2 5.7 13.2 12.9 0 4.7 -2.5 7.7 -4.7 10.1 -1.2 1.3 -1.9 2.3 -1.9 3.8 h-13.2 c0 -1.5 -.7 -2.5 -1.9 -3.8 -2.2 -2.4 -4.7 -5.4 -4.7 -10.1 C10.8 10.9 16.4 5.2 24 5.2 z') +
+    '<path d="M19.6 26.2 q4.4 -3.8 8.8 0" fill="none" stroke="' + DK + '" stroke-width="2.5" stroke-linecap="round"/>' +
+    '<rect x="17.6" y="31.6" width="12.8" height="4.6" rx="2.2" fill="' + CR + '" stroke="' + DK + '" stroke-width="2.6"/>' +
+    '<path d="M20.5 38.4 h7" stroke="' + DK + '" stroke-width="2.2" stroke-linecap="round"/>' +
+    '<rect x="20.4" y="40.4" width="7.2" height="4.2" rx="2.1" fill="' + CR + '" stroke="' + DK + '" stroke-width="2.6"/>';
+
+  // 齿轮：4 根圆头齿条 + 圆身，双层轮廓 + 深棕轴心
+  let gt = '';
+  for (let a = 0; a < 180; a += 45) gt += '<rect x="20.3" y="2.2" width="7.4" height="43.6" rx="2.6" transform="rotate(' + a + ' 24 24)"/>';
+  const gBody = gt + '<circle cx="24" cy="24" r="14.6"/>';
+  icons.gear =
+    '<g fill="' + DK + '" stroke="' + DK + '" stroke-width="4" stroke-linejoin="round">' + gBody + '</g>' +
+    '<g fill="' + CR + '">' + gBody + '</g>' +
+    '<circle cx="24" cy="24" r="5.2" fill="' + DK + '"/>';
+
+  // 奖杯
+  icons.trophy =
+    duo('M14.5 11.5 H10 a4.6 4.6 0 0 0 0 9.2 h4', 4) +
+    duo('M33.5 11.5 H38 a4.6 4.6 0 0 1 0 9.2 h-4', 4) +
+    fs('M13.5 7 h21 v9.5 a10.5 10.5 0 0 1 -21 0 z') +
+    '<path d="M24 10.8 l1.6 3.6 3.6 1.6 -3.6 1.6 -1.6 3.6 -1.6 -3.6 -3.6 -1.6 3.6 -1.6 z" fill="' + DK + '"/>' +
+    duo('M24 27.2 v5.5', 4.6) +
+    '<rect x="14" y="33.5" width="20" height="5.2" rx="2.2" fill="' + CR + '" stroke="' + DK + '" stroke-width="2.6"/>' +
+    '<rect x="11.5" y="39.6" width="25" height="4.6" rx="2.1" fill="' + CR + '" stroke="' + DK + '" stroke-width="2.6"/>';
+
+  // 关闭 ×
+  icons.close = duo('M14 14 L34 34', 7.5) + duo('M34 14 L14 34', 7.5);
+
+  // 三种落叶：橙黄渐变 + 叶脉 + 短柄
+  const leafSvg = (grad, body, veins, stem) => W(
+    '<defs>' + grad + '</defs>' +
+    '<path d="' + body + '" fill="url(#g)" stroke="' + VN + '" stroke-width="1.8" stroke-linejoin="round"/>' +
+    '<path d="' + veins + '" fill="none" stroke="' + VN + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<path d="' + stem + '" fill="none" stroke="' + VN + '" stroke-width="2.3" stroke-linecap="round"/>'
+  );
+  const grad = (x1, y1, x2, y2, c1, c2, c3) =>
+    '<linearGradient id="g" x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '">' +
+    '<stop offset="0" stop-color="' + c1 + '"/><stop offset=".52" stop-color="' + c2 + '"/><stop offset="1" stop-color="' + c3 + '"/></linearGradient>';
+
+  const leaves = [
+    // 0 斜向尖叶（参考图同款）
+    leafSvg(
+      grad(0, 1, 1, 0, '#d96b1f', '#e8912a', '#f6c14b'),
+      'M7 40 C3 22 17 7 41 6 C42 29 28 44 7 40 z',
+      'M9 38 C18 30 30 19 39 9 M15.5 33.5 l-4.5 -7 M22 27 l-5 -7.5 M29 20.5 l-5 -7.5 M35 14.5 l-6.5 -4 M24 24.5 l6.5 5 M31 17.5 l7 4.5',
+      'M7 40 q-2.8 2.6 -4.6 3.2'
+    ),
+    // 1 竖向水滴叶
+    leafSvg(
+      grad(0, 0, 0, 1, '#f6c14b', '#e8912a', '#d96b1f'),
+      'M24 4 C38 14 41 31 24 43.5 C7 31 10 14 24 4 z',
+      'M24 8 V42 M24 15 l-8 -3.5 M24 15 l8 -3.5 M24 23.5 l-10 -2.5 M24 23.5 l10 -2.5 M24 31.5 l-9 .8 M24 31.5 l9 .8',
+      'M24 43.5 q.5 3 3 4.3'
+    ),
+    // 2 圆阔叶
+    leafSvg(
+      grad(0, 0, 1, 1, '#f9d268', '#f2a53a', '#d96b1f'),
+      'M12 38 C4 28 8 11 24 7 C38 3.5 45 15 39 26 C33 36.5 21 42 12 38 z',
+      'M13.5 36 C20 29 28 20 35.5 11.5 M19 29.5 l-7 -1.5 M19 29.5 l1.5 7 M26 22.5 l-8 -1 M26 22.5 l6 5 M32 16.5 l-7 -2.5 M32 16.5 l6.5 3.5',
+      'M12 38 q-3 2.5 -5.5 2.8'
+    )
+  ];
+
+  return {
+    icon: id => uri(W(icons[id] || '')),
+    leaf: i => uri(leaves[i] || leaves[0])
+  };
+})();
+
+</script>
+<script>
+/* ===== src/audio.js ===== */
+window.SP=window.SP||{}; SP.AUDIO=(()=>{
+'use strict';
+
+/* 木质卡通数字滑块拼图 — WebAudio 程序化音效
+ * cue: button/move/denied/shuffle/hint/snap/win
+ * 全部合成，零外部资源；支持 applyOverrides({cue:dataURL}) 换自定义音效。
+ */
+
+const NAMES = ['button', 'move', 'denied', 'shuffle', 'hint', 'snap', 'win'];
+
+let ctx = null;        // AudioContext，惰性创建
+let master = null;     // 总音量总线
+let volume = 0.9;      // 对应 cfg.vols.sfx 默认值
+let muted = false;
+let noiseBuf = null;   // 共享白噪声缓存（AudioBuffer 可复用，非节点）
+const buffers = {};    // cue -> AudioBuffer（override 解码成功）
+const pending = {};    // cue -> dataURL（待解码/已提交）
+
+/* ---------- 基础 ---------- */
+
+function ensureCtx() {
+  if (ctx) return ctx;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  try { ctx = new AC(); } catch (e) { return null; }
+  master = ctx.createGain();
+  master.gain.value = busGain();
+  master.connect(ctx.destination);
+  for (const k in pending) decodeCue(k); // 补解码 ctx 创建前提交的 override
+  return ctx;
+}
+
+function busGain() { return muted ? 0 : volume; }
+
+function applyBus() {
+  if (!master) return;
+  const g = master.gain;
+  if (g.setTargetAtTime) g.setTargetAtTime(busGain(), ctx.currentTime, 0.008);
+  else g.value = busGain();
+}
+
+function resume() {
+  if (!ctx || !ctx.resume) return;
+  try {
+    const p = ctx.resume(); // running 上下文上是无害 no-op
+    if (p && p.catch) p.catch(() => {});
+  } catch (e) {}
+}
+
+function unlock() { // 幂等：首次手势调用，重复调用无害
+  const c = ensureCtx();
+  if (c) resume();
+}
+
+/* 用完即弃：源节点 onended 时 disconnect 整条链 */
+function gcOn(src, nodes) {
+  src.onended = () => {
+    for (let i = 0; i < nodes.length; i++) {
+      try { nodes[i].disconnect(); } catch (e) {}
+    }
+  };
+}
+
+function getNoise() {
+  if (noiseBuf) return noiseBuf;
+  const len = Math.floor(ctx.sampleRate * 0.5);
+  noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  return noiseBuf;
+}
+
+/* ---------- 合成基元 ---------- */
+
+// 单音：osc(type, f0→f1) + 攻击/指数衰减包络 → master
+function tone(t0, o) {
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = o.type || 'sine';
+  osc.frequency.setValueAtTime(o.f0, t0);
+  if (o.f1 && o.f1 !== o.f0) osc.frequency.exponentialRampToValueAtTime(o.f1, t0 + o.dur);
+  const a = o.attack || 0.002;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(o.peak, t0 + a);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
+  osc.connect(g);
+  g.connect(master);
+  osc.start(t0);
+  osc.stop(t0 + o.dur + 0.01);
+  gcOn(osc, [osc, g]);
+}
+
+// 噪声脉冲：buffer 源 + 滤波器 + 包络 → master
+function noise(t0, o) {
+  const src = ctx.createBufferSource();
+  src.buffer = getNoise();
+  const f = ctx.createBiquadFilter();
+  f.type = o.filter || 'lowpass';
+  f.frequency.setValueAtTime(o.freq, t0);
+  if (o.freqEnd) f.frequency.exponentialRampToValueAtTime(o.freqEnd, t0 + o.dur);
+  if (o.q) f.Q.value = o.q;
+  const g = ctx.createGain();
+  const a = o.attack || 0.001;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(o.peak, t0 + a);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
+  src.connect(f);
+  f.connect(g);
+  g.connect(master);
+  src.start(t0, Math.random() * 0.3); // 随机取样起点，避免每次波形雷同
+  src.stop(t0 + o.dur + 0.01);
+  gcOn(src, [src, f, g]);
+}
+
+// 木块 tock：190Hz 正弦下滑 + 倍频木质感泛音 + 低通噪声
+function tock(t0, pitch, k) {
+  tone(t0, { f0: pitch, f1: pitch * 0.82, dur: 0.07, peak: 0.5 * k, attack: 0.002 });
+  tone(t0, { f0: pitch * 2, dur: 0.045, peak: 0.12 * k });
+  noise(t0, { dur: 0.05, filter: 'lowpass', freq: 780, peak: 0.32 * k });
+}
+
+// 双音 chime：基频 + 八度泛音，柔和上行
+function chime(t0, f, dur, peak) {
+  tone(t0, { f0: f, dur: dur, peak: peak, attack: 0.004 });
+  tone(t0, { f0: f * 2, dur: dur * 0.6, peak: peak * 0.25, attack: 0.003 });
+}
+
+// 木琴音符：基频 + 3 倍非谐泛音（快衰）+ 高频敲击瞬态
+function xylo(t0, f, peak, dur) {
+  dur = dur || 0.4;
+  tone(t0, { f0: f, dur: dur, peak: peak, attack: 0.002 });
+  tone(t0, { f0: f * 3, dur: dur * 0.35, peak: peak * 0.28, attack: 0.001 });
+  noise(t0, { dur: 0.01, filter: 'highpass', freq: 3000, peak: peak * 0.3 });
+}
+
+/* ---------- cue 表 ---------- */
+
+const synth = {
+  // 轻 click ~30ms：带通噪声 + 短促高频体
+  button(t) {
+    noise(t, { dur: 0.03, filter: 'bandpass', freq: 2200, q: 1.1, peak: 0.5 });
+    tone(t, { f0: 1600, f1: 1150, dur: 0.02, peak: 0.14, attack: 0.001 });
+  },
+  // 木块 tock ~70ms：低通噪声 + 190Hz 正弦衰减，温润
+  move(t) { tock(t, 190, 1); },
+  // 低沉 thud：100Hz 下滑至 62Hz + 极低频噪声
+  denied(t) {
+    tone(t, { f0: 100, f1: 62, dur: 0.18, peak: 0.6, attack: 0.004 });
+    noise(t, { dur: 0.09, filter: 'lowpass', freq: 320, peak: 0.28, attack: 0.003 });
+  },
+  // 三连快速 tock：音高/力度微变
+  shuffle(t) {
+    tock(t, 190, 1);
+    tock(t + 0.075, 208, 0.9);
+    tock(t + 0.15, 176, 0.95);
+  },
+  // 双音上行 chime ~300ms：E5 → A5
+  hint(t) {
+    chime(t, 659.25, 0.13, 0.34);
+    chime(t + 0.14, 880, 0.16, 0.38);
+  },
+  // 极轻高频 tick，整体音量自降 0.4
+  snap(t) {
+    const k = 0.4;
+    noise(t, { dur: 0.025, filter: 'highpass', freq: 5000, peak: 0.5 * k });
+    tone(t, { f0: 3200, dur: 0.018, peak: 0.22 * k, attack: 0.001 });
+  },
+  // 木琴 C 大调五声琶音上行 + 收尾和弦，总长 ~1.6s
+  win(t) {
+    const scale = [523.25, 587.33, 659.25, 783.99, 880, 1046.5]; // C5 D5 E5 G5 A5 C6
+    for (let i = 0; i < scale.length; i++) xylo(t + i * 0.11, scale[i], 0.3 + i * 0.015);
+    const chord = [523.25, 659.25, 783.99, 1046.5]; // C E G C6
+    for (let i = 0; i < chord.length; i++) xylo(t + 0.72, chord[i], 0.2, 0.85);
+  }
+};
+
+/* ---------- 播放 / 自定义音效 ---------- */
+
+function playBuffer(buf, t0) {
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(master);
+  src.start(t0);
+  src.stop(t0 + buf.duration + 0.05);
+  gcOn(src, [src]);
+}
+
+function play(name) {
+  if (muted || volume <= 0) return;
+  const c = ensureCtx();
+  if (!c) return;
+  resume();
+  try {
+    const t0 = c.currentTime + 0.02; // 微前瞻，避开当前时刻竞态
+    const buf = buffers[name];
+    if (buf) { playBuffer(buf, t0); return; }
+    const fn = synth[name];
+    if (fn) fn(t0);
+  } catch (e) {
+    if (window.console && window.console.warn) window.console.warn('[SP.AUDIO] play fail:', name, e);
+  }
+}
+
+// 兼容 promise / callback 两种 decodeAudioData 形态
+function decode(ab) {
+  return new Promise((res, rej) => {
+    let p;
+    try { p = ctx.decodeAudioData(ab, res, rej); } catch (e) { rej(e); return; }
+    if (p && p.then) p.then(res, rej);
+  });
+}
+
+function decodeCue(name) {
+  const url = pending[name];
+  if (!url || !ctx) return;
+  fetch(url)
+    .then(r => r.arrayBuffer())
+    .then(ab => decode(ab))
+    .then(buf => { if (buf) buffers[name] = buf; })
+    .catch(() => { delete buffers[name]; }); // 失败回落合成音
+}
+
+function applyOverrides(map) {
+  if (!map) return;
+  for (const key in map) {
+    if (NAMES.indexOf(key) < 0) continue; // 未知 cue 忽略
+    const url = map[key];
+    if (!url) { delete pending[key]; delete buffers[key]; continue; } // 置空 = 恢复默认
+    pending[key] = url;
+    if (ensureCtx()) decodeCue(key);
+  }
+}
+
+function setVolume(v) {
+  const n = Number(v);
+  if (isFinite(n)) volume = Math.min(1, Math.max(0, n));
+  applyBus();
+}
+
+function setMuted(b) {
+  muted = !!b;
+  applyBus();
+}
+
+return { unlock, play, setVolume, setMuted, applyOverrides, names: NAMES.slice() };
+})();
+
+</script>
+<script>
+/* ===== src/fx.js ===== */
+window.SP=window.SP||{};
+
+// SP.FX — 落叶爆发 Canvas2D 粒子特效（契约：禁止 shadowBlur）
+// 叶片离屏预渲染：3 色 3 形贝塞尔叶形 × 4 旋转帧；对象池上限 300；DPR≤2；
+// resize/orientationchange 自适应；document.hidden 暂停恢复；无粒子时停 rAF 节能。
+SP.FX=(()=>{
+  'use strict';
+
+  /* ---------- 调色（契约锁死 #e8912a #d96b1f #f2b23a #b5541c） ---------- */
+  // 3 个叶身色：浅→深渐变对；#b5541c 兼作叶脉/叶柄/描边细节色
+  var COLORS=[
+    ['#f2b23a','#e8912a'],
+    ['#e8912a','#d96b1f'],
+    ['#d96b1f','#b5541c']
+  ];
+  var VEIN='rgba(181,84,28,.8)';
+  var STEM='#b5541c';
+  var EDGE='rgba(122,74,34,.35)';
+
+  /* ---------- 3 种贝塞尔叶形参数 ---------- */
+  // w:半宽/叶长 比；c1/c2w/c2:上段控制点；stem:柄长比例
+  var SHAPES=[
+    {w:.40,c1:.14,c2w:.98,c2:.30,stem:.16},  // 尖椭圆叶
+    {w:.52,c1:-.02,c2w:.92,c2:.36,stem:.12}, // 圆桃形叶（最宽偏下）
+    {w:.28,c1:.22,c2w:.96,c2:.24,stem:.22}   // 细长柳叶
+  ];
+  var FRAMES=4;              // 预渲染旋转帧数（45°/帧，配合镜像=8 视角，循环无缝）
+  var STEP=Math.PI/4;
+  var SPR=72;                // 精灵画布边长(px)
+  var MAX_P=300;             // 粒子池上限（契约）
+  var TAU=Math.PI*2;
+
+  /* ---------- 离屏预渲染 ---------- */
+  var SPRITES=null;          // SPRITES[color][shape][frame] -> canvas
+
+  function leafPath(c,L,s){
+    var hw=L*s.w;
+    c.beginPath();
+    c.moveTo(0,-L*0.5);                                   // 叶尖
+    c.bezierCurveTo( hw,-L*s.c1,  hw*s.c2w, L*s.c2, 0, L*0.5); // 右缘
+    c.bezierCurveTo(-hw*s.c2w, L*s.c2, -hw,-L*s.c1, 0,-L*0.5); // 左缘
+    c.closePath();
+  }
+
+  function drawLeaf(c,L,s,ci){
+    // 叶柄（先画，被叶身压住根部）
+    c.strokeStyle=STEM; c.lineWidth=Math.max(1.5,L*0.045); c.lineCap='round';
+    c.beginPath();
+    c.moveTo(0,L*0.42);
+    c.quadraticCurveTo(L*0.05,L*(0.5+s.stem*0.5),L*0.09,L*(0.5+s.stem));
+    c.stroke();
+    // 叶身：浅→深线性渐变
+    var g=c.createLinearGradient(0,-L/2,0,L/2);
+    g.addColorStop(0,COLORS[ci][0]);
+    g.addColorStop(1,COLORS[ci][1]);
+    leafPath(c,L,s);
+    c.fillStyle=g; c.fill();
+    c.strokeStyle=EDGE; c.lineWidth=1.4; c.stroke();
+    // 叶脉：主脉 + 三对侧脉
+    c.strokeStyle=VEIN; c.lineWidth=Math.max(1,L*0.028);
+    c.beginPath();
+    c.moveTo(0,-L*0.42); c.lineTo(0,L*0.44);
+    for(var i=0;i<3;i++){
+      var t=-0.24+i*0.22, y=L*t, len=L*(0.17-i*0.02)*(s.w/0.4);
+      c.moveTo(0,y+L*0.04); c.lineTo( len,y-L*0.10);
+      c.moveTo(0,y+L*0.04); c.lineTo(-len,y-L*0.10);
+    }
+    c.stroke();
+  }
+
+  function buildSprites(){
+    if(SPRITES||typeof document==='undefined')return;
+    SPRITES=[];
+    for(var ci=0;ci<COLORS.length;ci++){
+      var byColor=[];
+      for(var si=0;si<SHAPES.length;si++){
+        var byShape=[];
+        for(var f=0;f<FRAMES;f++){
+          var cv=document.createElement('canvas');
+          cv.width=SPR; cv.height=SPR;
+          var c=cv.getContext('2d');
+          c.translate(SPR/2,SPR/2);
+          c.rotate(f*STEP);
+          drawLeaf(c,SPR*0.62,SHAPES[si],ci);
+          byShape.push(cv);
+        }
+        byColor.push(byShape);
+      }
+      SPRITES.push(byColor);
+    }
+  }
+
+  /* ---------- 画布 / 宿主 ---------- */
+  var cv=null, ctx=null, hostW=1, hostH=1;
+  var bound=false, resizeRaf=0;
+
+  function resize(){
+    if(!cv)return;
+    var el=cv.parentNode||document.body;
+    var dpr=Math.min(2,window.devicePixelRatio||1);   // DPR ≤ 2（契约）
+    hostW=Math.max(1,el.clientWidth||window.innerWidth);
+    hostH=Math.max(1,el.clientHeight||window.innerHeight);
+    cv.width=Math.round(hostW*dpr);
+    cv.height=Math.round(hostH*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  function onResize(){
+    if(resizeRaf)return;
+    resizeRaf=requestAnimationFrame(function(){resizeRaf=0;resize();});
+  }
+
+  function onVis(){
+    // 恢复：有活粒子且循环未在跑 → 重启（last 清零避免大 dt 跳变）
+    if(!document.hidden&&aliveCount>0&&!rafId){last=0;rafId=requestAnimationFrame(frame);}
+  }
+
+  function bind(){
+    if(bound)return;
+    bound=true;
+    window.addEventListener('resize',onResize,{passive:true});
+    window.addEventListener('orientationchange',onResize,{passive:true});
+    document.addEventListener('visibilitychange',onVis);
+  }
+
+  function init(hostEl){
+    var host=hostEl||document.body;
+    buildSprites();
+    if(!cv){
+      cv=document.createElement('canvas');
+      cv.setAttribute('aria-hidden','true');
+      ctx=cv.getContext('2d');
+    }
+    cv.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;'
+      +'pointer-events:none;z-index:9999;';
+    if(cv.parentNode!==host)host.appendChild(cv);   // appendChild 自动搬移节点
+    // 宿主无定位且无 transform 时补 relative，保证 canvas 全覆盖 host
+    var cs=getComputedStyle(host);
+    if(cs.position==='static'&&cs.transform==='none')host.style.position='relative';
+    bind();
+    resize();
+  }
+
+  function ensure(){
+    if(!cv)init(document.body);
+  }
+
+  /* ---------- 粒子池 ---------- */
+  var pool=new Array(MAX_P);
+  for(var i=0;i<MAX_P;i++){
+    pool[i]={alive:false,x:0,y:0,vx:0,vy:0,g:0,t:0,ttl:1,ci:0,si:0,
+      rot:0,spin:0,sc:1,sa:0,sf:0,sp:0};
+  }
+  var aliveCount=0, rafId=0, last=0;
+
+  /* ---------- 主循环 ---------- */
+  function frame(ts){
+    rafId=0;
+    if(!ctx)return;
+    if(document.hidden){last=0;return;}   // 隐藏时挂起，恢复由 onVis 接管
+    var dt=last?Math.min((ts-last)/1000,.05):.016;  // dt 钳制防跳变
+    last=ts;
+    ctx.clearRect(0,0,hostW,hostH);
+    var n=0,p;
+    for(var i=0;i<MAX_P;i++){
+      p=pool[i];
+      if(!p.alive)continue;
+      step(p,dt);
+      if(p.alive){draw(p);n++;}
+    }
+    ctx.globalAlpha=1;
+    aliveCount=n;
+    if(n)rafId=requestAnimationFrame(frame);  // 无粒子即停 rAF（节能）
+  }
+
+  function step(p,dt){
+    p.t+=dt;
+    if(p.t>=p.ttl){p.alive=false;return;}
+    p.vy+=p.g*dt;                    // 重力
+    if(p.vy>330)p.vy=330;            // 落叶终端速度
+    p.vx-=p.vx*1.5*dt;               // 空气阻尼
+    p.x+=p.vx*dt;
+    p.y+=p.vy*dt;
+    p.rot+=p.spin*dt;                // 自转
+    if(p.y>hostH+90||p.x<-140||p.x>hostW+140){p.alive=false;return;}  // 出界回收
+  }
+
+  function draw(p){
+    var k=p.t/p.ttl, a=p.t<0.08?p.t/0.08:1;    // 淡入
+    var remain=1-k;
+    if(remain<0.32)a*=remain/0.32;             // 末段 2~2.6s 内淡出
+    var sx=p.x+Math.sin(p.t*p.sf+p.sp)*p.sa;   // 水平正弦摇摆
+    var ang=p.rot%TAU; if(ang<0)ang+=TAU;
+    var fi=Math.round((ang%Math.PI)/STEP)%FRAMES;  // 4 旋转帧 + 镜像=无缝翻滚
+    var mir=ang>=Math.PI?-1:1;
+    var s=SPR*p.sc, dw=s*mir;
+    ctx.globalAlpha=a;
+    ctx.drawImage(SPRITES[p.ci][p.si][fi],sx-dw/2,p.y-s/2,dw,s);
+  }
+
+  function ensureLoop(){
+    if(rafId)return;
+    last=0;
+    rafId=requestAnimationFrame(frame);
+  }
+
+  /* ---------- API ---------- */
+
+  // leafBurst(x, y[, n[, opt]])
+  // x,y: 相对 host 的 CSS 像素坐标；n: 粒子数（受池上限约束）
+  // opt: {power=1 初速倍率, gravity=640, angle, arc=TAU 扇形, ttl=2.0, ttlMax=2.6}
+  function leafBurst(x,y,n,opt){
+    ensure();
+    buildSprites();
+    opt=opt||{};
+    n=(n==null?48:n)|0;
+    if(n<1)n=1;
+    var g=opt.gravity!=null?opt.gravity:640;
+    var pw=opt.power!=null?opt.power:1;
+    var base=opt.angle, arc=opt.arc!=null?opt.arc:TAU;
+    var ttl0=opt.ttl!=null?opt.ttl:2.0;
+    var ttl1=opt.ttlMax!=null?opt.ttlMax:ttl0+0.6;
+    var spawned=0,p;
+    for(var i=0;i<MAX_P&&spawned<n;i++){
+      p=pool[i];
+      if(p.alive)continue;
+      var a=base!=null?base+(Math.random()-.5)*arc:Math.random()*TAU;  // 四散
+      var sp=(130+Math.pow(Math.random(),0.65)*330)*pw;
+      p.alive=true;
+      p.x=x; p.y=y;
+      p.vx=Math.cos(a)*sp;
+      p.vy=Math.sin(a)*sp-60*pw;          // 轻微上抛
+      p.g=g;
+      p.t=0;
+      p.ttl=ttl0+Math.random()*(ttl1-ttl0);   // 2~2.6s 寿命
+      p.ci=(Math.random()*COLORS.length)|0;
+      p.si=(Math.random()*SHAPES.length)|0;
+      p.rot=Math.random()*TAU;
+      p.spin=(2.2+Math.random()*4.6)*(Math.random()<.5?-1:1);
+      p.sc=.32+Math.random()*.36;
+      p.sa=8+Math.random()*16;            // 摇摆幅度
+      p.sf=2.4+Math.random()*2.8;         // 摇摆频率
+      p.sp=Math.random()*TAU;
+      spawned++;
+    }
+    if(spawned){aliveCount+=spawned;ensureLoop();}
+    return spawned;
+  }
+
+  function stopAll(){
+    for(var i=0;i<MAX_P;i++)pool[i].alive=false;
+    aliveCount=0;
+    if(rafId){cancelAnimationFrame(rafId);rafId=0;}
+    last=0;
+    if(ctx)ctx.clearRect(0,0,hostW,hostH);
+  }
+
+  return {init:init,leafBurst:leafBurst,stopAll:stopAll};
+})();
+
+</script>
+<script>
+/* ===== src/config-panel.js ===== */
+/* =========================================================
+ * 数字华容道 · 设置面板（底部抽屉） — SP.CONFIG_PANEL
+ * 契约：mount(el) / open(tab?) / close() / isOpen() / onChange(cb)
+ * - open() 时深拷贝 SP.cfg 为内部 work；任何编辑立即 onChange(完整 cfg 深拷贝快照)
+ * - 永不直接读写 localStorage；SP.ART / SP.AUDIO 未装载时兜底
+ * - 样式内联注入，类名前缀 spcp-，木纹奶油风
+ * ======================================================= */
+window.SP = window.SP || {};
+SP.CONFIG_PANEL = (function () {
+  'use strict';
+
+  /* ---------------- 常量与默认值兜底 ---------------- */
+  var FALLBACK = { n: 5, leaves: true, sound: true, vols: { sfx: 0.9 }, picture: null, sounds: {} };
+  var TAB_ALIAS = {
+    'play': 'play', '玩法': 'play',
+    'pic': 'pic', 'picture': 'pic', 'img': 'pic', '图片': 'pic',
+    'sound': 'sound', 'sounds': 'sound', 'audio': 'sound', '音效': 'sound',
+    'data': 'data', '数据': 'data'
+  };
+  var TABS = [['play', '玩法'], ['pic', '图片'], ['sound', '音效'], ['data', '数据']];
+  var CUES = [['move', '移动音效'], ['win', '胜利音效'], ['button', '按钮音效']];
+
+  function deepCopy(o) { return o == null ? o : JSON.parse(JSON.stringify(o)); }
+  function clamp01(v) { v = Number(v); return isFinite(v) ? Math.min(1, Math.max(0, v)) : 0; }
+
+  /* 按契约 schema 清洗/补全，缺的键用内置默认值兜底 */
+  function sanitize(raw) {
+    var d = deepCopy(FALLBACK);
+    if (!raw || typeof raw !== 'object') return d;
+    var n = Number(raw.n);
+    if (n >= 3 && n <= 6 && Math.floor(n) === n) d.n = n;
+    if (typeof raw.leaves === 'boolean') d.leaves = raw.leaves;
+    if (typeof raw.sound === 'boolean') d.sound = raw.sound;
+    if (raw.vols && typeof raw.vols === 'object') {
+      var v = Number(raw.vols.sfx);
+      if (isFinite(v)) d.vols.sfx = Math.min(1, Math.max(0, v));
+    }
+    if (raw.picture === null || typeof raw.picture === 'string') d.picture = raw.picture;
+    if (raw.sounds && typeof raw.sounds === 'object') {
+      var s = {};
+      CUES.forEach(function (c) { if (typeof raw.sounds[c[0]] === 'string') s[c[0]] = raw.sounds[c[0]]; });
+      d.sounds = s;
+    }
+    return d;
+  }
+
+  /* 恢复默认 = window.SP.defaultCfg 快照（可能缺，内置兜底） */
+  function getDefaults() {
+    var d = (typeof window !== 'undefined' && window.SP) ? window.SP.defaultCfg : null;
+    if (typeof d === 'function') { try { d = d(); } catch (e) { d = null; } }
+    return d ? sanitize(deepCopy(d)) : deepCopy(FALLBACK);
+  }
+
+  /* ---------------- 模块状态 ---------------- */
+  var host = null, root = null;
+  var work = null;            // 工作副本（深拷贝）
+  var cbs = [];
+  var opened = false;
+  var curTab = 'play';
+  var toastTimer = 0;
+  var ui = {};                // 控件引用
+
+  /* ---------------- 样式 ---------------- */
+  var CSS = [
+    '.spcp-root{position:fixed;inset:0;z-index:9990;font-family:Georgia,\'Times New Roman\',\'Songti SC\',\'STSong\',serif;color:#5b2410;}',
+    '.spcp-root[hidden]{display:none!important;}',
+    '.spcp-mask{position:absolute;inset:0;background:rgba(46,22,8,.5);opacity:0;transition:opacity .24s ease;}',
+    '.spcp-root.spcp-open .spcp-mask{opacity:1;}',
+    '.spcp-drawer{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;max-height:88%;',
+      'background:repeating-linear-gradient(180deg,rgba(168,112,60,.05) 0 2px,rgba(255,255,255,0) 2px 7px),',
+      'linear-gradient(180deg,#f7e6bd 0%,#f2ddb0 55%,#eccf9c 100%);',
+      'border:3px solid #a8703c;border-bottom:none;border-radius:26px 26px 0 0;',
+      'box-shadow:0 -8px 28px rgba(60,30,10,.35);',
+      'transform:translateY(103%);transition:transform .28s cubic-bezier(.22,.9,.3,1);}',
+    '.spcp-root.spcp-open .spcp-drawer{transform:translateY(0);}',
+    '.spcp-drawer::before{content:\'\';position:absolute;left:7px;right:7px;top:7px;bottom:7px;',
+      'border:1px solid rgba(122,74,34,.3);border-radius:20px 20px 0 0;pointer-events:none;}',
+    '.spcp-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 4px;flex:0 0 auto;}',
+    '.spcp-title{font-size:21px;font-weight:700;letter-spacing:6px;text-shadow:0 1px 0 rgba(255,248,224,.9);padding-left:6px;}',
+    '.spcp-close{width:44px;height:44px;border-radius:50%;border:2px solid #7c4a22;cursor:pointer;flex:0 0 auto;',
+      'background:radial-gradient(circle at 50% 32%,#c07540,#8a4423 72%);',
+      'box-shadow:0 0 0 3px #efdbaa,0 2px 4px rgba(60,30,10,.4);color:#f7e6c4;',
+      'font:700 17px/1 Georgia,\'Songti SC\',serif;}',
+    '.spcp-close:active{transform:translateY(1px);}',
+    '.spcp-tabs{display:flex;gap:6px;padding:6px 16px 10px;flex:0 0 auto;}',
+    '.spcp-tab{flex:1;min-height:44px;border-radius:14px;cursor:pointer;color:#7a4a22;',
+      'font:600 15px/1 Georgia,\'Songti SC\',serif;border:2px solid #b98a4e;',
+      'background:linear-gradient(180deg,#f6e3b2,#ebcf96);box-shadow:inset 0 1px 0 rgba(255,250,230,.8);}',
+    '.spcp-tab.spcp-on{color:#f7e6c4;border-color:#7c4a22;background:linear-gradient(180deg,#a85a2e,#8a4423);',
+      'box-shadow:inset 0 2px 4px rgba(0,0,0,.28);}',
+    '.spcp-body{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:6px 16px 14px;}',
+    '.spcp-panel[hidden]{display:none!important;}',
+    '.spcp-card{background:linear-gradient(180deg,#fbeecb,#f3d69a);border:2px solid #b98a4e;border-radius:16px;',
+      'box-shadow:inset 0 0 0 1px rgba(122,74,34,.22),0 1px 0 rgba(255,250,230,.6);padding:2px 14px;margin-bottom:12px;}',
+    '.spcp-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:6px 0;}',
+    '.spcp-row+.spcp-row{border-top:1px dashed rgba(122,74,34,.35);}',
+    '.spcp-row.spcp-col{flex-direction:column;align-items:stretch;gap:10px;padding:12px 0;}',
+    '.spcp-rowlabel{font-size:16px;font-weight:700;}',
+    '.spcp-rowsub{display:block;font-size:12px;font-weight:400;color:#8a5a34;margin-top:3px;}',
+    '.spcp-volhead{display:flex;justify-content:space-between;align-items:center;}',
+    '.spcp-volval{display:inline-block;min-width:48px;text-align:right;color:#8a4423;font-size:15px;}',
+    '.spcp-dim{opacity:.45;}',
+    '.spcp-seg{display:flex;gap:6px;background:rgba(168,112,60,.16);border:2px solid #b98a4e;border-radius:14px;padding:3px;}',
+    '.spcp-seg button{flex:1;min-height:44px;border:none;border-radius:10px;cursor:pointer;',
+      'font:700 15px/1 Georgia,\'Songti SC\',serif;color:#7a4a22;background:transparent;}',
+    '.spcp-seg button.spcp-on{color:#f7e6c4;background:linear-gradient(180deg,#a85a2e,#8a4423);',
+      'box-shadow:inset 0 2px 4px rgba(0,0,0,.28),0 1px 0 rgba(255,250,230,.5);}',
+    '.spcp-switch{position:relative;display:inline-block;width:58px;height:34px;flex:0 0 auto;cursor:pointer;}',
+    '.spcp-switch input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer;z-index:2;}',
+    '.spcp-track{position:absolute;inset:0;border-radius:999px;border:2px solid #a8703c;',
+      'background:linear-gradient(180deg,#dcc494,#cbb078);box-shadow:inset 0 2px 4px rgba(90,50,20,.35);}',
+    '.spcp-knob{position:absolute;top:4px;left:4px;width:26px;height:26px;border-radius:50%;pointer-events:none;',
+      'background:radial-gradient(circle at 35% 30%,#fdf3d7,#eed7a0);border:2px solid #b98a4e;',
+      'box-shadow:0 2px 3px rgba(90,50,20,.4);transition:left .18s ease;}',
+    '.spcp-switch input:checked ~ .spcp-track{background:linear-gradient(180deg,#a85a2e,#8a4423);border-color:#7c4a22;}',
+    '.spcp-switch input:checked ~ .spcp-knob{left:28px;}',
+    '.spcp-range{-webkit-appearance:none;appearance:none;width:100%;height:16px;border-radius:999px;cursor:pointer;',
+      'border:2px solid #b98a4e;background:linear-gradient(180deg,#dcc494,#cbb078);',
+      'box-shadow:inset 0 2px 3px rgba(90,50,20,.3);outline:none;}',
+    '.spcp-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:30px;height:30px;border-radius:50%;',
+      'background:radial-gradient(circle at 35% 30%,#fdf3d7,#eed7a0);border:2px solid #b98a4e;',
+      'box-shadow:0 2px 4px rgba(90,50,20,.4);}',
+    '.spcp-range::-moz-range-thumb{width:26px;height:26px;border-radius:50%;',
+      'background:radial-gradient(circle at 35% 30%,#fdf3d7,#eed7a0);border:2px solid #b98a4e;}',
+    '.spcp-btn{min-height:44px;padding:0 18px;border-radius:999px;cursor:pointer;color:#6b3212;',
+      'font:700 15px/1.2 Georgia,\'Songti SC\',serif;border:2px solid #b5713a;',
+      'background:linear-gradient(180deg,#f7e4b2,#eed19c);',
+      'box-shadow:0 2px 0 rgba(124,74,34,.4),inset 0 1px 0 rgba(255,250,230,.9);}',
+    '.spcp-btn:active{transform:translateY(1px);}',
+    '.spcp-btn-primary{color:#f7e6c4;border-color:#7c4a22;background:linear-gradient(180deg,#a85a2e,#8a4423);',
+      'box-shadow:0 2px 0 rgba(90,40,15,.5),inset 0 1px 0 rgba(255,230,190,.35);}',
+    '.spcp-btnrow{display:flex;gap:10px;margin:2px 0 12px;}',
+    '.spcp-btnrow .spcp-btn{flex:1;padding:0 8px;}',
+    '.spcp-btncol{display:flex;flex-direction:column;gap:10px;margin:2px 0 12px;}',
+    '.spcp-note{font-size:13px;color:#7a4a22;margin:8px 2px 10px;line-height:1.5;}',
+    '.spcp-preview{height:150px;border-radius:14px;border:2px dashed #b98a4e;background-color:#efdaa8;',
+      'background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;',
+      'color:#8a5a34;font-size:14px;margin:2px 0 12px;}',
+    '.spcp-preview.spcp-hasimg{border-style:solid;border-color:#a8703c;}',
+    '.spcp-preview span{background:rgba(247,230,189,.88);padding:6px 14px;border-radius:999px;}',
+    '.spcp-file{display:none!important;}',
+    '.spcp-cuehead{display:flex;align-items:center;justify-content:space-between;}',
+    '.spcp-chip{font-size:12px;color:#8a4423;border:1px solid rgba(168,90,46,.45);',
+      'background:rgba(168,90,46,.12);border-radius:999px;padding:3px 10px;white-space:nowrap;}',
+    '.spcp-cuebtns{display:flex;gap:8px;margin-top:10px;}',
+    '.spcp-cuebtns .spcp-btn{flex:1;padding:0 6px;font-size:14px;}',
+    '.spcp-cue{padding:12px 14px;}',
+    '.spcp-foot{flex:0 0 auto;padding:10px 16px calc(12px + env(safe-area-inset-bottom));',
+      'border-top:1px dashed rgba(122,74,34,.35);}',
+    '.spcp-done{width:100%;font-size:17px;letter-spacing:8px;padding-left:8px;}',
+    '.spcp-toast{position:absolute;top:58px;left:50%;transform:translateX(-50%);z-index:6;max-width:82%;',
+      'background:rgba(91,36,16,.92);color:#f7e6c4;font-size:14px;padding:9px 18px;border-radius:999px;',
+      'box-shadow:0 3px 10px rgba(40,18,6,.4);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+    '.spcp-toast[hidden]{display:none!important;}',
+    '.spcp-hide{display:none!important;}',
+    '.spcp-root button:focus-visible,.spcp-root input:focus-visible{outline:3px solid rgba(168,90,46,.85);outline-offset:2px;}',
+    '@media (min-width:640px){',
+      '.spcp-drawer{left:50%;right:auto;width:520px;transform:translate(-50%,103%);',
+        'border-bottom:3px solid #a8703c;border-radius:26px;}',
+      '.spcp-drawer::before{border-radius:20px;}',
+      '.spcp-root.spcp-open .spcp-drawer{transform:translate(-50%,0);}',
+    '}'
+  ].join('\n');
+
+  function ensureStyle() {
+    if (document.getElementById('spcp-style')) return;
+    var st = document.createElement('style');
+    st.id = 'spcp-style';
+    st.textContent = CSS;
+    (document.head || document.documentElement).appendChild(st);
+  }
+
+  /* ---------------- DOM 构建 ---------------- */
+  function cueCardHTML(key, label) {
+    return '' +
+      '<div class="spcp-card spcp-cue" data-cue="' + key + '">' +
+        '<div class="spcp-cuehead">' +
+          '<div class="spcp-rowlabel">' + label + '</div>' +
+          '<span class="spcp-chip" data-role="cuechip">默认</span>' +
+        '</div>' +
+        '<div class="spcp-cuebtns">' +
+          '<button type="button" class="spcp-btn" data-cact="play">试听</button>' +
+          '<button type="button" class="spcp-btn" data-cact="up">自定义</button>' +
+          '<button type="button" class="spcp-btn spcp-hide" data-cact="reset">恢复默认</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function panelPlayHTML() {
+    var seg = [3, 4, 5, 6].map(function (n) {
+      return '<button type="button" data-n="' + n + '">' + n + '×' + n + '</button>';
+    }).join('');
+    return '' +
+      '<div class="spcp-card">' +
+        '<div class="spcp-row spcp-col">' +
+          '<div class="spcp-rowlabel">棋盘尺寸<span class="spcp-rowsub">切换后立即生效并重开一局</span></div>' +
+          '<div class="spcp-seg" data-role="seg">' + seg + '</div>' +
+        '</div>' +
+        '<div class="spcp-row">' +
+          '<div class="spcp-rowlabel">落叶动画<span class="spcp-rowsub">胜利时的落叶庆祝效果</span></div>' +
+          '<label class="spcp-switch"><input type="checkbox" data-role="leaves" aria-label="落叶动画">' +
+            '<span class="spcp-track"></span><span class="spcp-knob"></span></label>' +
+        '</div>' +
+        '<div class="spcp-row">' +
+          '<div class="spcp-rowlabel">游戏音效<span class="spcp-rowsub">滑动、按钮与胜利音效</span></div>' +
+          '<label class="spcp-switch"><input type="checkbox" data-role="sound" aria-label="游戏音效">' +
+            '<span class="spcp-track"></span><span class="spcp-knob"></span></label>' +
+        '</div>' +
+        '<div class="spcp-row spcp-col" data-role="volrow">' +
+          '<div class="spcp-volhead"><span class="spcp-rowlabel">音量</span>' +
+            '<span class="spcp-volval" data-role="volval">90%</span></div>' +
+          '<input type="range" class="spcp-range" data-role="vol" min="0" max="1" step="0.05" aria-label="音量">' +
+        '</div>' +
+      '</div>';
+  }
+
+  function panelPicHTML() {
+    return '' +
+      '<p class="spcp-note">上传一张图片即可开启图片模式，长边超过 720px 会自动压缩；随时可恢复数字模式。</p>' +
+      '<div class="spcp-preview" data-role="picprev"><span data-role="pichint">尚未启用图片模式</span></div>' +
+      '<div class="spcp-btnrow">' +
+        '<button type="button" class="spcp-btn spcp-btn-primary" data-act="picup">上传图片</button>' +
+        '<button type="button" class="spcp-btn" data-act="picnum">恢复数字模式</button>' +
+      '</div>' +
+      '<input type="file" class="spcp-file" accept="image/*" data-role="picfile">';
+  }
+
+  function panelSoundHTML() {
+    var cards = CUES.map(function (c) { return cueCardHTML(c[0], c[1]); }).join('');
+    return '' +
+      '<p class="spcp-note">可用自己的音频替换内置音效（支持常见音频格式），仅在本机生效。</p>' +
+      cards +
+      '<div class="spcp-btnrow">' +
+        '<button type="button" class="spcp-btn" data-act="sndall">全部恢复默认音效</button>' +
+      '</div>' +
+      '<input type="file" class="spcp-file" accept="audio/*" data-role="sndfile">';
+  }
+
+  function panelDataHTML() {
+    return '' +
+      '<p class="spcp-note">导出的 JSON 包含当前全部设置（含自定义图片与音效），可用于备份或迁移；导入会立即覆盖当前配置。</p>' +
+      '<div class="spcp-btncol">' +
+        '<button type="button" class="spcp-btn spcp-btn-primary" data-act="export">导出配置（JSON 下载）</button>' +
+        '<button type="button" class="spcp-btn" data-act="import">导入配置</button>' +
+        '<button type="button" class="spcp-btn" data-act="resetall">恢复默认配置</button>' +
+      '</div>' +
+      '<input type="file" class="spcp-file" accept="application/json,.json,text/plain" data-role="cfgfile">';
+  }
+
+  function buildDOM() {
+    root = document.createElement('div');
+    root.className = 'spcp-root';
+    root.setAttribute('aria-hidden', 'true');
+    root.innerHTML = '' +
+      '<div class="spcp-mask"></div>' +
+      '<section class="spcp-drawer" role="dialog" aria-modal="true" aria-label="设置">' +
+        '<header class="spcp-head">' +
+          '<div class="spcp-title">设置</div>' +
+          '<button type="button" class="spcp-close" aria-label="关闭设置">✕</button>' +
+        '</header>' +
+        '<nav class="spcp-tabs" role="tablist">' +
+          TABS.map(function (t) {
+            return '<button type="button" class="spcp-tab" role="tab" data-tab="' + t[0] + '">' + t[1] + '</button>';
+          }).join('') +
+        '</nav>' +
+        '<div class="spcp-body">' +
+          '<div class="spcp-panel" data-panel="play">' + panelPlayHTML() + '</div>' +
+          '<div class="spcp-panel" data-panel="pic" hidden>' + panelPicHTML() + '</div>' +
+          '<div class="spcp-panel" data-panel="sound" hidden>' + panelSoundHTML() + '</div>' +
+          '<div class="spcp-panel" data-panel="data" hidden>' + panelDataHTML() + '</div>' +
+        '</div>' +
+        '<footer class="spcp-foot">' +
+          '<button type="button" class="spcp-btn spcp-btn-primary spcp-done" data-act="done">完成</button>' +
+        '</footer>' +
+        '<div class="spcp-toast" data-role="toast" hidden></div>' +
+      '</section>';
+
+    ui.mask = root.querySelector('.spcp-mask');
+    ui.toast = root.querySelector('[data-role="toast"]');
+    ui.tabs = Array.prototype.slice.call(root.querySelectorAll('.spcp-tab'));
+    ui.panels = Array.prototype.slice.call(root.querySelectorAll('.spcp-panel'));
+    ui.segBtns = Array.prototype.slice.call(root.querySelectorAll('.spcp-seg button'));
+    ui.leaves = root.querySelector('[data-role="leaves"]');
+    ui.sound = root.querySelector('[data-role="sound"]');
+    ui.vol = root.querySelector('[data-role="vol"]');
+    ui.volval = root.querySelector('[data-role="volval"]');
+    ui.volrow = root.querySelector('[data-role="volrow"]');
+    ui.picprev = root.querySelector('[data-role="picprev"]');
+    ui.pichint = root.querySelector('[data-role="pichint"]');
+    ui.picfile = root.querySelector('[data-role="picfile"]');
+    ui.sndfile = root.querySelector('[data-role="sndfile"]');
+    ui.cfgfile = root.querySelector('[data-role="cfgfile"]');
+    ui.cueCards = Array.prototype.slice.call(root.querySelectorAll('.spcp-cue'));
+
+    root.addEventListener('click', onClick, false);
+    root.addEventListener('input', onInput, false);
+    root.addEventListener('change', onChangeEv, false);
+    document.addEventListener('keydown', onKey, false);
+  }
+
+  /* ---------------- 事件分发 ---------------- */
+  function onClick(e) {
+    if (e.target.closest('.spcp-mask') || e.target.closest('.spcp-close')) { close(); return; }
+    var tab = e.target.closest('.spcp-tab');
+    if (tab) { showTab(tab.getAttribute('data-tab')); return; }
+    var seg = e.target.closest('.spcp-seg button');
+    if (seg && work) {
+      var n = Number(seg.getAttribute('data-n'));
+      if (n && work.n !== n) { work.n = n; notify(); syncUI(); }
+      return;
+    }
+    var act = e.target.closest('[data-act]');
+    if (act) { doAct(act.getAttribute('data-act')); return; }
+    var cact = e.target.closest('[data-cact]');
+    if (cact) {
+      var card = cact.closest('[data-cue]');
+      doCue(card ? card.getAttribute('data-cue') : null, cact.getAttribute('data-cact'));
+    }
+  }
+
+  function onInput(e) {
+    if (!work) return;
+    if (e.target === ui.vol) {
+      work.vols.sfx = clamp01(ui.vol.value);
+      ui.volval.textContent = Math.round(work.vols.sfx * 100) + '%';
+      notify();
+    }
+  }
+
+  function onChangeEv(e) {
+    if (!work) return;
+    if (e.target === ui.leaves) { work.leaves = !!ui.leaves.checked; notify(); syncUI(); return; }
+    if (e.target === ui.sound) { work.sound = !!ui.sound.checked; notify(); syncUI(); return; }
+    if (e.target === ui.picfile) {
+      var pf = ui.picfile.files && ui.picfile.files[0];
+      ui.picfile.value = '';
+      handlePicFile(pf);
+      return;
+    }
+    if (e.target === ui.sndfile) {
+      var sf = ui.sndfile.files && ui.sndfile.files[0];
+      var cue = ui.sndfile.getAttribute('data-cue') || 'move';
+      ui.sndfile.value = '';
+      handleSndFile(cue, sf);
+      return;
+    }
+    if (e.target === ui.cfgfile) {
+      var cf = ui.cfgfile.files && ui.cfgfile.files[0];
+      ui.cfgfile.value = '';
+      handleCfgFile(cf);
+    }
+  }
+
+  function onKey(e) {
+    if (opened && (e.key === 'Escape' || e.keyCode === 27)) close();
+  }
+
+  function doAct(act) {
+    if (!work) return;
+    switch (act) {
+      case 'done': close(); break;
+      case 'picup': ui.picfile.click(); break;
+      case 'picnum':
+        work.picture = null; notify(); syncUI(); toast('已恢复数字模式');
+        break;
+      case 'sndall':
+        work.sounds = {}; notify(); syncUI(); toast('已全部恢复默认音效');
+        break;
+      case 'export': doExport(); break;
+      case 'import': ui.cfgfile.click(); break;
+      case 'resetall':
+        work = getDefaults(); notify(); syncUI(); toast('已恢复默认配置');
+        break;
+    }
+  }
+
+  function doCue(cue, act) {
+    if (!work || !cue) return;
+    if (act === 'play') { previewCue(cue); return; }
+    if (act === 'up') { ui.sndfile.setAttribute('data-cue', cue); ui.sndfile.click(); return; }
+    if (act === 'reset') {
+      delete work.sounds[cue]; notify(); syncUI(); toast('已恢复默认音效');
+    }
+  }
+
+  /* ---------------- 行为实现 ---------------- */
+  function previewCue(cue) {
+    var A = (typeof window !== 'undefined' && window.SP) ? window.SP.AUDIO : null;
+    if (A && typeof A.play === 'function') {
+      try {
+        if (typeof A.setVolume === 'function') A.setVolume(work.vols.sfx);
+        A.play(cue);
+        return;
+      } catch (err) { /* 落到兜底提示 */ }
+    }
+    toast('音效模块未加载，暂不能试听');
+  }
+
+  function fileToDataURL(file, cb) {
+    if (!file) { cb(null); return; }
+    var fr = new FileReader();
+    fr.onload = function () { cb(typeof fr.result === 'string' ? fr.result : null); };
+    fr.onerror = function () { cb(null); };
+    try { fr.readAsDataURL(file); } catch (e) { cb(null); }
+  }
+
+  /* 图片压缩：长边 ≤720，JPEG 0.85；失败回落原图 dataURL */
+  function compressImage(dataURL, cb) {
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var MAX = 720, w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+        if (!w || !h) { cb(dataURL); return; }
+        var s = Math.min(1, MAX / Math.max(w, h));
+        w = Math.max(1, Math.round(w * s));
+        h = Math.max(1, Math.round(h * s));
+        var cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        cb(cv.toDataURL('image/jpeg', 0.85) || dataURL);
+      } catch (e) { cb(dataURL); }
+    };
+    img.onerror = function () { cb(null); };
+    img.src = dataURL;
+  }
+
+  function handlePicFile(file) {
+    if (!file) return;
+    if (file.type && !/^image\//.test(file.type)) { toast('请选择图片文件'); return; }
+    fileToDataURL(file, function (url) {
+      if (!url) { toast('图片读取失败'); return; }
+      compressImage(url, function (out) {
+        if (!out) { toast('图片处理失败'); return; }
+        work.picture = out; notify(); syncUI(); toast('图片模式已开启');
+      });
+    });
+  }
+
+  function handleSndFile(cue, file) {
+    if (!file) return;
+    if (file.type && !/^audio\//.test(file.type)) { toast('请选择音频文件'); return; }
+    fileToDataURL(file, function (url) {
+      if (!url) { toast('音频读取失败'); return; }
+      work.sounds[cue] = url; notify(); syncUI(); toast('音效已更新');
+    });
+  }
+
+  function handleCfgFile(file) {
+    if (!file) return;
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        var obj = JSON.parse(String(fr.result));
+        work = sanitize(obj && typeof obj === 'object' ? obj : null);
+        notify(); syncUI(); toast('配置已导入');
+      } catch (e) { toast('导入失败：不是有效的配置文件'); }
+    };
+    fr.onerror = function () { toast('导入失败：文件读取失败'); };
+    try { fr.readAsText(file); } catch (e) { toast('导入失败：文件读取失败'); }
+  }
+
+  function doExport() {
+    try {
+      var data = JSON.stringify(deepCopy(work), null, 2);
+      var blob = new Blob([data], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'slide-puzzle-config.json';
+      document.body.appendChild(a);
+      a.click();
+      a.parentNode.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 800);
+      toast('配置已导出');
+    } catch (e) { toast('导出失败'); }
+  }
+
+  /* ---------------- 渲染同步 ---------------- */
+  function showTab(tab) {
+    curTab = TAB_ALIAS[tab] || 'play';
+    ui.tabs.forEach(function (b) {
+      var on = b.getAttribute('data-tab') === curTab;
+      b.classList.toggle('spcp-on', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    ui.panels.forEach(function (p) {
+      p.hidden = p.getAttribute('data-panel') !== curTab;
+    });
+  }
+
+  function syncUI() {
+    if (!root || !work) return;
+    ui.segBtns.forEach(function (b) {
+      b.classList.toggle('spcp-on', Number(b.getAttribute('data-n')) === work.n);
+      b.setAttribute('aria-pressed', Number(b.getAttribute('data-n')) === work.n ? 'true' : 'false');
+    });
+    ui.leaves.checked = !!work.leaves;
+    ui.sound.checked = !!work.sound;
+    ui.vol.value = String(clamp01(work.vols.sfx));
+    ui.volval.textContent = Math.round(clamp01(work.vols.sfx) * 100) + '%';
+    ui.volrow.classList.toggle('spcp-dim', !work.sound);
+    if (work.picture) {
+      ui.picprev.style.backgroundImage = 'url("' + work.picture.replace(/"/g, '%22') + '")';
+      ui.picprev.classList.add('spcp-hasimg');
+      ui.pichint.hidden = true;
+    } else {
+      ui.picprev.style.backgroundImage = 'none';
+      ui.picprev.classList.remove('spcp-hasimg');
+      ui.pichint.hidden = false;
+      ui.pichint.textContent = '尚未启用图片模式';
+    }
+    ui.cueCards.forEach(function (card) {
+      var cue = card.getAttribute('data-cue');
+      var custom = typeof work.sounds[cue] === 'string' && work.sounds[cue].length > 0;
+      card.querySelector('[data-role="cuechip"]').textContent = custom ? '已自定义' : '默认';
+      var rb = card.querySelector('[data-cact="reset"]');
+      rb.classList.toggle('spcp-hide', !custom);
+    });
+  }
+
+  function toast(msg) {
+    if (!ui.toast) return;
+    ui.toast.textContent = msg;
+    ui.toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { ui.toast.hidden = true; }, 1600);
+  }
+
+  /* ---------------- 对外接口 ---------------- */
+  function notify() {
+    if (!work) return;
+    cbs.forEach(function (cb) {
+      try { cb(deepCopy(work)); } catch (e) { /* 回调异常不影响面板 */ }
+    });
+  }
+
+  function mount(el) {
+    if (!el) return;
+    ensureStyle();
+    if (root && root.parentNode === el) return;
+    if (root && root.parentNode) root.parentNode.removeChild(root);
+    host = el;
+    buildDOM();
+    root.hidden = true;
+    host.appendChild(root);
+  }
+
+  function open(tab) {
+    if (!root) mount(document.body);
+    work = sanitize(window.SP && window.SP.cfg);   // 深拷贝 + 补全 schema
+    showTab(TAB_ALIAS[tab] || 'play');
+    syncUI();
+    opened = true;
+    root.hidden = false;
+    root.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { root.classList.add('spcp-open'); });
+    });
+  }
+
+  function close() {
+    if (!root || !opened) return;
+    opened = false;
+    root.classList.remove('spcp-open');
+    root.setAttribute('aria-hidden', 'true');
+    setTimeout(function () { if (!opened && root) root.hidden = true; }, 300);
+  }
+
+  function isOpen() { return opened; }
+
+  function onChange(cb) {
+    if (typeof cb === 'function') cbs.push(cb);
+    return function off() {
+      var i = cbs.indexOf(cb);
+      if (i >= 0) cbs.splice(i, 1);
+    };
+  }
+
+  return { mount: mount, open: open, close: close, isOpen: isOpen, onChange: onChange };
+})();
+
+</script>
+<script>
+/* ===== src/game.js ===== */
+/* ===== src/game.js — 状态机/渲染/计时/持久化/接线（主线负责） ===== */
+window.SP = window.SP || {};
+SP.GAME = (() => {
+  'use strict';
+
+  const LS_CFG = 'sp_config_v1', LS_ST = 'sp_state_v1';
+  const Q = new URLSearchParams(location.search);
+  // ?reset=1 必须在读 localStorage 之前清档
+  if (Q.get('reset') === '1') {
+    try { localStorage.removeItem(LS_CFG); localStorage.removeItem(LS_ST); } catch (e) {}
+  }
+
+  const noop = () => {};
+  const NOOP_AUDIO = new Proxy({ names: [] }, { get: (t, k) => (k in t ? t[k] : noop) });
+  const NOOP_FX = new Proxy({}, { get: (t, k) => (k in t ? t[k] : noop) });
+  const A = () => SP.AUDIO || NOOP_AUDIO;
+  const F = () => SP.FX || NOOP_FX;
+  const $ = id => document.getElementById(id);
+
+  function deepMerge(base, ext) {
+    if (!ext || typeof ext !== 'object') return base;
+    const out = Array.isArray(base) ? base.slice() : { ...base };
+    for (const k of Object.keys(ext)) {
+      const v = ext[k];
+      out[k] = (v && typeof v === 'object' && !Array.isArray(v)) ? deepMerge(base[k] || {}, v) : v;
+    }
+    return out;
+  }
+
+  function defaultCfg() {
+    return { n: 5, leaves: true, sound: true, vols: { sfx: 0.9 }, picture: null, sounds: {} };
+  }
+  let cfg = defaultCfg();
+  try {
+    const raw = localStorage.getItem(LS_CFG);
+    if (raw) cfg = deepMerge(defaultCfg(), JSON.parse(raw));
+  } catch (e) {}
+  window.SP.defaultCfg = defaultCfg;
+
+  // ---- 局内状态 ----
+  let S = { n: cfg.n, board: null, steps: 0, elapsed: 0, running: false, lastStart: 0, won: false, best: {} };
+  try {
+    const raw = localStorage.getItem(LS_ST);
+    if (raw) {
+      const st = JSON.parse(raw);
+      if (st && st.board && st.board.length === (st.n | 0) * (st.n | 0)) {
+        S = deepMerge(S, st);
+        if (S.won) { S.won = false; S.board = null; } // 赢完的局不复活
+        S.running = false; S.lastStart = 0;          // 离线时间不计入
+      }
+    }
+  } catch (e) {}
+
+  let scale = 1, busy = false, demo = null, hintPlan = null;
+  let tileEls = {};   // tile值 -> 元素
+  let cfgReady = false;
+
+  const grid = $('grid'), board = $('board');
+  const now = () => Date.now();
+  const elapsedNow = () => S.elapsed + (S.running ? now() - S.lastStart : 0);
+  const fmt = ms => {
+    const s = Math.floor(ms / 1000);
+    return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  };
+
+  // ---- 自适应缩放 ----
+  function fit() {
+    scale = Math.min(innerWidth / 720, innerHeight / 1280);
+    const st = $('stage');
+    st.style.transform = `translate(-50%,-50%) scale(${scale})`;
+  }
+  addEventListener('resize', fit);
+  addEventListener('orientationchange', fit);
+
+  // ---- 渲染 ----
+  function cellGeom() {
+    const gap = 6, W = 668;
+    const cell = (W - gap * (S.n - 1)) / S.n;
+    return { gap, cell };
+  }
+  function xyOf(idx) {
+    const { gap, cell } = cellGeom();
+    const r = (idx / S.n) | 0, c = idx % S.n;
+    return { x: c * (cell + gap), y: r * (cell + gap) };
+  }
+  function buildTiles() {
+    grid.innerHTML = '';
+    tileEls = {};
+    const { cell } = cellGeom();
+    const fs = Math.round(cell * 0.46);
+    for (let v = 1; v < S.n * S.n; v++) {
+      const el = document.createElement('div');
+      el.className = 'tile';
+      el.dataset.v = v;
+      const num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = v;
+      num.style.fontSize = fs + 'px';
+      el.appendChild(num);
+      grid.appendChild(el);
+      tileEls[v] = el;
+    }
+    applyPicture();
+    layoutAll(false);
+  }
+  function layoutAll(anim = true) {
+    for (let i = 0; i < S.board.length; i++) {
+      const v = S.board[i];
+      if (!v) continue;
+      const el = tileEls[v];
+      const { x, y } = xyOf(i);
+      if (!anim) el.style.transition = 'none';
+      el.style.width = el.style.height = cellGeom().cell + 'px';
+      el.style.transform = `translate(${x}px,${y}px)`;
+      if (!anim) { void el.offsetWidth; el.style.transition = ''; }
+    }
+  }
+  function applyPicture() {
+    const pic = cfg.picture;
+    for (let v = 1; v < S.n * S.n; v++) {
+      const el = tileEls[v];
+      if (!el) continue;
+      const num = el.firstChild;
+      if (pic) {
+        const gr = ((v - 1) / S.n) | 0, gc = (v - 1) % S.n;
+        el.style.backgroundImage = `url(${pic})`;
+        el.style.backgroundSize = `${S.n * 100}% ${S.n * 100}%`;
+        el.style.backgroundPosition = `${S.n > 1 ? (gc / (S.n - 1)) * 100 : 0}% ${S.n > 1 ? (gr / (S.n - 1)) * 100 : 0}%`;
+        num.style.display = 'none';
+      } else {
+        el.style.backgroundImage = '';
+        el.style.backgroundSize = '';
+        el.style.backgroundPosition = '';
+        num.style.display = '';
+      }
+    }
+  }
+
+  // ---- 计时 ----
+  setInterval(() => { $('timeVal').textContent = fmt(elapsedNow()); }, 250);
+
+  // ---- 存档 ----
+  function save() {
+    try {
+      localStorage.setItem(LS_ST, JSON.stringify({ ...S, elapsed: elapsedNow(), running: S.running, lastStart: 0 }));
+    } catch (e) {}
+  }
+  function saveCfg() {
+    try { localStorage.setItem(LS_CFG, JSON.stringify(cfg)); } catch (e) {}
+  }
+  addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+  addEventListener('pagehide', save);
+
+  // ---- 核心走子 ----
+  function doMove(i, opt = {}) {
+    if (S.won) return false;
+    const v = S.board[i];
+    if (!v || !SP.LOGIC.canMove(S.board, S.n, i)) {
+      if (!opt.demo && v) {
+        A().play('denied');
+        const el = tileEls[v];
+        el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+      }
+      return false;
+    }
+    const from = i, to = SP.LOGIC.blankOf(S.board);
+    S.board = SP.LOGIC.applyMove(S.board, S.n, i);
+    S.steps++;
+    if (!S.running && !S.won) { S.running = true; S.lastStart = now(); }
+    const el = tileEls[v];
+    const { x, y } = xyOf(to);
+    el.style.transform = `translate(${x}px,${y}px)`;
+    A().play('move');
+    if (S.board[to] === to + 1) A().play('snap');
+    $('stepVal').textContent = S.steps;
+    save();
+    if (SP.LOGIC.isSolved(S.board)) onWin();
+    return true;
+  }
+
+  function onWin() {
+    S.won = true;
+    S.elapsed = elapsedNow();
+    S.running = false;
+    const key = String(S.n);
+    const prev = S.best[key];
+    const isNew = !prev || S.elapsed < prev.t;
+    if (isNew) S.best[key] = { t: S.elapsed, s: S.steps };
+    save();
+    A().play('win');
+    const r = board.getBoundingClientRect();
+    const st = $('stage').getBoundingClientRect();
+    const cx = (r.left + r.width / 2 - st.left) / scale;
+    const cy = (r.top + r.height / 2 - st.top) / scale;
+    F().leafBurst(cx, cy, 80);
+    $('winTime').textContent = fmt(S.elapsed);
+    $('winSteps').textContent = S.steps;
+    $('winBest').textContent = fmt(S.best[key].t) + (isNew ? ' （新纪录！）' : '');
+    setTimeout(() => { $('winOverlay').classList.add('show'); }, 650);
+  }
+
+  function newGame(n) {
+    cancelDemo();
+    if (n) S.n = n;
+    S.board = SP.LOGIC.shuffle(S.n);
+    S.steps = 0; S.elapsed = 0; S.running = false; S.won = false;
+    $('stepVal').textContent = '0';
+    $('timeVal').textContent = '00:00';
+    $('sizeVal').textContent = `${S.n}×${S.n}`;
+    cfg.n = S.n;
+    buildTiles();
+    A().play('shuffle');
+    save();
+  }
+
+  function resumeOrNew() {
+    if (S.board) {
+      $('stepVal').textContent = S.steps;
+      $('sizeVal').textContent = `${S.n}×${S.n}`;
+      buildTiles();
+    } else {
+      newGame();
+    }
+  }
+
+  // ---- 提示 / 自动演示 ----
+  function stopTimerPause() {} // 演示不打断计时
+  function hintOne() {
+    if (busy || S.won) return;
+    const p = SP.LOGIC.plan(S.board, S.n);
+    if (!p || !p.length) { toast(p ? '已经拼好啦' : '提示不可用'); return; }
+    busy = true;
+    doMove(p[0]);
+    setTimeout(() => { busy = false; }, 170);
+  }
+  function startDemo() {
+    if (busy || demo || S.won) return;
+    const p = SP.LOGIC.plan(S.board, S.n);
+    if (!p || !p.length) { toast('已经拼好啦'); return; }
+    demo = { p, i: 0 };
+    busy = true;
+    toast('自动演示中，点棋盘可停止');
+    demoStep();
+  }
+  function demoStep() {
+    if (!demo) return;
+    if (demo.i >= demo.p.length || S.won) { cancelDemo(); return; }
+    doMove(demo.p[demo.i++], { demo: true });
+    if (demo) demo.timer = setTimeout(demoStep, 150);
+  }
+  function cancelDemo() {
+    if (demo) { clearTimeout(demo.timer); demo = null; }
+    busy = false;
+  }
+
+  // ---- 交互 ----
+  grid.addEventListener('pointerdown', e => {
+    A().unlock();
+    if (demo) { cancelDemo(); grid._swallow = true; return; }
+    grid._pd = { x: e.clientX, y: e.clientY, t: Date.now() };
+  });
+  grid.addEventListener('pointerup', e => {
+    if (grid._swallow) { grid._swallow = false; return; }
+    if (S.won || busy) return;
+    const pd = grid._pd;
+    if (!pd) return;
+    grid._pd = null;
+    const dx = e.clientX - pd.x, dy = e.clientY - pd.y;
+    const rect = grid.getBoundingClientRect();
+    const lx = (e.clientX - rect.left) / scale, ly = (e.clientY - rect.top) / scale;
+    const { cell, gap } = cellGeom();
+    const stride = cell + gap;
+    const c = Math.floor(lx / stride), r = Math.floor(ly / stride);
+    if (c < 0 || c >= S.n || r < 0 || r >= S.n) return;
+    const idx = r * S.n + c;
+    if (Math.hypot(dx, dy) < 18) {
+      doMove(idx);
+    } else if (Math.abs(dx) > Math.abs(dy)) {
+      doMove(SP.LOGIC.blankOf(S.board) - Math.sign(dx));       // 左滑→空格右侧块滑入
+    } else {
+      doMove(SP.LOGIC.blankOf(S.board) - Math.sign(dy) * S.n); // 上滑→空格下方块滑入
+    }
+  });
+
+  function pressable(id, fn) {
+    const el = $(id);
+    el.addEventListener('pointerdown', () => { el.classList.add('pressed'); A().unlock(); });
+    const up = () => el.classList.remove('pressed');
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointerleave', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('click', () => { A().play('button'); fn(); });
+  }
+
+  pressable('btnReset', () => { newGame(); toast('已重新打乱'); });
+  pressable('btnBack', () => { renderBest(); $('helpOverlay').classList.add('show'); });
+  pressable('btnHelpClose', () => $('helpOverlay').classList.remove('show'));
+  pressable('btnSettings', () => {
+    if (SP.CONFIG_PANEL) SP.CONFIG_PANEL.open();
+    else toast('设置未就绪');
+  });
+  pressable('btnAgain', () => { $('winOverlay').classList.remove('show'); newGame(); });
+  pressable('btnWinClose', () => $('winOverlay').classList.remove('show'));
+  pressable('plaque', () => {
+    const n = S.n >= 6 ? 3 : S.n + 1;
+    newGame(n);
+    toast(`已切换 ${n}×${n}`);
+  });
+
+  // 提示：点按归位一枚，长按 600ms 自动演示
+  {
+    let lpTimer = null, longFired = false;
+    const btn = $('btnHint');
+    btn.addEventListener('pointerdown', () => {
+      longFired = false;
+      lpTimer = setTimeout(() => { longFired = true; startDemo(); }, 600);
+    });
+    const clear = () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } };
+    btn.addEventListener('pointerup', clear);
+    btn.addEventListener('pointerleave', clear);
+    btn.addEventListener('pointercancel', clear);
+    btn.addEventListener('click', () => { if (!longFired) hintOne(); });
+  }
+
+  // ---- 声音按钮 ----
+  function syncSoundIcon() {
+    if (SP.ART) $('imgSound').src = SP.ART.icon(cfg.sound ? 'sndOn' : 'sndOff');
+  }
+  pressable('btnSound', () => {
+    cfg.sound = !cfg.sound;
+    A().setMuted(!cfg.sound);
+    syncSoundIcon();
+    saveCfg();
+    toast(cfg.sound ? '声音已开启' : '声音已关闭');
+  });
+
+  // ---- 背景落叶 ----
+  let leafTimer = null;
+  function spawnLeaf() {
+    const host = $('bgLeaves');
+    if (cfg.leaves && host.children.length < 4 && SP.ART) {
+      const wrap = document.createElement('div');
+      wrap.className = 'bgleaf';
+      const img = document.createElement('img');
+      img.src = SP.ART.leaf((Math.random() * 3) | 0);
+      const sz = 34 + Math.random() * 30;
+      img.style.width = sz + 'px';
+      wrap.style.left = (Math.random() * 660) + 'px';
+      wrap.style.animationDuration = (9 + Math.random() * 7) + 's';
+      img.style.animationDuration = (1.6 + Math.random() * 1.4) + 's';
+      wrap.appendChild(img);
+      wrap.addEventListener('animationend', () => wrap.remove());
+      host.appendChild(wrap);
+    }
+    leafTimer = setTimeout(spawnLeaf, 2800 + Math.random() * 2600);
+  }
+  function syncLeaves() { $('bgLeaves').style.display = cfg.leaves ? '' : 'none'; }
+
+  // ---- 最佳纪录 ----
+  function renderBest() {
+    const host = $('bestList');
+    host.innerHTML = '';
+    for (const n of [3, 4, 5, 6]) {
+      const b = S.best[String(n)];
+      const row = document.createElement('div');
+      row.className = 'stat-row';
+      row.innerHTML = `<span>${n}×${n}</span><span>${b ? fmt(b.t) + ' / ' + b.s + '步' : '--'}</span>`;
+      host.appendChild(row);
+    }
+  }
+
+  let toastTimer = null;
+  function toast(msg) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 1600);
+  }
+
+  // ---- 配置面板 ----
+  if (SP.CONFIG_PANEL) {
+    SP.CONFIG_PANEL.mount($('cfgHost'));
+    SP.CONFIG_PANEL.onChange(snap => {
+      const nChanged = snap.n !== cfg.n && snap.n !== S.n;
+      const wasN = cfg.n;
+      cfg = snap;
+      A().setVolume(cfg.vols ? cfg.vols.sfx : 0.9);
+      A().setMuted(!cfg.sound);
+      A().applyOverrides(cfg.sounds || {});
+      syncLeaves();
+      syncSoundIcon();
+      applyPicture();
+      if (cfg.n !== wasN) newGame(cfg.n);
+      saveCfg();
+    });
+  }
+
+  // ---- 图标 ----
+  function paintIcons() {
+    if (!SP.ART) return;
+    $('imgBack').src = SP.ART.icon('back');
+    $('imgTimer').src = SP.ART.icon('timer');
+    $('imgFoot').src = SP.ART.icon('foot');
+    $('imgReset').src = SP.ART.icon('reset');
+    $('imgBulb').src = SP.ART.icon('bulb');
+    $('imgTrophy').src = SP.ART.icon('trophy');
+    syncSoundIcon();
+  }
+
+  // ---- 启动 ----
+  if (Q.get('n')) {
+    const n = Math.min(6, Math.max(3, parseInt(Q.get('n'), 10) || 5));
+    if (n !== S.n) { S.n = n; S.board = null; }
+  }
+  fit();
+  resumeOrNew();
+  paintIcons();
+  syncLeaves();
+  A().setVolume(cfg.vols ? cfg.vols.sfx : 0.9);
+  A().setMuted(!cfg.sound);
+  A().applyOverrides(cfg.sounds || {});
+  spawnLeaf();
+  document.addEventListener('pointerdown', () => A().unlock(), { once: true, capture: true });
+
+  if (Q.get('muted') === '1') { cfg.sound = false; A().setMuted(true); syncSoundIcon(); }
+  if (Q.get('autoplay') === '1') setTimeout(startDemo, 800);
+
+  // ---- 测试钩子 ----
+  window.__sp = {
+    version: '1.0',
+    get state() { return S; },
+    get cfg() { return cfg; },
+    get busy() { return busy; },
+    get demo() { return !!demo; },
+    move(i) { return doMove(i); },
+    newGame,
+    hintOne, startDemo, cancelDemo,
+    rig(name) {
+      if (name === 'one') {
+        const b = SP.LOGIC.solved(S.n);
+        // 从复原局倒走一步：把 N²-2 号块滑进空格
+        const b2 = SP.LOGIC.applyMove(b, S.n, S.n * S.n - 2);
+        S.board = b2; S.steps = 1; S.running = true; S.lastStart = now(); S.won = false;
+        buildTiles();
+      }
+    },
+    save, toast,
+  };
+  if (Q.get('rig') === 'one') window.__sp.rig('one');
+
+  return {};
+})();
+
+</script>
+
+</body>
+</html>

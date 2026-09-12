@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SP.FX 预览 — leafBurst</title>
+<style>
+  html,body{margin:0;height:100%;}
+  #host{position:fixed;inset:0;overflow:hidden;cursor:crosshair;
+    background:radial-gradient(circle at 50% 38%,#ecd29c,#d9ba81);
+    font-family:Georgia,'Times New Roman','Songti SC',serif;}
+  #bar{position:fixed;top:12px;left:0;right:0;display:flex;gap:8px;
+    justify-content:center;flex-wrap:wrap;z-index:10;pointer-events:none;}
+  #bar button{pointer-events:auto;font:700 14px Georgia,'Songti SC',serif;
+    color:#6b3212;background:#f7e4b2;border:2px solid #b5713a;border-radius:999px;
+    padding:8px 14px;box-shadow:0 2px 0 #8a4423;cursor:pointer;}
+  #bar button:active{transform:translateY(2px);box-shadow:none;}
+</style>
+</head>
+<body>
+<div id="host"></div>
+<div id="bar">
+  <button data-n="60">小把 60</button>
+  <button data-n="140">中把 140</button>
+  <button data-n="300">上限 300</button>
+  <button id="stop">stopAll</button>
+</div>
+<script src="../src/fx.js"></script>
+<script>
+  var host=document.getElementById('host');
+  SP.FX.init(host);
+
+  function burst(x,y,n){return SP.FX.leafBurst(x,y,n);}
+
+  // 点击画布任意处在该点爆发
+  host.addEventListener('pointerdown',function(e){
+    var r=host.getBoundingClientRect();
+    burst(e.clientX-r.left,e.clientY-r.top,90);
+  });
+
+  document.getElementById('bar').addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    if(b.id==='stop'){SP.FX.stopAll();return;}
+    burst(innerWidth/2,innerHeight*0.45,+b.dataset.n);
+  });
+
+  // headless 截图支持：?n=数量&delay=触发延迟ms&m=多波次数
+  (function auto(){
+    var q=new URLSearchParams(location.search);
+    var n=+(q.get('n')||160), delay=+(q.get('delay')||100), m=+(q.get('m')||0);
+    setTimeout(function(){
+      burst(innerWidth/2,innerHeight*0.42,n);
+      for(var i=0;i<m;i++){
+        setTimeout(function(){
+          burst(Math.random()*innerWidth,Math.random()*innerHeight*0.7,30);
+        },i*90);
+      }
+    },delay);
+  })();
+</script>
+</body>
+</html>

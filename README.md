@@ -6,6 +6,8 @@ AI 辅助产出的案例集合 —— 方案 · 演示 · 视觉作品。
 
 ## Cases
 
+- [slide-puzzle](./slide-puzzle/) — 数字华容道 · 木质滑块拼图复刻：3×3~6×6、加权 A* 提示与长按自动演示、照片拼图模式、WebAudio 合成音效与落叶粒子、纪录刷新不丢（[在线游玩](https://case.youyongai.com/slide-puzzle/)）
+
 - [duofu-777](./duofu-777/) — 多福巨奖 · 澳门赌场 243 路老虎机复刻：四大递增奖池、福娃选奖、免费局、福 WILD 与金身押注档，WebAudio 合成 21 种音效、全 SVG 程序化资产、图标音效玩法全开放配置、积分刷新不丢（[在线游玩](https://case.youyongai.com/duofu-777/)）
 
 - [xiangan-airport-film](./xiangan-airport-film/) — 向海而翔 · 厦门翔安国际机场：45 秒 Blender 三维与实景宣传片，1080p、24fps、原创配乐（[在线播放](https://case.youyongai.com/xiangan-airport-film/)）

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>设置面板预览 · slide-puzzle</title>
+<style>
+  html,body{margin:0;padding:0;}
+  body{min-height:100vh;background:radial-gradient(circle at 50% 28%,#ecd29c,#d9ba81);font-family:Georgia,'Times New Roman','Songti SC','STSong',serif;color:#5b2410;}
+  #bar{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;font-size:13px;}
+  #bar button{min-height:40px;padding:0 12px;border-radius:999px;border:2px solid #b5713a;background:linear-gradient(180deg,#f7e4b2,#eed19c);color:#6b3212;font:700 13px/1 Georgia,'Songti SC',serif;cursor:pointer;}
+  #log{margin:4px 10px;padding:8px;font:12px/1.5 Menlo,Consolas,monospace;background:rgba(91,36,16,.08);border:1px dashed #a8703c;border-radius:10px;max-height:120px;overflow:auto;white-space:pre-wrap;}
+  #cfgHost{position:fixed;width:0;height:0;}
+  #stamp{position:fixed;right:10px;bottom:6px;font-size:11px;color:#8a5a34;}
+</style>
+</head>
+<body>
+<div id="bar">
+  <button data-open="play">打开·玩法</button>
+  <button data-open="pic">打开·图片</button>
+  <button data-open="sound">打开·音效</button>
+  <button data-open="data">打开·数据</button>
+  <button data-open="__close">关闭</button>
+</div>
+<pre id="log">log:</pre>
+<div id="stamp">tools/config-preview.html</div>
+<div id="cfgHost"></div>
+
+<script>
+/* ===== stubs（模拟主线的 window.SP.cfg / defaultCfg / AUDIO） ===== */
+window.SP = window.SP || {};
+/* 故意用非默认值，验证 open() 读取 SP.cfg 而非 defaultCfg */
+SP.cfg = { n: 4, leaves: false, sound: true, vols: { sfx: 0.6 }, picture: null, sounds: {} };
+SP.defaultCfg = { n: 5, leaves: true, sound: true, vols: { sfx: 0.9 }, picture: null, sounds: {} };
+window.__audioLog = [];
+SP.AUDIO = {
+  names: ['button', 'move', 'denied', 'shuffle', 'hint', 'snap', 'win'],
+  play: function (n) { window.__audioLog.push(n); },
+  setVolume: function (v) { window.__audioLog.push('vol:' + v); }
+};
+</script>
+<script src="../src/config-panel.js"></script>
+<script>
+/* ===== 预览页接线 ===== */
+function log(msg) {
+  var el = document.getElementById('log');
+  el.textContent += '\n' + msg;
+  el.scrollTop = el.scrollHeight;
+}
+SP.CONFIG_PANEL.mount(document.getElementById('cfgHost'));
+SP.CONFIG_PANEL.onChange(function (s) {
+  window.__lastSnap = s;
+  log('onChange -> n=' + s.n + ' leaves=' + s.leaves + ' sound=' + s.sound +
+      ' vols.sfx=' + s.vols.sfx + ' picture=' + (s.picture ? 'dataURL(len ' + s.picture.length + ')' : 'null') +
+      ' sounds=' + JSON.stringify(Object.keys(s.sounds)));
+});
+document.getElementById('bar').addEventListener('click', function (e) {
+  var b = e.target.closest('button[data-open]');
+  if (!b) return;
+  var t = b.getAttribute('data-open');
+  if (t === '__close') SP.CONFIG_PANEL.close(); else SP.CONFIG_PANEL.open(t);
+});
+
+/* ===== 工具 ===== */
+function d2b(u) {
+  var p = u.split(','), m = /:(.*?);/.exec(p[0])[1], bin = atob(p[1]);
+  var a = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+  return new Blob([a], { type: m });
+}
+function tinyWav() {
+  var sr = 8000, n = sr / 10, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  function ws(o, s) { for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
+  ws(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); ws(8, 'WAVE'); ws(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  ws(36, 'data'); v.setUint32(40, n * 2, true);
+  for (var i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.sin(i / sr * 2 * Math.PI * 440) * 8000, true);
+  var b = ''; new Uint8Array(buf).forEach(function (x) { b += String.fromCharCode(x); });
+  return 'data:audio/wav;base64,' + btoa(b);
+}
+function bigPng() {
+  var cv = document.createElement('canvas'); cv.width = 900; cv.height = 600;
+  var g = cv.getContext('2d');
+  g.fillStyle = '#c07540'; g.fillRect(0, 0, 900, 600);
+  g.fillStyle = '#f7e6c4'; g.font = '80px serif'; g.fillText('拼图', 330, 330);
+  return cv.toDataURL('image/png');
+}
+function feedFile(input, blob, name, type) {
+  var f = new File([blob], name, { type: type });
+  var dt = new DataTransfer();
+  dt.items.add(f);
+  input.files = dt.files;
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+}
+function until(fn, ms) {
+  ms = ms || 2500;
+  return new Promise(function (res) {
+    var t0 = Date.now();
+    (function p() {
+      var v = null;
+      try { v = fn(); } catch (e) {}
+      if (v) return res(v);
+      if (Date.now() - t0 > ms) return res(null);
+      setTimeout(p, 30);
+    })();
+  });
+}
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+/* ===== DOM 驱动行为自测 ===== */
+async function runSelfTest() {
+  var P = SP.CONFIG_PANEL, R = [], pass = 0, fail = 0;
+  function t(name, ok, extra) {
+    ok = !!ok; if (ok) pass++; else fail++;
+    R.push({ name: name, ok: ok, extra: extra == null ? '' : String(extra) });
+    log((ok ? 'PASS ' : 'FAIL ') + name + (extra != null ? '  [' + extra + ']' : ''));
+  }
+  var $ = function (sel) { return document.querySelector(sel); };
+
+  /* 1 开关与打开 */
+  t('初始 isOpen=false', P.isOpen() === false);
+  P.open('play');
+  t('open 后 isOpen=true', P.isOpen() === true);
+  t('open 读 SP.cfg：seg 高亮 4×4', $('.spcp-seg button[data-n="4"]').classList.contains('spcp-on'));
+  t('open 读 SP.cfg：音量 60%', $('#log') && $('[data-role="volval"]').textContent === '60%', $('[data-role="volval"]').textContent);
+
+  /* 2 改尺寸 → onChange 收到含 n 的完整快照 */
+  window.__lastSnap = null;
+  $('.spcp-seg button[data-n="4"]').click();              // 同值不 notify
+  t('同值点击不触发 onChange', window.__lastSnap === null);
+  $('.spcp-seg button[data-n="3"]').click();
+  var s1 = window.__lastSnap;
+  t('改尺寸收到快照', !!s1 && s1.n === 3, s1 && s1.n);
+  t('快照含完整 schema', !!s1 && ['n', 'leaves', 'sound', 'vols', 'picture', 'sounds'].every(function (k) { return k in s1; }), s1 && Object.keys(s1).join(','));
+
+  /* 3 快照是深拷贝：改快照不污染面板 */
+  s1.n = 99; s1.vols.sfx = 0.01;
+  window.__lastSnap = null;
+  $('.spcp-seg button[data-n="5"]').click();
+  t('快照隔离（外部改动不泄漏）', window.__lastSnap && window.__lastSnap.n === 5, window.__lastSnap && window.__lastSnap.n);
+
+  /* 4 开关与音量（SP.cfg 里 leaves=false，点击应翻转为 true，再点翻回） */
+  var leavesBefore = window.__lastSnap.leaves;
+  $('[data-role="leaves"]').click();
+  t('落叶开关翻转 → leaves=' + !leavesBefore, window.__lastSnap.leaves === !leavesBefore, window.__lastSnap.leaves);
+  $('[data-role="leaves"]').click();
+  t('落叶开关再点翻回', window.__lastSnap.leaves === leavesBefore, window.__lastSnap.leaves);
+  var vol = $('[data-role="vol"]');
+  vol.value = '0.5';
+  vol.dispatchEvent(new Event('input', { bubbles: true }));
+  t('音量滑条 → 快照 vols.sfx=0.5', window.__lastSnap.vols.sfx === 0.5, window.__lastSnap.vols.sfx);
+
+  /* 5 图片上传管线（file→canvas 压缩→dataURL） */
+  $('[data-tab="pic"]').click();
+  feedFile($('[data-role="picfile"]'), d2b(bigPng()), 't.png', 'image/png');
+  await until(function () { return window.__lastSnap && window.__lastSnap.picture; });
+  var pic = window.__lastSnap && window.__lastSnap.picture;
+  t('图片上传 → picture=dataURL', !!pic && pic.indexOf('data:image/') === 0, pic && pic.slice(0, 22));
+  var dim = await new Promise(function (res) {
+    var im = new Image();
+    im.onload = function () { res(im.naturalWidth + 'x' + im.naturalHeight); };
+    im.onerror = function () { res('decode-fail'); };
+    im.src = pic;
+  });
+  var wh = dim.split('x');
+  t('图片压缩长边≤720', +wh[0] <= 720 && +wh[1] <= 720, dim);
+  $('[data-act="picnum"]').click();
+  t('恢复数字模式 → picture=null', window.__lastSnap.picture === null);
+
+  /* 6 自定义音效上传 + 试听 + 恢复 */
+  $('[data-tab="sound"]').click();
+  window.__audioLog.length = 0;
+  $('.spcp-cue[data-cue="move"] [data-cact="play"]').click();
+  t('试听调 SP.AUDIO.play("move")', window.__audioLog.indexOf('move') >= 0, JSON.stringify(window.__audioLog));
+  feedFile($('[data-role="sndfile"]'), d2b(tinyWav()), 'm.wav', 'audio/wav');
+  await until(function () { return window.__lastSnap && window.__lastSnap.sounds && window.__lastSnap.sounds.move; });
+  t('自定义音效 → sounds.move=dataURL', !!(window.__lastSnap.sounds.move || '').match(/^data:audio\//), (window.__lastSnap.sounds.move || '').slice(0, 22));
+  var chipTxt = $('.spcp-cue[data-cue="move"] [data-role="cuechip"]').textContent;
+  t('自定义后状态显示"已自定义"', chipTxt === '已自定义', chipTxt);
+  $('.spcp-cue[data-cue="move"] [data-cact="reset"]').click();
+  t('单项恢复默认 → sounds.move 删除', !('move' in window.__lastSnap.sounds), JSON.stringify(window.__lastSnap.sounds));
+
+  /* 7 恢复默认配置 = defaultCfg 快照 */
+  $('[data-tab="data"]').click();
+  $('[data-act="resetall"]').click();
+  var s2 = window.__lastSnap, d = SP.defaultCfg;
+  t('恢复默认配置 → 与 defaultCfg 一致', !!s2 && s2.n === d.n && s2.leaves === d.leaves && s2.sound === d.sound && s2.vols.sfx === d.vols.sfx && s2.picture === null && Object.keys(s2.sounds).length === 0, s2 && JSON.stringify({ n: s2.n, leaves: s2.leaves, sound: s2.sound, vols: s2.vols }));
+
+  /* 8 导入配置 */
+  var cfgJson = JSON.stringify({ n: 6, sound: false, vols: { sfx: 0.3 }, junk: 'x' });
+  feedFile($('[data-role="cfgfile"]'), new Blob([cfgJson], { type: 'application/json' }), 'c.json', 'application/json');
+  await until(function () { return window.__lastSnap && window.__lastSnap.n === 6; });
+  var s3 = window.__lastSnap;
+  t('导入配置生效并清洗', !!s3 && s3.n === 6 && s3.sound === false && s3.vols.sfx === 0.3 && !('junk' in s3) && s3.leaves === true, s3 && JSON.stringify({ n: s3.n, sound: s3.sound, vols: s3.vols, leaves: s3.leaves }));
+
+  /* 9 导出不抛错 + 关闭 */
+  var exportOk = true;
+  try { $('[data-act="export"]').click(); } catch (e) { exportOk = false; }
+  t('导出配置不抛错', exportOk);
+  P.close();
+  await sleep(340);
+  t('close 后 isOpen=false', P.isOpen() === false);
+  t('关闭后抽屉隐藏', $('.spcp-root').hidden === true);
+
+  /* 10 中文 tab 名打开 */
+  P.open('数据');
+  t('open("数据") 定位数据 Tab', $('[data-panel="data"]').hidden === false && P.isOpen() === true);
+
+  var summary = { pass: pass, fail: fail, total: R.length };
+  log('__SELFTEST__ ' + JSON.stringify(summary));
+  document.title = 'SELFTEST ' + pass + '/' + R.length;
+}
+
+/* ===== URL 参数：?tab=xxx 直接打开；?selftest=1 跑自测 ===== */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var tab = q.get('tab');
+  if (tab) SP.CONFIG_PANEL.open(tab);
+  if (q.get('selftest') === '1') runSelfTest();
+  window.__runSelfTest = runSelfTest;
+})();
+</script>
+</body>
+</html>

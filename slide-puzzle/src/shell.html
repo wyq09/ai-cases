@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>数字华容道</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;position:fixed;inset:0}
+  body{
+    background:#d9ba81;
+    font-family:Georgia,'Times New Roman','Songti SC','STSong',serif;
+    touch-action:none;-webkit-user-select:none;user-select:none;
+  }
+  #stage{
+    position:absolute;left:50%;top:50%;width:720px;height:1280px;
+    transform-origin:center;
+    background:radial-gradient(130% 92% at 50% 30%,#f6e2ae 0%,#e9cd90 52%,#cfa963 100%);
+  }
+  #stage::before{
+    content:'';position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(90deg,rgba(140,95,40,.04) 0 3px,transparent 3px 11px);
+  }
+  .pressable{cursor:pointer}
+  .pressable.pressed{transform:translateY(2px) scale(.98)}
+
+  /* ---- 左上圆钮 ---- */
+  .round-btn{
+    position:absolute;width:78px;height:78px;border-radius:50%;z-index:30;
+    background:radial-gradient(circle at 35% 28%,#a95f2f 0%,#8a4823 55%,#743a1c 100%);
+    border:2px solid #5f2f15;
+    box-shadow:0 0 0 5px #ecd7a6,0 0 0 6px rgba(96,50,18,.55),0 5px 9px rgba(96,50,18,.35),inset 0 2px 3px rgba(255,225,170,.45);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .round-btn img{width:38px;height:38px;pointer-events:none}
+  .round-btn.pressed{transform:translateY(2px)}
+  #btnBack{left:20px;top:56px}
+  #btnSound{left:118px;top:56px}
+
+  /* ---- 状态行 ---- */
+  #statusRow{position:absolute;left:0;top:164px;width:720px;height:64px;z-index:25}
+  .pill{
+    position:absolute;top:4px;height:56px;border-radius:28px;
+    background:linear-gradient(#a85a2e,#8a4423);border:2.5px solid #f0ddb6;
+    box-shadow:0 0 0 2px rgba(96,50,18,.5),inset 0 2px 3px rgba(255,215,160,.35),0 3px 6px rgba(96,50,18,.3);
+    display:flex;align-items:center;justify-content:center;gap:10px;color:#f7e6c4;font-size:30px;
+  }
+  .pill img{width:30px;height:30px}
+  #imgFoot{width:36px;height:36px}
+  #pillTime{left:28px;width:172px}
+  #pillSteps{right:28px;width:156px}
+  #plaque{
+    position:absolute;left:50%;transform:translateX(-50%);top:0;width:272px;height:78px;
+    border-radius:16px;background:linear-gradient(#95522a,#6f3a1e);
+    box-shadow:0 0 0 3px #c9a05e,0 0 0 5px rgba(96,50,18,.45),0 4px 8px rgba(96,50,18,.35),inset 0 2px 3px rgba(255,215,160,.3);
+    display:flex;align-items:center;justify-content:center;color:#f5e3bd;font-size:32px;letter-spacing:2px;
+    z-index:26;
+  }
+  #plaque.pressed{transform:translateX(-50%) translateY(2px)}
+  #plaque::before,#plaque::after{
+    content:'';position:absolute;top:50%;width:10px;height:10px;border-radius:50%;transform:translateY(-50%);
+    background:#4a2412;box-shadow:inset 0 1px 2px #000,0 1px 0 rgba(255,210,150,.25);
+  }
+  #plaque::before{left:26px}
+  #plaque::after{right:26px}
+
+  /* ---- 棋盘 ---- */
+  #board{
+    position:absolute;left:12px;top:228px;width:696px;border-radius:22px;
+    background:linear-gradient(#b0793f,#9a6430);border:2px solid #7c4a22;
+    box-shadow:inset 0 2px 3px rgba(255,225,170,.4),inset 0 -3px 6px rgba(70,30,5,.35),0 6px 16px rgba(96,50,18,.35);
+    padding:12px;z-index:10;
+  }
+  #grid{
+    position:relative;width:668px;height:668px;border-radius:12px;background:#6d3b24;
+    box-shadow:inset 0 3px 8px rgba(40,15,0,.55),inset 0 -1px 2px rgba(255,190,120,.15);
+    touch-action:none;
+  }
+  .tile{
+    position:absolute;left:0;top:0;border-radius:15px;
+    background:linear-gradient(155deg,#fdefce 0%,#f7dfa4 55%,#efcd88 100%);
+    border:2px solid #bb8a4e;
+    box-shadow:inset 0 0 0 2px rgba(122,74,34,.22),inset 0 2px 3px rgba(255,255,255,.65),inset 0 -3px 5px rgba(150,95,40,.28),0 3px 5px rgba(70,35,10,.4);
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .14s ease-out;will-change:transform;cursor:pointer;
+  }
+  .tile::after{content:'';position:absolute;inset:6.5%;border-radius:10px;border:2px solid rgba(122,74,34,.28);pointer-events:none}
+  .tile .num{color:#5b2410;text-shadow:0 1px 0 rgba(255,255,255,.4);pointer-events:none}
+  .tile.shake{animation:shk .18s}
+  @keyframes shk{25%{margin-left:-4px}75%{margin-left:4px}}
+
+  /* ---- 底部按钮 ---- */
+  #bottomBar{position:absolute;left:0;top:984px;width:720px;height:76px;display:flex;justify-content:center;gap:76px;z-index:20}
+  .wood-pill{
+    height:76px;min-width:216px;padding:0 30px;border-radius:38px;
+    background:#f7e4b2;
+    background-image:repeating-linear-gradient(0deg,rgba(190,140,70,.14) 0 2px,transparent 2px 8px);
+    border:4px solid #b5713a;
+    box-shadow:0 0 0 3px #f2dfb2,0 0 0 4.5px rgba(122,66,25,.55),0 5px 9px rgba(96,50,18,.3),inset 0 2px 2px rgba(255,255,255,.6);
+    display:flex;align-items:center;justify-content:center;gap:14px;color:#6b3212;font-size:34px;
+  }
+  .wood-pill img{width:38px;height:38px;pointer-events:none}
+  .wood-pill.small{height:64px;min-width:180px;font-size:30px;border-radius:32px}
+  .wood-pill.small img{width:32px;height:32px}
+
+  /* ---- 背景落叶 / 特效层 ---- */
+  #bgLeaves{position:absolute;inset:0;overflow:hidden;z-index:1;pointer-events:none}
+  .bgleaf{position:absolute;top:-70px;animation:bgfall linear forwards}
+  .bgleaf img{display:block;animation:bgsway ease-in-out infinite alternate}
+  @keyframes bgfall{to{transform:translateY(1420px) rotate(520deg)}}
+  @keyframes bgsway{from{transform:translateX(-26px) rotate(-14deg)}to{transform:translateX(26px) rotate(14deg)}}
+  #fxCanvas{position:absolute;inset:0;z-index:60;pointer-events:none}
+
+  /* ---- 弹层 ---- */
+  .overlay{
+    position:absolute;inset:0;background:rgba(64,32,10,.55);z-index:100;
+    display:none;align-items:center;justify-content:center;
+  }
+  .overlay.show{display:flex}
+  .card{
+    width:540px;max-height:1080px;overflow:auto;background:linear-gradient(#fbf0cd,#f3dda4);
+    border-radius:26px;border:5px solid #a8703c;
+    box-shadow:0 0 0 3px rgba(122,66,25,.5),0 10px 24px rgba(50,20,0,.4);
+    padding:34px 30px;text-align:center;color:#5b2410;
+  }
+  .card h2{font-size:44px;color:#6b3212;margin-bottom:16px;font-weight:400}
+  .card .trophy{width:84px;height:84px;margin:0 auto 8px;display:block}
+  .stat-row{display:flex;justify-content:space-between;font-size:30px;padding:12px 10px;border-bottom:1px dashed rgba(122,74,34,.35)}
+  .stat-row .new{color:#c2571f}
+  .card .btns{display:flex;justify-content:center;gap:28px;margin-top:28px}
+  .card p.help{font-size:27px;line-height:1.65;text-align:left;margin:6px 4px 10px}
+
+  #toast{
+    position:absolute;left:50%;bottom:200px;transform:translateX(-50%) translateY(20px);
+    background:rgba(80,40,15,.92);color:#f7e6c4;padding:14px 30px;border-radius:26px;font-size:28px;
+    opacity:0;transition:.25s;z-index:120;pointer-events:none;white-space:nowrap;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bgLeaves"></div>
+  <div id="btnBack" class="round-btn pressable"><img id="imgBack" alt="返回"></div>
+  <div id="btnSound" class="round-btn pressable"><img id="imgSound" alt="声音"></div>
+  <div id="statusRow">
+    <div id="pillTime" class="pill"><img id="imgTimer" alt=""><span id="timeVal">00:00</span></div>
+    <div id="plaque" class="pressable"><span id="sizeVal">5×5</span></div>
+    <div id="pillSteps" class="pill"><img id="imgFoot" alt=""><span id="stepVal">0</span></div>
+  </div>
+  <div id="board">
+    <div id="grid"></div>
+  </div>
+  <div id="bottomBar">
+    <div id="btnReset" class="wood-pill pressable"><img id="imgReset" alt=""><span>重置</span></div>
+    <div id="btnHint" class="wood-pill pressable"><img id="imgBulb" alt=""><span>提示</span></div>
+  </div>
+  <canvas id="fxCanvas"></canvas>
+  <div id="winOverlay" class="overlay">
+    <div class="card">
+      <img id="imgTrophy" class="trophy" alt="">
+      <h2>拼好啦！</h2>
+      <div class="stat-row"><span>用时</span><span id="winTime">00:00</span></div>
+      <div class="stat-row"><span>步数</span><span id="winSteps">0</span></div>
+      <div class="stat-row"><span>最佳用时</span><span id="winBest">--</span></div>
+      <div class="btns">
+        <div id="btnAgain" class="wood-pill small pressable"><span>再来一局</span></div>
+        <div id="btnWinClose" class="wood-pill small pressable"><span>关闭</span></div>
+      </div>
+    </div>
+  </div>
+  <div id="helpOverlay" class="overlay">
+    <div class="card">
+      <h2>数字华容道</h2>
+      <p class="help">点按与空格相邻的数字块使其滑入空格，也可在棋盘上滑动。把数字按 1、2、3… 的顺序排好即获胜。点「提示」自动归位一个数字，长按「提示」可自动演示。点中间牌匾切换 3×3 ~ 6×6。</p>
+      <div id="bestList"></div>
+      <div class="btns">
+        <div id="btnSettings" class="wood-pill small pressable"><span>设置</span></div>
+        <div id="btnHelpClose" class="wood-pill small pressable"><span>知道了</span></div>
+      </div>
+    </div>
+  </div>
+  <div id="cfgHost"></div>
+  <div id="toast"></div>
+</div>
+<!-- MODULE_SCRIPTS -->
+</body>
+</html>

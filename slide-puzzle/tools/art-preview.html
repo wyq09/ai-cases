@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>SP.ART 资产预览</title>
+<style>
+  body { margin: 0; font: 14px/1.6 Georgia, serif; background: #222; color: #eee; }
+  h2 { margin: 18px 16px 6px; font-size: 16px; }
+  .row { display: flex; flex-wrap: wrap; gap: 18px; padding: 18px 16px; margin: 0 16px; border-radius: 12px; }
+  .dark { background: radial-gradient(circle at 50% 35%, #a85a2e, #8a4423 70%, #6d3016); }
+  .light { background: radial-gradient(circle at 50% 35%, #f2d9a6, #ecd29c 70%, #d9ba81); }
+  .cell { width: 108px; text-align: center; }
+  .cell img { width: 84px; height: 84px; display: block; margin: 0 auto; }
+  .cell span { font-size: 12px; }
+  .small .cell { width: 64px; }
+  .small .cell img { width: 30px; height: 30px; }
+  .dark .cell span { color: #f7e6c4; }
+  .light .cell span { color: #6b3212; }
+  .bignum { font-size: 44px; font-family: Georgia, serif; color: #5b2410; }
+</style>
+</head>
+<body>
+<h2>图标 + 落叶（上：深底 / 下：浅底）</h2>
+<div class="row dark" id="rowDark"></div>
+<div class="row light" id="rowLight"></div>
+<h2>30px 小尺寸（深底胶囊同款）</h2>
+<div class="row dark small" id="rowSmall"></div>
+<script src="../src/art.js"></script>
+<script>
+  const ids = ['back','sndOn','sndOff','timer','foot','reset','bulb','gear','trophy','close'];
+  const mk = (src, label) => '<div class="cell"><img src="' + src + '"><span>' + label + '</span></div>';
+  let d = '', l = '', s = '';
+  ids.forEach(id => { const u = SP.ART.icon(id); d += mk(u, id); l += mk(u, id); s += mk(u, id); });
+  for (let i = 0; i < 3; i++) { const u = SP.ART.leaf(i); d += mk(u, 'leaf' + i); l += mk(u, 'leaf' + i); s += mk(u, 'leaf' + i); }
+  // 数字块示意（tile 风格 sanity）
+  l += '<div class="cell"><div class="bignum">7</div><span>tile#</span></div>';
+  document.getElementById('rowDark').innerHTML = d;
+  document.getElementById('rowLight').innerHTML = l;
+  document.getElementById('rowSmall').innerHTML = s;
+</script>
+</body>
+</html>
