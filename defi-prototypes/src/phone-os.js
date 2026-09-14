@@ -292,45 +292,26 @@ function buildLauncher() {
     });
     el('div', '', 'font-size:11px;font-weight:600;color:rgba(255,255,255,.92);text-shadow:0 1px 6px rgba(0,0,0,.45);white-space:nowrap', cell).textContent = app.label;
   });
-  // 底部提示 + Home 条（窄屏才显示，桌面用舞台说明避免重叠）
-  if (window.innerWidth < 620) {
-    el('div', '', 'margin-top:auto;margin-bottom:30px;font-size:11px;color:rgba(255,255,255,.5);letter-spacing:.06em', L).textContent = 'DeFi 原型机 · 打开 App 体验完整流程';
-  }
+  // 底部提示
+  el('div', '', 'margin-top:auto;margin-bottom:30px;font-size:11px;color:rgba(255,255,255,.5);letter-spacing:.06em', L).textContent = 'DeFi 原型馆 · 打开 App 体验完整流程';
   // 泡泡氛围（可点爆）
   try { SW.fx.bubbles(L, { count: 9, minR: 10, maxR: 54, tint: '150,140,255', speed: .22, interactive: true, z: 0 }); } catch (e) {}
 }
 
-/* ── 设备 / 舞台 ── */
+/* ── 舞台 / 应用列（H5 形态：无设备边框，移动端全屏，桌面居中一列通高） ── */
 function buildDevice() {
-  const stage = el('div', 'os-stage', 'position:fixed;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 90% at 50% 0%, #2A2350 0%, #14102B 46%, #0A0818 100%)', document.body);
-  const dev = el('div', 'os-device', 'position:relative;width:390px;height:844px;border-radius:54px;background:#050507;overflow:hidden;box-shadow:0 0 0 10px #17151F, 0 0 0 11.5px rgba(255,255,255,.09), 0 44px 120px rgba(0,0,0,.65)', stage);
+  const stage = el('div', 'os-stage', 'position:fixed;inset:0;z-index:1;display:flex;justify-content:center;background:radial-gradient(120% 90% at 50% 0%, #2A2350 0%, #14102B 46%, #0A0818 100%)', document.body);
+  const dev = el('div', 'os-device', 'position:relative;flex:0 0 auto;width:100%;max-width:390px;height:100%;background:#050507;overflow:hidden', stage);
   S.device = dev; S.screenEl = dev;
-  // 壁纸（桌面舞台同款氛围延展）
-  stage.style.backgroundImage = 'radial-gradient(120% 90% at 50% 0%, #2A2350 0%, #14102B 46%, #0A0818 100%)';
   // 主屏
   S.launcher = el('div', 'os-launcher', 'background:linear-gradient(168deg,#3A2F6E 0%, #241D4E 40%, #131028 100%)', dev);
   buildLauncher();
   // App 层
   S.appLayer = el('div', 'os-applayer', 'position:absolute;inset:0;z-index:20;display:none', dev);
-  // 灵动岛 + Home
-  el('div', '', 'position:absolute;top:13px;left:50%;transform:translateX(-50%);width:120px;height:35px;border-radius:22px;background:#000;z-index:90;box-shadow:inset 0 0 3px rgba(255,255,255,.18)', dev);
-  el('div', '', 'position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:136px;height:5px;border-radius:3px;background:rgba(255,255,255,.92);z-index:96;pointer-events:none', dev);
+  // Home 条（返回主屏的手势区）
+  el('div', '', 'position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:120px;height:5px;border-radius:3px;background:rgba(255,255,255,.85);z-index:96;pointer-events:none', dev);
   const hz = el('div', 'os-homezone', 'position:absolute;left:0;right:0;bottom:0;height:30px;z-index:95;cursor:pointer', dev);
   hz.addEventListener('click', goHome);
-  // 缩放自适应
-  function fit() {
-    const s = Math.min(window.innerWidth / 390, window.innerHeight / 844, 1);
-    const mobile = window.innerWidth < 620;
-    dev.style.transform = 'scale(' + s + ')';
-    dev.style.borderRadius = mobile ? '0px' : '54px';
-    dev.style.boxShadow = mobile ? 'none' : '0 0 0 10px #17151F, 0 0 0 11.5px rgba(255,255,255,.09), 0 44px 120px rgba(0,0,0,.65)';
-    stage.style.padding = mobile ? '0' : '20px';
-  }
-  fit(); window.addEventListener('resize', fit);
-  // 桌面说明
-  if (window.innerWidth >= 620) {
-    el('div', '', 'position:fixed;bottom:18px;left:0;right:0;text-align:center;font-size:12px;color:rgba(255,255,255,.4);letter-spacing:.08em;z-index:0', stage).textContent = 'DeFi 原型机 · 点按图标打开 App · 底部 Home 条返回主屏';
-  }
   // 事件接管
   S.appLayer.addEventListener('click', onTap, true);
   S.appLayer.addEventListener('click', onTapEnd);
