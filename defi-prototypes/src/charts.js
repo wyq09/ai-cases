@@ -10,7 +10,8 @@ function makeCv(el, w, h) {
   cv.style.width = w + 'px'; cv.style.height = h + 'px';
   cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
   el.appendChild(cv);
-  const ctx = cv.getContext('2d');
+  // willReadFrequently：保持软件位图，规避 headless/合层场景下 GPU 图层内容丢失
+  const ctx = cv.getContext('2d', { willReadFrequently: true });
   ctx.scale(DPR, DPR);
   return ctx;
 }

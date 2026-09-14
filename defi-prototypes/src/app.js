@@ -179,6 +179,8 @@ window.addEventListener('pointerdown', e => {
 let booted = false;
 SW.boot = function () {
   if (booted) return; booted = true;
+  // 默认进入「原型机」模式（一台可操作的手机）；?gallery=1 或测试环境查看海报墙
+  if (window.SWOS && !window.__SWP_TEST__ && !/gallery=1/.test(location.search)) { SWOS.boot(); return; }
   buildStage();
   // 深链 ?scene=x&phone=x2
   const q = new URLSearchParams(location.search);

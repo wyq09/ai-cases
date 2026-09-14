@@ -101,7 +101,7 @@ function rowCard(o) {
 }
 function chevRight() { return div('color:rgba(255,255,255,.6);line-height:0', ic('chev', 18)); }
 function challengeCard() {
-  const c = rowCard({ icon: '🏅', title: '1P 挑战', sub: '一年存下 ¥667', right: chevRight(), onClick: () => SW.toast('「1P 挑战」为原型演示') });
+  const c = rowCard({ icon: '🏅', title: '1P 挑战', sub: '一年存下 $667', right: chevRight(), onClick: () => SW.toast('「1P 挑战」为原型演示') });
   return c;
 }
 

@@ -288,6 +288,8 @@ function addSwap(st, bg, onBack, ph, idBase) {
     const amtBox = el('div', 'flex:1;min-width:0;display:flex;align-items:baseline;justify-content:flex-end;gap:4px', recvRow);
     el('span', 'font-size:16px;font-weight:700;color:rgba(255,255,255,.5)', amtBox).textContent = '≈';
     const recvEl = el('span', 'font-size:28px;font-weight:800;color:#fff', amtBox);
+    const recvBalRow = el('div', 'display:flex;align-items:center;margin-top:14px', recvCard);
+    const recvBalEl = el('span', 'font-size:11.5px;color:rgba(255,255,255,.45)', recvBalRow);
 
     /* 信息行 */
     const infoBox = el('div', 'padding:4px 26px 0', scr);
@@ -321,6 +323,7 @@ function addSwap(st, bg, onBack, ph, idBase) {
       recvEl.textContent = fmtAmt(state.recv);
       rateEl.textContent = '1 ' + state.from + ' = ' + fmtRate(ETH_PER[state.from] / ETH_PER[state.to]) + ' ' + state.to;
       balEl.textContent = '余额: 2.4650 ' + state.from;
+      recvBalEl.textContent = '余额: 0.00028545 ' + state.to;
     }
     inEl.addEventListener('input', function () {
       state.amt = parseFloat(inEl.value.replace(/[^0-9.]/g, '')) || 0;

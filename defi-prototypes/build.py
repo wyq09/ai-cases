@@ -5,6 +5,7 @@ import pathlib, sys
 ROOT = pathlib.Path(__file__).parent
 CORE = ["app.js", "phone.js", "charts.js", "ui.js", "fx-bubbles.js"]
 SCENES = [f"scene-{c}.js" for c in "abcdefgh"]
+FILES = CORE + SCENES + ["phone-os.js"]
 
 TEST_LOADER = """<script>
 window.__SWP_TEST__ = true;
@@ -29,7 +30,7 @@ window.__SWP_TEST__ = true;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load);
   else load();
 })();
-</script>""" % str(["app.js", "phone.js", "charts.js", "ui.js", "fx-bubbles.js"] + SCENES)
+</script>""" % str(FILES)
 
 
 def read_js(name):
@@ -47,13 +48,13 @@ def make_test():
 
 
 def make_index():
-    missing = [f for f in CORE + SCENES if not (ROOT / "src" / f).exists()]
+    missing = [f for f in FILES if not (ROOT / "src" / f).exists()]
     if missing:
         print(f"index.html 跳过：缺少 {missing}")
         return
     shell = (ROOT / "src" / "shell.html").read_text()
     tags = ""
-    for f in CORE + SCENES:
+    for f in FILES:
         tags += "<script>\n" + read_js(f) + "\n</script>\n"
     html = shell.replace("<!-- MODULE_SCRIPTS -->", tags)
     (ROOT / "index.html").write_text(html)

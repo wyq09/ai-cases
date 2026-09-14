@@ -164,8 +164,12 @@ function buildF1(p) {
   function renderBars() {
     const d = barsFor(cur, ri);
     SW.charts.bars(chart, { values: d.v.map((v, i) => ({ v: v, color: i === HI ? '#CDC3F8' : 'rgba(224,216,255,.20)' })), h: 144, w: 326, gap: 10, rounded: 11 });
-    const bw = (326 - 10 * 6) / 7, cx = HI * (bw + 10) + bw / 2, barTop = 144 - d.v[HI] * 136;
-    chart.appendChild(el('div', 'position:absolute;left:' + cx + 'px;top:' + (barTop - 36) + 'px;transform:translateX(-50%);width:34px;height:34px;border-radius:50%;background:#fff;color:#201A44;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;pointer-events:none', '$'));
+    const bw = (326 - 10 * 6) / 7;
+    // 参考图：$ 圆徽 + $117 胶囊叠在次高柱顶，% 标签贴高亮柱下部
+    const bx = (HI - 1) * (bw + 10) + bw / 2, bTop = 144 - d.v[HI - 1] * 136;
+    chart.appendChild(el('div', 'position:absolute;left:' + bx + 'px;top:' + (bTop - 48) + 'px;transform:translateX(-50%);width:34px;height:34px;border-radius:50%;background:#fff;color:#201A44;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;pointer-events:none', '$'));
+    chart.appendChild(el('div', 'position:absolute;left:' + bx + 'px;top:' + (bTop - 9) + 'px;transform:translateX(-50%);background:#fff;color:#1B1540;font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;pointer-events:none', '$117'));
+    const cx = HI * (bw + 10) + bw / 2;
     chart.appendChild(el('div', 'position:absolute;left:' + cx + 'px;top:113px;transform:translateX(-50%);background:#fff;color:#1B1540;font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;pointer-events:none', d.tag));
   }
   function applySeg() {

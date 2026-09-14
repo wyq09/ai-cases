@@ -342,7 +342,6 @@ SW.scenes.register({
   sub: '卡片仪表 · 我的卡片 · 转账',
   bg: '#050508',
   ambience: { tint: '150,130,255', density: .3 },
-  captions: ['移动应用 / 网页设计', '2025 · 概念稿', 'Chase 卡 概念'],
   build(poster) {
     const st = document.createElement('style');
     st.textContent = '.sB-noscroll::-webkit-scrollbar{display:none}';
