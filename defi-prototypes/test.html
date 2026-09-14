@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SOLIDITY SWAP · DeFi 原型馆 — 8 套金融 App 概念 1:1 交互复刻</title>
+<style>
+:root{
+  --ink:#EDEBFA; --muted:#A29DC8;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+html,body{margin:0;padding:0}
+body{background:#0B0A16;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Microsoft Yahei","Helvetica Neue",sans-serif;overflow-x:hidden}
+button{font-family:inherit}
+
+/* ── 顶部品牌条 ── */
+.brand{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;align-items:center;gap:10px;padding:12px 16px;pointer-events:none}
+.brand .logo{pointer-events:auto;cursor:pointer;font-weight:800;letter-spacing:.16em;font-size:12px;color:#fff;background:rgba(18,16,38,.72);border:1px solid rgba(255,255,255,.16);padding:9px 15px;border-radius:999px;backdrop-filter:blur(12px)}
+.brand .logo:active{transform:scale(.96)}
+.brand .tip{font-size:12px;color:var(--muted);background:rgba(18,16,38,.5);padding:8px 12px;border-radius:999px;backdrop-filter:blur(12px)}
+@media (max-width:720px){.brand .tip{display:none}}
+
+/* ── 场景段落 ── */
+main#stage{display:block}
+section.scene{position:relative;padding:84px 16px 48px;outline:none}
+.scene-hd{max-width:1180px;margin:0 auto 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.scene-hd .no{font-size:12px;font-weight:800;color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.3);padding:4px 11px;border-radius:999px;flex:none}
+.scene-hd h2{margin:0;font-size:clamp(19px,2.6vw,26px);letter-spacing:.02em}
+.scene-hd .sub{color:rgba(255,255,255,.72);font-size:13px}
+.scene-hd .sp{flex:1}
+.btn-ghost{cursor:pointer;border:1px solid rgba(255,255,255,.32);background:rgba(18,16,38,.42);color:#fff;border-radius:999px;padding:9px 15px;font-size:13px;font-weight:600;backdrop-filter:blur(8px);transition:transform .12s}
+.btn-ghost:active{transform:scale(.94)}
+.poster{position:relative;border-radius:30px;overflow:hidden;max-width:1280px;margin:0 auto;box-shadow:inset 0 0 0 1px rgba(255,255,255,.09), 0 24px 70px rgba(5,4,18,.5)}
+.poster-row{position:relative;display:flex;align-items:center;justify-content:safe center;gap:clamp(14px,4vw,58px);padding:clamp(26px,5.5vw,70px) clamp(14px,4.5vw,60px);flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
+.poster-row::-webkit-scrollbar{display:none}
+.poster-caps{display:flex;justify-content:space-between;gap:12px;padding:26px clamp(18px,4vw,52px) 0;font-size:clamp(12px,1.4vw,15px);color:rgba(255,255,255,.92)}
+.poster-caps span{opacity:.95}
+.err-card{margin:40px auto;max-width:520px;background:rgba(80,20,30,.55);border:1px solid rgba(255,120,120,.4);border-radius:16px;padding:18px 20px;font-size:13px;line-height:1.6}
+
+/* ── 手机壳（390×844 设计稿，transform 缩放） ── */
+.ph-wrap{position:relative;flex:0 0 auto;scroll-snap-align:center}
+.phone{position:absolute;top:0;left:0;width:390px;height:844px;border-radius:58px;background:#050507;transform-origin:0 0;
+  box-shadow:0 0 0 2.5px rgba(255,255,255,.1), 0 0 0 8px #131218, 0 0 0 9.5px rgba(255,255,255,.07), 0 34px 90px rgba(8,6,26,.55), 0 10px 30px rgba(8,6,26,.45)}
+.phone .island{position:absolute;top:13px;left:50%;transform:translateX(-50%);width:120px;height:35px;border-radius:22px;background:#000;z-index:40;box-shadow:inset 0 0 3px rgba(255,255,255,.18)}
+.phone .island::after{content:'';position:absolute;right:12px;top:50%;transform:translateY(-50%);width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 35%, #20304a, #05060a 70%)}
+.phone .screen{position:absolute;inset:11px;border-radius:47px;overflow:hidden;background:#000;isolation:isolate}
+.phone .sbar{position:absolute;top:0;left:0;right:0;height:54px;z-index:35;display:flex;align-items:center;justify-content:space-between;padding:8px 34px 0;pointer-events:none;font-size:16.5px;font-weight:700;letter-spacing:.02em}
+.phone .sbar .sicons{display:flex;align-items:center;gap:7px}
+.phone[data-status="light"] .sbar{color:#fff}
+.phone[data-status="dark"] .sbar{color:#0B0B12}
+.phone .homebar{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:136px;height:5px;border-radius:3px;background:rgba(255,255,255,.92);z-index:35;pointer-events:none}
+.phone[data-status="dark"] .homebar{background:rgba(10,10,14,.75)}
+.phone .scroll{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.phone .scroll::-webkit-scrollbar{display:none}
+
+/* ── 底部 dock ── */
+#dock{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + var(--safe-b));z-index:70;display:flex;gap:4px;padding:7px;background:rgba(15,13,32,.82);border:1px solid rgba(255,255,255,.15);border-radius:999px;backdrop-filter:blur(14px);max-width:94vw;overflow-x:auto;scrollbar-width:none;box-shadow:0 12px 34px rgba(0,0,0,.45)}
+#dock::-webkit-scrollbar{display:none}
+#dock button{flex:0 0 auto;border:0;background:transparent;color:#B6B1DC;font-size:12px;font-weight:700;padding:8px 12px;border-radius:999px;cursor:pointer;transition:all .18s;white-space:nowrap}
+#dock button.on{background:#fff;color:#16142E}
+#dock button:active{transform:scale(.93)}
+
+/* ── 全屏观看器 ── */
+#viewer{position:fixed;inset:0;z-index:90;background:rgba(7,5,18,.88);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s}
+#viewer.show{opacity:1;pointer-events:auto}
+#viewer .vbar{position:absolute;top:14px;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:0 16px;gap:10px}
+#viewer .vtitle{font-size:14px;font-weight:700;color:#fff;background:rgba(18,16,38,.6);padding:9px 15px;border-radius:999px;border:1px solid rgba(255,255,255,.14)}
+#viewer .vnav{display:flex;gap:8px}
+#viewer .vwrap{position:relative}
+@media (max-width:520px){
+  #viewer .vtitle{font-size:12px;padding:8px 12px;max-width:42vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #viewer .vnav{gap:5px}
+  #viewer .vnav .btn-ghost{padding:7px 9px;font-size:11.5px}
+  #viewer .vhint{font-size:11px;padding:0 12px}
+}
+#viewer .vhint{position:absolute;bottom:calc(16px + var(--safe-b));left:0;right:0;text-align:center;font-size:12px;color:var(--muted)}
+
+/* ── toast ── */
+#toast{position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-12px);z-index:100;background:rgba(22,20,44,.94);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:13px;font-weight:600;padding:11px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:all .22s;max-width:86vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (max-width:760px){
+  section.scene{padding:70px 8px 40px}
+  .poster{border-radius:22px}
+}
+</style>
+</head>
+<body>
+<header class="brand">
+  <div class="logo" id="brandLogo">SOLIDITY SWAP · 原型馆</div>
+  <div class="tip">8 套概念原型 · 每台手机均可交互 · 双击手机全屏体验</div>
+</header>
+<main id="stage"></main>
+<nav id="dock" aria-label="场景导航"></nav>
+<div id="viewer">
+  <div class="vbar">
+    <div class="vtitle" id="vTitle">全屏体验</div>
+    <div class="vnav">
+      <button class="btn-ghost" id="vPrev">‹ 上一台</button>
+      <button class="btn-ghost" id="vNext">下一台 ›</button>
+      <button class="btn-ghost" id="vClose">✕ 关闭</button>
+    </div>
+  </div>
+  <div class="vwrap" id="vWrap"></div>
+  <div class="vhint">双击空白处或按 Esc 关闭 · 手机内所有控件均可交互</div>
+</div>
+<div id="toast"></div>
+<script>window.SWP_FILES=["app.js","phone.js","charts.js","ui.js","fx-bubbles.js","scene-a.js","scene-b.js","scene-c.js","scene-d.js","scene-e.js","scene-f.js","scene-g.js","scene-h.js"];</script>
+<script>
+window.__SWP_TEST__ = true;
+(function () {
+  var FILES = ['app.js', 'phone.js', 'charts.js', 'ui.js', 'fx-bubbles.js', 'scene-a.js', 'scene-b.js', 'scene-c.js', 'scene-d.js', 'scene-e.js', 'scene-f.js', 'scene-g.js', 'scene-h.js'];
+  function load() {
+    var i = 0;
+    function next() {
+      if (i >= FILES.length) {
+        document.dispatchEvent(new Event('swp:ready'));
+        if (window.SW && window.SW.boot) window.SW.boot();
+        return;
+      }
+      var f = FILES[i++];
+      var s = document.createElement('script');
+      s.src = 'src/' + f;
+      s.onload = next; s.onerror = next;
+      document.body.appendChild(s);
+    }
+    next();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load);
+  else load();
+})();
+</script>
+</body>
+</html>

@@ -6,6 +6,8 @@ AI 辅助产出的案例集合 —— 方案 · 演示 · 视觉作品。
 
 ## Cases
 
+- [defi-prototypes](./defi-prototypes/) — DeFi 原型馆 · 8 套金融 App 概念设计稿 1:1 交互复刻：21 台手机全部真实可点，行情兑换、转账键盘、统计图表、卡片开关、玻璃泡泡可点爆，单文件 H5（[在线预览](https://case.youyongai.com/defi-prototypes/)）
+
 - [orchestrateiq-dashboard](./orchestrateiq-dashboard/) — OrchestrateIQ · AI Agent 编排平台监控后台复刻：8 秒录屏 → 全按钮可点的 SaaS dashboard，Overview/Traces/Trace 瀑布/Handoff 断链诊断四屏像素级还原，明暗双主题、⌘K 命令面板、实时直播流、真 CSV 导出（[在线预览](https://case.youyongai.com/orchestrateiq-dashboard/)）
 
 - [slide-puzzle](./slide-puzzle/) — 数字华容道 · 木质滑块拼图复刻：3×3~6×6、加权 A* 提示与长按自动演示、照片拼图模式、WebAudio 合成音效与落叶粒子、纪录刷新不丢（[在线游玩](https://case.youyongai.com/slide-puzzle/)）
