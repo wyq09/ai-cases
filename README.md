@@ -6,6 +6,8 @@ AI 辅助产出的案例集合 —— 方案 · 演示 · 视觉作品。
 
 ## Cases
 
+- [zuma-infinite](./zuma-infinite/) — 祖玛 · 无尽遗迹：无限关卡、同色三球消除与回吸连锁、横竖屏适配、免费道具、程序化音效和本地进度保存；参考画面尚未完成一比一视觉核验。
+
 - [jump-jump](./jump-jump/) — 跳一跳 · 非官方 H5 复刻：按住蓄力、连续中心奖励、六类平台、自动演示、WebAudio 音效与本地进度保存（[在线游玩](https://case.youyongai.com/jump-jump/)）
 
 - [defi-prototypes](./defi-prototypes/) — DeFi 原型馆 · 8 套金融 App 概念设计稿组成一个完整可操作的 H5 App：主屏 8 个应用图标、App 内按钮/返回键/底部 tab/左缘右滑真实导航、Home 条回主屏，21 屏行情兑换/转账键盘/统计图表/卡片开关全可点，玻璃泡泡可点爆，单文件（[在线体验](https://case.youyongai.com/defi-prototypes/)）
