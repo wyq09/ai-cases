@@ -1,0 +1,1171 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#dededc">
+<meta name="description" content="按住蓄力，松手起跳。零依赖、离线可玩的跳一跳 H5 非官方复刻。">
+<title>跳一跳 · 再跳一步</title>
+<style>
+:root{--ink:#252925;--muted:#777d76;--green:#168c50}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none}body{background:#dededc;color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",sans-serif;touch-action:auto;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}button{font:inherit;cursor:pointer;color:inherit}button:focus-visible{outline:2px solid var(--green);outline-offset:5px}button:active{transform:translateY(1px)}[hidden]{display:none!important}#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}.hud{position:fixed;top:calc(34px + env(safe-area-inset-top));left:clamp(24px,5vw,80px);pointer-events:none;z-index:3}#score{font-size:clamp(60px,9vw,88px);font-weight:300;line-height:1;letter-spacing:-4px;font-variant-numeric:tabular-nums}#best{margin-top:13px;font-size:11px;letter-spacing:1px;color:var(--muted)}#combo{margin-top:14px;font-size:12px;color:#387452}.tools{position:fixed;right:clamp(20px,4vw,64px);top:calc(28px + env(safe-area-inset-top));z-index:12;display:flex;gap:20px}.tools button{padding:8px 0;border:0;background:none;font-size:12px;letter-spacing:1px;color:#626960}.tools button+button{border-left:1px solid #b9bdb6;padding-left:20px}#hint{position:fixed;bottom:calc(35px + env(safe-area-inset-bottom));left:12px;right:12px;text-align:center;font-size:12px;letter-spacing:2px;color:#727970;pointer-events:none}body:not([data-playing="true"]) #hint{display:none}#exitDemoBtn{position:fixed;z-index:6;bottom:calc(73px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:transparent;border:1px solid #9ca69a;border-radius:3px;padding:10px 20px;font-size:12px}.overlay{position:fixed;inset:0;z-index:10;display:flex;align-items:center;flex-direction:column;pointer-events:none}.overlay button{pointer-events:auto}.intro{position:absolute;top:16%;text-align:center}.eyebrow{font-size:10px;letter-spacing:5px;color:#7e857c;margin-bottom:18px}h1{font-size:clamp(46px,8vw,66px);font-weight:500;letter-spacing:14px;margin:0 0 16px 14px;line-height:1.15}.tagline{margin:0;color:#71796e;font-size:12px;letter-spacing:5px}.start-actions{position:absolute;bottom:calc(8% + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;width:100%;gap:16px}.btn{min-width:204px;min-height:48px;padding:13px 32px;border:0;border-radius:3px;background:var(--green);color:#fff;font-size:16px;letter-spacing:3px}.text-btn{border:0;background:none;font-size:12px;letter-spacing:1px;color:#727b6f;padding:6px 12px}.mini-links{display:flex;gap:16px;align-items:center}.instruction{font-size:12px;letter-spacing:1px;color:#72796f;margin:0 0 3px}.disclaimer{font-size:9px;letter-spacing:1px;color:#8d938a;position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));margin:0}#endScreen{background:rgba(225,227,222,.94);justify-content:center;gap:12px;pointer-events:auto}#endTitle{font-size:12px;letter-spacing:5px;color:#72796e}.final{font-size:110px;line-height:1.15;font-weight:200;letter-spacing:-5px;font-variant-numeric:tabular-nums}.hiscore{font-size:12px;color:#6e796a;margin:0 0 20px}#historyLine{font-size:11px;color:#7f8779;margin-top:18px;letter-spacing:1px}#cfgHost{position:fixed;inset:0;z-index:30;pointer-events:none}#cfgHost>*{pointer-events:auto}#toast{position:fixed;left:50%;bottom:calc(105px + env(safe-area-inset-bottom));transform:translateX(-50%);max-width:88vw;width:max-content;background:#303b31;color:#fff;padding:11px 18px;font-size:12px;border-radius:3px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50}#toast.show{opacity:1}@media(min-width:900px){.intro{top:13%}.start-actions{bottom:8%}}@media(max-height:500px){.intro{left:8%;top:30%;text-align:left}.eyebrow{margin-bottom:12px}h1{font-size:42px;margin-left:0}.tagline{letter-spacing:2px}.start-actions{left:auto;right:5%;width:240px;bottom:18%;gap:8px}.disclaimer{right:6%}.hud{top:20px}#score{font-size:54px}#hint{bottom:16px}.final{font-size:72px}#endScreen{gap:6px}.hiscore{margin-bottom:6px}}
+</style>
+</head>
+<body data-playing="false">
+<canvas id="game" aria-label="跳一跳游戏画面，按住鼠标或屏幕蓄力，松开起跳。也支持空格键。"></canvas>
+<div class="hud"><div id="score">0</div><div id="best"></div><div id="combo"></div></div>
+<div class="tools"><button id="soundBtn" aria-label="切换游戏声音" aria-pressed="true">声音 开</button><button id="settingsBtn">设置</button></div>
+<div id="hint">按住屏幕任意空白处，松手起跳</div>
+<button id="exitDemoBtn" hidden>结束演示，自己玩</button>
+<section id="startScreen" class="overlay" aria-label="游戏首页">
+  <div class="intro"><div class="eyebrow">JUST ONE MORE JUMP</div><h1>跳一跳</h1><p class="tagline">别着急，再跳一步。</p></div>
+  <div class="start-actions"><p class="instruction">按住蓄力 · 松手起跳</p><button id="startBtn" class="btn">开始游戏</button><div class="mini-links"><button id="resumeBtn" class="text-btn" hidden>继续上次</button><button id="demoBtn" class="text-btn">看看怎么玩 ↗</button></div></div>
+  <p class="disclaimer">非官方 H5 复刻 · 手机触屏 / 电脑空格键</p>
+</section>
+<section id="endScreen" class="overlay" aria-label="游戏结算" hidden>
+  <div id="endTitle">本局得分</div><div class="final" id="finalScore">0</div><p class="hiscore" id="hiscoreLine">最高纪录 0</p>
+  <button id="retryBtn" class="btn">再来一局</button><button id="homeBtn" class="text-btn">返回首页</button><div id="historyLine"></div>
+</section>
+<div id="cfgHost"></div><div id="toast" role="status" aria-live="polite"></div>
+<script>
+/* ===== src/logic.js ===== */
+/* 跳一跳 —— 核心逻辑：配置、计分、平台生成、物理。主线负责，勿与 art/audio/config-panel 重叠。 */
+(function () {
+  'use strict';
+
+  var JJ = (window.JJ = window.JJ || {});
+
+  /* ---------------- 配置 ---------------- */
+
+  function defaultCfg() {
+    return {
+      difficulty: 1,        // 间距/方块尺寸难度倍率
+      chargeRate: 0.32,     // 蓄力速度：每 ms 获得的力量
+      maxCharge: 1200,      // 蓄力上限（力量单位）
+      sound: true,
+      showGuide: false,     // 显示落点辅助线（非原版，辅助选项）
+      background: '#dededc',
+      platformTexture: '',  // 平台顶面贴图 dataURL（可选）
+      audio: {},            // 自定义音效 {jump,land,fall,bonus: dataURL}
+    };
+  }
+
+  var CFG_WHITELIST = {
+    difficulty: 'num', chargeRate: 'num', maxCharge: 'num',
+    sound: 'bool', showGuide: 'bool', background: 'color',
+    platformTexture: 'dataurl', audio: 'audioMap',
+  };
+
+  function sanitize(raw) {
+    var d = defaultCfg();
+    if (!raw || typeof raw !== 'object') return d;
+    var out = {};
+    Object.keys(CFG_WHITELIST).forEach(function (k) {
+      var v = raw[k];
+      switch (CFG_WHITELIST[k]) {
+        case 'num':
+          out[k] = typeof v === 'number' && isFinite(v) ? v : d[k]; break;
+        case 'bool':
+          out[k] = typeof v === 'boolean' ? v : d[k]; break;
+        case 'color':
+          out[k] = (typeof v === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v)) ? v : d[k]; break;
+        case 'dataurl':
+          out[k] = (typeof v === 'string' && (v === '' || v.slice(0, 5) === 'data:')) ? v : d[k];
+          if (out[k] && out[k].length > 700000) out[k] = d[k];
+          break;
+        case 'audioMap':
+          out[k] = {};
+          ['jump', 'land', 'fall', 'bonus'].forEach(function (n) {
+            var s = v && typeof v === 'object' ? v[n] : null;
+            if (typeof s === 'string' && s.slice(0, 5) === 'data:' && s.length <= 400000) out[k][n] = s;
+          });
+          break;
+      }
+    });
+    // 钳制到面板可设范围
+    out.difficulty = Math.min(1.35, Math.max(0.75, out.difficulty));
+    out.chargeRate = Math.min(0.42, Math.max(0.22, out.chargeRate));
+    out.maxCharge = Math.min(2000, Math.max(600, out.maxCharge));
+    return out;
+  }
+
+  /* ---------------- 计分 ---------------- */
+  /* 普通 +1；中心连击 +2,+4,+6,...（复刻设定：等差翻倍序列，常见社区共识） */
+
+  function scoreNormal() { return 1; }
+
+  function comboScore(combo) { // combo = 本次是连续第几次中心（1 起）
+    return combo * 2;
+  }
+
+  /* 特殊方块：站在顶面停留约 2 秒触发一次（复刻设定，分值取社区共识常见值） */
+  var BONUS = {
+    record: 30,  // 黑胶唱片
+    shop: 15,    // 便利店
+    rubik: 10,   // 魔方
+    manhole: 5,  // 井盖
+  };
+  var BONUS_STAY_MS = 2000;
+
+  /* ---------------- 平台生成 ---------------- */
+  /* 世界坐标：x/y 水平，z 竖直。下一块沿 +x 或 +y。 */
+
+  var COLORS = ['#f0b5aa', '#a8c6b5', '#e8e3d5', '#f2cf66', '#b9c3d6', '#d9a8c0'];
+
+  var TYPE_WEIGHTS = [
+    { type: 'plain', w: 62 },
+    { type: 'cylinder', w: 12 },
+    { type: 'rubik', w: 7 },
+    { type: 'manhole', w: 8 },
+    { type: 'shop', w: 6 },
+    { type: 'record', w: 5 },
+  ];
+  var BONUS_TYPES = { rubik: 1, manhole: 1, shop: 1, record: 1 };
+
+  function pickType(rng, score) {
+    // 前 3 块必为 plain，避免开局就出特殊
+    if (score < 3) return 'plain';
+    var total = 0, i;
+    for (i = 0; i < TYPE_WEIGHTS.length; i++) total += TYPE_WEIGHTS[i].w;
+    var r = rng() * total;
+    for (i = 0; i < TYPE_WEIGHTS.length; i++) {
+      r -= TYPE_WEIGHTS[i].w;
+      if (r <= 0) return TYPE_WEIGHTS[i].type;
+    }
+    return 'plain';
+  }
+
+  function mulberry32(seed) {
+    var t = seed >>> 0;
+    return function () {
+      t = (t + 0x6D2B79F5) >>> 0;
+      var x = Math.imul(t ^ (t >>> 15), 1 | t);
+      x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+      return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /* 生成一条平台序列（含起点）。distance 为中心距。 */
+  function genPlatforms(count, seed, difficulty) {
+    var rng = mulberry32(seed >>> 0);
+    var list = [];
+    var x = 0, y = 0;
+    var dir = 1; // 1: +x, 0: +y（首跳固定 +x）
+    for (var i = 0; i < count; i++) {
+      var t = (i === 0) ? 'plain' : pickType(rng, i);
+      var base = 166 + Math.min(i, 60) * 0.65;          // 距离随进度略增
+      var dist = (base + rng() * 64) * difficulty; // 约170~300
+      var size = 100 - Math.min(24, i * 0.6) - rng() * 8; // 68~100
+      if (i > 0) {
+        if (i > 1 && rng() < 0.48) dir = 1 - dir;          // 12% 换向
+        if (dir === 1) x += dist; else y += dist;
+      }
+      list.push({
+        id: i, x: x, y: y,
+        size: Math.round(size),
+        height: 42 + Math.round(rng() * 10),
+        type: t,
+        color: COLORS[i % COLORS.length],
+        dir: dir,
+      });
+    }
+    return list;
+  }
+
+  /* ---------------- 物理 ---------------- */
+  /* 力量 charge(0~maxCharge) → 水平距离 dist = charge * K；滞空为抛物线。 */
+
+  var PHYS = {
+    K: 0.9,              // 力量→水平世界距离系数：1200 力 ≈ 1080 世界单位（远超最大间距，上限即失误区）
+    AIR_MS: 460,         // 满力量滞空时长基准；短跳按比例缩短
+    G: 2400,             // 世界重力（用于起跳后 z 轨迹，影响的是跳跃演出）
+  };
+
+  /* 给定力量，返回 {dist, airMs} */
+  function chargeToJump(charge, cfg) {
+    var c = Math.min(charge, cfg.maxCharge);
+    var dist = c * PHYS.K;
+    var airMs = PHYS.AIR_MS * (0.55 + 0.45 * (c / cfg.maxCharge));
+    return { dist: dist, airMs: airMs };
+  }
+
+  /* 落点判定：p = 落点 {x,y}，pl = 平台。返回 'center' | 'edge' | 'miss'。
+     中心区：距中心 < size*0.28；边缘区：内接半径内；否则 miss。 */
+  function judge(p, pl) {
+    var d = Math.sqrt((p.x - pl.x) * (p.x - pl.x) + (p.y - pl.y) * (p.y - pl.y));
+    if (d < pl.size * 0.16) return 'center';
+    var round = pl.type === 'cylinder' || pl.type === 'record' || pl.type === 'manhole';
+    if (round ? d <= pl.size * 0.5 : Math.max(Math.abs(p.x - pl.x), Math.abs(p.y - pl.y)) <= pl.size * 0.5) return 'edge';
+    return 'miss';
+  }
+
+  JJ.LOGIC = {
+    defaultCfg: defaultCfg,
+    sanitize: sanitize,
+    genPlatforms: genPlatforms,
+    chargeToJump: chargeToJump,
+    judge: judge,
+    scoreNormal: scoreNormal,
+    comboScore: comboScore,
+    BONUS: BONUS,
+    BONUS_STAY_MS: BONUS_STAY_MS,
+    COLORS: COLORS,
+    PHYS: PHYS,
+    mulberry32: mulberry32,
+  };
+})();
+
+</script>
+<script>
+(function(){
+'use strict';
+const JJ=window.JJ=window.JJ||{};
+function path(c,pts,color){c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.closePath();c.fillStyle=color;c.fill();}
+function shade(hex,k){const v=parseInt(hex.slice(1),16);return 'rgb('+[(v>>16)&255,(v>>8)&255,v&255].map(x=>Math.round(x*k)).join(',')+')';}
+function platform(c,p,project){
+const s=p.size/2,z=p.height,pt=(x,y,h)=>project(p.x+x,p.y+y,h);
+const a=pt(-s,-s,z),b=pt(s,-s,z),d=pt(-s,s,z),e=pt(s,s,z),a0=pt(-s,-s,0),b0=pt(s,-s,0),d0=pt(-s,s,0);
+path(c,[pt(-s+15,-s-18,0),pt(s+20,-s-18,0),pt(s+20,s-18,0),pt(-s+15,s-18,0)],'rgba(49,54,46,.10)');
+const col=p.color||'#b7cbbb';
+if(['cylinder','manhole','record'].includes(p.type)){
+const center=pt(0,0,z),bottom=pt(0,0,0),rx=s*1.216,ry=s*.707;
+c.fillStyle=shade(col,.78);c.beginPath();c.ellipse(bottom.x,bottom.y,rx,ry,0,0,Math.PI);c.lineTo(center.x-rx,center.y);c.ellipse(center.x,center.y,rx,ry,0,Math.PI,0);c.closePath();c.fill();
+c.fillStyle=p.type==='record'?'#343a35':p.type==='manhole'?'#949b8e':col;c.beginPath();c.ellipse(center.x,center.y,rx,ry,0,0,Math.PI*2);c.fill();
+if(p.type!=='cylinder'){c.strokeStyle=p.type==='record'?'#5a6259':'#788170';for(let i=1;i<6;i++){c.beginPath();c.ellipse(center.x,center.y,rx*i/6,ry*i/6,0,0,Math.PI*2);c.stroke();}c.fillStyle=p.type==='record'?'#d8b84d':'#bbc0b6';c.beginPath();c.ellipse(center.x,center.y,rx*.20,ry*.20,0,0,Math.PI*2);c.fill();}
+}else{
+path(c,[a,b,b0,a0],shade(col,.83));path(c,[a,d,d0,a0],shade(col,.68));path(c,[a,b,e,d],col);
+c.strokeStyle='rgba(255,255,255,.3)';c.beginPath();c.moveTo(d.x,d.y);c.lineTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();
+if(p.type==='rubik'){const colors=['#f0df7c','#e87e5d','#eeeee3','#80a98c','#ecb565','#e87e5d','#d5dcd5','#7ea898','#efd17a'];for(let i=0;i<3;i++)for(let j=0;j<3;j++){let x=-s+i*p.size/3+2,y=-s+j*p.size/3+2,w=p.size/3-4;path(c,[pt(x,y,z+.2),pt(x+w,y,z+.2),pt(x+w,y+w,z+.2),pt(x,y+w,z+.2)],colors[i*3+j]);}}
+if(p.type==='shop'){path(c,[pt(-s*.8,-s*.8,z+1),pt(s*.8,-s*.8,z+1),pt(s*.8,s*.8,z+1),pt(-s*.8,s*.8,z+1)],'#f2f0df');const q=pt(0,0,z+2);c.save();c.translate(q.x,q.y);c.transform(.86,-.5,.86,.5,0,0);c.fillStyle='#dc795f';c.fillRect(-s*.8,-s*.8,s*1.6,12);c.fillStyle='#475b49';c.font='bold 18px sans-serif';c.textAlign='center';c.fillText('SHOP',0,8);c.restore();}
+}
+}
+function pawn(c,p,project){const q=project(p.x,p.y,p.z);c.save();c.translate(q.x,q.y);c.globalAlpha=p.opacity??1;c.rotate(p.rotation||0);const squash=p.squash||0;c.scale(1+squash*.45,1-squash*.45);const g=c.createLinearGradient(-14,0,16,0);g.addColorStop(0,'#424744');g.addColorStop(.55,'#242725');g.addColorStop(1,'#111512');c.fillStyle=g;c.beginPath();c.moveTo(-14,-3);c.bezierCurveTo(-14,-14,-6,-26,-6,-35);c.lineTo(6,-35);c.bezierCurveTo(6,-26,14,-14,14,-3);c.ellipse(0,-3,14,5,0,0,Math.PI);c.fill();c.beginPath();c.arc(0,-46,11,0,Math.PI*2);c.fill();c.fillStyle='rgba(255,255,255,.12)';c.beginPath();c.ellipse(-4,-49,3,5,.4,0,Math.PI*2);c.fill();c.restore();}
+JJ.ART={platform,pawn};
+})();
+
+</script>
+<script>
+/* 跳一跳：仅 WebAudio，无背景音乐、网络资源或存档访问。 */
+(function () {
+  'use strict';
+
+  var JJ = (window.JJ = window.JJ || {});
+  var context = null, master = null, resuming = null;
+  var muted = false, charge = null, noise = null;
+  var voices = new Set();
+  var names = ['jump', 'land', 'fall', 'bonus'];
+  var overrides = Object.create(null);
+
+  function hidden() { return document.hidden === true; }
+  function ready() {
+    return context && context.state === 'running' && !muted && !hidden();
+  }
+  function disconnect(node) {
+    try { node.disconnect(); } catch (_) { /* Already disconnected. */ }
+  }
+  function dispose(voice) {
+    if (voice.disposed) return;
+    voice.disposed = true;
+    voice.nodes.forEach(disconnect);
+    voices.delete(voice);
+    if (charge === voice) charge = null;
+  }
+  function voice() {
+    var gain = context.createGain();
+    gain.connect(master);
+    var v = { gain: gain, nodes: [gain], sources: [], ended: 0, disposed: false };
+    voices.add(v);
+    return v;
+  }
+  function source(v, node) {
+    v.nodes.push(node);
+    v.sources.push(node);
+    node.onended = function () {
+      disconnect(node);
+      v.ended++;
+      if (v.ended === v.sources.length) dispose(v);
+    };
+    return node;
+  }
+  function stop(v, immediate) {
+    if (!v || v.disposed) return;
+    var now = context.currentTime;
+    var end = now + (immediate ? 0 : 0.035);
+    var gain = v.gain.gain;
+    if (typeof gain.cancelAndHoldAtTime === 'function') {
+      gain.cancelAndHoldAtTime(now);
+    } else {
+      var current = gain.value;
+      gain.cancelScheduledValues(now);
+      gain.setValueAtTime(current, now);
+    }
+    gain.linearRampToValueAtTime(0, end);
+    v.sources.forEach(function (s) {
+      try { s.stop(end); } catch (_) { /* A source may have ended already. */ }
+    });
+    // Disconnect immediately when hidden/muted, even if the audio clock is suspended.
+    if (immediate) dispose(v);
+  }
+  function stopAll() {
+    charge = null;
+    voices.forEach(function (v) { stop(v, true); });
+  }
+  function syncMute() {
+    if (!master) return;
+    master.gain.setValueAtTime(muted || hidden() ? 0 : 0.65, context.currentTime);
+    if (muted || hidden()) stopAll();
+  }
+
+  function unlock() {
+    if (!context) {
+      var AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return Promise.resolve(false);
+      try {
+        context = new AudioContext();
+        master = context.createGain();
+        master.connect(context.destination);
+        syncMute();
+        context.addEventListener('statechange', function () {
+          if (context.state !== 'running') stopAll();
+        });
+      } catch (_) {
+        if (context) {
+          try { var closing = context.close(); if (closing) closing.catch(function () {}); } catch (_) {}
+        }
+        context = null;
+        master = null;
+        return Promise.resolve(false);
+      }
+    }
+    names.forEach(function (name) { decode(overrides[name]); });
+    if (context.state === 'running') return Promise.resolve(true);
+    if (context.state === 'closed' || hidden()) return Promise.resolve(false);
+    if (resuming) return resuming;
+    try {
+      resuming = Promise.resolve(context.resume()).then(function () {
+        resuming = null;
+        syncMute();
+        return context.state === 'running';
+      }, function () { resuming = null; return false; });
+      return resuming;
+    } catch (_) { return Promise.resolve(false); }
+  }
+
+  function envelope(v, start, duration, level, attack) {
+    var gain = v.gain.gain;
+    gain.setValueAtTime(0, start);
+    gain.linearRampToValueAtTime(level, start + attack);
+    gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    gain.setValueAtTime(0, start + duration + 0.01);
+  }
+  function tone(frequency, endFrequency, duration, level, type, delay) {
+    var v = voice(), t = context.currentTime + (delay || 0);
+    var osc = source(v, context.createOscillator());
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(frequency, t);
+    if (endFrequency) osc.frequency.exponentialRampToValueAtTime(endFrequency, t + duration);
+    osc.connect(v.gain);
+    envelope(v, t, duration, level, 0.008);
+    osc.start(t);
+    osc.stop(t + duration + 0.015);
+  }
+
+  function chargeStart() {
+    if (!ready() || charge) return;
+    var v = voice(), t = context.currentTime;
+    charge = v;
+    var osc = source(v, context.createOscillator());
+    var wobble = source(v, context.createOscillator());
+    var depth = context.createGain();
+    v.nodes.push(depth);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(125, t);
+    osc.frequency.exponentialRampToValueAtTime(510, t + 3.8);
+    wobble.frequency.setValueAtTime(5, t);
+    wobble.frequency.linearRampToValueAtTime(11, t + 3.8);
+    depth.gain.setValueAtTime(7, t);
+    depth.gain.linearRampToValueAtTime(18, t + 3.8);
+    wobble.connect(depth);
+    depth.connect(osc.frequency);
+    osc.connect(v.gain);
+    v.gain.gain.setValueAtTime(0, t);
+    v.gain.gain.linearRampToValueAtTime(0.105, t + 0.08);
+    wobble.start(t);
+    osc.start(t);
+  }
+  function chargeStop() {
+    var v = charge;
+    charge = null;
+    stop(v, !ready());
+  }
+
+  function custom(name) {
+    var entry = overrides[name];
+    if (!entry || !entry.buffer) return false;
+    var v = voice(), t = context.currentTime;
+    var s = source(v, context.createBufferSource());
+    s.buffer = entry.buffer;
+    s.connect(v.gain);
+    // Imported effects remain short one-shots, never looping music.
+    var duration = Math.min(4, s.buffer.duration);
+    if (duration <= 0.01) { dispose(v); return false; }
+    v.gain.gain.setValueAtTime(0, t);
+    v.gain.gain.linearRampToValueAtTime(0.7, t + Math.min(0.005, duration / 4));
+    v.gain.gain.setValueAtTime(0.7, t + duration - Math.min(0.02, duration / 4));
+    v.gain.gain.linearRampToValueAtTime(0, t + duration);
+    s.start(t, 0, duration);
+    s.stop(t + duration + 0.01);
+    return true;
+  }
+  function jump() {
+    chargeStop();
+    if (!ready() || custom('jump')) return;
+    if (!noise) {
+      noise = context.createBuffer(1, Math.ceil(context.sampleRate * 0.2), context.sampleRate);
+      var samples = noise.getChannelData(0);
+      for (var i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
+    }
+    var v = voice(), t = context.currentTime;
+    var s = source(v, context.createBufferSource());
+    var filter = context.createBiquadFilter();
+    v.nodes.push(filter);
+    s.buffer = noise;
+    filter.type = 'bandpass';
+    filter.Q.value = 0.7;
+    filter.frequency.setValueAtTime(1500, t);
+    filter.frequency.exponentialRampToValueAtTime(280, t + 0.17);
+    s.connect(filter);
+    filter.connect(v.gain);
+    envelope(v, t, 0.18, 0.32, 0.018);
+    s.start(t);
+    s.stop(t + 0.2);
+  }
+  function land(combo) {
+    if (!ready() || custom('land')) return;
+    var count = typeof combo === 'number' && isFinite(combo) ? Math.max(0, Math.floor(combo)) : 0;
+    if (!count) { tone(185, 95, 0.13, 0.23, 'sine'); return; }
+    var scale = [0, 2, 4, 7, 9];
+    var step = Math.min(count - 1, 14);
+    var note = 392 * Math.pow(2, (scale[step % 5] + 12 * Math.floor(step / 5)) / 12);
+    tone(note, null, 0.24, 0.18, 'sine');
+    tone(note * 2, null, 0.12, 0.035, 'sine');
+  }
+  function fall() {
+    chargeStop();
+    if (!ready() || custom('fall')) return;
+    tone(240, 65, 0.52, 0.18, 'triangle');
+    tone(120, 42, 0.6, 0.12, 'sine', 0.04);
+  }
+  function bonus() {
+    if (!ready() || custom('bonus')) return;
+    [523.25, 659.25, 783.99, 1046.5].forEach(function (note, i) {
+      tone(note, null, 0.65, 0.09, 'sine', i * 0.025);
+      tone(note * 2, null, 0.16, 0.017, 'sine', i * 0.025);
+    });
+  }
+
+  function dataBytes(url) {
+    var comma = url.indexOf(',');
+    if (comma < 0) throw new Error('Invalid data URL');
+    var header = url.slice(0, comma), body = url.slice(comma + 1);
+    var binary = /;base64$/i.test(header) ? window.atob(decodeURIComponent(body)) : null;
+    var bytes = [];
+    if (binary !== null) {
+      for (var i = 0; i < binary.length; i++) bytes.push(binary.charCodeAt(i));
+    } else {
+      for (var j = 0; j < body.length; j++) {
+        if (body[j] === '%') {
+          var hex = body.slice(j + 1, j + 3);
+          if (!/^[0-9a-f]{2}$/i.test(hex)) throw new Error('Invalid escape');
+          bytes.push(parseInt(hex, 16));
+          j += 2;
+        } else {
+          if (body.charCodeAt(j) > 255) throw new Error('Invalid byte');
+          bytes.push(body.charCodeAt(j));
+        }
+      }
+    }
+    return new Uint8Array(bytes).buffer;
+  }
+  function decode(entry) {
+    if (!entry || entry.started || !context || context.state === 'closed') return;
+    entry.started = true;
+    try {
+      // Callback form also supports older WebKit. Handle its optional Promise too.
+      var result = context.decodeAudioData(dataBytes(entry.url), function (buffer) {
+        entry.buffer = buffer;
+      }, function () { entry.buffer = null; });
+      if (result && typeof result.catch === 'function') result.catch(function () {});
+    } catch (_) { entry.buffer = null; }
+  }
+  function applyOverrides(map) {
+    var next = Object.create(null);
+    names.forEach(function (name) {
+      var url = map && typeof map === 'object' && Object.prototype.hasOwnProperty.call(map, name) ? map[name] : null;
+      if (typeof url !== 'string' || !/^data:/i.test(url) || url.length > 450000) return;
+      // A replaced entry cannot overwrite a newer decode when it finishes late.
+      next[name] = overrides[name] && overrides[name].url === url ? overrides[name] : { url: url, buffer: null, started: false };
+      decode(next[name]);
+    });
+    overrides = next;
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (hidden()) stopAll();
+    syncMute();
+  });
+  JJ.AUDIO = {
+    unlock: unlock,
+    setMuted: function (value) { muted = !!value; if (muted) stopAll(); syncMute(); },
+    chargeStart: chargeStart,
+    chargeStop: chargeStop,
+    jump: jump,
+    land: land,
+    fall: fall,
+    bonus: bonus,
+    applyOverrides: applyOverrides
+  };
+})();
+
+</script>
+<script>
+/* 跳一跳 配置面板（契约 §配置面板）
+ * IIFE，只挂 window.JJ.CONFIG_PANEL。
+ * 不碰 localStorage；样式只作用于 .jj-config；无外部依赖。
+ */
+(function () {
+  'use strict';
+  if (window.JJ && window.JJ.CONFIG_PANEL) return;
+
+  // ---------- 常量 ----------
+  var LIMITS = {
+    difficulty: [0.75, 1.35],
+    chargeRate: [0.22, 0.42],
+    platformTexture: 500 * 1024, // 500KB
+    audio: 300 * 1024            // 每个音效 300KB
+  };
+  var AUDIO_KEYS = ['jump', 'land', 'fall', 'bonus'];
+  var GREEN = '#07c160';
+
+  // ---------- 状态 ----------
+  var host = null;
+  var panel = null;
+  var mounted = false;
+  var openFlag = false;
+  var callbacks = [];
+  var work = null;          // JJ.cfg 深拷贝
+  var escHandler = null;
+
+  function clone(o) {
+    return JSON.parse(JSON.stringify(o));
+  }
+  function notify(snapshot) {
+    for (var i = 0; i < callbacks.length; i++) {
+      try { callbacks[i](snapshot); } catch (e) { /* 单个回调异常不影响其他 */ }
+    }
+  }
+
+  // ---------- 样式注入 ----------
+  var CSS = [
+    '.jj-config{all:initial;display:block;touch-action:pan-y;font:14px/1.5 -apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;color:#1a1a1a;}',
+    '.jj-config *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}',
+    '.jj-config .jj-cfg-mask{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9998;}',
+    '.jj-config .jj-cfg-panel{position:fixed;left:50%;bottom:0;transform:translateX(-50%);',
+    'width:min(420px,100vw);max-height:min(86vh,720px);display:flex;flex-direction:column;',
+    'background:#fff;border:1px solid #d9d9d6;border-radius:4px 4px 0 0;z-index:9999;',
+    'padding-bottom:env(safe-area-inset-bottom,0);}',
+    '.jj-config .jj-cfg-head{display:flex;align-items:center;justify-content:space-between;',
+    'padding:12px 14px;border-bottom:1px solid #e8e8e6;flex:none;}',
+    '.jj-config .jj-cfg-head b{font-size:16px;font-weight:600;}',
+    '.jj-config .jj-cfg-close{width:32px;height:32px;border:1px solid #d9d9d6;background:#fff;',
+    'border-radius:4px;font-size:16px;line-height:1;color:#1a1a1a;cursor:pointer;padding:0;}',
+    '.jj-config .jj-cfg-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px;flex:1 1 auto;}',
+    '.jj-config .jj-cfg-row{margin-bottom:14px;}',
+    '.jj-config .jj-cfg-label{display:block;font-size:13px;color:#555;margin-bottom:4px;}',
+    '.jj-config .jj-cfg-val{color:#888;font-size:12px;margin-left:6px;}',
+    '.jj-config input[type=range]{width:100%;accent-color:' + GREEN + ';margin:2px 0;}',
+    '.jj-config .jj-cfg-check{display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer;}',
+    '.jj-config .jj-cfg-check input{width:16px;height:16px;accent-color:' + GREEN + ';}',
+    '.jj-config input[type=color]{width:56px;height:32px;border:1px solid #d9d9d6;border-radius:4px;',
+    'padding:2px;background:#fff;vertical-align:middle;}',
+    '.jj-config .jj-cfg-bgval{vertical-align:middle;margin-left:8px;font-size:12px;color:#888;}',
+    '.jj-config .jj-cfg-btn{display:inline-block;border:1px solid #d9d9d6;background:#fff;color:#1a1a1a;',
+    'border-radius:4px;padding:7px 12px;font-size:13px;cursor:pointer;margin:2px 6px 6px 0;}',
+    '.jj-config .jj-cfg-btn:active{opacity:.8;}',
+    '.jj-config .jj-cfg-btn-primary{background:' + GREEN + ';border-color:' + GREEN + ';color:#fff;}',
+    '.jj-config .jj-cfg-btn-danger{color:#c0392b;border-color:#d9d9d6;background:#fff;}',
+    '.jj-config .jj-cfg-file{position:relative;overflow:hidden;display:inline-block;}',
+    '.jj-config .jj-cfg-file input{position:absolute;left:0;top:0;width:100%;height:100%;',
+    'opacity:0;cursor:pointer;}',
+    '.jj-config .jj-cfg-preview{font-size:12px;color:#888;word-break:break-all;margin-top:2px;}',
+    '.jj-config .jj-cfg-preview img{max-width:80px;max-height:56px;display:block;',
+    'border:1px solid #e0e0de;margin-top:4px;}',
+    '.jj-config .jj-cfg-audio-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}',
+    '.jj-config .jj-cfg-audio-row span{min-width:56px;font-size:13px;color:#555;}',
+    '.jj-config .jj-cfg-status{font-size:12px;margin-top:2px;}',
+    '.jj-config .jj-cfg-status.ok{color:' + GREEN + ';}',
+    '.jj-config .jj-cfg-status.err{color:#c0392b;}',
+    '.jj-config .jj-cfg-foot{display:flex;gap:8px;padding:10px 14px;border-top:1px solid #e8e8e6;flex:none;}',
+    '.jj-config .jj-cfg-foot .jj-cfg-btn{flex:1;text-align:center;margin:0;}',
+    '.jj-config .jj-cfg-foot .jj-cfg-btn-primary{flex:2;}',
+    '.jj-config textarea{width:100%;height:64px;font:12px/1.4 Menlo,Consolas,monospace;',
+    'border:1px solid #d9d9d6;border-radius:4px;padding:6px;resize:vertical;background:#fafafa;}',
+    '.jj-config .jj-cfg-sec{font-size:12px;color:#999;margin:10px 0 6px;border-top:1px dashed #e8e8e6;padding-top:8px;}'
+  ].join('');
+
+  function injectStyle() {
+    if (document.getElementById('jj-config-style')) return;
+    var st = document.createElement('style');
+    st.id = 'jj-config-style';
+    st.textContent = CSS;
+    document.head.appendChild(st);
+  }
+
+  // ---------- 工具 ----------
+  function setStatus(msg, cls) {
+    var el = panel && panel.querySelector('.jj-cfg-status');
+    if (el) { el.textContent = msg || ''; el.className = 'jj-cfg-status' + (cls ? ' ' + cls : ''); }
+  }
+  function fmtSize(bytes) {
+    return bytes < 1024 ? bytes + 'B' : (bytes / 1024).toFixed(1) + 'KB';
+  }
+  // 图片文件 → 缩至 256px 的 dataURL（JPEG 可保体积；PNG 保透明）
+  function imageToDataURL(file, cb) {
+    var reader = new FileReader();
+    reader.onerror = function () { cb('图片读取失败'); };
+    reader.onload = function () {
+      var img = new Image();
+      img.onerror = function () { cb('不是有效图片文件'); };
+      img.onload = function () {
+        var scale = Math.min(1, 256 / Math.max(img.width, img.height));
+        var w = Math.max(1, Math.round(img.width * scale));
+        var h = Math.max(1, Math.round(img.height * scale));
+        var cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        var out;
+        try { out = cv.toDataURL('image/png'); } catch (e) { cb('图片编码失败'); return; }
+        cb(null, out);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  // 音频文件 → dataURL（校验类型与大小）
+  function audioToDataURL(file, cb) {
+    if (!/^audio\//.test(file.type) && !/\.(mp3|wav|ogg|m4a|aac)$/i.test(file.name)) {
+      cb('请选择音频文件（mp3/wav/ogg 等）'); return;
+    }
+    if (file.size > LIMITS.audio) {
+      cb('音频超过 ' + fmtSize(LIMITS.audio) + ' 限额（当前 ' + fmtSize(file.size) + '）'); return;
+    }
+    var reader = new FileReader();
+    reader.onerror = function () { cb('音频读取失败'); };
+    reader.onload = function () { cb(null, reader.result); };
+    reader.readAsDataURL(file);
+  }
+
+  // ---------- 构建 DOM ----------
+  function build() {
+    panel = document.createElement('div');
+    panel.className = 'jj-config';
+    panel.innerHTML =
+      '<div class="jj-cfg-mask"></div>' +
+      '<div class="jj-cfg-panel" role="dialog" aria-label="游戏设置">' +
+      '  <div class="jj-cfg-head"><b>设置</b><button type="button" class="jj-cfg-close" aria-label="关闭">✕</button></div>' +
+      '  <div class="jj-cfg-body">' +
+      '    <div class="jj-cfg-row">' +
+      '      <label class="jj-cfg-label">难度<span class="jj-cfg-val" data-v="difficulty"></span></label>' +
+      '      <input type="range" data-k="difficulty" min="0.75" max="1.35" step="0.01">' +
+      '    </div>' +
+      '    <div class="jj-cfg-row">' +
+      '      <label class="jj-cfg-label">蓄力速度<span class="jj-cfg-val" data-v="chargeRate"></span></label>' +
+      '      <input type="range" data-k="chargeRate" min="0.22" max="0.42" step="0.01">' +
+      '    </div>' +
+      '    <label class="jj-cfg-check"><input type="checkbox" data-k="sound"> 声音</label>' +
+      '    <label class="jj-cfg-check"><input type="checkbox" data-k="showGuide"> 显示落点辅助线</label>' +
+      '    <div class="jj-cfg-row">' +
+      '      <label class="jj-cfg-label">背景颜色</label>' +
+      '      <input type="color" data-k="background"><span class="jj-cfg-bgval" data-v="background"></span>' +
+      '    </div>' +
+      '    <div class="jj-cfg-sec">平台贴图（可选，限 500KB，自动缩至 256px）</div>' +
+      '    <div class="jj-cfg-row" data-sec="texture">' +
+      '      <span class="jj-cfg-btn jj-cfg-file">上传图片<input type="file" accept="image/*" data-file="platformTexture"></span>' +
+      '      <button type="button" class="jj-cfg-btn" data-clear="platformTexture">清除</button>' +
+      '      <div class="jj-cfg-preview" data-prev="platformTexture"></div>' +
+      '    </div>' +
+      '    <div class="jj-cfg-sec">自定义音效（每个限 300KB，留空使用内置合成音）</div>' +
+      '    <div class="jj-cfg-row" data-sec="audio"></div>' +
+      '    <div class="jj-cfg-sec">配置导出 / 导入</div>' +
+      '    <div class="jj-cfg-row">' +
+      '      <button type="button" class="jj-cfg-btn" data-act="export">导出 JSON</button>' +
+      '      <span class="jj-cfg-btn jj-cfg-file">导入 JSON<input type="file" accept="application/json,.json" data-file="json"></span>' +
+      '    </div>' +
+      '    <div class="jj-cfg-row"><textarea class="jj-cfg-json" placeholder="也可粘贴 JSON 后点「应用粘贴内容」"></textarea>' +
+      '      <button type="button" class="jj-cfg-btn" data-act="apply-paste" style="margin-top:6px;">应用粘贴内容</button></div>' +
+      '    <div class="jj-cfg-status"></div>' +
+      '  </div>' +
+      '  <div class="jj-cfg-foot">' +
+      '    <button type="button" class="jj-cfg-btn" data-act="reset">恢复默认</button>' +
+      '    <button type="button" class="jj-cfg-btn jj-cfg-btn-primary" data-act="save">保存</button>' +
+      '  </div>' +
+      '</div>';
+
+    // 音效行
+    var audioSec = panel.querySelector('[data-sec="audio"]');
+    AUDIO_KEYS.forEach(function (k) {
+      var row = document.createElement('div');
+      row.className = 'jj-cfg-audio-row';
+      row.innerHTML =
+        '<span>' + k + '</span>' +
+        '<span class="jj-cfg-btn jj-cfg-file">上传<input type="file" accept="audio/*" data-file="audio:' + k + '"></span>' +
+        '<button type="button" class="jj-cfg-btn" data-clear="audio:' + k + '">清除</button>' +
+        '<span class="jj-cfg-status" data-astat="' + k + '"></span>';
+      audioSec.appendChild(row);
+    });
+    panel.querySelector('.jj-cfg-mask').addEventListener('click', function () { close(); });
+    panel.querySelector('.jj-cfg-close').addEventListener('click', function () { close(); });
+    bindControls();
+    panel.style.display = 'none'; // mount 后默认隐藏，open 时再显示
+    return panel;
+  }
+
+  function syncUI() {
+    if (!panel || !work) return;
+    ['difficulty', 'chargeRate'].forEach(function (k) {
+      var input = panel.querySelector('[data-k="' + k + '"]');
+      input.value = work[k];
+      panel.querySelector('[data-v="' + k + '"]').textContent = Number(work[k]).toFixed(2);
+    });
+    panel.querySelector('[data-k="sound"]').checked = !!work.sound;
+    panel.querySelector('[data-k="showGuide"]').checked = !!work.showGuide;
+    var bg = panel.querySelector('[data-k="background"]');
+    bg.value = work.background || '#dededc';
+    panel.querySelector('[data-v="background"]').textContent = work.background || '';
+    renderTexturePreview();
+    AUDIO_KEYS.forEach(renderAudioStatus);
+  }
+
+  function renderTexturePreview() {
+    var el = panel.querySelector('[data-prev="platformTexture"]');
+    if (work.platformTexture) {
+      el.innerHTML = '<img alt="贴图预览" src="' + work.platformTexture + '">';
+    } else {
+      el.textContent = '未设置（使用内置立体平台）';
+    }
+  }
+  function renderAudioStatus(k) {
+    var el = panel.querySelector('[data-astat="' + k + '"]');
+    var has = work.audio && work.audio[k];
+    el.textContent = has ? '已自定义 ✓' : '默认';
+    el.className = 'jj-cfg-status' + (has ? ' ok' : '');
+  }
+
+  function bindControls() {
+    panel.addEventListener('input', function (e) {
+      var t = e.target;
+      var k = t.getAttribute('data-k');
+      if (!k || !work) return;
+      if (t.type === 'range') {
+        var v = parseFloat(t.value);
+        var lim = LIMITS[k];
+        v = Math.min(lim[1], Math.max(lim[0], v));
+        work[k] = v;
+        panel.querySelector('[data-v="' + k + '"]').textContent = v.toFixed(2);
+      } else if (t.type === 'checkbox') {
+        work[k] = t.checked;
+      } else if (t.type === 'color') {
+        work[k] = t.value;
+        panel.querySelector('[data-v="' + k + '"]').textContent = t.value;
+      }
+      setStatus('');
+    });
+
+    // 文件
+    panel.addEventListener('change', function (e) {
+      var t = e.target;
+      var fkey = t.getAttribute('data-file');
+      if (!fkey || !t.files || !t.files[0]) return;
+      var file = t.files[0];
+      t.value = ''; // 允许重复选同一文件
+      setStatus('');
+
+      if (fkey === 'platformTexture') {
+        if (!/^image\//.test(file.type)) { setStatus('请选择图片文件', 'err'); return; }
+        if (file.size > LIMITS.platformTexture) {
+          setStatus('图片超过 ' + fmtSize(LIMITS.platformTexture) + ' 限额（当前 ' + fmtSize(file.size) + '）', 'err'); return;
+        }
+        imageToDataURL(file, function (err, dataURL) {
+          if (err) { setStatus(err, 'err'); return; }
+          work.platformTexture = dataURL;
+          renderTexturePreview();
+          setStatus('贴图已载入（' + fmtSize(dataURL.length) + '），点「保存」生效', 'ok');
+        });
+      } else if (fkey === 'json') {
+        importJSONFile(file);
+      } else if (fkey.indexOf('audio:') === 0) {
+        var ak = fkey.slice(6);
+        audioToDataURL(file, function (err, dataURL) {
+          if (err) { setStatus(err, 'err'); return; }
+          if (!work.audio) work.audio = {};
+          work.audio[ak] = dataURL;
+          renderAudioStatus(ak);
+          setStatus('音效 ' + ak + ' 已载入（' + fmtSize(dataURL.length) + '），点「保存」生效', 'ok');
+        });
+      }
+    });
+
+    // 清除
+    panel.addEventListener('click', function (e) {
+      var clearKey = e.target.getAttribute && e.target.getAttribute('data-clear');
+      if (clearKey && work) {
+        if (clearKey === 'platformTexture') {
+          work.platformTexture = '';
+          renderTexturePreview();
+        } else if (clearKey.indexOf('audio:') === 0) {
+          var ak = clearKey.slice(6);
+          if (work.audio) delete work.audio[ak];
+          renderAudioStatus(ak);
+        }
+        setStatus('已清除，点「保存」生效', 'ok');
+        return;
+      }
+      var act = e.target.getAttribute && e.target.getAttribute('data-act');
+      if (!act) return;
+      if (act === 'export') doExport();
+      else if (act === 'apply-paste') applyPastedJSON();
+      else if (act === 'reset') doReset();
+      else if (act === 'save') doSave();
+    });
+  }
+
+  // ---------- 导出 / 导入 ----------
+  function doExport() {
+    var json = JSON.stringify(JJ.LOGIC.sanitize(work), null, 2);
+    var ta = panel.querySelector('.jj-cfg-json');
+    ta.value = json;
+    setStatus('配置已导出到下方文本框，可复制保存为 .json 文件', 'ok');
+    try { ta.select(); if (document.execCommand) document.execCommand('copy'); } catch (e) { /* 忽略 */ }
+  }
+  function applyJSONText(text, okMsg) {
+    var obj;
+    try { obj = JSON.parse(text); }
+    catch (e) { setStatus('JSON 解析失败：' + e.message, 'err'); return false; }
+    var clean = JJ.LOGIC.sanitize(obj);
+    if (!clean || typeof clean !== 'object') { setStatus('配置校验失败', 'err'); return false; }
+    work = clean;
+    syncUI();
+    setStatus(okMsg || '配置已导入（白名单校验通过），点「保存」生效', 'ok');
+    return true;
+  }
+  function importJSONFile(file) {
+    if (file.size > 512 * 1024) { setStatus('JSON 文件过大（限 512KB）', 'err'); return; }
+    var reader = new FileReader();
+    reader.onerror = function () { setStatus('JSON 读取失败', 'err'); };
+    reader.onload = function () { applyJSONText(String(reader.result)); };
+    reader.readAsText(file);
+  }
+  function applyPastedJSON() {
+    var ta = panel.querySelector('.jj-cfg-json');
+    if (!ta.value.trim()) { setStatus('请先粘贴 JSON 内容', 'err'); return; }
+    applyJSONText(ta.value);
+  }
+  function doReset() {
+    work = JJ.LOGIC.defaultCfg();
+    syncUI();
+    panel.querySelector('.jj-cfg-json').value = '';
+    setStatus('已恢复默认配置，点「保存」生效', 'ok');
+  }
+
+  // ---------- 保存 ----------
+  function doSave() {
+    var clean = JJ.LOGIC.sanitize(work);
+    if (!clean || typeof clean !== 'object') { setStatus('配置校验失败，无法保存', 'err'); return; }
+    work = clean;
+    notify(clone(work));
+    close();
+  }
+
+  // ---------- 公开 API ----------
+  function mount(h) {
+    host = h;
+    if (!mounted && host) {
+      injectStyle();
+      build();
+      host.appendChild(panel);
+      mounted = true;
+    }
+  }
+  function open() {
+    if (openFlag) return;
+    if (!mounted) mount(host || document.body);
+    if (typeof JJ.pause === 'function') JJ.pause();
+    work = clone(JJ.cfg); // 主线 getter，实时读取
+    syncUI();
+    setStatus('');
+    panel.style.display = 'block';
+    openFlag = true;
+    escHandler = function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); close(); }
+    };
+    document.addEventListener('keydown', escHandler);
+  }
+  function close() {
+    if (!openFlag) return;
+    openFlag = false;
+    panel.style.display = 'none';
+    document.removeEventListener('keydown', escHandler);
+    escHandler = null;
+    if (typeof JJ.resume === 'function') JJ.resume();
+  }
+  function isOpen() { return openFlag; }
+  function onChange(cb) {
+    if (typeof cb === 'function') callbacks.push(cb);
+    return function () {
+      var i = callbacks.indexOf(cb);
+      if (i >= 0) callbacks.splice(i, 1);
+    };
+  }
+
+  window.JJ = window.JJ || {};
+  window.JJ.CONFIG_PANEL = {
+    mount: mount,
+    open: open,
+    close: close,
+    isOpen: isOpen,
+    onChange: onChange
+  };
+})();
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const JJ = window.JJ, L = JJ.LOGIC, Q = new URLSearchParams(location.search);
+  const CFG_KEY = 'jj_config_v1', SAVE_KEY = 'jj_state_v1';
+  if (Q.get('reset') === '1') { try { localStorage.removeItem(CFG_KEY); localStorage.removeItem(SAVE_KEY); } catch (_) {} }
+  function load(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (_) { return fallback; } }
+  let cfg = L.sanitize(load(CFG_KEY, L.defaultCfg()));
+  const saved = load(SAVE_KEY, {});
+  let best = Number.isFinite(saved.best) ? Math.max(0, saved.best) : 0;
+  let history = Array.isArray(saved.history) ? saved.history.filter(Number.isFinite).slice(0, 10) : [];
+  let resumeData = saved.run;
+  Object.defineProperty(JJ, 'cfg', { get: () => cfg });
+  const $ = id => document.getElementById(id), canvas = $('game'), ctx = canvas.getContext('2d');
+  const audio = new Proxy({}, { get: (_, k) => (...args) => JJ.AUDIO?.[k]?.(...args) });
+  let vw, vh, dpr, scale, ox, oy, texture = null, pointer = null;
+  let paused = false, pauseAt = 0, auto = false, lastFrame = 0;
+  const S = { mode: 'menu', cur: 0, score: 0, combo: 0, seed: 0, platforms: [], pawn: {}, cam: {x:0,y:0}, charge: 0, chargeT0: 0, fly: null, stayT0: 0, stayDone: false, deadT0: 0, landedAt: 0, fx: [], rings: [] };
+  function resize() {
+    vw = innerWidth; vh = innerHeight; dpr = Math.min(devicePixelRatio || 1, 2);
+    canvas.width = Math.round(vw * dpr); canvas.height = Math.round(vh * dpr);
+    scale = Math.min(vw / 430, vh / 730, 1.5);
+  }
+  resize(); addEventListener('resize', resize);
+  function project(x, y, z = 0) { return {x: (x-y)*.86, y: -(x+y)*.5-z}; }
+  function store(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (_) { toast('存储空间不足，本次设置未保存'); return false; } }
+  function stableRun() {
+    if (auto || !['idle','charge','air'].includes(S.mode)) return null;
+    return { seed:S.seed, cur:S.cur, score:S.score, combo:S.combo, pawn: S.fly ? S.fly.from : {x:S.pawn.x,y:S.pawn.y}, stayDone:S.stayDone, difficulty:S.runDifficulty };
+  }
+  function save(run = stableRun()) { store(SAVE_KEY, {v:1,best,history,run}); }
+  function toast(text) { $('toast').textContent=text; $('toast').classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>$('toast').classList.remove('show'),2200); }
+  function hud() {
+    $('score').textContent=S.score;
+    $('best').textContent='最高纪录 '+best;
+    $('combo').textContent=S.combo>1 ? '连续命中中心 × '+S.combo : '';
+    $('combo').style.display=S.combo>1?'block':'none';
+    $('hiscoreLine').textContent='最高纪录 '+best;
+    $('historyLine').textContent=history.length?'最近战绩  '+history.slice(0,5).join(' / '):'每一跳，都是新的开始';
+    $('score').style.visibility=S.mode==='menu'?'hidden':'visible';
+  }
+  function setup(seed, difficulty) {
+    S.seed=seed; S.runDifficulty=difficulty; S.platforms=L.genPlatforms(1200,seed,difficulty);
+    S.cur=0; S.score=0; S.combo=0; S.charge=0; S.fly=null; S.fx=[]; S.rings=[];
+    S.pawn={x:0,y:0,z:S.platforms[0].height,squash:0,rotation:0,opacity:1};
+    S.cam={x:0,y:0}; S.stayDone=false; S.stayT0=0; S.landedAt=performance.now();
+  }
+  function start(demo = false, restore = false) {
+    audio.unlock(); audio.chargeStop(); pointer=null; auto=demo;
+    const r=restore ? resumeData : null;
+    setup(r?.seed ?? (Q.has('seed') ? Number(Q.get('seed'))>>>0 : Date.now()>>>0), r?.difficulty ?? cfg.difficulty);
+    if (r && Number.isInteger(r.cur) && r.cur>=0 && r.cur<S.platforms.length-1 && Number.isFinite(r.score) && Number.isFinite(r.pawn?.x) && Number.isFinite(r.pawn?.y)) {
+      S.cur=r.cur; S.score=Math.max(0,r.score); S.combo=Math.max(0,Number(r.combo)||0);
+      const p=S.platforms[S.cur]; S.pawn.x=r.pawn.x; S.pawn.y=r.pawn.y; S.pawn.z=p.height;
+      S.cam={x:p.x,y:p.y}; S.stayDone=!!r.stayDone; S.stayT0=performance.now();
+    }
+    resumeData=null; S.mode='idle'; S.landedAt=performance.now();
+    $('startScreen').hidden=true; $('endScreen').hidden=true;
+    $('exitDemoBtn').hidden=!auto; $('hint').textContent=auto?'自动演示 · 不计入个人纪录':'按住屏幕任意空白处，松手起跳';
+    document.body.dataset.playing='true'; hud(); if(!auto) save();
+  }
+  function aim() {
+    const next=S.platforms[S.cur+1];
+    if (!next) return {x:1,y:0,dist:200};
+    const dx=next.x-S.pawn.x,dy=next.y-S.pawn.y,dist=Math.hypot(dx,dy);
+    return {x:dx/dist,y:dy/dist,dist};
+  }
+  function press(internal=false) {
+    if(paused||S.mode!=='idle'||(auto&&!internal)) return false;
+    audio.unlock(); S.mode='charge'; S.charge=0; S.chargeT0=performance.now(); S.direction=aim(); audio.chargeStart(); return true;
+  }
+  function release(power) {
+    if(paused||S.mode!=='charge') return false;
+    S.charge=Number.isFinite(power)?Math.max(0,power):Math.min(cfg.maxCharge,(performance.now()-S.chargeT0)*cfg.chargeRate);
+    audio.chargeStop(); const jump=L.chargeToJump(S.charge,cfg),d=S.direction||aim();
+    const from={x:S.pawn.x,y:S.pawn.y,z:S.pawn.z};
+    S.fly={t0:performance.now(),airMs:jump.airMs,from,to:{x:from.x+d.x*jump.dist,y:from.y+d.y*jump.dist},peak:Math.min(165,64+jump.dist*.18)};
+    S.mode='air'; S.pawn.squash=0; audio.jump(); pointer=null; return true;
+  }
+  function addPoints(points, label, now) {
+    S.score+=points; if(!auto) best=Math.max(best,S.score);
+    S.fx.push({x:S.pawn.x,y:S.pawn.y,z:S.pawn.z+76,text:label||'+'+points,t0:now});
+    hud(); if(!auto)save();
+  }
+  function land(now) {
+    const f=S.fly; S.fly=null; S.pawn.x=f.to.x; S.pawn.y=f.to.y; S.pawn.rotation=0;
+    const next=S.platforms[S.cur+1], current=S.platforms[S.cur];
+    const hit=next?L.judge(f.to,next):'miss';
+    if(hit==='miss') {
+      if(L.judge(f.to,current)!=='miss') {
+        S.pawn.z=current.height; S.pawn.squash=.25; S.mode='idle'; S.landedAt=now; S.combo=0; hud(); audio.land(0); return;
+      }
+      S.mode='dead'; S.deadT0=now; S.deadZ=S.pawn.z; S.stayT0=0; audio.fall(); if(!auto)save(null); return;
+    }
+    S.cur++; S.pawn.z=next.height; S.pawn.squash=.36; S.mode='idle'; S.landedAt=now;
+    S.stayT0=now; S.stayDone=false; S.combo=hit==='center'?S.combo+1:0;
+    const points=hit==='center'?L.comboScore(S.combo):1;
+    S.rings.push({x:next.x,y:next.y,z:next.height+1,t0:now});
+    addPoints(points,hit==='center'?'+'+points+'  正中中心':'+1',now); audio.land(S.combo);
+  }
+  function finish() {
+    S.mode='over'; auto=false; $('exitDemoBtn').hidden=true;
+    if(!S.demoRun) { history.unshift(S.score); history=history.slice(0,10); save(null); }
+    $('finalScore').textContent=S.score; $('endScreen').hidden=false; $('endTitle').textContent=S.demoRun?'演示结束':'本局得分'; hud();
+  }
+  function update(now, dt) {
+    if(paused) return;
+    if(S.mode==='charge') {
+      S.charge=Math.min(cfg.maxCharge,(now-S.chargeT0)*cfg.chargeRate);
+      S.pawn.squash=Math.min(.58,S.charge/400*.5);
+      if(auto&&S.charge>=S.direction.dist/L.PHYS.K) release(S.direction.dist/L.PHYS.K);
+    }
+    if(S.mode==='air'&&S.fly) {
+      const f=S.fly,t=Math.min(1,(now-f.t0)/f.airMs),next=S.platforms[S.cur+1];
+      S.pawn.x=f.from.x+(f.to.x-f.from.x)*t; S.pawn.y=f.from.y+(f.to.y-f.from.y)*t;
+      S.pawn.z=f.from.z+((next?.height||f.from.z)-f.from.z)*t+4*f.peak*t*(1-t);
+      S.pawn.rotation=-Math.PI*2*t;
+      if(t>=1)land(now);
+    }
+    if(S.mode==='idle') {
+      S.pawn.squash*=Math.exp(-dt*16);
+      const pl=S.platforms[S.cur];
+      if(S.stayT0&&!S.stayDone&&L.BONUS[pl.type]&&now-S.stayT0>=L.BONUS_STAY_MS) {
+        S.stayDone=true; addPoints(L.BONUS[pl.type],null,now); audio.bonus();
+      }
+      if(auto&&now-S.landedAt>(L.BONUS[pl.type]&&!S.stayDone?2300:480))press(true);
+    }
+    if(S.mode==='dead') {
+      const t=(now-S.deadT0)/1000;
+      S.pawn.z=S.deadZ-500*t*t; S.pawn.rotation=t*2.8; S.pawn.opacity=Math.max(0,1-t*1.5);
+      if(t>1.05)finish();
+    }
+    const cur=S.platforms[S.cur],next=S.platforms[S.cur+1];
+    if(cur&&next) {
+      const target={x:cur.x+(next.x-cur.x)*.32,y:cur.y+(next.y-cur.y)*.32};
+      const k=1-Math.exp(-dt*6); S.cam.x+=(target.x-S.cam.x)*k; S.cam.y+=(target.y-S.cam.y)*k;
+    }
+    S.fx=S.fx.filter(f=>now-f.t0<1100); S.rings=S.rings.filter(r=>now-r.t0<550);
+  }
+  function render(now) {
+    ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=1;ctx.fillStyle=cfg.background;ctx.fillRect(0,0,vw,vh);
+    const c=project(S.cam.x,S.cam.y);ox=vw/2-c.x*scale;oy=vh*(S.mode==='menu'?.57:.60)-c.y*scale;
+    ctx.save();ctx.translate(ox,oy);ctx.scale(scale,scale);
+    const vis=S.platforms.slice(Math.max(0,S.cur-2),S.cur+(S.mode==='menu'?5:3));
+    vis.sort((a,b)=>(b.x+b.y)-(a.x+a.y));
+    let pawnDrawn=false;
+    for(const p of vis) {
+      if(!pawnDrawn&&S.pawn.x+S.pawn.y>p.x+p.y+p.size*.6&&S.pawn.z<p.height+5) { JJ.ART?.pawn(ctx,S.pawn,project,now);pawnDrawn=true; }
+      JJ.ART?.platform(ctx,texture?{...p,texture}:p,project,now);
+    }
+    if(S.mode==='air') {
+      const p=project(S.pawn.x,S.pawn.y,42);ctx.fillStyle='rgba(30,35,31,.13)';ctx.beginPath();ctx.ellipse(p.x,p.y,18,8,0,0,Math.PI*2);ctx.fill();
+    }
+    if(!pawnDrawn)JJ.ART?.pawn(ctx,S.pawn,project,now);
+    for(const r of S.rings) {
+      const t=(now-r.t0)/550,p=project(r.x,r.y,r.z);ctx.strokeStyle='rgba(255,255,255,'+(1-t)+')';ctx.lineWidth=2;
+      ctx.beginPath();ctx.ellipse(p.x,p.y,18+t*35,9+t*18,0,0,Math.PI*2);ctx.stroke();
+    }
+    if(cfg.showGuide&&['idle','charge'].includes(S.mode)) {
+      const next=S.platforms[S.cur+1],a=project(S.pawn.x,S.pawn.y,S.pawn.z+2),b=project(next.x,next.y,next.height+2);
+      ctx.strokeStyle='rgba(38,66,47,.35)';ctx.setLineDash([3,6]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.setLineDash([]);
+      if(S.mode==='charge') {
+        const d=S.direction,j=L.chargeToJump(S.charge,cfg),p=project(S.pawn.x+d.x*j.dist,S.pawn.y+d.y*j.dist,next.height+3);
+        ctx.strokeStyle='#268c5a';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y,8,4,0,0,Math.PI*2);ctx.stroke();
+      }
+    }
+    for(const f of S.fx) {
+      const t=(now-f.t0)/1100,p=project(f.x,f.y,f.z+t*30);ctx.globalAlpha=Math.min(1,(1-t)*2);ctx.fillStyle='#253c2c';ctx.font='500 19px "PingFang SC",sans-serif';ctx.textAlign='center';ctx.fillText(f.text,p.x,p.y);
+    }
+    ctx.globalAlpha=1;
+    const pl=S.platforms[S.cur];
+    if(pl&&S.mode==='idle'&&L.BONUS[pl.type]&&!S.stayDone&&S.stayT0) {
+      const p=project(pl.x,pl.y,pl.height-4),t=Math.min(1,(now-S.stayT0)/L.BONUS_STAY_MS);
+      ctx.strokeStyle='#fafaf6';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(p.x,p.y,23,12,0,-Math.PI/2,-Math.PI/2+t*Math.PI*2);ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function tick(now) {
+    if(now-lastFrame<8)return;const dt=Math.min(.08,(now-lastFrame)/1000);lastFrame=now;
+    update(now,dt);render(now);
+  }
+  function frame(now) { requestAnimationFrame(frame);tick(now); }
+  requestAnimationFrame(frame);
+  setInterval(()=>{const now=performance.now();if(now-lastFrame>100&&!document.hidden)tick(now);},100);
+  JJ.pause=()=>{
+    if(paused)return;
+    if(S.mode==='charge'){audio.chargeStop();S.mode='idle';S.pawn.squash=0;}
+    pointer=null;paused=true;pauseAt=performance.now();
+  };
+  JJ.resume=()=>{
+    if(!paused)return;const dt=performance.now()-pauseAt;
+    if(S.fly)S.fly.t0+=dt;S.landedAt+=dt;if(S.stayT0)S.stayT0+=dt;if(S.deadT0)S.deadT0+=dt;
+    S.fx.forEach(f=>f.t0+=dt);S.rings.forEach(f=>f.t0+=dt);paused=false;
+  };
+  canvas.addEventListener('pointerdown',e=>{if(pointer!==null||e.button!==0)return;e.preventDefault();if(press()){pointer=e.pointerId;canvas.setPointerCapture(e.pointerId);}});
+  canvas.addEventListener('pointerup',e=>{if(e.pointerId!==pointer)return;e.preventDefault();release();});
+  canvas.addEventListener('pointercancel',()=>{if(S.mode==='charge'){S.mode='idle';S.pawn.squash=0;audio.chargeStop();}pointer=null;});
+  canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  addEventListener('keydown',e=>{if(e.code!=='Space'||e.repeat||paused||/INPUT|TEXTAREA|BUTTON|SELECT/.test(e.target.tagName))return;e.preventDefault();if(S.mode==='menu'||S.mode==='over')start();else press();});
+  addEventListener('keyup',e=>{if(e.code==='Space'&&S.mode==='charge'&&!auto){e.preventDefault();release();}});
+  addEventListener('blur',()=>{if(S.mode==='charge'){S.mode='idle';S.pawn.squash=0;audio.chargeStop();pointer=null;}});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){save();JJ.pause();}else if(!JJ.CONFIG_PANEL?.isOpen())JJ.resume();});
+  addEventListener('pagehide',()=>save());
+  function syncSound(){audio.setMuted(!cfg.sound);$('soundBtn').setAttribute('aria-pressed',String(cfg.sound));$('soundBtn').textContent=cfg.sound?'声音 开':'声音 关';}
+  function loadTexture(){texture=null;if(!cfg.platformTexture)return;const img=new Image();img.onload=()=>{texture=img;};img.onerror=()=>toast('图片无法读取，请重新上传');img.src=cfg.platformTexture;}
+  $('startBtn').onclick=()=>{S.demoRun=false;start();};$('retryBtn').onclick=()=>{S.demoRun=false;start();};
+  $('resumeBtn').onclick=()=>{S.demoRun=false;start(false,true);};
+  $('demoBtn').onclick=()=>{S.demoRun=true;start(true);};
+  $('exitDemoBtn').onclick=()=>{S.demoRun=false;start();};
+  $('soundBtn').onclick=()=>{audio.unlock();cfg.sound=!cfg.sound;syncSound();store(CFG_KEY,cfg);};
+  $('settingsBtn').onclick=()=>JJ.CONFIG_PANEL?.open();
+  $('homeBtn').onclick=()=>{auto=false;S.mode='menu';$('endScreen').hidden=true;$('startScreen').hidden=false;$('resumeBtn').hidden=true;document.body.dataset.playing='false';setup(Date.now()>>>0,cfg.difficulty);S.mode='menu';hud();};
+  JJ.CONFIG_PANEL?.mount($('cfgHost'));JJ.CONFIG_PANEL?.onChange(next=>{cfg=L.sanitize(next);store(CFG_KEY,cfg);syncSound();audio.applyOverrides(cfg.audio);loadTexture();toast('设置已保存，难度在新一局生效');});
+  if(Q.get('muted')==='1')cfg.sound=false;
+  syncSound();audio.applyOverrides(cfg.audio);loadTexture();setup(37,cfg.difficulty);S.mode='menu';
+  $('resumeBtn').hidden=!(resumeData&&Number.isInteger(resumeData.cur));hud();
+  if(Q.get('autoplay')==='1'){S.demoRun=true;start(true);}
+  window.__errs=[];addEventListener('error',e=>window.__errs.push(e.message));addEventListener('unhandledrejection',e=>window.__errs.push(String(e.reason)));
+  window.__jj={
+    state:()=>({mode:S.mode,cur:S.cur,score:S.score,combo:S.combo,charge:S.charge,best,auto,paused,stayDone:S.stayDone}),
+    getConfig:()=>JSON.parse(JSON.stringify(cfg)),start:()=>{S.demoRun=false;start();},press,release,
+    jumpFor:ms=>{if(!press(true))return false;return release(ms*cfg.chargeRate);},
+    setAuto:value=>{if(value){S.demoRun=true;start(true);}else{auto=false;$('exitDemoBtn').hidden=true;}},
+    snapshot:()=>({platforms:S.platforms.slice(0,S.cur+3).map(p=>({...p})),pawn:{...S.pawn},history:[...history]}),
+    targetMs:()=>aim().dist/L.PHYS.K/cfg.chargeRate,
+    setNextType:type=>{if(['plain','cylinder','rubik','manhole','shop','record'].includes(type))S.platforms[S.cur+1].type=type;}
+  };
+})();
+
+</script>
+</body>
+</html>

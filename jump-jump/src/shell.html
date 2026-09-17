@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#dededc">
+<meta name="description" content="按住蓄力，松手起跳。零依赖、离线可玩的跳一跳 H5 非官方复刻。">
+<title>跳一跳 · 再跳一步</title>
+<style>
+:root{--ink:#252925;--muted:#777d76;--green:#168c50}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none}body{background:#dededc;color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",sans-serif;touch-action:auto;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}button{font:inherit;cursor:pointer;color:inherit}button:focus-visible{outline:2px solid var(--green);outline-offset:5px}button:active{transform:translateY(1px)}[hidden]{display:none!important}#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}.hud{position:fixed;top:calc(34px + env(safe-area-inset-top));left:clamp(24px,5vw,80px);pointer-events:none;z-index:3}#score{font-size:clamp(60px,9vw,88px);font-weight:300;line-height:1;letter-spacing:-4px;font-variant-numeric:tabular-nums}#best{margin-top:13px;font-size:11px;letter-spacing:1px;color:var(--muted)}#combo{margin-top:14px;font-size:12px;color:#387452}.tools{position:fixed;right:clamp(20px,4vw,64px);top:calc(28px + env(safe-area-inset-top));z-index:12;display:flex;gap:20px}.tools button{padding:8px 0;border:0;background:none;font-size:12px;letter-spacing:1px;color:#626960}.tools button+button{border-left:1px solid #b9bdb6;padding-left:20px}#hint{position:fixed;bottom:calc(35px + env(safe-area-inset-bottom));left:12px;right:12px;text-align:center;font-size:12px;letter-spacing:2px;color:#727970;pointer-events:none}body:not([data-playing="true"]) #hint{display:none}#exitDemoBtn{position:fixed;z-index:6;bottom:calc(73px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:transparent;border:1px solid #9ca69a;border-radius:3px;padding:10px 20px;font-size:12px}.overlay{position:fixed;inset:0;z-index:10;display:flex;align-items:center;flex-direction:column;pointer-events:none}.overlay button{pointer-events:auto}.intro{position:absolute;top:16%;text-align:center}.eyebrow{font-size:10px;letter-spacing:5px;color:#7e857c;margin-bottom:18px}h1{font-size:clamp(46px,8vw,66px);font-weight:500;letter-spacing:14px;margin:0 0 16px 14px;line-height:1.15}.tagline{margin:0;color:#71796e;font-size:12px;letter-spacing:5px}.start-actions{position:absolute;bottom:calc(8% + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;width:100%;gap:16px}.btn{min-width:204px;min-height:48px;padding:13px 32px;border:0;border-radius:3px;background:var(--green);color:#fff;font-size:16px;letter-spacing:3px}.text-btn{border:0;background:none;font-size:12px;letter-spacing:1px;color:#727b6f;padding:6px 12px}.mini-links{display:flex;gap:16px;align-items:center}.instruction{font-size:12px;letter-spacing:1px;color:#72796f;margin:0 0 3px}.disclaimer{font-size:9px;letter-spacing:1px;color:#8d938a;position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));margin:0}#endScreen{background:rgba(225,227,222,.94);justify-content:center;gap:12px;pointer-events:auto}#endTitle{font-size:12px;letter-spacing:5px;color:#72796e}.final{font-size:110px;line-height:1.15;font-weight:200;letter-spacing:-5px;font-variant-numeric:tabular-nums}.hiscore{font-size:12px;color:#6e796a;margin:0 0 20px}#historyLine{font-size:11px;color:#7f8779;margin-top:18px;letter-spacing:1px}#cfgHost{position:fixed;inset:0;z-index:30;pointer-events:none}#cfgHost>*{pointer-events:auto}#toast{position:fixed;left:50%;bottom:calc(105px + env(safe-area-inset-bottom));transform:translateX(-50%);max-width:88vw;width:max-content;background:#303b31;color:#fff;padding:11px 18px;font-size:12px;border-radius:3px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50}#toast.show{opacity:1}@media(min-width:900px){.intro{top:13%}.start-actions{bottom:8%}}@media(max-height:500px){.intro{left:8%;top:30%;text-align:left}.eyebrow{margin-bottom:12px}h1{font-size:42px;margin-left:0}.tagline{letter-spacing:2px}.start-actions{left:auto;right:5%;width:240px;bottom:18%;gap:8px}.disclaimer{right:6%}.hud{top:20px}#score{font-size:54px}#hint{bottom:16px}.final{font-size:72px}#endScreen{gap:6px}.hiscore{margin-bottom:6px}}
+</style>
+</head>
+<body data-playing="false">
+<canvas id="game" aria-label="跳一跳游戏画面，按住鼠标或屏幕蓄力，松开起跳。也支持空格键。"></canvas>
+<div class="hud"><div id="score">0</div><div id="best"></div><div id="combo"></div></div>
+<div class="tools"><button id="soundBtn" aria-label="切换游戏声音" aria-pressed="true">声音 开</button><button id="settingsBtn">设置</button></div>
+<div id="hint">按住屏幕任意空白处，松手起跳</div>
+<button id="exitDemoBtn" hidden>结束演示，自己玩</button>
+<section id="startScreen" class="overlay" aria-label="游戏首页">
+  <div class="intro"><div class="eyebrow">JUST ONE MORE JUMP</div><h1>跳一跳</h1><p class="tagline">别着急，再跳一步。</p></div>
+  <div class="start-actions"><p class="instruction">按住蓄力 · 松手起跳</p><button id="startBtn" class="btn">开始游戏</button><div class="mini-links"><button id="resumeBtn" class="text-btn" hidden>继续上次</button><button id="demoBtn" class="text-btn">看看怎么玩 ↗</button></div></div>
+  <p class="disclaimer">非官方 H5 复刻 · 手机触屏 / 电脑空格键</p>
+</section>
+<section id="endScreen" class="overlay" aria-label="游戏结算" hidden>
+  <div id="endTitle">本局得分</div><div class="final" id="finalScore">0</div><p class="hiscore" id="hiscoreLine">最高纪录 0</p>
+  <button id="retryBtn" class="btn">再来一局</button><button id="homeBtn" class="text-btn">返回首页</button><div id="historyLine"></div>
+</section>
+<div id="cfgHost"></div><div id="toast" role="status" aria-live="polite"></div>
+<!-- MODULE_SCRIPTS -->
+</body>
+</html>

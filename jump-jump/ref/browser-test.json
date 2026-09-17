@@ -1,0 +1,47 @@
+{
+  "manualPassed": true,
+  "manual": {
+    "mode": "idle",
+    "cur": 1,
+    "score": 2,
+    "combo": 1,
+    "charge": 239.80799999713898,
+    "best": 42,
+    "auto": false,
+    "paused": false,
+    "stayDone": false
+  },
+  "autoPassed": true,
+  "auto": {
+    "mode": "idle",
+    "cur": 3,
+    "score": 12,
+    "combo": 3,
+    "charge": 243.1408379276594,
+    "best": 42,
+    "auto": true,
+    "paused": false,
+    "stayDone": false
+  },
+  "persistencePassed": true,
+  "persisted": {
+    "guide": false,
+    "best": 42
+  },
+  "retryPassed": true,
+  "final": {
+    "state": {
+      "mode": "idle",
+      "cur": 0,
+      "score": 0,
+      "combo": 0,
+      "charge": 0,
+      "best": 42,
+      "auto": false,
+      "paused": false,
+      "stayDone": false
+    },
+    "errors": [],
+    "overflow": false
+  }
+}

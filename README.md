@@ -6,6 +6,8 @@ AI 辅助产出的案例集合 —— 方案 · 演示 · 视觉作品。
 
 ## Cases
 
+- [jump-jump](./jump-jump/) — 跳一跳 · 非官方 H5 复刻：按住蓄力、连续中心奖励、六类平台、自动演示、WebAudio 音效与本地进度保存（[在线游玩](https://case.youyongai.com/jump-jump/)）
+
 - [defi-prototypes](./defi-prototypes/) — DeFi 原型馆 · 8 套金融 App 概念设计稿组成一个完整可操作的 H5 App：主屏 8 个应用图标、App 内按钮/返回键/底部 tab/左缘右滑真实导航、Home 条回主屏，21 屏行情兑换/转账键盘/统计图表/卡片开关全可点，玻璃泡泡可点爆，单文件（[在线体验](https://case.youyongai.com/defi-prototypes/)）
 
 - [orchestrateiq-dashboard](./orchestrateiq-dashboard/) — OrchestrateIQ · AI Agent 编排平台监控后台复刻：8 秒录屏 → 全按钮可点的 SaaS dashboard，Overview/Traces/Trace 瀑布/Handoff 断链诊断四屏像素级还原，明暗双主题、⌘K 命令面板、实时直播流、真 CSV 导出（[在线预览](https://case.youyongai.com/orchestrateiq-dashboard/)）
