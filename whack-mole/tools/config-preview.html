@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>whack-mole 配置面板自检</title>
+<style>
+  html,body{margin:0;padding:0;}
+  body{background:#F4EFDF;font-family:system-ui,-apple-system,"PingFang SC",sans-serif;color:#2B2622;}
+  .hint{padding:10px 14px;font-size:12px;line-height:1.7;color:rgba(58,46,36,.7);}
+  #log{display:block;margin:0;padding:10px 14px 24px;font:12px/1.6 ui-monospace,Menlo,monospace;
+    white-space:pre-wrap;word-break:break-all;color:#2B2622;background:#FFF9EE;
+    border-top:2px dashed rgba(58,46,36,.35);min-height:60px;}
+</style>
+</head>
+<body>
+<p class="hint">自检页：stub WM.cfg（契约默认值）→ mount → 自动 open('mole')；onChange 快照打印到页面底部。</p>
+<div id="host"></div>
+<pre id="log">（尚未收到 onChange 快照）</pre>
+<script>
+window.WM = window.WM || {};
+/* 契约「配置 schema」默认值 */
+WM.cfg = {
+  diff: 'normal',
+  timeLimit: 60,
+  frenzySec: 4,
+  comboOn: true,
+  baseScore: 100,
+  dailyLimit: 0,
+  vols: { bgm: 0.4, sfx: 0.9, master: 1 },
+  moles: {},
+  sounds: {},
+  marketing: {
+    title: '欢乐打地鼠',
+    subtitle: '游园会 · 赢好礼',
+    rules: '限时敲鼠得分，连击翻倍；敲中礼盒鼠集奖品并触发狂热时刻；小心炸弹鼠！按评级领对应好礼。',
+    prizes: [
+      { tier: 'gold',   name: '游园大奖', prefix: 'WMJ' },
+      { tier: 'silver', name: '幸运好礼', prefix: 'WMY' },
+      { tier: 'bronze', name: '参与奖',   prefix: 'WMC' }
+    ],
+    supportUrl: ''
+  }
+};
+</script>
+<script src="../src/config-panel.js"></script>
+<script>
+(function () {
+  var logEl = document.getElementById('log');
+  WM.CONFIG_PANEL.mount(document.getElementById('host'));
+  WM.CONFIG_PANEL.onChange(function (snap) {
+    try {
+      logEl.textContent = (snap && snap.__clearBest)
+        ? 'onChange → { "__clearBest": true }'
+        : 'onChange 快照：\n' + JSON.stringify(snap, null, 2);
+    } catch (e) { logEl.textContent = '快照序列化失败：' + e; }
+  });
+  WM.CONFIG_PANEL.open('mole');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+body{margin:0;background:#7DA45B;font-family:sans-serif}
+#host{position:relative;width:390px;height:844px;margin:0 auto;background:#7DA45B;overflow:hidden;border:2px solid #3A2E24}
+.b{position:relative;z-index:5;margin:6px;padding:6px 10px;font-size:13px;background:#FFF9EE;border:2px solid #3A2E24;border-radius:6px}
+</style></head><body>
+<div id="host">
+  <button class="b" onclick="go('star')">whackStar</button>
+  <button class="b" onclick="go('dust')">dust</button>
+  <button class="b" onclick="go('burst')">burst</button>
+  <button class="b" onclick="go('float')">floatScore</button>
+  <button class="b" onclick="go('fly')">coinFly</button>
+  <button class="b" onclick="go('conf')">confetti</button>
+  <button class="b" onclick="go('ring')">ring</button>
+  <button class="b" onclick="go('big')">bigText</button>
+  <button class="b" onclick="go('all')">ALL</button>
+</div>
+<script src="../src/fx.js"></script>
+<script>
+WM.FX.init(document.getElementById('host'));
+function go(k){
+  const x=200,y=420;
+  if(k==='star')WM.FX.whackStar(x,y);
+  if(k==='dust')WM.FX.dust(x,y+30);
+  if(k==='burst')WM.FX.burst(x,y,{n:30});
+  if(k==='float')WM.FX.floatScore(x,y,'+300',{color:'#C99A3C',size:24});
+  if(k==='fly')WM.FX.coinFly(x,y,60,80,{n:3});
+  if(k==='conf')WM.FX.confetti(60);
+  if(k==='ring')WM.FX.ring(x,y);
+  if(k==='big')WM.FX.bigText('狂热时刻!',{sub:'双倍得分 · 金鼠出没',dur:1600});
+  if(k==='all'){WM.FX.whackStar(x,y);WM.FX.dust(x-80,y+30);WM.FX.burst(x+80,y,{n:24});WM.FX.floatScore(x,y-40,'+100',{});WM.FX.floatScore(x,y-80,'+300',{color:'#C99A3C',size:24});WM.FX.ring(x,y);WM.FX.bigText('狂热时刻!',{sub:'双倍得分 · 金鼠出没',dur:1600});}
+}
+</script>
+</body></html>
