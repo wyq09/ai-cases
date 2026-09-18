@@ -9,7 +9,7 @@
   function cfg() {
     if (!cfgCache) {
       try { cfgCache = BF.CFG.all(); } catch (e) {
-        cfgCache = { gravity: 620, jumpV: 330, noise: 26, candleTicks: 22, scrollSpeed: 130, pipeGap: 0.15, feeRate: 0.0004, loanK: 0.5 };
+        cfgCache = { gravity: 540, jumpV: 300, noise: 20, candleTicks: 22, scrollSpeed: 115, pipeGap: 0.24, feeRate: 0.0004, loanK: 0.5 };
       }
     }
     return cfgCache;
@@ -31,6 +31,14 @@
       trades: [], divAcc: 0, t: 0,
       lastPrice: 100, lastCash: principal + loan, lastShares: 0, lastRealized: 0, lastFees: 0
     };
+    // 开局预生成历史 K 线（围绕 100 随机游走，让首屏即有完整图表）
+    var hp = 100 + (Math.random() - 0.5) * 3;
+    for (var i = 0; i < 9; i++) {
+      var o = hp;
+      hp = Math.max(93, Math.min(107, hp + (Math.random() - 0.5) * 2.4));
+      S.candles.push({ o: o, c: hp, h: Math.max(o, hp) + Math.random() * 0.7, l: Math.min(o, hp) - Math.random() * 0.7 });
+    }
+    S.price = 100;
     return S;
   }
   function assertBooks() {
@@ -92,19 +100,12 @@
       S.firstBuyAt -= dt * 60;
       if (S.firstBuyAt < 0) { var tr0 = doBuy(0.5); if (tr0) tr0.auto = 'open'; }
     }
-    // 蜡烛聚合（按时间：candleTicks 帧@60fps → 秒，与滚动速度解耦于帧率）
-    var candleDur = c.candleTicks / 60;
+    // 蜡烛由 game 层按世界滚动距离驱动 finalize（每 56px 一根），保证与滚动严格同步；
+    // 此处只更新当前未完成蜡烛的 h/l/c
     if (!S.cur) S.cur = { o: S.price, h: S.price, l: S.price, c: S.price };
     S.cur.c = S.price;
     if (S.price > S.cur.h) S.cur.h = S.price;
     if (S.price < S.cur.l) S.cur.l = S.price;
-    S.candleAcc = (S.candleAcc || 0) + dt;
-    if (S.candleAcc >= candleDur) {
-      S.candleAcc -= candleDur;
-      S.candles.push(S.cur);
-      if (S.candles.length > CANDLE_KEEP) S.candles.shift();
-      S.cur = null;
-    }
     // 股息（持仓派息，游戏化：10 分钟≈一年）
     if (S.shares > 0) {
       var div = S.shares * S.price * 0.025 * dt / 600;
@@ -153,9 +154,20 @@
     return r;
   }
 
+  // game 层在世界每前进 GAP px 时调用一次：结算当前蜡烛为一根历史 K 线
+  function finalizeCandle() {
+    if (!S || S.status !== 'flying') return false;
+    if (!S.cur) S.cur = { o: S.price, h: S.price, l: S.price, c: S.price };
+    S.candles.push(S.cur);
+    if (S.candles.length > CANDLE_KEEP) S.candles.shift();
+    S.cur = null;
+    return true;
+  }
+
   LOGIC.newRound = newRound;
   LOGIC.tick = tick;           // 兼容占位：视图驱动走 pushPrice
   LOGIC.pushPrice = pushPrice;
+  LOGIC.finalizeCandle = finalizeCandle;
   LOGIC.buy = doBuy;
   LOGIC.sellAll = doSell;
   LOGIC.finish = finish;

@@ -5,9 +5,9 @@
   window.BF = window.BF || {};
   var KEY = 'bf.cfg.v1';
   var DEF = {
-    gravity: 620, jumpV: 330, noise: 26, candleTicks: 22, scrollSpeed: 130,
-    pipeGap: 0.17, pipeEveryMin: 4, pipeEveryMax: 7, buyEveryMin: 3, buyEveryMax: 6,
-    feeRate: 0.0004, loanK: 0.5, bgm: true, sfx: true, bullImg: null
+    gravity: 450, jumpV: 260, noise: 8, candleTicks: 22, scrollSpeed: 95,
+    pipeGap: 0.30, pipeEveryMin: 12, pipeEveryMax: 16, buyEveryMin: 4, buyEveryMax: 7,
+    maxFall: 250, feeRate: 0.0004, loanK: 0.5, bgm: true, sfx: true, bullImg: null
   };
   var cur = load();
   function load() {
@@ -65,11 +65,11 @@
     card.appendChild(imgRow);
     // 滑杆组
     var sliders = [
-      ['gravity', '重力', 200, 1100, 10],
-      ['jumpV', '点击冲力', 180, 520, 5],
-      ['noise', '行情噪声', 0, 90, 1],
-      ['scrollSpeed', 'K线滚动速度', 70, 260, 5],
-      ['pipeGap', '管道空隙', 0.10, 0.30, 0.005],
+      ['gravity', '重力', 200, 900, 10],
+      ['jumpV', '点击冲力', 160, 480, 5],
+      ['noise', '行情噪声', 0, 60, 1],
+      ['scrollSpeed', 'K线滚动速度', 60, 220, 5],
+      ['pipeGap', '管道空隙', 0.14, 0.34, 0.005],
       ['feeRate', '税费率', 0, 0.003, 0.0001]
     ];
     var form = {};

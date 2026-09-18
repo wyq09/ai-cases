@@ -13,8 +13,13 @@
 ## 游戏规格（锁死，勿改）
 - 价格空间 [90, 110]，基准 100，即主板 ±10% 涨跌停；触界=爆涨跌停=本局结束
 - 点击屏幕 = 给牛向上冲量（做多力量），不点受重力下沉 + 随机噪声；牛的 y = 当前价
-- K 线：每 candleTicks 帧聚合一根 OHLC，close=当前价；历史向左滚动
-- 首仓：开局 ~1.2s 后自动按交易风格建首仓（对应视频"空仓待入场"→"多头·1笔"）
+- 世界坐标驱动：管道/按钮存 born=生成时 worldX，渲染 x = x0 − (worldX−born)；蜡烛每
+  56px 世界距离由 game 层调 LOGIC.finalizeCandle() 定界一根（newRound 预生成 9 根历史 K）；
+  任何帧率/暂停恢复/遮挡节流下位移严格 = speed×dt
+- 难度默认（config-panel DEF）：gravity 540 / jumpV 300 / noise 20 / scrollSpeed 115 /
+  pipeGap 0.24 / pipeEvery 7–11 根蜡烛 / buyEvery 4–7s / 首管道 ~4.4s / gap 中心可过性约束
+  （距牛位 ≤3.2 价位、距上个 gap ≤3.6 价位）；牛视觉 82×62，hitbox ±15/±11
+- 首仓：开局 ~0.4s 后自动按交易风格建首仓（对应视频"空仓待入场"→"多头·1笔"）
 - 买钮（玫红圆 R34"买"+价签）：牛碰到 → 半仓滚动买入（cash×50%，税费 0.04% 摊入成本）
 - 卖钮（绿色圆 R30"卖"+价签）：仅持仓时生成，碰到 → 全部平仓，盈亏落袋
 - 管道：宽 78px，成对上下伸出，gap 高约 15% 视高，端帽斜纹；碰到=本局结束
@@ -40,9 +45,9 @@
 - BF.main 由 main.js 提供：BF.boot()
 
 ## 配置 schema（BF.CFG，localStorage key：bf.cfg.v1）
-{ gravity:620, jumpV:330, noise:26, candleTicks:22, scrollSpeed:130,
-  pipeGap:0.15, pipeEvery:[4,7], buyEvery:[3,6], feeRate:0.0004, loanK:0.5,
-  bgm:true, sfx:true, bullImg:null }
+{ gravity:540, jumpV:300, noise:20, candleTicks:22, scrollSpeed:115,
+  pipeGap:0.24, pipeEveryMin:7, pipeEveryMax:11, buyEveryMin:4, buyEveryMax:7,
+  feeRate:0.0004, loanK:0.5, bgm:true, sfx:true, bullImg:null }
 work 副本+onChange(完整快照)+apply；面板永不直接写 localStorage。
 
 ## 存档（localStorage key：bf.save.v1）

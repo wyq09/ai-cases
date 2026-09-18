@@ -1088,9 +1088,9 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   window.BF = window.BF || {};
   var KEY = 'bf.cfg.v1';
   var DEF = {
-    gravity: 620, jumpV: 330, noise: 26, candleTicks: 22, scrollSpeed: 130,
-    pipeGap: 0.17, pipeEveryMin: 4, pipeEveryMax: 7, buyEveryMin: 3, buyEveryMax: 6,
-    feeRate: 0.0004, loanK: 0.5, bgm: true, sfx: true, bullImg: null
+    gravity: 450, jumpV: 260, noise: 8, candleTicks: 22, scrollSpeed: 95,
+    pipeGap: 0.30, pipeEveryMin: 12, pipeEveryMax: 16, buyEveryMin: 4, buyEveryMax: 7,
+    maxFall: 250, feeRate: 0.0004, loanK: 0.5, bgm: true, sfx: true, bullImg: null
   };
   var cur = load();
   function load() {
@@ -1148,11 +1148,11 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
     card.appendChild(imgRow);
     // 滑杆组
     var sliders = [
-      ['gravity', '重力', 200, 1100, 10],
-      ['jumpV', '点击冲力', 180, 520, 5],
-      ['noise', '行情噪声', 0, 90, 1],
-      ['scrollSpeed', 'K线滚动速度', 70, 260, 5],
-      ['pipeGap', '管道空隙', 0.10, 0.30, 0.005],
+      ['gravity', '重力', 200, 900, 10],
+      ['jumpV', '点击冲力', 160, 480, 5],
+      ['noise', '行情噪声', 0, 60, 1],
+      ['scrollSpeed', 'K线滚动速度', 60, 220, 5],
+      ['pipeGap', '管道空隙', 0.14, 0.34, 0.005],
       ['feeRate', '税费率', 0, 0.003, 0.0001]
     ];
     var form = {};
@@ -1238,7 +1238,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   function cfg() {
     if (!cfgCache) {
       try { cfgCache = BF.CFG.all(); } catch (e) {
-        cfgCache = { gravity: 620, jumpV: 330, noise: 26, candleTicks: 22, scrollSpeed: 130, pipeGap: 0.15, feeRate: 0.0004, loanK: 0.5 };
+        cfgCache = { gravity: 540, jumpV: 300, noise: 20, candleTicks: 22, scrollSpeed: 115, pipeGap: 0.24, feeRate: 0.0004, loanK: 0.5 };
       }
     }
     return cfgCache;
@@ -1260,6 +1260,14 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       trades: [], divAcc: 0, t: 0,
       lastPrice: 100, lastCash: principal + loan, lastShares: 0, lastRealized: 0, lastFees: 0
     };
+    // 开局预生成历史 K 线（围绕 100 随机游走，让首屏即有完整图表）
+    var hp = 100 + (Math.random() - 0.5) * 3;
+    for (var i = 0; i < 9; i++) {
+      var o = hp;
+      hp = Math.max(93, Math.min(107, hp + (Math.random() - 0.5) * 2.4));
+      S.candles.push({ o: o, c: hp, h: Math.max(o, hp) + Math.random() * 0.7, l: Math.min(o, hp) - Math.random() * 0.7 });
+    }
+    S.price = 100;
     return S;
   }
   function assertBooks() {
@@ -1321,19 +1329,12 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       S.firstBuyAt -= dt * 60;
       if (S.firstBuyAt < 0) { var tr0 = doBuy(0.5); if (tr0) tr0.auto = 'open'; }
     }
-    // 蜡烛聚合（按时间：candleTicks 帧@60fps → 秒，与滚动速度解耦于帧率）
-    var candleDur = c.candleTicks / 60;
+    // 蜡烛由 game 层按世界滚动距离驱动 finalize（每 56px 一根），保证与滚动严格同步；
+    // 此处只更新当前未完成蜡烛的 h/l/c
     if (!S.cur) S.cur = { o: S.price, h: S.price, l: S.price, c: S.price };
     S.cur.c = S.price;
     if (S.price > S.cur.h) S.cur.h = S.price;
     if (S.price < S.cur.l) S.cur.l = S.price;
-    S.candleAcc = (S.candleAcc || 0) + dt;
-    if (S.candleAcc >= candleDur) {
-      S.candleAcc -= candleDur;
-      S.candles.push(S.cur);
-      if (S.candles.length > CANDLE_KEEP) S.candles.shift();
-      S.cur = null;
-    }
     // 股息（持仓派息，游戏化：10 分钟≈一年）
     if (S.shares > 0) {
       var div = S.shares * S.price * 0.025 * dt / 600;
@@ -1382,9 +1383,20 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
     return r;
   }
 
+  // game 层在世界每前进 GAP px 时调用一次：结算当前蜡烛为一根历史 K 线
+  function finalizeCandle() {
+    if (!S || S.status !== 'flying') return false;
+    if (!S.cur) S.cur = { o: S.price, h: S.price, l: S.price, c: S.price };
+    S.candles.push(S.cur);
+    if (S.candles.length > CANDLE_KEEP) S.candles.shift();
+    S.cur = null;
+    return true;
+  }
+
   LOGIC.newRound = newRound;
   LOGIC.tick = tick;           // 兼容占位：视图驱动走 pushPrice
   LOGIC.pushPrice = pushPrice;
+  LOGIC.finalizeCandle = finalizeCandle;
   LOGIC.buy = doBuy;
   LOGIC.sellAll = doSell;
   LOGIC.finish = finish;
@@ -1412,6 +1424,9 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   var btnTimer = 0, hintTimer = 0, aiCool = 0;
   var PADV = 8;          // 上下留白比例
   var bullXRatio = 0.30;
+  var GAP = 56;          // 蜡烛间距（世界 px），蜡烛生成 = 每 GAP 距离一根
+  var candleBoundary = GAP, lastGapY = 0;
+  var limitT = 0, limitHinted = false;
   var state = 'idle';    // idle|flying|dying|dead|paused
   var opts = { auto: false, fast: 1, snap: false };
   var lastT = 0, acc = 0, rafId = 0, siId = 0, running = false;
@@ -1430,8 +1445,12 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
 
   function resetVisuals() {
     worldX = 0; pipes = []; buttons = []; feathers = []; sparks = [];
-    spawnedPipes = 0; btnTimer = 0; hintTimer = 0; finishPending = 0; deathCause = '';
-    nextPipeAt = 3.2; nextBuyAt = 1.6; nextSellAt = 6;
+    spawnedPipes = 0; btnTimer = 0; hintTimer = 0; aiCool = 0; finishPending = 0; deathCause = '';
+    candleBoundary = GAP;
+    limitT = 0; limitHinted = false;
+    // 缓和的开局：首个管道 ~5s 后、首个买钮 ~2s 后
+    nextPipeAt = 9; nextBuyAt = 2.2; nextSellAt = 6;
+    lastGapY = priceToY(100);
     bull.x = W * bullXRatio; bull.y = priceToY(100); bull.vy = -240; bull.tilt = 0;
     bull.dead = false; bull.deadRot = 0;
   }
@@ -1451,7 +1470,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   GAME.setOpts = function (o) { for (var k in o) opts[k] = o[k]; };
   GAME.tap = function () {
     if (state !== 'flying') return;
-    bull.vy = -cfg('jumpV', 330);
+    bull.vy = -cfg('jumpV', 300);
     try { BF.SFX.play('tap'); } catch (e) {}
     var f = BF.FX;
     if (f && f.burst) f.burst(bull.x - 14, bull.y + 16, 'wing');
@@ -1504,80 +1523,92 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
     } catch (e) {}
   }
 
-  // ---------- 生成 ----------
+  // ---------- 生成（全部记录 born=生成时 worldX，渲染 x = x0 - (worldX-born)，帧率/暂停无关） ----------
   function spawnPipe() {
-    var gh = chartH() * cfg('pipeGap', 0.15);
-    var gy = bull.y + (Math.random() - 0.5) * chartH() * 0.5;
-    gy = Math.max(chartTop() + gh / 2 + 10, Math.min(chartTop() + chartH() - gh / 2 - 10, gy));
-    pipes.push({ x: W + 60, gy: gy, gh: gh, w: 78, counted: false });
+    var gh = chartH() * cfg('pipeGap', 0.24);
+    var u = pxPerUnit();
+    // 可过性：gap 中心距当前牛位 ≤3.2 价位，距上一个 gap 中心 ≤3.6 价位
+    var gy = bull.y + (Math.random() - 0.5) * u * 4.2;
+    gy = Math.max(lastGapY - u * 3.0, Math.min(lastGapY + u * 3.0, gy));
+    gy = Math.max(chartTop() + gh / 2 + 14, Math.min(chartTop() + chartH() - gh / 2 - 14, gy));
+    lastGapY = gy;
+    pipes.push({ x0: W + 60, born: worldX, gy: gy, gh: gh, w: 78 });
   }
+  function pipeX(p) { return p.x0 - (worldX - p.born); }
   function spawnButton(kind) {
-    var y = bull.y + (Math.random() - 0.5) * chartH() * 0.34;
+    var y = bull.y + (Math.random() - 0.5) * chartH() * 0.3;
     y = Math.max(chartTop() + 40, Math.min(chartTop() + chartH() - 60, y));
     // 避开管道实体：若落入管道区（含端帽裕量），吸附到该管道 gap 中心
     for (var i = 0; i < pipes.length; i++) {
       var p = pipes[i];
-      if (p.x < W + 130) {
+      if (pipeX(p) > W * 0.45) {   // 只需考虑还没进屏/刚进屏的管道
         var topH = p.gy - p.gh / 2, botY = p.gy + p.gh / 2;
-        if (y - 36 < topH || y + 36 > botY) { y = p.gy; }
+        if (y - 40 < topH || y + 40 > botY) { y = p.gy; }
       }
     }
     y = Math.max(chartTop() + 40, Math.min(chartTop() + chartH() - 60, y));
-    buttons.push({ kind: kind, x: W + 50, y: y, base: y, ph: Math.random() * 6.28, r: kind === 'buy' ? 34 : 30 });
+    buttons.push({ kind: kind, x0: W + 50, born: worldX, y: y, base: y, ph: Math.random() * 6.28, r: kind === 'buy' ? 34 : 30 });
   }
+  function btnX(b) { return b.x0 - (worldX - b.born); }
 
   // ---------- 更新 ----------
   function step(dt) {
     var s = BF.LOGIC.state();
     if (!s) return;
-    var speed = cfg('scrollSpeed', 130) * opts.fast;
+    var speed = cfg('scrollSpeed', 115);
     if (state === 'flying') {
       worldX += speed * dt;
       // 物理
-      var g = cfg('gravity', 620);
+      var g = cfg('gravity', 540);
       bull.vy += g * dt;
-      bull.vy += (Math.random() - 0.5) * cfg('noise', 26) * 60 * dt;
+      bull.vy = Math.min(bull.vy, cfg('maxFall', 250));   // 下坠封顶：停手有反应时间
+      bull.vy += (Math.random() - 0.5) * cfg('noise', 20) * 60 * dt;
       bull.y += bull.vy * dt;
-      bull.tilt = Math.max(-0.5, Math.min(0.9, bull.vy / 500));
-      bull.wing += dt * (bull.vy < 0 ? 26 : 12);
-      // 生成
-      var pe = cfg('pipeEvery', [4, 7]);
-      if (worldX > nextPipeAt * 56) { spawnPipe(); spawnedPipes++; nextPipeAt = worldX / 56 + pe[0] + Math.random() * (pe[1] - pe[0]); }
+      bull.tilt = Math.max(-0.42, Math.min(0.75, bull.vy / 560));
+      bull.wing += dt * (bull.vy < 0 ? 15 : 9);
+      // 生成（距离/时间双制式：管道按蜡烛数，按钮按秒）
+      var pe = [Number(cfg('pipeEveryMin', 7)), Number(cfg('pipeEveryMax', 11))];
+      if (worldX > nextPipeAt * GAP) { spawnPipe(); spawnedPipes++; nextPipeAt = worldX / GAP + pe[0] + Math.random() * (pe[1] - pe[0]); }
       btnTimer += dt;
-      var be = cfg('buyEvery', [3, 6]);
+      var be = [Number(cfg('buyEveryMin', 4)), Number(cfg('buyEveryMax', 7))];
       if (btnTimer > nextBuyAt) { spawnButton('buy'); nextBuyAt = be[0] + Math.random() * (be[1] - be[0]); btnTimer = 0; }
-      if (s.shares > 0) { hintTimer += dt; if (hintTimer > 7) { spawnButton('sell'); hintTimer = 0; } }
+      if (s.shares > 0) { hintTimer += dt; if (hintTimer > 8) { spawnButton('sell'); hintTimer = 0; } }
       // AI 自动演示：追踪最近管道 gap 中心
       if (opts.auto) {
         aiCool -= dt;
         var tgt = chartTop() + chartH() * 0.5;
         for (var ai = 0; ai < pipes.length; ai++) {
-          var ap = pipes[ai];
-          if (ap.x + ap.w > bull.x - 30 && ap.x < bull.x + 460) { tgt = ap.gy; break; }
+          var ap = pipes[ai], apx = pipeX(ap);
+          if (apx + ap.w > bull.x - 30 && apx < bull.x + 460) { tgt = ap.gy; break; }
         }
         if (aiCool <= 0 && bull.y > tgt + 16) { GAME.tap(); aiCool = 0.13; }
       }
-      // 实体推进
+      // 实体推进（x 由 worldX 派生，只做回收）
       var i;
-      for (i = pipes.length - 1; i >= 0; i--) { pipes[i].x -= speed * dt; if (pipes[i].x < -120) pipes.splice(i, 1); }
+      for (i = pipes.length - 1; i >= 0; i--) { if (pipeX(pipes[i]) < -120) pipes.splice(i, 1); }
       for (i = buttons.length - 1; i >= 0; i--) {
-        var b = buttons[i]; b.x -= speed * dt;
-        b.y = b.base + Math.sin(worldX / 90 + b.ph) * 14;
-        if (b.x < -60) buttons.splice(i, 1);
+        var b = buttons[i];
+        b.y = b.base + Math.sin(worldX / 90 + b.ph) * 10;
+        if (btnX(b) < -60) buttons.splice(i, 1);
+      }
+      // 蜡烛定界：世界每前进 GAP px 结算一根（与滚动严格同步）
+      while (worldX >= candleBoundary) {
+        if (BF.LOGIC.finalizeCandle()) candleBoundary += GAP;
+        else break;
       }
       // 碰撞：按钮
       var bx = bull.x, by = bull.y;
       for (i = buttons.length - 1; i >= 0; i--) {
-        var bt = buttons[i];
-        var dx = bt.x - bx, dy = bt.y - by;
-        if (dx * dx + dy * dy < (bt.r + 22) * (bt.r + 22)) {
+        var bt = buttons[i], btx = btnX(bt);
+        var dx = btx - bx, dy = bt.y - by;
+        if (dx * dx + dy * dy < (bt.r + 16) * (bt.r + 16)) {
           if (bt.kind === 'buy') {
             var tr = BF.LOGIC.buy(0.5);
             if (tr) {
               try { BF.SFX.play('buy'); } catch (e) {}
               var f = BF.FX;
-              if (f && f.floatText) f.floatText(bt.x, bt.y - 44, '买入 ¥' + fmt0(tr.amount), '#f43f5e');
-              if (f && f.burst) f.burst(bt.x, bt.y, 'coin');
+              if (f && f.floatText) f.floatText(btx, bt.y - 44, '买入 ¥' + fmt0(tr.amount), '#f43f5e');
+              if (f && f.burst) f.burst(btx, bt.y, 'coin');
               hint('买入 ¥' + fmt0(tr.amount) + ' · 成交价 ' + tr.price.toFixed(2) + ' · 税费 ¥' + tr.fee.toFixed(2));
             }
             buttons.splice(i, 1);
@@ -1587,28 +1618,40 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
               var win = tr2.pnl >= 0;
               try { BF.SFX.play(win ? 'profit' : 'loss'); } catch (e) {}
               var f2 = BF.FX;
-              if (f2 && f2.floatText) f2.floatText(bt.x, bt.y - 44, (win ? '+' : '') + fmt0(tr2.pnl) + ' 元', win ? '#ff5d76' : '#35c08e');
-              if (f2 && f2.burst) f2.burst(bt.x, bt.y, win ? 'coin' : 'dust');
+              if (f2 && f2.floatText) f2.floatText(btx, bt.y - 44, (win ? '+' : '') + fmt0(tr2.pnl) + ' 元', win ? '#ff5d76' : '#35c08e');
+              if (f2 && f2.burst) f2.burst(btx, bt.y, win ? 'coin' : 'dust');
               hint('全部卖出 ' + tr2.price.toFixed(2) + ' · 盈亏 ' + (win ? '+' : '') + tr2.pnl.toFixed(2) + ' 元 · 税费 ¥' + tr2.fee.toFixed(2));
             }
             buttons.splice(i, 1);
           }
         }
       }
-      // 碰撞：管道 / 触界
+      // 软涨跌停：进入边界带钳速贴边并累计贴边时长，可点走；贴满 0.75s 才强平
+      var EDGE = 12;
+      if (bull.y < chartTop() + EDGE) {
+        bull.y = chartTop() + EDGE; if (bull.vy < 0) bull.vy = 0;
+        limitT += dt;
+        if (!limitHinted) { hint('触及涨停！即将封板强平，快撤…'); limitHinted = true; }
+      } else if (bull.y > chartTop() + chartH() - EDGE) {
+        bull.y = chartTop() + chartH() - EDGE; if (bull.vy > 0) bull.vy = 0;
+        limitT += dt;
+        if (!limitHinted) { hint('触及跌停！即将封板强平，快拉起…'); limitHinted = true; }
+      } else {
+        limitT = Math.max(0, limitT - dt * 2);
+        if (limitT === 0) limitHinted = false;
+      }
+      // 碰撞：管道（hitbox 收窄到视觉的 ~55%，宽容手感）
       var hit = '';
-      if (bull.y < chartTop() + 2) hit = 'limit-up';
-      if (bull.y > chartTop() + chartH() - 2) hit = 'limit-down';
+      if (limitT > 0.75) hit = limitUpKind();
       for (i = 0; i < pipes.length; i++) {
-        var p = pipes[i];
-        if (bx + 20 > p.x && bx - 20 < p.x + p.w) {
-          if (by - 14 < p.gy - p.gh / 2 || by + 14 > p.gy + p.gh / 2) { hit = 'crash'; break; }
+        var p = pipes[i], px = pipeX(p);
+        if (bx + 15 > px && bx - 15 < px + p.w) {
+          if (by - 11 < p.gy - p.gh / 2 || by + 11 > p.gy + p.gh / 2) { hit = 'crash'; break; }
         }
       }
       if (hit) { die(hit, s); }
       else {
         BF.LOGIC.pushPrice(yToPrice(bull.y), dt * opts.fast);
-        if (s.status === 'flying' && (s.price <= 90.02 || s.price >= 109.98)) die(s.price >= 109.98 ? 'limit-up' : 'limit-down', s);
       }
     } else if (state === 'dying') {
       bull.deadVy += 900 * dt; bull.y += bull.deadVy * dt; bull.deadRot += dt * 5;
@@ -1665,14 +1708,23 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   }
   function drawCandles() {
     var s = BF.LOGIC.state(); if (!s) return;
-    var gap = 56, cw = 34;
-    var rightX = W - 24 + (worldX % gap);
-    var idx = s.candles.length - 1;
-    var x = rightX;
-    // 未完成蜡烛
-    if (s.cur) drawCandle(x, s.cur, cw);
-    x -= gap;
-    while (x > -cw && idx >= 0) { drawCandle(x, s.candles[idx], cw); idx--; x -= gap; }
+    var cw = 34;
+    var rightX = W - 24;
+    var i, x;
+    // 未完成蜡烛：born = candleBoundary - GAP（与历史蜡烛同一坐标系，随世界左滚）
+    if (s.cur) {
+      x = rightX - (worldX - (candleBoundary - GAP));
+      drawCandle(x, s.cur, cw);
+    }
+    // 历史蜡烛：从最新往旧遍历。最新一根的 born 必须等于它作为 cur 时的
+    // born（candleBoundary - 2*GAP 段起点），否则 finalize 瞬间会 +GAP 右跳
+    var n = s.candles.length;
+    for (i = n - 1; i >= 0; i--) {
+      var born = candleBoundary - (n - i + 1) * GAP;
+      x = rightX - (worldX - born);
+      if (x < -cw) break;
+      drawCandle(x, s.candles[i], cw);
+    }
   }
   function drawCandle(x, c, cw) {
     var up = c.c >= c.o;
@@ -1699,9 +1751,11 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   function drawPipes() {
     for (var i = 0; i < pipes.length; i++) {
       var p = pipes[i];
+      var px = pipeX(p);   // 世界坐标派生屏幕 x（实体只存 x0/born）
+      if (px > W + 10 || px + p.w < -10) continue;   // 视口裁剪
       var topH = p.gy - p.gh / 2, botY = p.gy + p.gh / 2;
-      drawPipeSeg(p.x, chartTop() - 6, p.w, topH - chartTop() + 6, true);
-      drawPipeSeg(p.x, botY, p.w, chartTop() + chartH() - botY + 6, false);
+      drawPipeSeg(px, chartTop() - 6, p.w, topH - chartTop() + 6, true);
+      drawPipeSeg(px, botY, p.w, chartTop() + chartH() - botY + 6, false);
     }
   }
   function drawPipeSeg(x, y, w, h, fromTop) {
@@ -1727,19 +1781,20 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (var i = 0; i < buttons.length; i++) {
       var b = buttons[i];
+      var bx = btnX(b);   // 世界坐标派生屏幕 x（实体只存 x0/born）
+      if (bx < -b.r - 30 || bx > W + b.r + 30) continue;   // 视口裁剪
       var isBuy = b.kind === 'buy';
       var col = isBuy ? '#f43f5e' : '#2fae7f';
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 6.283);
+      ctx.beginPath(); ctx.arc(bx, b.y, b.r, 0, 6.283);
       ctx.fillStyle = isBuy ? 'rgba(120,26,44,0.55)' : 'rgba(21,84,60,0.55)';
       ctx.fill();
       ctx.lineWidth = 3.5; ctx.strokeStyle = col; ctx.stroke();
       ctx.fillStyle = '#fff';
       ctx.font = '600 26px -apple-system,system-ui';
-      ctx.fillText(isBuy ? '买' : '卖', b.x, b.y + 1);
+      ctx.fillText(isBuy ? '买' : '卖', bx, b.y + 1);
       ctx.fillStyle = 'rgba(255,255,255,0.75)';
       ctx.font = '13px -apple-system,system-ui';
-      var pv = isBuy ? yToPrice(b.y) : (BF.LOGIC.state() ? BF.LOGIC.state().price : 100);
-      ctx.fillText(yToPrice(b.y).toFixed(1), b.x, b.y + b.r + 18);
+      ctx.fillText(yToPrice(b.y).toFixed(1), bx, b.y + b.r + 18);
     }
   }
   function drawBull() {
@@ -1748,7 +1803,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
     ctx.save();
     ctx.translate(bull.x, bull.y);
     ctx.rotate(bull.dead ? bull.deadRot : bull.tilt * 0.6);
-    var w = 112, h = 84;
+    var w = 82, h = 62;
     if (img) { try { ctx.drawImage(img, -w / 2, -h / 2, w, h); } catch (e) { fallbackBull(); } }
     else fallbackBull();
     ctx.restore();
@@ -1809,6 +1864,9 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       g.fillRect(i * step + 0.5, y1, Math.max(1.5, step - 1.5), Math.max(1, y2 - y1));
     }
   }
+  function limitUpKind() {
+    return bull.y < chartTop() + chartH() / 2 ? 'limit-up' : 'limit-down';
+  }
   function fmt0(v) { return Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
   var hintT = 0;
   function hint(str) {
@@ -1841,6 +1899,8 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   GAME.bind = bind;
   GAME.state = function () { return state; };
   GAME.bull = function () { return bull; };
+  GAME.debugPipes = function () { return pipes.map(function (p) { return { gx: Math.round(pipeX(p)), gy: Math.round(p.gy), gh: Math.round(p.gh), w: p.w }; }); };
+  GAME.geom = function () { return { W: W, H: H, chartTop: chartTop(), chartH: chartH(), pxPerUnit: pxPerUnit(), worldX: Math.round(worldX) }; };
   GAME.setBullImg = function (i, d) { bullImg[i] = d; if (bullImg[0] && bullImg[1]) imgReady = true; };
   window.BF.GAME = GAME;
 })();
