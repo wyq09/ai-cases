@@ -1,0 +1,2911 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#F6EFE2">
+<title>翻牌赢好礼 · 记忆翻牌</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+  html, body { overflow: hidden; position: fixed; inset: 0; }
+  body {
+    touch-action: manipulation; user-select: none; -webkit-user-select: none;
+    font-family: -apple-system, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+    background: #E8DFCC;
+    color: #2B2622;
+  }
+  button { font-family: inherit; border: 0; background: none; cursor: pointer; color: inherit; }
+  img { display: block; -webkit-user-drag: none; }
+
+  /* ===== 通高列 ===== */
+  #mf-app {
+    position: relative; height: 100dvh; max-height: 100dvh;
+    width: min(100vw, 410px); margin: 0 auto;
+    background: #F6EFE2;
+    background-image: radial-gradient(rgba(58,46,36,.055) 1px, transparent 1.2px);
+    background-size: 16px 16px;
+    border-left: 1px solid rgba(58,46,36,.14); border-right: 1px solid rgba(58,46,36,.14);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  @media (min-width: 480px) {
+    #mf-app { border-radius: 0; }
+  }
+
+  /* ===== 顶栏 ===== */
+  #mf-top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: calc(10px + env(safe-area-inset-top)) 14px 8px;
+    border-bottom: 2px solid #2B2622;
+    background: #F6EFE2;
+    position: relative; z-index: 25; /* 盖过封面：开始页也能用声音/设置 */
+  }
+  #mf-top .brand { display: flex; align-items: center; gap: 9px; }
+  #mf-top .seal {
+    width: 34px; height: 34px; background: #B93A2B; color: #FFF6E8;
+    border: 2px solid #3A2E24; border-radius: 6px;
+    box-shadow: 2px 2px 0 rgba(58,46,36,.85);
+    display: grid; place-items: center;
+    font-family: "Songti SC", "STSong", "SimSun", serif; font-weight: 900; font-size: 19px;
+    transform: rotate(-4deg);
+  }
+  #mf-top h1 { font-size: 19px; font-weight: 900; letter-spacing: 1px; }
+  #mf-top h1 small { display: block; font-size: 10px; font-weight: 600; letter-spacing: 3px; color: #8F2B20; }
+  #mf-top .ops { display: flex; gap: 8px; }
+  #mf-top .ops button {
+    width: 36px; height: 36px; border: 2px solid #3A2E24; border-radius: 8px;
+    background: #FFF9EE; box-shadow: 2px 2px 0 rgba(58,46,36,.85);
+    display: grid; place-items: center; transition: transform .06s, box-shadow .06s;
+  }
+  #mf-top .ops button:active { transform: translate(2px, 2px); box-shadow: none; }
+  #mf-top .ops svg { width: 19px; height: 19px; }
+
+  /* ===== HUD ===== */
+  #mf-hud { padding: 10px 14px 6px; position: relative; z-index: 4; }
+  #mf-hud .timerow { display: flex; align-items: center; gap: 9px; }
+  #mf-hud .bar {
+    flex: 1; height: 12px; border: 2px solid #3A2E24; border-radius: 7px;
+    background: #FFF9EE; overflow: hidden;
+  }
+  #mf-hud .bar i {
+    display: block; height: 100%; width: 100%;
+    background: #B93A2B;
+    transition: width .25s linear;
+  }
+  #mf-hud .bar i.low { background: #8F2B20; animation: blink .5s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: .55; } }
+  #mf-time-num { font-size: 14px; font-weight: 900; min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; }
+  #mf-hud .stats {
+    display: flex; align-items: center; gap: 14px; margin-top: 7px;
+    font-size: 12px; color: #6B5F52;
+  }
+  #mf-hud .stats b { font-size: 14px; color: #2B2622; font-variant-numeric: tabular-nums; }
+  #mf-hud .stats .div { width: 1px; height: 12px; background: rgba(58,46,36,.25); }
+  #mf-combo {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 1px 8px; border: 2px solid #8F2B20; border-radius: 6px;
+    background: #F4D8A8; color: #8F2B20; font-weight: 900;
+  }
+  #mf-combo.pop { animation: comboPop .28s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes comboPop { 40% { transform: scale(1.28) rotate(-3deg); } }
+  #mf-combo[hidden] { display: none; }
+
+  /* ===== 收集栏 ===== */
+  #mf-tray { padding: 2px 14px 8px; position: relative; z-index: 4; }
+  #mf-tray .row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  #mf-tray .cap { font-size: 11px; color: #6B5F52; margin-right: 4px; white-space: nowrap; }
+  #mf-tray .cap b { color: #8F2B20; }
+  #mf-tray .slot {
+    width: 30px; height: 30px; border: 2px dashed rgba(58,46,36,.35); border-radius: 50%;
+    background: rgba(255,249,238,.6); display: grid; place-items: center; overflow: hidden;
+  }
+  #mf-tray .slot img { width: 82%; height: 82%; opacity: 0; transform: scale(.2); }
+  #mf-tray .slot.got { border: 2px solid #3A2E24; background: #F4D8A8; box-shadow: 2px 2px 0 rgba(58,46,36,.7); }
+  #mf-tray .slot.got img { opacity: 1; transform: scale(1); transition: transform .3s cubic-bezier(.3,1.8,.5,1), opacity .15s; }
+
+  /* ===== 牌桌 ===== */
+  #mf-board {
+    flex: 1; min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 4), var(--cw, 80px));
+    grid-auto-rows: var(--ch, 106px);
+    gap: clamp(6px, 1.6vw, 10px);
+    justify-content: center; align-content: center;
+    padding: 6px 14px calc(14px + env(safe-area-inset-bottom));
+    position: relative; z-index: 3;
+  }
+  .card { position: relative; width: var(--cw, 80px); height: var(--ch, 106px); perspective: 700px; display: block; padding: 0; }
+  .card-inner {
+    position: absolute; inset: 0; transform-style: preserve-3d;
+    transition: transform .45s cubic-bezier(.25, .9, .35, 1.12);
+  }
+  .card.open .card-inner, .card.peek .card-inner { transform: rotateY(180deg); }
+  .face {
+    position: absolute; inset: 0; border-radius: 8px; overflow: hidden;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    border: 2px solid #3A2E24; box-shadow: 3px 3px 0 rgba(58,46,36,.8);
+  }
+  .face.back { background: #A93426; }
+  .face.back img { width: 100%; height: 100%; object-fit: cover; }
+  .face.front {
+    transform: rotateY(180deg);
+    background: #FFF9EE;
+    display: grid; place-items: center;
+  }
+  .face.front img { width: 76%; height: 76%; object-fit: contain; }
+  .card:active .card-inner { transition-duration: .3s; }
+  .card.matched { pointer-events: none; }
+  .card.matched .face.front { border-color: #C99A3C; box-shadow: 3px 3px 0 rgba(201,154,60,.55); }
+  .card.matched .face.front::after {
+    content: ""; position: absolute; right: 3px; top: 3px; width: 10px; height: 10px;
+    background: #C99A3C; border-radius: 50%; border: 1.5px solid #3A2E24;
+  }
+  .card.wrong { animation: shake .4s; }
+  @keyframes shake {
+    20% { transform: translateX(-4px); } 40% { transform: translateX(4px); }
+    60% { transform: translateX(-3px); } 80% { transform: translateX(2px); }
+  }
+  .card.hit { animation: hitPop .35s cubic-bezier(.3,1.8,.5,1); }
+  @keyframes hitPop { 45% { transform: scale(1.09); } }
+
+  /* ===== 封面 ===== */
+  #mf-cover {
+    position: absolute; inset: 0; z-index: 20;
+    background: #F6EFE2;
+    background-image: radial-gradient(rgba(58,46,36,.055) 1px, transparent 1.2px);
+    background-size: 16px 16px;
+    display: flex; flex-direction: column;
+    padding: calc(70px + env(safe-area-inset-top)) 22px calc(16px + env(safe-area-inset-bottom));
+    overflow-y: auto; overscroll-behavior: contain;
+    transition: transform .4s cubic-bezier(.4,0,.2,1), opacity .35s;
+  }
+  #mf-cover.off { transform: translateY(-14px); opacity: 0; pointer-events: none; }
+  #mf-cover .hero { text-align: center; padding: 10px 0 4px; }
+  #mf-cover .hero .seal {
+    width: 58px; height: 58px; margin: 0 auto 12px;
+    background: #B93A2B; color: #FFF6E8;
+    border: 2.5px solid #3A2E24; border-radius: 10px;
+    box-shadow: 3px 3px 0 rgba(58,46,36,.85);
+    display: grid; place-items: center;
+    font-family: "Songti SC", "STSong", "SimSun", serif; font-weight: 900; font-size: 32px;
+    transform: rotate(-5deg);
+  }
+  #mf-cover .hero h2 {
+    font-family: "Songti SC", "STSong", "SimSun", serif;
+    font-size: 34px; font-weight: 900; letter-spacing: 4px; color: #B93A2B;
+  }
+  #mf-cover .hero .sub { margin-top: 6px; font-size: 12px; letter-spacing: 5px; color: #6B5F52; }
+  #mf-cover .rules { margin: 18px 0 0; border-top: 2px solid #2B2622; }
+  #mf-cover .rules li {
+    list-style: none; display: flex; gap: 10px; align-items: baseline;
+    padding: 9px 2px; border-bottom: 1px solid rgba(58,46,36,.2);
+    font-size: 13px; line-height: 1.5;
+  }
+  #mf-cover .rules li i { font-style: normal; font-weight: 900; color: #B93A2B; font-size: 12px; }
+  #mf-cover .sec { margin-top: 16px; font-size: 12px; font-weight: 900; letter-spacing: 2px; color: #6B5F52; }
+  #mf-diff { display: flex; margin-top: 8px; border: 2px solid #3A2E24; border-radius: 8px; overflow: hidden; background: #FFF9EE; box-shadow: 3px 3px 0 rgba(58,46,36,.85); }
+  #mf-diff button {
+    flex: 1; padding: 10px 0 8px; text-align: center; font-size: 13px; font-weight: 700;
+    border-right: 2px solid #3A2E24; color: #2B2622;
+  }
+  #mf-diff button:last-child { border-right: 0; }
+  #mf-diff button small { display: block; font-size: 10px; font-weight: 500; color: #6B5F52; margin-top: 1px; }
+  #mf-diff button.on { background: #B93A2B; color: #FFF6E8; }
+  #mf-diff button.on small { color: #F4D8A8; }
+  #mf-best { margin-top: 10px; font-size: 12px; color: #6B5F52; min-height: 18px; }
+  #mf-best b { color: #8F2B20; }
+  #mf-btn-start {
+    margin-top: 16px; padding: 15px 0;
+    background: #B93A2B; color: #FFF6E8;
+    border: 2.5px solid #3A2E24; border-radius: 10px;
+    box-shadow: 4px 4px 0 rgba(58,46,36,.9);
+    font-size: 18px; font-weight: 900; letter-spacing: 6px;
+    transition: transform .06s, box-shadow .06s;
+  }
+  #mf-btn-start:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 rgba(58,46,36,.9); }
+  #mf-btn-start[disabled] { background: #B7A893; color: #F6EFE2; }
+  #mf-plays { margin-top: 10px; text-align: center; font-size: 12px; color: #6B5F52; min-height: 16px; }
+  #mf-plays b { color: #8F2B20; }
+  #mf-cover .foot { margin-top: auto; padding-top: 14px; text-align: center; font-size: 10px; letter-spacing: 2px; color: rgba(58,46,36,.4); }
+
+  /* ===== 结算 ===== */
+  #mf-result {
+    position: absolute; inset: 0; z-index: 30;
+    background: rgba(43,38,34,.5);
+    display: grid; place-items: center; padding: 20px;
+  }
+  #mf-result[hidden] { display: none; }
+  #mf-result .paper {
+    width: min(100%, 330px);
+    background: #FFF9EE;
+    background-image: radial-gradient(rgba(58,46,36,.05) 1px, transparent 1.2px);
+    background-size: 14px 14px;
+    border: 2.5px solid #3A2E24; border-radius: 12px;
+    box-shadow: 6px 6px 0 rgba(43,38,34,.55);
+    padding: 22px 20px calc(18px);
+    text-align: center;
+    animation: paperIn .38s cubic-bezier(.3,1.4,.5,1);
+  }
+  @keyframes paperIn { from { transform: translateY(26px) scale(.94); opacity: 0; } }
+  #mf-result .rt { font-size: 12px; letter-spacing: 4px; color: #6B5F52; }
+  #mf-result h3 { font-family: "Songti SC", "STSong", serif; font-size: 26px; font-weight: 900; color: #B93A2B; margin-top: 2px; letter-spacing: 3px; }
+  #mf-result .starRow { display: flex; justify-content: center; gap: 6px; margin: 10px 0 4px; }
+  #mf-result .starRow svg { width: 34px; height: 34px; }
+  #mf-result .starRow svg path { fill: #C99A3C; stroke: #3A2E24; stroke-width: 1.6; }
+  #mf-result .starRow .st { opacity: .22; transform: scale(.85); }
+  #mf-result .starRow .st.on { opacity: 1; animation: starPop .4s cubic-bezier(.3,1.8,.5,1) backwards; }
+  @keyframes starPop { 55% { transform: scale(1.35) rotate(8deg); } }
+  #mf-result .bigscore { font-size: 40px; font-weight: 900; color: #2B2622; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  #mf-result .bigscore small { font-size: 12px; font-weight: 700; color: #6B5F52; letter-spacing: 2px; display: block; }
+  #mf-result .rows { margin: 14px 0 0; border-top: 1.5px solid rgba(58,46,36,.25); }
+  #mf-result .rows div {
+    display: flex; justify-content: space-between; padding: 7px 2px;
+    border-bottom: 1px solid rgba(58,46,36,.18); font-size: 13px; color: #6B5F52;
+  }
+  #mf-result .rows div b { color: #2B2622; font-variant-numeric: tabular-nums; }
+  #mf-result .prizeRow {
+    display: flex; justify-content: center; gap: 5px; flex-wrap: wrap;
+    margin: 13px 0 0; padding: 10px 8px;
+    border: 2px dashed rgba(143,43,32,.5); border-radius: 8px; background: #FBF3DF;
+  }
+  #mf-result .prizeRow img { width: 30px; height: 30px; }
+  #mf-result .prizeRow .lack { align-self: center; font-size: 12px; color: #6B5F52; }
+  #mf-result .code {
+    margin-top: 12px; padding: 9px; border: 2px solid #8F2B20; border-radius: 8px;
+    background: #F4D8A8; font-weight: 900; letter-spacing: 2px; color: #8F2B20; font-size: 17px;
+  }
+  #mf-result .btns { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+  #mf-result .btns button {
+    padding: 12px 0; border: 2.5px solid #3A2E24; border-radius: 9px;
+    font-size: 15px; font-weight: 900; letter-spacing: 3px;
+    box-shadow: 3px 3px 0 rgba(58,46,36,.85);
+    transition: transform .06s, box-shadow .06s;
+  }
+  #mf-result .btns button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(58,46,36,.85); }
+  #mf-result .btns .main { background: #B93A2B; color: #FFF6E8; }
+  #mf-result .btns .ghost { background: #FFF9EE; color: #2B2622; }
+
+  /* ===== FX 容器 / toast ===== */
+  #mf-fx { position: absolute; inset: 0; z-index: 40; pointer-events: none; overflow: hidden; }
+  #mf-toast {
+    position: absolute; left: 50%; bottom: calc(64px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(8px);
+    background: #2B2622; color: #F6EFE2; font-size: 13px;
+    padding: 9px 16px; border-radius: 8px; border: 2px solid #F6EFE2;
+    opacity: 0; pointer-events: none; transition: opacity .22s, transform .22s;
+    z-index: 60; max-width: 82%; text-align: center;
+  }
+  #mf-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div id="mf-app">
+  <header id="mf-top">
+    <div class="brand">
+      <span class="seal">礼</span>
+      <h1>翻牌赢好礼<small>MEMORY FLIP</small></h1>
+    </div>
+    <div class="ops">
+      <button id="mf-btn-sound" aria-label="声音开关"></button>
+      <button id="mf-btn-cfg" aria-label="设置"></button>
+    </div>
+  </header>
+
+  <section id="mf-hud">
+    <div class="timerow">
+      <div class="bar"><i id="mf-timebar"></i></div>
+      <b id="mf-time-num">--</b>
+    </div>
+    <div class="stats">
+      <span>步数 <b id="mf-moves">0</b></span>
+      <span class="div"></span>
+      <span id="mf-combo" hidden>连击×<b id="mf-combo-n">2</b></span>
+      <span class="div"></span>
+      <span>得分 <b id="mf-score">0</b></span>
+    </div>
+  </section>
+
+  <section id="mf-tray"><div class="row" id="mf-tray-row"></div></section>
+
+  <main id="mf-board" aria-label="牌桌"></main>
+
+  <div id="mf-cover">
+    <div class="hero">
+      <div class="seal">礼</div>
+      <h2>翻牌赢好礼</h2>
+      <div class="sub">经 典 记 忆 翻 牌 挑 战</div>
+    </div>
+    <ul class="rules">
+      <li><i>01</i>开局有短暂记忆时间，亮出的卡面要记牢</li>
+      <li><i>02</i>连续配对成功触发连击，奖励分数翻倍</li>
+      <li><i>03</i>限定时间内全部配对成功，即可领取全部好礼</li>
+    </ul>
+    <div class="sec">选择难度</div>
+    <div id="mf-diff"></div>
+    <div id="mf-best"></div>
+    <button id="mf-btn-start">开始挑战</button>
+    <div id="mf-plays"></div>
+    <div class="foot">活动最终解释权归本店所有 · 纯本地演示</div>
+  </div>
+
+  <div id="mf-result" hidden>
+    <div class="paper">
+      <div class="rt" id="mf-rt">挑战结果</div>
+      <h3 id="mf-rt-title">挑战成功</h3>
+      <div class="starRow" id="mf-stars"></div>
+      <div class="bigscore"><span id="mf-r-score">0</span><small>本局得分</small></div>
+      <div class="rows" id="mf-rows"></div>
+      <div class="prizeRow" id="mf-prizes"></div>
+      <div class="code" id="mf-code" hidden></div>
+      <div class="btns">
+        <button class="main" id="mf-btn-claim">一键领取好礼</button>
+        <button class="ghost" id="mf-btn-again">再来一局</button>
+        <button class="ghost" id="mf-btn-share" hidden>分享战绩</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mf-cfg-host"></div>
+  <div id="mf-fx"></div>
+  <div id="mf-toast"></div>
+</div>
+<script>
+/* ===== src/logic.js ===== */
+/* ===== 翻牌赢好礼 · logic.js —— 常量/纯函数/配置默认值（主线） ===== */
+window.MF = window.MF || {};
+MF.LOGIC = (() => {
+  const LS_CFG = 'mf_config_v1', LS_ST = 'mf_state_v1';
+
+  // ?reset=1 清档：必须发生在任何模块读 localStorage 之前（本文件是构建链第一个模块）
+  const Q = new URLSearchParams(location.search);
+  if (Q.get('reset') === '1') {
+    try { localStorage.removeItem(LS_CFG); localStorage.removeItem(LS_ST); } catch (e) {}
+  }
+
+  const ICONS = [
+    { id: 'ingot',    name: '金元宝' },
+    { id: 'hongbao',  name: '红包' },
+    { id: 'coupon',   name: '优惠券' },
+    { id: 'gift',     name: '礼盒' },
+    { id: 'koi',      name: '锦鲤' },
+    { id: 'cat',      name: '招财猫' },
+    { id: 'crown',    name: '王冠' },
+    { id: 'gem',      name: '宝石' },
+    { id: 'firework', name: '礼花' },
+    { id: 'coin',     name: '铜钱' },
+  ];
+  const ICON_NAME = {}; ICONS.forEach(i => { ICON_NAME[i.id] = i.name; });
+
+  // 列 x 行；pairs ≤ ICONS.length
+  const GRIDS = {
+    '4x3': { cols: 4, rows: 3, pairs: 6,  label: '轻松' },
+    '4x4': { cols: 4, rows: 4, pairs: 8,  label: '标准' },
+    '5x4': { cols: 5, rows: 4, pairs: 10, label: '挑战' },
+  };
+
+  function defaultCfg() {
+    return {
+      grid: '4x4',
+      timeLimit: 90,
+      peekSec: 2,
+      comboOn: true,
+      baseScore: 100,
+      timeBonus: 10,
+      dailyLimit: 0,
+      vols: { bgm: 0.4, sfx: 0.9, master: 1 },
+      icons: {},
+      sounds: {},
+    };
+  }
+
+  function deepMerge(base, patch) {
+    const out = Array.isArray(base) ? base.slice() : Object.assign({}, base);
+    if (!patch || typeof patch !== 'object') return out;
+    for (const k of Object.keys(patch)) {
+      const v = patch[k];
+      const b = base ? base[k] : undefined;
+      if (v && typeof v === 'object' && !Array.isArray(v) && b && typeof b === 'object' && !Array.isArray(b)) {
+        out[k] = deepMerge(b, v);
+      } else if (v !== undefined) {
+        out[k] = (v && typeof v === 'object') ? JSON.parse(JSON.stringify(v)) : v;
+      }
+    }
+    return out;
+  }
+
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  function shuffle(arr, rng) {
+    const r = rng || Math.random;
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(r() * (i + 1));
+      const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  // 发牌：取前 pairs 种图标，每种两张，洗成面朝下的一叠
+  function dealPairs(gridKey, rng) {
+    const g = GRIDS[gridKey] || GRIDS['4x4'];
+    const ids = shuffle(ICONS.map(i => i.id), rng).slice(0, g.pairs);
+    return shuffle(ids.concat(ids), rng);
+  }
+
+  // combo 为第几对连续配对（1 起）；封顶 ×4
+  function comboMult(combo, comboOn) {
+    if (!comboOn) return 1;
+    return clamp(combo, 1, 4);
+  }
+  function pairScore(base, combo, comboOn) { return base * comboMult(combo, comboOn); }
+
+  function stars(pairs, moves) {
+    const acc = pairs / Math.max(moves, 1);
+    return acc >= 0.66 ? 3 : acc >= 0.45 ? 2 : 1;
+  }
+
+  const p2 = n => String(n).padStart(2, '0');
+
+  function today() {
+    const d = new Date();
+    return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+  }
+
+  function fmtTime(sec) {
+    sec = Math.max(0, Math.round(sec));
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m > 0 ? m + '分' + p2(s) + '秒' : s + '秒';
+  }
+
+  return { LS_CFG, LS_ST, Q, ICONS, ICON_NAME, GRIDS, defaultCfg, deepMerge, clamp, shuffle, dealPairs, comboMult, pairScore, stars, today, fmtTime };
+})();
+
+</script>
+<script>
+/* ===== src/art.js ===== */
+window.MF=window.MF||{};
+
+/* MF.ART — 记忆翻牌卡面资产（扁平印刷插画，SVG dataURI，零外部资源）
+   色板：红#B93A2B 金#C99A3C 亮金#E4B95B 米白#FFF9EE 描边#3A2E24 墨#2B2622
+   接口：card(id) / back() / trayIcon(id) -> 'data:image/svg+xml;charset=utf-8,...' */
+MF.ART=(()=>{
+'use strict';
+const S='#3A2E24',RED='#B93A2B',GOLD='#C99A3C',BG='#E4B95B',CR='#FFF9EE',INK='#2B2622';
+const HEAD='<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">';
+const uri=inner=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(HEAD+inner+'</svg>');
+const sh=(d,fill,w)=>'<path d="'+d+'" fill="'+(fill||'none')+'" stroke="'+S+'" stroke-width="'+(w||2)+'" stroke-linejoin="round" stroke-linecap="round"/>';
+const ln=(d,st,w,extra)=>'<path d="'+d+'" fill="none" stroke="'+(st||S)+'" stroke-width="'+(w||2)+'" stroke-linecap="round"'+(extra?' '+extra:'')+'/>';
+const ci=(x,y,r,fill,w)=>'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+fill+'"'+(w?' stroke="'+S+'" stroke-width="'+w+'"':'')+'/>';
+const el=(x,y,rx,ry,fill,w)=>'<ellipse cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+ry+'" fill="'+fill+'"'+(w?' stroke="'+S+'" stroke-width="'+w+'"':'')+'/>';
+const rc=(x,y,w,h,rx,fill)=>'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="'+rx+'" fill="'+fill+'" stroke="'+S+'" stroke-width="2"/>';
+const pg=(d,fill)=>'<path d="'+d+'" fill="'+fill+'"/>';
+
+/* ingot 金元宝：金船身 + 中央圆珠 */
+function ingot(){return sh('M32,58 C32,40 40,32 50,32 C60,32 68,40 68,58 Z',GOLD)
+ +sh('M10,50 C10,45 15,43 21,46 C31,51 40,53 50,53 C60,53 69,51 79,46 C85,43 90,45 90,50 C90,66 73,75 50,75 C27,75 10,66 10,50 Z',BG)
+ +ln('M23,57 Q29,64 38,66.5',CR,3);}
+
+/* hongbao 红包：竖红封 + 盖口弧线 + 金圆印 */
+function hongbao(){return sh('M32,15 H68 Q75,15 75,22 V78 Q75,85 68,85 H32 Q25,85 25,78 V22 Q25,15 32,15 Z',RED)
+ +ln('M27,24 Q50,47 73,24')
+ +ci(50,58,10,BG,2)
+ +pg('M50,53.5 L54.5,58 L50,62.5 L45.5,58 Z',RED)
+ +ci(45.5,54,1.8,CR);}
+
+/* coupon 优惠券：横米白票 + 两侧缺口 + 齿孔虚线 */
+function coupon(){return sh('M16,31 H84 Q90,31 90,37 V44.5 A5.5,5.5 0 0 0 90,55.5 V63 Q90,69 84,69 H16 Q10,69 10,63 V55.5 A5.5,5.5 0 0 1 10,44.5 V37 Q10,31 16,31 Z',CR)
+ +ln('M63,35 V65',S,2,'stroke-dasharray="4 3.5"')
+ +pg('M19,40 H55 A2.5,2.5 0 0 1 55,45 H19 A2.5,2.5 0 0 1 19,40 Z',RED)
+ +pg('M19,50.5 H43 A2.5,2.5 0 0 1 43,55.5 H19 A2.5,2.5 0 0 1 19,50.5 Z',RED)
+ +ci(76.5,50,6,BG,2)
+ +pg('M76.5,46.8 L79.7,50 L76.5,53.2 L73.3,50 Z',RED)
+ +ci(74,47.4,1.2,CR);}
+
+/* gift 礼盒：红盒金盖 + 竖丝带 + 蝴蝶结 */
+function gift(){return rc(23,46,54,34,4,RED)
+ +rc(17,33,66,15,4,GOLD)
+ +rc(44,33,12,47,0,BG)
+ +sh('M50,30 C42,19 29,19.5 31.5,27.5 C33,32.5 42,33 50,30 Z',BG)
+ +sh('M50,30 C58,19 71,19.5 68.5,27.5 C67,32.5 58,33 50,30 Z',BG)
+ +ci(50,29.5,4.5,GOLD,2)
+ +ln('M22,38 H31',CR,3);}
+
+/* koi 锦鲤：米白鱼身红斑 + 金色三鳍大尾 */
+function koi(){return sh('M64,44 C74,33 86,30 91,34 C86,40 85,46 87,52 C85,58 86,64 91,70 C86,74 74,71 64,60 Z',GOLD)
+ +sh('M38,41 C39,29 50,22 61,26 C60,33 53,39 45,42 Z',GOLD)
+ +sh('M36,60 C33,70 41,77 50,75 C52,69 47,63 41,60 Z',GOLD)
+ +sh('M14,52 C19,38 36,31 52,37 C63,41 69,47 71,52 C69,58 61,64 49,66 C33,68 19,63 14,52 Z',CR)
+ +sh('M27,43 C31,37 39,38 41,43 C40,48 33,51 28,49 C26,47 26,45 27,43 Z',RED)
+ +sh('M52,50 C58,46 65,48 66.5,52.5 C64,57.5 56,59 52,56 C50.5,54 50.5,52 52,50 Z',RED)
+ +ci(23.5,49,2.3,INK)
+ +ln('M77,40 Q83,36.5 88,37',CR,2.5);}
+
+/* cat 招财猫：抬爪招手 + 红项圈金铃 + 肚上金钱 */
+function cat(){return sh('M36,29 L31,11 L47,19 Z',CR)
+ +sh('M64,29 L69,11 L53,19 Z',CR)
+ +pg('M37,25 L34.5,15.5 L43,20 Z',RED)
+ +pg('M63,25 L65.5,15.5 L57,20 Z',RED)
+ +rc(31,52,38,30,13,CR)
+ +rc(24,58,11,20,5.5,CR)
+ +sh('M35,52.5 H65 V57.5 Q50,63.5 35,57.5 Z',RED)
+ +el(50,70,8.5,7,BG,2)
+ +pg('M50,66.5 L53,70 L50,73.5 L47,70 Z',RED)
+ +ci(50,61.5,4.2,BG,2)
+ +ci(50,61.5,1,INK)
+ +ci(50,38,19,CR,2)
+ +ci(43,36,2.4,INK)
+ +ci(57,36,2.4,INK)
+ +pg('M47.4,40.5 H52.6 L50,43.8 Z',INK)
+ +el(36.5,42.5,3,1.9,RED)
+ +el(63.5,42.5,3,1.9,RED)
+ +rc(67,16,11,25,5.5,CR)
+ +ln('M45.5,67.8 A6.5,5.5 0 0 1 48.5,65.4',CR,2);}
+
+/* crown 王冠：三尖金冠 + 红珠顶 + 宝石腰线 */
+function crown(){return sh('M15,60 L15,38 L32,49 L50,26 L68,49 L85,38 L85,60 Z',BG)
+ +ci(15,35,3.8,RED,2)
+ +ci(50,23,3.8,RED,2)
+ +ci(85,35,3.8,RED,2)
+ +rc(15,60,70,12,3,GOLD)
+ +ci(50,66,3.2,RED,1.6)
+ +ci(33,66,1.8,CR)
+ +ci(67,66,1.8,CR)
+ +ln('M43.5,34 L38.5,41.5',CR,2.5);}
+
+/* gem 宝石：红钻切面 + 亮金反光面 + 星芒 */
+function gem(){return sh('M31,29 H69 L86,47 L50,83 L14,47 Z',RED)
+ +pg('M50,29 L40,47 H60 Z',BG)
+ +ln('M14,47 H86',S,1.8)
+ +ln('M31,29 L40,47 M50,29 L40,47 M50,29 L60,47 M69,29 L60,47 M40,47 L50,83 M60,47 L50,83',S,1.8)
+ +pg('M80,12 L82.3,17.7 L88,20 L82.3,22.3 L80,28 L77.7,22.3 L72,20 L77.7,17.7 Z',BG);}
+
+/* firework 礼花：金芯红芒八向爆发 + 金点弧尾 */
+function firework(){const rays='M21,50 H36 M64,50 H79 M50,21 V36 M50,64 V79 M39.4,39.4 L29.5,29.5 M60.6,39.4 L70.5,29.5 M60.6,60.6 L70.5,70.5 M39.4,60.6 L29.5,70.5';
+ return ln('M62,32 Q70,27.5 73,21 M62,68 Q70,72.5 73,79 M38,68 Q30,72.5 27,79 M38,32 Q30,27.5 27,21',GOLD,2.2)
+ +ln(rays,S,6.5)
+ +ln(rays,RED,3.5)
+ +ci(50,13,3,GOLD,1.6)+ci(87,50,3,GOLD,1.6)+ci(50,87,3,GOLD,1.6)+ci(13,50,3,GOLD,1.6)
+ +ci(50,50,9.5,BG,2)
+ +ci(50,50,2.2,RED)
+ +ci(46.5,46.5,1.8,CR);}
+
+/* coin 铜钱：亮金圆钱 + 方孔透底 + 内环星点 */
+function coin(){return '<path d="M16,50 a34,34 0 1 0 68,0 a34,34 0 1 0 -68,0 Z M41.5,41.5 H58.5 V58.5 H41.5 Z" fill="'+BG+'" fill-rule="evenodd" stroke="'+S+'" stroke-width="2.5" stroke-linejoin="round"/>'
+ +'<circle cx="50" cy="50" r="26.5" fill="none" stroke="'+GOLD+'" stroke-width="2"/>'
+ +ci(50,29.5,1.7,GOLD)+ci(70.5,50,1.7,GOLD)+ci(50,70.5,1.7,GOLD)+ci(29.5,50,1.7,GOLD)
+ +ln('M30,33 A27,27 0 0 1 42,24',CR,3);}
+
+const DRAW={ingot:ingot,hongbao:hongbao,coupon:coupon,gift:gift,koi:koi,cat:cat,crown:crown,gem:gem,firework:firework,coin:coin};
+const cache={};
+
+function card(id){
+  if(cache[id])return cache[id];
+  const f=DRAW[id];
+  if(!f)return '';
+  cache[id]=uri(f());
+  return cache[id];
+}
+
+/* back 卡背：红底 + 金回纹边框 + 四角菱星 + 中央金圈「礼」印 */
+function back(){
+  if(cache.__back)return cache.__back;
+  let hooks='';
+  for(let i=0;i<4;i++){const u=(24.5+i*14).toFixed(1);
+    hooks+='<path d="M'+u+',11h9v9h-6.5v-6h3.5"/>';}
+  const grp=t=>'<g transform="'+t+'">'+hooks+'</g>';
+  const dm=(x,y)=>'<path d="M'+x+','+(y-4)+' l4,4 -4,4 -4,-4 Z" fill="'+BG+'"/>';
+  let s='<rect x="3" y="3" width="94" height="94" rx="8" fill="#A93426" stroke="'+S+'" stroke-width="2"/>'
+   +'<rect x="9.5" y="9.5" width="81" height="81" fill="none" stroke="'+GOLD+'" stroke-width="1.5"/>'
+   +'<rect x="21.5" y="21.5" width="57" height="57" fill="none" stroke="'+GOLD+'" stroke-width="1.5"/>'
+   +'<g fill="none" stroke="'+BG+'" stroke-width="1.8">'+hooks
+   +grp('rotate(90 50 50)')+grp('rotate(180 50 50)')+grp('rotate(270 50 50)')+'</g>'
+   +dm(15.5,15.5)+dm(84.5,15.5)+dm(15.5,84.5)+dm(84.5,84.5)
+   +'<circle cx="50" cy="50" r="20" fill="none" stroke="'+BG+'" stroke-width="3.2"/>'
+   +'<circle cx="50" cy="50" r="16" fill="none" stroke="'+GOLD+'" stroke-width="1.2"/>'
+   +'<text x="50" y="58.6" text-anchor="middle" font-family="Songti SC,STSong,SimSun,serif" font-size="23" font-weight="900" fill="'+BG+'">礼</text>';
+  cache.__back=uri(s);
+  return cache.__back;
+}
+
+function trayIcon(id){return card(id);}
+
+return {card:card,back:back,trayIcon:trayIcon};
+})();
+
+</script>
+<script>
+/* ===== src/audio.js ===== */
+/* ============================================================
+ * memory-flip · MF.AUDIO — WebAudio 程序化音效（零依赖 / 零外部音频）
+ * 总线: sfx/bgm -> master -> compressor -> destination（防爆音）
+ * 配方: 拨弦=三角波+低通扫频短衰减 | 叮=正弦+2倍频泛音(+3倍频微光)
+ *       木鱼=带通噪声脉冲 | fanfare=方波低通柔化+微上滑音 | 沙=带通/高通噪声
+ * 引擎: AudioContext 惰性创建；unlock 幂等；循环 lookahead 调度，
+ *       stopLoop 清定时器+全部源 stop；visibilitychange 停/续 BGM；
+ *       duck(ms) 压 BGM 后恢复；applyOverrides(dataURL) 优先、失败回落合成。
+ * ============================================================ */
+window.MF = window.MF || {};
+MF.AUDIO = (function () {
+  'use strict';
+
+  var names = ['flip', 'match', 'miss', 'combo', 'win', 'lose', 'tick', 'click', 'bgm'];
+
+  /* ----- 状态 ----- */
+  var ctx = null, master = null, sfx = null, bgm = null, noiseBuf = null;
+  var vBGM = 0.4, vSFX = 0.9, vMaster = 1;   // BGM 默认自压低 0.4
+  var unlocked = false, duckTimer = 0, visBound = false;
+  var loops = {};      // name -> {running,timer,pending[],step,nextTime,bufferSrc}
+  var wanted = {};     // 用户意图（页面隐藏 halt，可见恢复）
+  var overrides = {};  // name -> AudioBuffer（自定义音效优先）
+  var pendingOv = {};  // name -> dataURL（待解码）
+  var decBusy = {};
+  var curPending = null; // 正在调度的循环的「待停源」列表
+
+  /* ----- BGM 素材：C 宫五声音阶（C D E G A），92bpm 八分音符 ----- */
+  var STEP = 60 / 92 / 2;                  // ≈0.326s
+  var NOTE = { C4: 261.63, D4: 293.66, E4: 329.63, G4: 392.00, A4: 440.00, C5: 523.25, D5: 587.33, E5: 659.26 };
+  var MEL = ['C4', 'E4', 'G4', 'A4', 'C5', 0, 'A4', 'G4',
+             'E4', 0, 'G4', 'A4', 'D5', 0, 'C5', 'A4',
+             'C4', 'E4', 'G4', 'A4', 'C5', 0, 'D5', 'E5',
+             'G4', 0, 'E5', 'D5', 'C5', 'A4', 'G4', 0];   // 32 步 = 4 小节
+  var WOOD = { 2: 1, 6: 1, 18: 1, 22: 1, 29: 1 };         // 木鱼点缀
+  var COMBO_F = [440, 523.25, 659.25, 880];               // A4 C5 E5 A5
+
+  function clamp01(v) { v = +v; if (v !== v) v = 1; return v < 0 ? 0 : (v > 1 ? 1 : v); }
+
+  /* ---------- 基础件：源用完 stop()+disconnect()，循环源登记待停 ---------- */
+  function bye(src, aux, pend) {
+    src.onended = function () {
+      try { src.disconnect(); } catch (e) {}
+      if (aux) for (var i = 0; i < aux.length; i++) { try { aux[i].disconnect(); } catch (e2) {} }
+      if (pend) { var k = pend.indexOf(src); if (k >= 0) pend.splice(k, 1); }
+    };
+  }
+  function env(dest, t0, peak, atk, dec) {
+    var g = ctx.createGain(), p = g.gain;
+    p.setValueAtTime(0.0001, t0);
+    try {
+      p.exponentialRampToValueAtTime(Math.max(0.0002, peak), t0 + atk);
+      p.exponentialRampToValueAtTime(0.0001, t0 + atk + dec);
+    } catch (e) { try { p.value = peak; } catch (e2) {} }
+    g.connect(dest);
+    return g;
+  }
+  function oscAt(type, f, t0, dur, dest, aux) {
+    var o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(f, t0);
+    o.connect(dest);
+    o.start(t0);
+    o.stop(t0 + dur);
+    if (curPending) curPending.push(o);
+    bye(o, aux, curPending);
+    return o;
+  }
+  function noiseHit(t0, dur, ftype, freq, Q, peak, atk, dec, dest) {
+    if (!noiseBuf) return null;
+    var s = ctx.createBufferSource();
+    s.buffer = noiseBuf; s.loop = true;
+    var f = ctx.createBiquadFilter();
+    f.type = ftype; f.frequency.value = freq; f.Q.value = Q;
+    var g = env(dest, t0, peak, atk, dec);
+    s.connect(f); f.connect(g);
+    try { s.start(t0, Math.random() * 0.4); } catch (e) { try { s.start(t0); } catch (e2) {} }
+    s.stop(t0 + dur);
+    if (curPending) curPending.push(s);
+    bye(s, [f, g], curPending);
+    return s;
+  }
+  /* 叮：正弦基音 + 2 倍频泛音（shimmer 时加 3 倍频微光） */
+  function ding(t0, f, dur, peak, dest, shimmer) {
+    oscAt('sine', f, t0, dur + 0.02, env(dest, t0, peak, 0.006, dur));
+    oscAt('sine', f * 2, t0, dur * 0.6 + 0.02, env(dest, t0, peak * 0.32, 0.004, dur * 0.6));
+    if (shimmer) oscAt('sine', f * 3, t0, dur * 0.35 + 0.02, env(dest, t0, peak * 0.10, 0.003, dur * 0.35));
+  }
+  /* 拨弦：三角波 + 低通 2400→750 扫频，~0.3s 短衰减 */
+  function pluck(t0, f, vol, dest) {
+    var fl = ctx.createBiquadFilter();
+    fl.type = 'lowpass'; fl.Q.value = 1;
+    fl.frequency.setValueAtTime(2400, t0);
+    fl.frequency.exponentialRampToValueAtTime(750, t0 + 0.26);
+    var g = env(fl, t0, vol, 0.004, 0.30);
+    fl.connect(dest);
+    oscAt('triangle', f, t0, 0.33, g, [fl, g]);
+    oscAt('sine', f * 2, t0, 0.14, env(dest, t0, vol * 0.25, 0.003, 0.12));
+  }
+  function wood(t0, dest, vol) { noiseHit(t0, 0.06, 'bandpass', 1050, 8, vol, 0.002, 0.05, dest); }
+  function shaker(t0, dest, vol) { noiseHit(t0, 0.05, 'highpass', 6000, 0.7, vol, 0.004, 0.04, dest); }
+
+  /* ---------- cue 合成 ---------- */
+  function sFlip(t0, out) {   // 轻快翻页「沙嗒」~90ms
+    noiseHit(t0, 0.085, 'bandpass', 2600, 0.9, 0.45, 0.004, 0.07, out);
+    oscAt('square', 2100, t0, 0.03, env(out, t0, 0.10, 0.002, 0.025));
+  }
+  function sMatch(t0, out) {  // 上行双音叮咚 E5→A5 ~350ms
+    ding(t0, 659.25, 0.18, 0.30, out, true);
+    ding(t0 + 0.13, 880, 0.22, 0.34, out, true);
+  }
+  function sMiss(t0, out) {   // 低音「咚」~180ms，频率下坠
+    var g = env(out, t0, 0.5, 0.005, 0.16);
+    var o = oscAt('sine', 150, t0, 0.18, g);
+    o.frequency.setValueAtTime(190, t0);
+    o.frequency.exponentialRampToValueAtTime(140, t0 + 0.06);
+    oscAt('triangle', 95, t0, 0.13, env(out, t0, 0.25, 0.004, 0.10));
+  }
+  function sCombo(t0, out, o) { // 连击叮 A4/C5/E5/A5 ~250ms
+    var lv = o && o.level ? (o.level | 0) : 1;
+    if (lv < 1 || lv > 4) lv = 1;
+    ding(t0, COMBO_F[lv - 1], 0.2, 0.34, out, true);
+    oscAt('square', COMBO_F[lv - 1] * 2, t0, 0.05, env(out, t0, 0.05, 0.002, 0.04));
+  }
+  /* fanfare 单音：方波 + 低通柔化 + 微上滑（不过分刺耳） */
+  function fanNote(t0, f, dur, peak, out) {
+    var fl = ctx.createBiquadFilter();
+    fl.type = 'lowpass'; fl.frequency.value = 2200; fl.Q.value = 0.5;
+    var g = env(fl, t0, peak, 0.012, dur);
+    fl.connect(out);
+    var o = oscAt('square', f, t0, dur + 0.03, g, [fl, g]);
+    o.frequency.setValueAtTime(f * 0.97, t0);
+    o.frequency.exponentialRampToValueAtTime(f, t0 + 0.06);
+  }
+  function sWin(t0, out) {    // 三连上行 + 收尾琶音 ~900ms
+    var tri = [523.25, 659.25, 783.99], i;
+    for (i = 0; i < 3; i++) fanNote(t0 + i * 0.14, tri[i], 0.17, 0.15, out);
+    var arp = [523.25, 659.25, 783.99, 1046.50];
+    for (i = 0; i < arp.length; i++) {
+      var last = i === 3;
+      ding(t0 + 0.48 + i * 0.07, arp[i], last ? 0.3 : 0.14, last ? 0.3 : 0.2, out, last);
+    }
+  }
+  function sLose(t0, out) {   // 下行两音 ~500ms，带下坠弯音
+    var seq = [[329.63, 0, 0.22], [261.63, 0.24, 0.30]];
+    for (var i = 0; i < 2; i++) {
+      var f = seq[i][0], t = t0 + seq[i][1];
+      var fl = ctx.createBiquadFilter();
+      fl.type = 'lowpass'; fl.frequency.value = 1100; fl.Q.value = 0.5;
+      var g = env(fl, t, 0.28, 0.01, seq[i][2]);
+      fl.connect(out);
+      var o = oscAt('triangle', f, t, seq[i][2] + 0.03, g, [fl, g]);
+      o.frequency.setValueAtTime(f * 1.05, t);
+      o.frequency.exponentialRampToValueAtTime(f * 0.92, t + seq[i][2]);
+    }
+  }
+  function sTick(t0, out) {   // 木鱼短嗒 ~60ms = 带通噪声脉冲 + 定音
+    noiseHit(t0, 0.055, 'bandpass', 1150, 9, 0.5, 0.002, 0.045, out);
+    oscAt('sine', 840, t0, 0.05, env(out, t0, 0.2, 0.002, 0.035));
+  }
+  function sClick(t0, out) {  // UI 轻嗒 ~40ms
+    noiseHit(t0, 0.035, 'highpass', 4200, 0.7, 0.22, 0.001, 0.03, out);
+    oscAt('triangle', 1900, t0, 0.025, env(out, t0, 0.08, 0.001, 0.02));
+  }
+  function stepNote(i, t, out) {  // BGM 一步：拨弦旋律 + 木鱼/沙锤点缀
+    i = i % 32;
+    var m = MEL[i];
+    if (m) pluck(t, NOTE[m], 0.13 + Math.random() * 0.04, out);
+    if (WOOD[i]) wood(t, out, 0.09);
+    if (i % 4 === 3) shaker(t, out, (i % 8 === 3) ? 0.05 : 0.035);
+  }
+  function sBGM(t0, out) {    // play('bgm')：预览一小节
+    for (var i = 0; i < 8; i++) stepNote(i, t0 + i * STEP, out);
+  }
+  var SYNTH = { flip: sFlip, match: sMatch, miss: sMiss, combo: sCombo, win: sWin, lose: sLose, tick: sTick, click: sClick, bgm: sBGM };
+
+  /* ---------- 上下文（惰性）与总线 ---------- */
+  function makeNoise() {
+    try {
+      var b = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), d = b.getChannelData(0);
+      for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      return b;
+    } catch (e) { return null; }
+  }
+  function resumeCtx() {
+    if (ctx && ctx.state === 'suspended' && ctx.resume) {
+      try { var p = ctx.resume(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+    }
+  }
+  function ensureCtx() {
+    if (ctx) { resumeCtx(); return ctx; }
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try { ctx = new AC(); } catch (e) { ctx = null; }
+    if (!ctx) return null;
+    master = ctx.createGain(); master.gain.value = vMaster;
+    sfx = ctx.createGain(); sfx.gain.value = vSFX;
+    bgm = ctx.createGain(); bgm.gain.value = vBGM;
+    var comp = ctx.createDynamicsCompressor ? ctx.createDynamicsCompressor() : null;
+    sfx.connect(master); bgm.connect(master);
+    if (comp) { master.connect(comp); comp.connect(ctx.destination); }
+    else master.connect(ctx.destination);
+    noiseBuf = makeNoise();
+    bindVisibility();
+    flushOverrides();
+    resumeCtx();
+    return ctx;
+  }
+  function unlock() {  // 幂等：首次手势 resume + 静音缓冲解锁
+    var c = ensureCtx();
+    if (!c) return;
+    if (!unlocked) {
+      unlocked = true;
+      try {
+        var n = Math.max(1, (c.sampleRate * 0.1) | 0);
+        var b = c.createBuffer(1, n, c.sampleRate);
+        var s = c.createBufferSource();
+        s.buffer = b; s.connect(c.destination);
+        s.start(c.currentTime); s.stop(c.currentTime + 0.05);
+        bye(s);
+      } catch (e) {}
+    }
+  }
+
+  /* ---------- visibilitychange：hidden 停 BGM，可见恢复（若原本在播） ---------- */
+  function bindVisibility() {
+    if (visBound) return;
+    visBound = true;
+    if (typeof document === 'undefined' || !document.addEventListener) return;
+    document.addEventListener('visibilitychange', function () {
+      var hidden = false;
+      try { hidden = !!document.hidden; } catch (e) {}
+      if (hidden) {
+        for (var n in loops) { if (loops[n] && loops[n].running) halt(n); }
+      } else {
+        for (var n2 in wanted) { if (wanted[n2]) startLoop(n2); }
+      }
+    });
+  }
+
+  /* ---------- 循环（lookahead 调度 + 注册表停干净） ---------- */
+  function schedBGM(name) {
+    var e = loops[name];
+    if (!e || !e.running || !ctx) return;
+    curPending = e.pending;
+    try {
+      var ahead = ctx.currentTime + 0.2, guard = 0;
+      while (e.nextTime < ahead && guard++ < 64) {
+        stepNote(e.step, e.nextTime, bgm);
+        e.step++;
+        e.nextTime += STEP;
+      }
+    } catch (err) {}
+    curPending = null;
+  }
+  function halt(name) {
+    var e = loops[name];
+    if (!e) return false;
+    e.running = false;
+    if (e.timer) { clearInterval(e.timer); e.timer = 0; }
+    if (e.bufferSrc) {
+      try { e.bufferSrc.stop(0); } catch (er) {}
+      try { e.bufferSrc.disconnect(); } catch (er2) {}
+      e.bufferSrc = null;
+    }
+    var p = e.pending;
+    while (p.length) {
+      var s = p.pop();
+      try { if (s.stop) s.stop(0); } catch (er3) {}
+      try { s.disconnect(); } catch (er4) {}
+    }
+    return true;
+  }
+  function startLoop(name) {
+    if (!name || names.indexOf(name) < 0) return false;
+    if (loops[name] && loops[name].running) return true;
+    var c = ensureCtx();
+    if (!c) return false;
+    var buf = overrides[name];
+    if (name !== 'bgm' && !buf) return false;
+    wanted[name] = true;
+    var e = loops[name] = { running: true, timer: 0, pending: [], step: 0, nextTime: c.currentTime + 0.08, bufferSrc: null };
+    if (buf) {  // 自定义 BGM：BufferSource loop
+      try {
+        var s = c.createBufferSource();
+        s.buffer = buf; s.loop = true;
+        s.connect(bgm);
+        s.start(c.currentTime + 0.03);
+        bye(s);
+        e.bufferSrc = s;
+      } catch (err) {}
+      return true;
+    }
+    e.timer = setInterval(function () { schedBGM(name); }, 60);
+    schedBGM(name);
+    return true;
+  }
+  function stopLoop(name) {
+    if (!name || names.indexOf(name) < 0) return false;
+    wanted[name] = false;
+    return halt(name);
+  }
+
+  /* ---------- duck：压 BGM 后恢复 ---------- */
+  function smoothTo(p, target, t, tc) {
+    try { p.cancelScheduledValues(t); } catch (e) {}
+    try { p.setValueAtTime(p.value, t); p.setTargetAtTime(target, t, tc); }
+    catch (e2) { try { p.value = target; } catch (e3) {} }
+  }
+  function duck(ms) {
+    if (!ctx || !bgm) return;
+    smoothTo(bgm.gain, vBGM * 0.25, ctx.currentTime, 0.05);
+    if (duckTimer) { clearTimeout(duckTimer); duckTimer = 0; }
+    duckTimer = setTimeout(function () {
+      duckTimer = 0;
+      if (!ctx || !bgm) return;
+      smoothTo(bgm.gain, vBGM, ctx.currentTime, 0.15);
+    }, Math.max(1, ms | 0));
+  }
+
+  /* ---------- 音量 ---------- */
+  function setBGMVolume(v) { vBGM = clamp01(v); if (ctx && bgm) smoothTo(bgm.gain, vBGM, ctx.currentTime, 0.03); }
+  function setSFXVolume(v) { vSFX = clamp01(v); if (ctx && sfx) smoothTo(sfx.gain, vSFX, ctx.currentTime, 0.03); }
+  function setMasterVolume(v) { vMaster = clamp01(v); if (ctx && master) smoothTo(master.gain, vMaster, ctx.currentTime, 0.03); }
+
+  /* ---------- 自定义音效覆盖（dataURL 解码优先，失败回落合成） ---------- */
+  function b64ToAB(b64) {
+    try {
+      var bin = atob(b64), n = bin.length, ab = new Uint8Array(n);
+      for (var i = 0; i < n; i++) ab[i] = bin.charCodeAt(i);
+      return ab.buffer;
+    } catch (e) { return null; }
+  }
+  function urlToAB(url) {
+    if (typeof url !== 'string') return null;
+    var i = url.indexOf(',');
+    if (i < 0) return null;
+    var meta = url.slice(0, i), data = url.slice(i + 1);
+    if (/;base64/i.test(meta)) return b64ToAB(data.replace(/\s/g, ''));
+    try {
+      var raw = decodeURIComponent(data), n = raw.length, ab = new Uint8Array(n);
+      for (var j = 0; j < n; j++) ab[j] = raw.charCodeAt(j) & 255;
+      return ab.buffer;
+    } catch (e) { return null; }
+  }
+  function decodeOne(name) {
+    if (!ctx) return;
+    var url = pendingOv[name];
+    if (!url || decBusy[name]) return;
+    var ab = urlToAB(url);
+    if (!ab) { if (pendingOv[name] === url) delete pendingOv[name]; return; }
+    decBusy[name] = true;
+    var done = false;
+    var settle = function (b) {
+      if (done) return;
+      done = true; decBusy[name] = false;
+      if (b) overrides[name] = b;
+      if (pendingOv[name] === url) delete pendingOv[name];
+      if (pendingOv[name]) decodeOne(name);
+    };
+    try {
+      var r = ctx.decodeAudioData(ab, settle, function () { settle(null); });
+      if (r && r.then) r.then(settle, function () { settle(null); });
+    } catch (e) { done = true; decBusy[name] = false; if (pendingOv[name] === url) delete pendingOv[name]; }
+  }
+  function flushOverrides() { for (var n in pendingOv) decodeOne(n); }
+  function applyOverrides(map) {
+    if (!map || typeof map !== 'object') return;
+    for (var k in map) {
+      if (names.indexOf(k) < 0) continue;
+      var v = map[k];
+      if (!v || typeof v !== 'string') { delete overrides[k]; delete pendingOv[k]; continue; }
+      pendingOv[k] = v;
+      delete overrides[k];
+      decodeOne(k);
+    }
+  }
+
+  /* ---------- play：未知 name 安全返回 false ---------- */
+  function play(name, opts) {
+    if (!name || names.indexOf(name) < 0) return false;
+    var c = ensureCtx();
+    if (!c) return false;
+    var buf = overrides[name];
+    if (buf) {
+      try {
+        var s = c.createBufferSource();
+        s.buffer = buf;
+        s.connect(name === 'bgm' ? bgm : sfx);
+        s.start(c.currentTime + 0.02);
+        bye(s);
+        return true;
+      } catch (e) {}
+    }
+    var fn = SYNTH[name];
+    if (!fn) return false;
+    try { fn(c.currentTime + 0.02, name === 'bgm' ? bgm : sfx, opts || {}); return true; }
+    catch (e2) { return false; }
+  }
+
+  return {
+    unlock: unlock,
+    play: play,
+    startLoop: startLoop,
+    stopLoop: stopLoop,
+    duck: duck,
+    setBGMVolume: setBGMVolume,
+    setSFXVolume: setSFXVolume,
+    setMasterVolume: setMasterVolume,
+    applyOverrides: applyOverrides,
+    names: names
+  };
+})();
+
+</script>
+<script>
+/* ===== src/fx.js ===== */
+/* ============================================================
+ * memory-flip · FX 特效模块（src/fx.js）
+ * Canvas2D 粒子，印刷喜庆：铜钱（外圆内方孔）/ 红金纸屑 / 金粉
+ * 规约：禁 shadowBlur（径向渐变 + globalCompositeOperation='lighter' 叠色）
+ *      铜钱离屏预渲染多帧（scaleX 翻转 + 亮度衰减）复用
+ *      粒子对象池 + 总量上限 ~400 保护 · DPR<=2
+ *      resize/orientationchange 自适应 · document.hidden 暂停/可见恢复
+ *      时间戳驱动物理（不靠帧数）· rAF 单循环、无粒子休眠
+ *      零依赖 · 不碰 localStorage · 未 init 时全部接口安全 no-op
+ * ============================================================ */
+window.MF=window.MF||{}; MF.FX=(()=> {
+  'use strict';
+
+  var TAU=Math.PI*2;
+  var RED='#B93A2B', DRED='#8F2B20', GOLD='#C99A3C', LGOLD='#E4B95B',
+      CREAM='#FFF9EE', BROWN='#3A2E24';
+  var POOL_MAX=400;                       // 粒子总量上限
+  var COIN_FRAME_N=10, COIN_R=18, COIN_PAD=5;
+
+  var host=null, canvas=null, ctx=null, W=0, H=0, dpr=1;
+  var pool=[], nAlive=0, rafId=0, lastT=0, hidden=false, bound=false;
+  var glowCache={};                       // 预渲染径向渐变光点精灵
+  var coinFrames=[];                      // 铜钱翻转预渲染帧
+
+  /* ---------------- 小工具 ---------------- */
+  function num(v,d){ v=+v; return isFinite(v)?v:d; }
+  function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+  function rand(a,b){ return a+Math.random()*(b-a); }
+  function pick(a){ return a[(Math.random()*a.length)|0]; }
+  function safeColor(c,d){
+    if(typeof c!=='string') return d;
+    var s=c.charAt(0)==='#'?c.slice(1):c;
+    if(s.length===3) s=s.charAt(0)+s.charAt(0)+s.charAt(1)+s.charAt(1)+s.charAt(2)+s.charAt(2);
+    return /^[0-9a-fA-F]{6}$/.test(s)?('#'+s.toLowerCase()):d;
+  }
+  function rgba(hex,a){
+    var n=parseInt(hex.slice(1),16);
+    return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+(+a).toFixed(3)+')';
+  }
+  function easeOutCubic(t){ return 1-Math.pow(1-t,3); }
+
+  /* ---------------- 离屏预渲染 ---------------- */
+  // 单枚铜钱：外圆金身 + 内圆亮金 + 中央方孔（镂空）+ 深棕描边 + 克制亮金高光
+  function paintCoin(g,R,lw){
+    g.beginPath(); g.arc(0,0,R,0,TAU);
+    g.fillStyle=GOLD; g.fill();
+    g.lineWidth=lw; g.strokeStyle=BROWN; g.stroke();
+    g.beginPath(); g.arc(0,0,R*0.74,0,TAU);
+    g.fillStyle=LGOLD; g.fill();
+    var h=R*0.32;                          // 方孔（镂空到透明）
+    g.save(); g.globalCompositeOperation='destination-out';
+    g.fillRect(-h,-h,h*2,h*2); g.restore();
+    g.lineWidth=lw; g.strokeStyle=BROWN; g.strokeRect(-h,-h,h*2,h*2);
+    g.beginPath(); g.arc(0,0,R*0.86,-2.35,-1.25);
+    g.strokeStyle='rgba(255,249,238,.8)'; g.lineWidth=lw*0.9; g.stroke();
+  }
+  // 多帧：scaleX=|cos| 模拟翻转，侧缘帧叠深色（source-atop 只压 coin 像素）
+  function buildCoinFrames(){
+    if(coinFrames.length||typeof document==='undefined') return;
+    var S=(COIN_R+COIN_PAD)*2;
+    for(var i=0;i<COIN_FRAME_N;i++){
+      var ax=Math.abs(Math.cos(i/COIN_FRAME_N*Math.PI));
+      var c=document.createElement('canvas');
+      c.width=S*2; c.height=S*2;
+      var g=c.getContext('2d');
+      g.setTransform(2*Math.max(ax,0.06),0,0,2,S,S);
+      paintCoin(g,COIN_R,2);
+      var sh=0.45*(1-ax);
+      if(sh>0.02){
+        g.setTransform(1,0,0,1,0,0);
+        g.globalCompositeOperation='source-atop';
+        g.fillStyle='rgba(43,38,34,'+sh.toFixed(3)+')';
+        g.fillRect(0,0,c.width,c.height);
+        g.globalCompositeOperation='source-over';
+      }
+      coinFrames.push({c:c,S:S});
+    }
+  }
+  // 光点精灵：径向渐变（禁 shadowBlur，靠 lighter 叠色出光感）
+  function glowSprite(color){
+    var hit=glowCache[color];
+    if(hit) return hit;
+    if(Object.keys(glowCache).length>16) glowCache={};
+    var s=64, cv=document.createElement('canvas');
+    cv.width=cv.height=s;
+    var g=cv.getContext('2d');
+    var gr=g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+    gr.addColorStop(0,rgba(color,0.85));
+    gr.addColorStop(0.35,rgba(color,0.32));
+    gr.addColorStop(1,rgba(color,0));
+    g.fillStyle=gr; g.fillRect(0,0,s,s);
+    glowCache[color]=cv;
+    return cv;
+  }
+
+  /* ---------------- 对象池 ---------------- */
+  function spawn(type){
+    if(!ctx||nAlive>=POOL_MAX) return null;
+    var cell=null;
+    for(var i=0;i<pool.length;i++){ if(!pool[i].on){ cell=pool[i]; break; } }
+    if(!cell){ if(pool.length>=POOL_MAX+64) return null; cell={}; pool.push(cell); }
+    var p=cell;
+    p.on=true; p.type=type; p.age=0;
+    p.x=0; p.y=0; p.vx=0; p.vy=0; p.g=0; p.drag=0;
+    p.size=6; p.h=0; p.color=LGOLD; p.alpha=1; p.life=1;
+    p.rot=0; p.vr=0; p.flip=0; p.vflip=0;
+    p.swA=0; p.swF=0; p.seed=rand(0,TAU); p.hi=false;
+    p.x0=0; p.y0=0; p.cx=0; p.cy=0; p.tx=0; p.ty=0;
+    p.delay=0; p.dur=1; p.turns=2; p.img=null; p.grp=null;
+    p.r0=0; p.r1=0; p.rCur=0; p.a0=0;
+    nAlive++;
+    return p;
+  }
+  function kill(p){ p.on=false; nAlive--; }
+
+  /* ---------------- 主循环（时间戳物理，无粒子休眠） ---------------- */
+  function ensureLoop(){
+    if(!ctx||rafId||hidden) return;
+    lastT=performance.now();
+    rafId=requestAnimationFrame(tick);
+  }
+  function tick(now){
+    rafId=0;
+    if(hidden||!ctx) return;
+    var dt=clamp((now-lastT)/1000,0,0.05);   // 后台切回不跳帧
+    lastT=now;
+    step(dt);
+    render();
+    if(nAlive>0) rafId=requestAnimationFrame(tick);
+    else ctx.clearRect(0,0,W,H);             // 全灭：清屏并休眠
+  }
+  function step(dt){
+    for(var i=0;i<pool.length;i++){
+      var p=pool[i];
+      if(!p.on) continue;
+      p.age+=dt;
+      switch(p.type){
+        case 'bit':                          // 纸屑：重力+阻力+横向摆+自转+scaleX 翻转
+          p.vy+=p.g*dt;
+          p.vx-=p.vx*p.drag*dt; p.vy-=p.vy*p.drag*0.3*dt;
+          p.x+=p.vx*dt+Math.sin(p.age*p.swF+p.seed)*p.swA*dt;
+          p.y+=p.vy*dt;
+          p.rot+=p.vr*dt; p.flip+=p.vflip*dt;
+          if(p.age>=p.life||p.y>H+28){ kill(p); }
+          else { var t=p.age/p.life; p.alpha=t>0.72?(1-t)/0.28:1; }
+          break;
+        case 'dot':                          // 金粉光点
+          p.vx-=p.vx*p.drag*dt; p.vy-=p.vy*p.drag*dt;
+          p.vy+=p.g*dt;
+          p.x+=p.vx*dt; p.y+=p.vy*dt;
+          if(p.age>=p.life){ kill(p); }
+          else { var k=p.age/p.life; p.alpha=Math.pow(1-k,1.4); }
+          break;
+        case 'coin': {                       // 铜钱：二次贝塞尔 + smoothstep 缓动
+          var u=(p.age-p.delay)/p.dur;
+          if(u<0) break;                     // 起飞延迟中
+          if(u>=1){
+            kill(p);
+            var g0=p.grp;
+            if(g0){ g0.left--;
+              if(g0.left<=0&&!g0.fired){ g0.fired=true; var cb=g0.done; if(cb){ try{cb();}catch(e){} } } }
+            break;
+          }
+          var e=u*u*(3-2*u), v=1-e;
+          p.x=v*v*p.x0+2*v*e*p.cx+e*e*p.tx;
+          p.y=v*v*p.y0+2*v*e*p.cy+e*e*p.ty;
+          p.flip=e*p.turns*TAU;
+          break;
+        }
+        case 'ring': {
+          if(p.age>=p.life){ kill(p); break; }
+          var rt=p.age/p.life;
+          p.rCur=p.r0+(p.r1-p.r0)*easeOutCubic(rt);
+          p.alpha=1-rt;
+          break;
+        }
+        case 'flash': {
+          if(p.age>=p.life){ kill(p); break; }
+          var ft=p.age/p.life, q=1-ft;
+          p.alpha=p.a0*q*q;
+          break;
+        }
+      }
+    }
+  }
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    var i,p;
+    ctx.globalCompositeOperation='lighter';          // 叠色层：光点
+    for(i=0;i<pool.length;i++){ p=pool[i]; if(p.on&&p.type==='dot') drawDot(p); }
+    ctx.globalCompositeOperation='source-over';      // 实色层：纸屑/铜钱/圆环
+    ctx.globalAlpha=1;                               // 防 alpha 泄漏进实色层
+    for(i=0;i<pool.length;i++){
+      p=pool[i]; if(!p.on) continue;
+      if(p.type==='bit') drawBit(p);
+      else if(p.type==='coin') drawCoinP(p);
+      else if(p.type==='ring') drawRing(p);
+    }
+    for(i=0;i<pool.length;i++){ p=pool[i]; if(p.on&&p.type==='flash') drawFlash(p); }
+    ctx.globalAlpha=1;
+  }
+  function drawDot(p){
+    var sp=glowSprite(p.color);
+    var d=p.size*(1-0.35*(p.age/p.life))*2;
+    ctx.globalAlpha=p.alpha;
+    ctx.drawImage(sp,p.x-d/2,p.y-d/2,d,d);
+  }
+  function drawBit(p){
+    var sx=Math.abs(Math.cos(p.flip)); if(sx<0.12) sx=0.12;   // scaleX 翻转
+    ctx.save();
+    ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+    ctx.globalAlpha=p.alpha; ctx.fillStyle=p.color;
+    ctx.fillRect(-p.size*sx/2,-p.h/2,p.size*sx,p.h);
+    if(p.hi){ ctx.fillStyle='rgba(255,249,238,.5)'; ctx.fillRect(-p.size*sx/2,-p.h/2,p.size*sx,1); }
+    ctx.restore();
+  }
+  function drawCoinP(p){
+    if(p.age<p.delay) return;
+    ctx.globalAlpha=1;                               // 铜钱是实色印刷物，不吃残留 alpha
+    var img=p.img;
+    if(img&&img.complete&&img.naturalWidth>0){       // 自定义 icon：drawImage+scaleX
+      var sx=Math.abs(Math.cos(p.flip));
+      ctx.save();
+      ctx.translate(p.x,p.y); ctx.scale(Math.max(sx,0.08),1);
+      ctx.drawImage(img,-p.size/2,-p.size/2,p.size,p.size);
+      ctx.restore();
+      return;
+    }
+    if(!coinFrames.length) return;
+    var fi=Math.floor((((p.flip%TAU)+TAU)%TAU)/TAU*COIN_FRAME_N)%COIN_FRAME_N;
+    var f=coinFrames[fi];
+    var ds=f.S*(p.size/(2*COIN_R));                  // 显示直径 ~14-18px
+    ctx.drawImage(f.c,p.x-ds/2,p.y-ds/2,ds,ds);
+  }
+  function drawRing(p){
+    ctx.globalAlpha=p.alpha;
+    ctx.strokeStyle=p.color;
+    ctx.lineWidth=1+5*(1-p.age/p.life);
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.rCur,0,TAU); ctx.stroke();
+    ctx.globalAlpha=p.alpha*0.45;                    // 内圈回声
+    ctx.lineWidth=Math.max(1,ctx.lineWidth*0.5);
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.rCur*0.62,0,TAU); ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+  function drawFlash(p){
+    ctx.globalAlpha=p.alpha;
+    ctx.fillStyle=p.color;
+    ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha=1;
+  }
+
+  /* ---------------- 尺寸 / 可见性 ---------------- */
+  function resize(){
+    if(!host||!canvas) return;
+    var r=host.getBoundingClientRect?host.getBoundingClientRect():null;
+    W=Math.max(1,Math.round((r&&r.width)||host.clientWidth||0));
+    H=Math.max(1,Math.round((r&&r.height)||host.clientHeight||0));
+    dpr=Math.min(window.devicePixelRatio||1,2);
+    canvas.width=Math.round(W*dpr);
+    canvas.height=Math.round(H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  function onVis(){
+    hidden=!!document.hidden;
+    if(hidden){ if(rafId){ cancelAnimationFrame(rafId); rafId=0; } }
+    else ensureLoop();                                // lastT 重置，无时间跳变
+  }
+  function bindGlobal(){
+    if(bound) return; bound=true;
+    window.addEventListener('resize',resize);
+    window.addEventListener('orientationchange',function(){ resize(); setTimeout(resize,260); });
+    document.addEventListener('visibilitychange',onVis);
+  }
+
+  /* ---------------- 对外接口 ---------------- */
+  // hostEl 内建铺满 canvas（绝对定位 inset:0、pointer-events:none，zIndex 由宿主管）
+  function init(hostEl){
+    if(!hostEl||typeof hostEl.appendChild!=='function') return;   // 安全 no-op
+    if(canvas&&canvas.parentNode===hostEl) return;                // 幂等
+    if(canvas&&canvas.parentNode) canvas.parentNode.removeChild(canvas);
+    host=hostEl;
+    canvas=document.createElement('canvas');
+    canvas.setAttribute('data-mf-fx','');
+    canvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
+    hostEl.appendChild(canvas);
+    ctx=canvas.getContext('2d');
+    if(!ctx){ host=null; canvas=null; return; }
+    resize(); buildCoinFrames(); bindGlobal();
+  }
+
+  // 纸屑/光点从点爆开；opt{n,colors}
+  function burst(x,y,opt){
+    if(!ctx) return;
+    opt=opt||{};
+    x=num(x,W/2); y=num(y,H/2);
+    var colors=(opt.colors&&opt.colors.length)
+      ?[].map.call(opt.colors,function(c){ return safeColor(c,GOLD); })
+      :[RED,GOLD,LGOLD,CREAM];
+    var want=clamp(num(opt.n,26)|0,1,64);
+    for(var i=0;i<want;i++){
+      var isDot=Math.random()<0.45;
+      var p=spawn(isDot?'dot':'bit'); if(!p) break;
+      var a=rand(0,TAU);
+      if(isDot){
+        var sp=rand(110,400);
+        p.x=x; p.y=y;
+        p.vx=Math.cos(a)*sp; p.vy=Math.sin(a)*sp-rand(0,110);
+        p.g=260; p.drag=2.4; p.life=rand(0.45,0.9); p.size=rand(5,11);
+        p.color=pick([LGOLD,GOLD,CREAM]);
+      }else{
+        var sp2=rand(130,430);
+        p.x=x; p.y=y;
+        p.vx=Math.cos(a)*sp2; p.vy=Math.sin(a)*sp2-90;
+        p.g=rand(720,950); p.drag=1.0; p.life=rand(0.7,1.15);
+        p.size=rand(5,9); p.h=rand(3,5.5);
+        p.rot=rand(0,TAU); p.vr=rand(-9,9);
+        p.flip=rand(0,TAU); p.vflip=rand(5,11)*(Math.random()<0.5?-1:1);
+        p.swA=rand(6,18); p.swF=rand(2,4);
+        p.color=pick(colors); p.hi=Math.random()<0.35;
+      }
+    }
+    ensureLoop();
+  }
+
+  // n 个铜钱（或 opt.icon dataURI）沿二次贝塞尔（随机控制点偏移）A→B，全数抵达回调 done 一次
+  function coinFly(x1,y1,x2,y2,opt){
+    if(!ctx) return;
+    opt=opt||{};
+    x1=num(x1,W/2); y1=num(y1,H/2); x2=num(x2,W/2); y2=num(y2,H/2);
+    var done=(typeof opt.done==='function')?opt.done:null;
+    var grp={left:0,fired:false,done:done};           // stopAll 中止时 done 不回调
+    var img=null;
+    if(opt.icon&&typeof Image!=='undefined'){ img=new Image(); img.src=opt.icon; }
+    var dx=x2-x1, dy=y2-y1, dist=Math.sqrt(dx*dx+dy*dy)||1;
+    var px=-dy/dist, py=dx/dist;
+    var want=clamp(num(opt.n,6)|0,1,48);
+    for(var i=0;i<want;i++){
+      var p=spawn('coin'); if(!p) break;
+      var off=clamp(rand(0.15,0.45)*dist*(Math.random()<0.5?-1:1),-H*0.45,H*0.45);
+      p.x0=x1; p.y0=y1; p.tx=x2; p.ty=y2;
+      p.cx=(x1+x2)/2+px*off; p.cy=(y1+y2)/2+py*off;
+      p.delay=i*rand(0.05,0.085);                     // 逐枚错峰
+      p.dur=rand(0.62,0.92);
+      p.size=rand(14,18);
+      p.turns=rand(1.5,3.2);
+      p.img=img; p.grp=grp;
+      grp.left++;
+    }
+    if(grp.left===0){ grp.fired=true; if(done){ try{done();}catch(e){} } }
+    ensureLoop();
+  }
+
+  // 全屏红金彩带雨：矩形纸屑 rotate + scaleX 翻转
+  function confetti(n){
+    if(!ctx) return;
+    var want=clamp(num(n,80)|0,1,POOL_MAX);
+    var colors=[RED,DRED,GOLD,LGOLD,CREAM];
+    for(var i=0;i<want;i++){
+      var p=spawn('bit'); if(!p) break;
+      p.x=rand(0,W); p.y=rand(-H*0.12,-8);
+      p.vx=rand(-40,40); p.vy=rand(40,140);
+      p.g=rand(240,420); p.drag=0.5;
+      p.life=rand(2.2,3.2);
+      p.size=rand(5,9); p.h=rand(3,5.5);
+      p.rot=rand(0,TAU); p.vr=rand(-7,7);
+      p.flip=rand(0,TAU); p.vflip=rand(4,9)*(Math.random()<0.5?-1:1);
+      p.swA=rand(10,26); p.swF=rand(2,4.5);
+      p.color=pick(colors); p.hi=Math.random()<0.3;
+    }
+    ensureLoop();
+  }
+
+  // 单点火花（金粉）
+  function spark(x,y,color,n){
+    if(!ctx) return;
+    x=num(x,W/2); y=num(y,H/2);
+    var col=safeColor(color,LGOLD);
+    var want=clamp(num(n,10)|0,1,64);
+    for(var i=0;i<want;i++){
+      var p=spawn('dot'); if(!p) break;
+      var a=rand(0,TAU), sp=rand(60,260);
+      p.x=x; p.y=y;
+      p.vx=Math.cos(a)*sp; p.vy=Math.sin(a)*sp;
+      p.g=180; p.drag=3.2; p.life=rand(0.28,0.5); p.size=rand(3,7);
+      p.color=Math.random()<0.3?CREAM:col;
+    }
+    ensureLoop();
+  }
+
+  // 全屏闪色，快速淡出
+  function flash(color,alpha){
+    if(!ctx) return;
+    var p=spawn('flash'); if(!p) return;
+    p.color=safeColor(color,RED);
+    p.a0=clamp(num(alpha,0.16),0,1);
+    p.life=0.38;
+    ensureLoop();
+  }
+
+  // 扩散圆环
+  function ring(x,y,color){
+    if(!ctx) return;
+    x=num(x,W/2); y=num(y,H/2);
+    var p=spawn('ring'); if(!p) return;
+    p.x=x; p.y=y;
+    p.color=safeColor(color,LGOLD);
+    p.r0=6; p.r1=clamp(Math.min(W,H)*0.24,48,96);
+    p.life=0.5;
+    ensureLoop();
+  }
+
+  // 金渐变大字 + 深描边（DOM，非 canvas），WAAPI 弹入 0.6→1.05→1、停留淡出自毁，居中
+  function bigText(text,opt){
+    if(!host) return;
+    opt=opt||{};
+    var txt=(text==null?'':String(text));
+    if(!txt) return;
+    var olds=host.querySelectorAll('[data-mf-bt]');   // 替换上一条，避免叠字
+    for(var i=0;i<olds.length;i++){ if(olds[i].parentNode) olds[i].parentNode.removeChild(olds[i]); }
+
+    var w=W||host.clientWidth||390;
+    var scale=clamp(num(opt.scale,1),0.4,3);
+    var dur=clamp(num(opt.dur,1500),600,6000);
+    var color=safeColor(opt.color,LGOLD);
+    var fs=Math.round(clamp(w*0.16,36,80)*scale);
+    fs=Math.max(18,Math.min(fs,Math.floor(w*0.92/Math.max(2,txt.length))));
+    var strokeW=Math.round(clamp(fs*0.16,6,14));
+    var FONT='system-ui,-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
+
+    var wrap=document.createElement('div');
+    wrap.setAttribute('data-mf-bt','');
+    wrap.style.cssText='position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;'
+      +'align-items:center;justify-content:center;pointer-events:none;';
+
+    var box=document.createElement('div');
+    box.style.cssText='position:relative;text-align:center;';
+    var base='font-family:'+FONT+';font-weight:900;font-size:'+fs+'px;line-height:1.1;letter-spacing:.02em;white-space:nowrap;';
+
+    var st=document.createElement('div');             // 描边层：-webkit-text-stroke + 实色偏移投影
+    st.textContent=txt;
+    st.style.cssText=base+'color:'+BROWN+';-webkit-text-stroke:'+strokeW+'px '+BROWN+';'
+      +'text-shadow:'+Math.max(3,Math.round(fs*0.06))+'px '+Math.max(3,Math.round(fs*0.06))+'px 0 rgba(58,46,36,.85);';
+
+    var fl=document.createElement('div');             // 金渐变填充层
+    fl.textContent=txt;
+    fl.style.cssText=base+'position:absolute;left:0;top:0;width:100%;'
+      +'background:linear-gradient(180deg,#F6E2A8 0%,'+color+' 46%,'+GOLD+' 74%,'+LGOLD+' 100%);'
+      +'-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;';
+
+    box.appendChild(st); box.appendChild(fl); wrap.appendChild(box);
+
+    if(opt.sub){                                      // 副标题：红底米白小字，印刷印章感
+      var sub=document.createElement('div');
+      sub.textContent=String(opt.sub);
+      var sfs=Math.max(12,Math.round(fs*0.26));
+      sub.style.cssText='margin-top:'+Math.round(fs*0.12)+'px;font-family:'+FONT+';font-weight:700;'
+        +'font-size:'+sfs+'px;line-height:1;color:'+CREAM+';background:'+RED+';'
+        +'border:2px solid '+BROWN+';border-radius:4px;box-shadow:2px 2px 0 rgba(58,46,36,.9);'
+        +'padding:'+Math.round(sfs*0.32)+'px '+Math.round(sfs*0.7)+'px;letter-spacing:.08em;';
+      wrap.appendChild(sub);
+    }
+    host.appendChild(wrap);
+
+    var tIn=Math.min(420,Math.round(dur*0.32));
+    var tOut=Math.min(460,Math.round(dur*0.34));
+    var kf=[
+      {transform:'scale(0.6)',opacity:0,offset:0,easing:'cubic-bezier(.2,.85,.3,1.1)'},
+      {transform:'scale(1.05)',opacity:1,offset:Math.min(0.45,tIn/dur*0.8)},
+      {transform:'scale(1)',opacity:1,offset:Math.min(0.5,tIn/dur)},
+      {transform:'scale(1)',opacity:1,offset:Math.max(0.55,(dur-tOut)/dur)},
+      {transform:'scale(1.06)',opacity:0,offset:1}
+    ];
+    var gone=false;
+    function gone_(){ if(gone) return; gone=true; if(wrap.parentNode) wrap.parentNode.removeChild(wrap); }
+    try{
+      var anim=wrap.animate(kf,{duration:dur,fill:'forwards'});
+      anim.onfinish=gone_;
+    }catch(e){ /* WAAPI 不可用：靠兜底定时器自毁 */ }
+    setTimeout(gone_,dur+250);
+  }
+
+  // 清空一切（中止中的 coinFly 不触发 done）
+  function stopAll(){
+    for(var i=0;i<pool.length;i++) pool[i].on=false;
+    nAlive=0;
+    if(rafId){ cancelAnimationFrame(rafId); rafId=0; }
+    if(ctx) ctx.clearRect(0,0,W,H);
+    if(host){
+      var olds=host.querySelectorAll('[data-mf-bt]');
+      for(var j=0;j<olds.length;j++){ if(olds[j].parentNode) olds[j].parentNode.removeChild(olds[j]); }
+    }
+  }
+
+  return {
+    init:init,
+    burst:burst,
+    coinFly:coinFly,
+    confetti:confetti,
+    spark:spark,
+    flash:flash,
+    ring:ring,
+    bigText:bigText,
+    stopAll:stopAll
+  };
+})();
+
+</script>
+<script>
+/* ===== src/config-panel.js ===== */
+/* =========================================================
+ * 翻牌赢好礼 · 配置面板（移动端底部抽屉） — MF.CONFIG_PANEL
+ * 契约接口：mount(el) / open(tab?) / close() / isOpen() / onChange(cb)
+ * 额外通道：onClearBest(cb) —— 「清除最佳纪录」专用事件（非 cfg 字段；
+ *           恢复出厂 / 导入都不会触发它，也永不清除纪录）
+ * - open() 时深拷贝 window.MF.cfg 为 work（MF.cfg 缺失则用内置 defaultCfg）
+ * - 任何编辑改 work 后立即 onChange(完整深拷贝快照)
+ * - 永不直接读写 localStorage；MF.ART / MF.AUDIO / MF.LOGIC 缺失时兜底
+ * - 样式内联 <style> 注入，类名前缀 mfcp-
+ * - 视觉：米白 #FFF9EE 纸底｜主红 #B93A2B｜金 #C99A3C｜深棕 #3A2E24 描边，
+ *   圆角 ≤8px，实色偏移投影，禁紫蓝渐变 / 玻璃拟态 / 霓虹
+ * ======================================================= */
+window.MF = window.MF || {};
+MF.CONFIG_PANEL = (function () {
+  'use strict';
+
+  /* ---------------- 内置默认配置（schema 兜底） ---------------- */
+  function defaultCfg() {
+    return {
+      grid: '4x4',        // 默认难度 '4x3' | '4x4' | '5x4'
+      timeLimit: 90,      // 限时秒，0=不限时
+      peekSec: 2,         // 开局记忆预览秒，0=关
+      comboOn: true,      // 连击倍率开关
+      baseScore: 100,     // 每对基础分
+      timeBonus: 10,      // 全清后每剩 1 秒加成
+      dailyLimit: 0,      // 每日次数，0=无限
+      vols: { bgm: 0.4, sfx: 0.9, master: 1 },
+      icons: {},          // iconId -> dataURL 覆盖
+      sounds: {}          // cue -> dataURL 覆盖
+    };
+  }
+
+  /* 10 种好礼（契约锁死的 id 与中文名，LOGIC 缺失时兜底） */
+  var ICON_TABLE = [
+    ['ingot', '金元宝'], ['hongbao', '红包'], ['coupon', '优惠券'], ['gift', '礼盒'], ['koi', '锦鲤'],
+    ['cat', '招财猫'], ['crown', '王冠'], ['gem', '宝石'], ['firework', '礼花'], ['coin', '铜钱']
+  ];
+  /* cue 清单（契约锁死） */
+  var CUE_TABLE = [
+    ['flip', '翻牌'], ['match', '配对'], ['miss', '失配'], ['combo', '连击'], ['win', '胜利'],
+    ['lose', '失败'], ['tick', '倒计时'], ['click', '按钮'], ['bgm', '背景音乐']
+  ];
+  var GRIDS = [['4x3', '轻松 4×3'], ['4x4', '标准 4×4'], ['5x4', '挑战 5×4']];
+  var TABS = [['cards', '卡面'], ['sound', '音效'], ['play', '玩法'], ['data', '数据']];
+  var TAB_ALIAS = {
+    'cards': 'cards', 'card': 'cards', 'skin': 'cards', '卡面': 'cards',
+    'sound': 'sound', 'sounds': 'sound', 'audio': 'sound', '音效': 'sound',
+    'play': 'play', 'game': 'play', '玩法': 'play',
+    'data': 'data', '数据': 'data'
+  };
+  var NUMSPEC = {
+    timeLimit: { min: 0, max: 300, step: 1 },
+    peekSec:   { min: 0, max: 5,   step: 1 },
+    baseScore: { min: 10, max: 1000, step: 10 },
+    timeBonus: { min: 0, max: 100, step: 1 },
+    dailyLimit:{ min: 0, max: 99,  step: 1 }
+  };
+
+  /* ---------------- 工具函数 ---------------- */
+  function deepCopy(o) { return o == null ? o : JSON.parse(JSON.stringify(o)); }
+  function clamp01(v, fb) { var n = Number(v); return isFinite(n) ? Math.min(1, Math.max(0, n)) : fb; }
+  function pct(v) { return Math.round(clamp01(v, 0) * 100) + '%'; }
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function iconName(id) {
+    for (var i = 0; i < ICON_TABLE.length; i++) if (ICON_TABLE[i][0] === id) return ICON_TABLE[i][1];
+    return id;
+  }
+  function cueName(cue) {
+    for (var i = 0; i < CUE_TABLE.length; i++) if (CUE_TABLE[i][0] === cue) return CUE_TABLE[i][1];
+    return cue;
+  }
+  /* iconId 列表：优先取 MF.LOGIC.ICONS（兼容字符串或 {id,name} 对象），缺失时用内置表 */
+  function iconIdList() {
+    var out = [];
+    try {
+      var L = window.MF && window.MF.LOGIC;
+      var arr = L && L.ICONS;
+      if (arr && arr.length) {
+        for (var i = 0; i < arr.length; i++) {
+          var it = arr[i];
+          var id = (typeof it === 'string') ? it : (it && it.id);
+          if (typeof id === 'string' && id) {
+            var nm = (it && typeof it.name === 'string') ? it.name : iconName(id);
+            out.push([id, nm]);
+          }
+        }
+      }
+    } catch (e) { /* 兜底 */ }
+    return out.length ? out : ICON_TABLE.slice();
+  }
+  function artUrl(id) {
+    try {
+      var A = window.MF && window.MF.ART;
+      if (A && typeof A.card === 'function') {
+        var u = A.card(id);
+        if (typeof u === 'string' && u) return u;
+      }
+    } catch (e) { /* 占位块兜底 */ }
+    return null;
+  }
+  function hasAudio() {
+    try { return !!(window.MF && window.MF.AUDIO && typeof window.MF.AUDIO.play === 'function'); }
+    catch (e) { return false; }
+  }
+
+  /* 按契约 schema 清洗补全（缺的键用内置默认值兜底，未知 icon/cue 键丢弃） */
+  function sanitize(raw) {
+    var d = defaultCfg();
+    if (!raw || typeof raw !== 'object') return d;
+    for (var i = 0; i < GRIDS.length; i++) if (raw.grid === GRIDS[i][0]) d.grid = raw.grid;
+    d.timeLimit  = clampInt(raw.timeLimit,  0, 300,  d.timeLimit);
+    d.peekSec    = clampInt(raw.peekSec,    0, 5,    d.peekSec);
+    d.baseScore  = clampInt(raw.baseScore,  10, 1000, d.baseScore);
+    d.timeBonus  = clampInt(raw.timeBonus,  0, 100,  d.timeBonus);
+    d.dailyLimit = clampInt(raw.dailyLimit, 0, 99,   d.dailyLimit);
+    if (typeof raw.comboOn === 'boolean') d.comboOn = raw.comboOn;
+    if (raw.vols && typeof raw.vols === 'object') {
+      d.vols.bgm    = clamp01(raw.vols.bgm,    d.vols.bgm);
+      d.vols.sfx    = clamp01(raw.vols.sfx,    d.vols.sfx);
+      d.vols.master = clamp01(raw.vols.master, d.vols.master);
+    }
+    if (raw.icons && typeof raw.icons === 'object') {
+      var ic = {};
+      iconIdList().forEach(function (p) {
+        var v = raw.icons[p[0]];
+        if (typeof v === 'string' && v) ic[p[0]] = v;
+      });
+      d.icons = ic;
+    }
+    if (raw.sounds && typeof raw.sounds === 'object') {
+      var sd = {};
+      CUE_TABLE.forEach(function (p) {
+        var v = raw.sounds[p[0]];
+        if (typeof v === 'string' && v) sd[p[0]] = v;
+      });
+      d.sounds = sd;
+    }
+    return d;
+  }
+  function clampInt(v, min, max, fb) {
+    var n = Math.round(Number(v));
+    if (!isFinite(n)) return fb;
+    return Math.min(max, Math.max(min, n));
+  }
+
+  /* ---------------- 模块状态 ---------------- */
+  var host = null, root = null;
+  var work = null;              // 工作副本（深拷贝），编辑立即 notify
+  var cbs = [];                 // onChange 回调
+  var cbsBest = [];             // onClearBest 回调（独立通道）
+  var opened = false;
+  var curTab = 'cards';
+  var toastTimer = 0;
+  var ui = {};                  // 控件引用
+
+  /* ---------------- 样式（米白纸底 + 印刷红金 + 偏移实色投影） ---------------- */
+  var CSS = [
+    '.mfcp-root{position:fixed;inset:0;z-index:9990;font-family:system-ui,-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#2B2622;}',
+    '.mfcp-root,.mfcp-root *{box-sizing:border-box;}',
+    '.mfcp-root[hidden]{display:none!important;}',
+    '.mfcp-mask{position:absolute;inset:0;background:rgba(43,38,34,.55);opacity:0;transition:opacity .22s ease;}',
+    '.mfcp-root.mfcp-open .mfcp-mask{opacity:1;}',
+    '.mfcp-drawer{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;max-height:88%;',
+      'background:#FFF9EE;border:2px solid #3A2E24;border-bottom:none;border-radius:8px 8px 0 0;',
+      'box-shadow:0 -3px 0 rgba(58,46,36,.9);transform:translateY(105%);transition:transform .26s cubic-bezier(.22,.9,.3,1);}',
+    '.mfcp-root.mfcp-open .mfcp-drawer{transform:translateY(0);}',
+    '.mfcp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px 8px 14px;border-bottom:2px solid #3A2E24;flex:0 0 auto;}',
+    '.mfcp-title{display:flex;align-items:center;gap:9px;font-size:19px;font-weight:900;letter-spacing:4px;}',
+    '.mfcp-seal{width:24px;height:24px;background:#B93A2B;border:2px solid #3A2E24;border-radius:4px;',
+      'color:#FFF9EE;font-size:13px;font-weight:900;line-height:20px;text-align:center;letter-spacing:0;flex:0 0 auto;}',
+    '.mfcp-close{width:44px;height:44px;flex:0 0 auto;border:2px solid #3A2E24;border-radius:6px;background:#FFF9EE;',
+      'color:#2B2622;font:900 16px/1 system-ui;cursor:pointer;box-shadow:2px 2px 0 rgba(58,46,36,.9);}',
+    '.mfcp-close:active{transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(58,46,36,.9);}',
+    '.mfcp-tabs{display:flex;gap:8px;padding:10px 14px 0;flex:0 0 auto;}',
+    '.mfcp-tab{flex:1;min-height:44px;border:2px solid #3A2E24;border-radius:6px;background:#F6EFE2;color:#3A2E24;',
+      'font:700 15px/1 system-ui;cursor:pointer;box-shadow:2px 2px 0 rgba(58,46,36,.45);}',
+    '.mfcp-tab.mfcp-on{background:#B93A2B;color:#FFF9EE;box-shadow:2px 2px 0 rgba(58,46,36,.9);}',
+    '.mfcp-body{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:10px 14px 12px;}',
+    '.mfcp-panel[hidden]{display:none!important;}',
+    '.mfcp-note{margin:2px 0 10px;font-size:12px;line-height:1.7;color:rgba(58,46,36,.72);}',
+    '.mfcp-sec{display:inline-block;margin:12px 0 2px;padding:3px 10px;background:#3A2E24;color:#F6EFE2;',
+      'font-size:12px;font-weight:900;letter-spacing:3px;border-radius:4px;}',
+    '.mfcp-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:52px;padding:8px 0;}',
+    '.mfcp-row + .mfcp-row{border-top:1px dashed rgba(58,46,36,.35);}',
+    '.mfcp-rowcol{flex-direction:column;align-items:stretch;gap:8px;}',
+    '.mfcp-rowtight{min-height:0;padding:6px 0;}',
+    '.mfcp-lab{font-size:15px;font-weight:700;}',
+    '.mfcp-labsub{display:block;font-size:12px;font-weight:400;color:rgba(58,46,36,.6);margin-top:3px;line-height:1.5;}',
+    '.mfcp-seg{display:flex;gap:8px;}',
+    '.mfcp-seg button{flex:1;min-height:44px;border:2px solid #3A2E24;border-radius:6px;background:#FFF9EE;color:#3A2E24;',
+      'font:700 14px/1.3 system-ui;cursor:pointer;padding:4px 2px;box-shadow:2px 2px 0 rgba(58,46,36,.45);}',
+    '.mfcp-seg button.mfcp-on{background:#B93A2B;color:#FFF9EE;box-shadow:2px 2px 0 rgba(58,46,36,.9);}',
+    '.mfcp-num{width:84px;min-height:44px;border:2px solid #3A2E24;border-radius:6px;background:#FFFDF6;color:#2B2622;',
+      'font:900 16px/1.2 system-ui;text-align:center;flex:0 0 auto;}',
+    '.mfcp-sw{position:relative;width:56px;height:32px;flex:0 0 auto;cursor:pointer;display:inline-block;}',
+    '.mfcp-sw input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;z-index:2;}',
+    '.mfcp-track{position:absolute;inset:0;border:2px solid #3A2E24;border-radius:6px;background:#EFE5D0;transition:background .15s ease;}',
+    '.mfcp-knob{position:absolute;top:4px;left:4px;width:22px;height:22px;border:2px solid #3A2E24;border-radius:4px;',
+      'background:#C99A3C;transition:left .15s ease;pointer-events:none;}',
+    '.mfcp-sw input:checked ~ .mfcp-track{background:#B93A2B;}',
+    '.mfcp-sw input:checked ~ .mfcp-knob{left:26px;background:#E4B95B;}',
+    '.mfcp-volhead{display:flex;align-items:center;justify-content:space-between;gap:10px;}',
+    '.mfcp-volval{min-width:44px;text-align:right;font-size:14px;font-weight:900;color:#B93A2B;}',
+    '.mfcp-range{-webkit-appearance:none;appearance:none;display:block;width:100%;height:44px;margin:0;padding:0;',
+      'background:transparent;cursor:pointer;}',
+    '.mfcp-range::-webkit-slider-runnable-track{height:12px;border:2px solid #3A2E24;border-radius:6px;background:#F6EFE2;}',
+    '.mfcp-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:26px;height:26px;margin-top:-7px;',
+      'border:2px solid #3A2E24;border-radius:6px;background:#B93A2B;box-shadow:2px 2px 0 rgba(58,46,36,.9);}',
+    '.mfcp-range::-moz-range-track{height:12px;border:2px solid #3A2E24;border-radius:6px;background:#F6EFE2;}',
+    '.mfcp-range::-moz-range-thumb{width:22px;height:22px;border:2px solid #3A2E24;border-radius:6px;background:#B93A2B;}',
+    '.mfcp-btn{min-height:44px;padding:0 14px;border:2px solid #3A2E24;border-radius:6px;background:#FFF9EE;',
+      'color:#3A2E24;font:700 14px/1.2 system-ui;cursor:pointer;box-shadow:2px 2px 0 rgba(58,46,36,.9);}',
+    '.mfcp-btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(58,46,36,.9);}',
+    '.mfcp-btn-primary{background:#B93A2B;color:#FFF9EE;}',
+    '.mfcp-btn-danger{border-color:#B93A2B;color:#B93A2B;box-shadow:2px 2px 0 rgba(185,58,43,.85);}',
+    '.mfcp-btnrow{display:flex;gap:10px;margin:10px 0 2px;}',
+    '.mfcp-btnrow .mfcp-btn{flex:1;padding:0 8px;}',
+    '.mfcp-btncol{display:flex;flex-direction:column;gap:10px;margin:8px 0 2px;}',
+    '.mfcp-btn-block{width:100%;}',
+    '.mfcp-datadiv{height:0;border-top:2px dashed rgba(58,46,36,.35);margin:12px 0;}',
+    '.mfcp-iconlist,.mfcp-cuelist{display:flex;flex-direction:column;}',
+    '.mfcp-iconrow{display:flex;align-items:center;gap:10px;min-height:56px;padding:7px 0;}',
+    '.mfcp-iconrow + .mfcp-iconrow,.mfcp-cuerow + .mfcp-cuerow{border-top:1px dashed rgba(58,46,36,.35);}',
+    '.mfcp-icprev{position:relative;width:52px;height:52px;flex:0 0 auto;border:2px solid #3A2E24;border-radius:6px;background:#FFFDF6;}',
+    '.mfcp-icprev img{width:100%;height:100%;object-fit:contain;display:block;}',
+    '.mfcp-icph{display:flex;width:100%;height:100%;align-items:center;justify-content:center;',
+      'background:repeating-linear-gradient(45deg,#F1E7D3 0 5px,#E9DCC1 5px 10px);',
+      'color:rgba(58,46,36,.55);font-size:10px;letter-spacing:1px;}',
+    '.mfcp-badge{position:absolute;left:-5px;top:-7px;z-index:1;background:#B93A2B;border:1px solid #3A2E24;',
+      'border-radius:3px;color:#FFF9EE;font-size:10px;font-weight:700;line-height:1;padding:2px 3px;letter-spacing:1px;white-space:nowrap;}',
+    '.mfcp-icinfo{flex:1;min-width:0;}',
+    '.mfcp-icname{display:block;font-size:15px;font-weight:700;}',
+    '.mfcp-icstate{display:block;font-size:11px;color:rgba(58,46,36,.6);margin-top:2px;}',
+    '.mfcp-iconrow .mfcp-btn,.mfcp-cuerow .mfcp-btn{padding:0 10px;flex:0 0 auto;}',
+    '.mfcp-cuerow{display:flex;align-items:center;gap:8px;min-height:56px;padding:7px 0;}',
+    '.mfcp-cuename{flex:1;min-width:0;font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}',
+    '.mfcp-chip{border:1px solid #B93A2B;border-radius:3px;background:rgba(185,58,43,.08);color:#B93A2B;',
+      'font-size:10px;font-weight:700;line-height:1;padding:2px 4px;letter-spacing:1px;}',
+    '.mfcp-foot{flex:0 0 auto;padding:10px 14px calc(12px + env(safe-area-inset-bottom));border-top:2px solid #3A2E24;}',
+    '.mfcp-done{width:100%;font-size:16px;letter-spacing:10px;text-indent:10px;}',
+    '.mfcp-toast{position:absolute;left:50%;bottom:calc(78px + env(safe-area-inset-bottom));transform:translateX(-50%);',
+      'z-index:6;max-width:86%;background:#3A2E24;color:#F6EFE2;font-size:13px;line-height:1.4;padding:9px 14px;',
+      'border-radius:4px;border:1px solid rgba(246,239,226,.25);pointer-events:none;',
+      'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+    '.mfcp-toast[hidden]{display:none!important;}',
+    '.mfcp-file{display:none!important;}',
+    '.mfcp-hide{display:none!important;}',
+    '.mfcp-root button:focus-visible,.mfcp-root input:focus-visible{outline:3px solid #C99A3C;outline-offset:2px;}',
+    '@media (min-width:640px){.mfcp-drawer{left:50%;right:auto;width:480px;margin-left:-240px;',
+      'border-bottom:2px solid #3A2E24;border-radius:8px;',
+      'box-shadow:-3px -3px 0 rgba(58,46,36,.9),3px -3px 0 rgba(58,46,36,.9);}}'
+  ].join('\n');
+
+  function ensureStyle() {
+    if (document.getElementById('mfcp-style')) return;
+    var st = document.createElement('style');
+    st.id = 'mfcp-style';
+    st.textContent = CSS;
+    (document.head || document.documentElement).appendChild(st);
+  }
+
+  /* ---------------- 面板 HTML ---------------- */
+  function numRow(key, label, sub) {
+    var s = NUMSPEC[key];
+    return '<div class="mfcp-row">'
+      + '<span class="mfcp-lab">' + label + '<span class="mfcp-labsub">' + sub + '</span></span>'
+      + '<input type="number" class="mfcp-num" data-num="' + key + '" min="' + s.min
+      + '" max="' + s.max + '" step="' + s.step + '" aria-label="' + label + '">'
+      + '</div>';
+  }
+  function panelCardsHTML() {
+    return '<p class="mfcp-note">10 种好礼卡面，可上传本地图片替换（自动压缩为长边 ≤256px 的 PNG）。'
+      + '替换后的卡面会标注「已自定义」，可单项还原或全部还原。</p>'
+      + '<div class="mfcp-iconlist" data-role="iconlist"></div>'
+      + '<div class="mfcp-btnrow"><button type="button" class="mfcp-btn" data-act="icons-reset">全部还原默认卡面</button></div>'
+      + '<input type="file" class="mfcp-file" accept="image/*" data-role="iconfile">';
+  }
+  function cueRowHTML(cue, label) {
+    return '<div class="mfcp-cuerow" data-cue="' + cue + '">'
+      + '<span class="mfcp-cuename">' + label + '<span class="mfcp-chip mfcp-hide">已自定义</span></span>'
+      + '<button type="button" class="mfcp-btn" data-sact="play">试听</button>'
+      + '<button type="button" class="mfcp-btn" data-sact="up">换音</button>'
+      + '<button type="button" class="mfcp-btn mfcp-hide" data-sact="clear">清除</button>'
+      + '</div>';
+  }
+  function volRow(k, label) {
+    return '<div class="mfcp-row mfcp-rowcol mfcp-rowtight">'
+      + '<span class="mfcp-volhead"><span class="mfcp-lab">' + label + '</span>'
+      + '<span class="mfcp-volval" data-volval="' + k + '">0%</span></span>'
+      + '<input type="range" class="mfcp-range" data-vol="' + k + '" min="0" max="1" step="0.05" aria-label="' + label + '">'
+      + '</div>';
+  }
+  function panelSoundHTML() {
+    var rows = CUE_TABLE.map(function (c) { return cueRowHTML(c[0], c[1]); }).join('');
+    return '<p class="mfcp-note">上传本地音频替换内置合成音（不做压缩），「清除」恢复合成音；'
+      + '试听需游戏音效模块支持。</p>'
+      + '<div class="mfcp-cuelist">' + rows + '</div>'
+      + '<div class="mfcp-sec">音量调节</div>'
+      + volRow('bgm', '背景音乐（BGM）')
+      + volRow('sfx', '音效（SFX）')
+      + volRow('master', '主音量')
+      + '<input type="file" class="mfcp-file" accept="audio/*" data-role="sndfile">';
+  }
+  function panelPlayHTML() {
+    var seg = GRIDS.map(function (g) {
+      return '<button type="button" data-grid="' + g[0] + '">' + g[1] + '</button>';
+    }).join('');
+    return '<p class="mfcp-note">以下为开局时生效的默认玩法参数。</p>'
+      + '<div class="mfcp-row mfcp-rowcol">'
+      + '<span class="mfcp-lab">默认难度<span class="mfcp-labsub">轻松 6 对 ｜ 标准 8 对 ｜ 挑战 10 对</span></span>'
+      + '<div class="mfcp-seg" data-role="gridseg">' + seg + '</div>'
+      + '</div>'
+      + numRow('timeLimit', '限时（秒）', '倒计时秒数，0 = 不限时')
+      + numRow('peekSec', '开局记忆预览（秒）', '开局亮出全部卡面帮助记忆，0 = 关闭')
+      + '<div class="mfcp-row">'
+      + '<span class="mfcp-lab">连击倍率<span class="mfcp-labsub">连续配对得分 ×2/×3，4 连击起 ×4 封顶；关闭后恒为 ×1</span></span>'
+      + '<label class="mfcp-sw"><input type="checkbox" data-role="combo" aria-label="连击倍率开关">'
+      + '<span class="mfcp-track"></span><span class="mfcp-knob"></span></label>'
+      + '</div>'
+      + numRow('baseScore', '每对基础分', '每次配对成功的得分基数，10 – 1000')
+      + numRow('timeBonus', '全清剩余秒加成', '限时模式通关后每剩余 1 秒加分，0 – 100')
+      + numRow('dailyLimit', '每日次数', '每天可玩局数，0 = 不限次数');
+  }
+  function panelDataHTML() {
+    return '<p class="mfcp-note">导出为 JSON 文件（mf-config.json），包含全部配置与自定义素材，可备份或分享；'
+      + '导入后立即生效。「恢复出厂」与「导入」都不会清除最佳纪录。</p>'
+      + '<div class="mfcp-btncol">'
+      + '<button type="button" class="mfcp-btn mfcp-btn-primary" data-act="export">导出配置（下载 mf-config.json）</button>'
+      + '<button type="button" class="mfcp-btn" data-act="import">导入配置（JSON 文件）</button>'
+      + '<button type="button" class="mfcp-btn" data-act="factory">恢复出厂设置</button>'
+      + '</div>'
+      + '<div class="mfcp-datadiv"></div>'
+      + '<button type="button" class="mfcp-btn mfcp-btn-danger mfcp-btn-block" data-act="clearbest">清除最佳纪录（独立操作，不影响配置）</button>'
+      + '<input type="file" class="mfcp-file" accept="application/json,.json,text/plain" data-role="cfgfile">';
+  }
+
+  function buildDOM() {
+    root = document.createElement('div');
+    root.className = 'mfcp-root';
+    root.setAttribute('aria-hidden', 'true');
+    root.innerHTML = ''
+      + '<div class="mfcp-mask"></div>'
+      + '<section class="mfcp-drawer" role="dialog" aria-modal="true" aria-label="活动设置">'
+      +   '<header class="mfcp-head">'
+      +     '<div class="mfcp-title"><span class="mfcp-seal">礼</span>活动设置</div>'
+      +     '<button type="button" class="mfcp-close" aria-label="关闭设置">✕</button>'
+      +   '</header>'
+      +   '<nav class="mfcp-tabs" role="tablist">'
+      +     TABS.map(function (t) {
+              return '<button type="button" class="mfcp-tab" role="tab" data-tab="' + t[0] + '">' + t[1] + '</button>';
+            }).join('')
+      +   '</nav>'
+      +   '<div class="mfcp-body">'
+      +     '<div class="mfcp-panel" data-panel="cards">' + panelCardsHTML() + '</div>'
+      +     '<div class="mfcp-panel" data-panel="sound" hidden>' + panelSoundHTML() + '</div>'
+      +     '<div class="mfcp-panel" data-panel="play" hidden>' + panelPlayHTML() + '</div>'
+      +     '<div class="mfcp-panel" data-panel="data" hidden>' + panelDataHTML() + '</div>'
+      +   '</div>'
+      +   '<footer class="mfcp-foot">'
+      +     '<button type="button" class="mfcp-btn mfcp-btn-primary mfcp-done" data-act="done">完成</button>'
+      +   '</footer>'
+      +   '<div class="mfcp-toast" data-role="toast" hidden></div>'
+      + '</section>';
+
+    ui.mask = root.querySelector('.mfcp-mask');
+    ui.toast = root.querySelector('[data-role="toast"]');
+    ui.tabs = Array.prototype.slice.call(root.querySelectorAll('.mfcp-tab'));
+    ui.panels = Array.prototype.slice.call(root.querySelectorAll('.mfcp-panel'));
+    ui.segBtns = Array.prototype.slice.call(root.querySelectorAll('.mfcp-seg button'));
+    ui.combo = root.querySelector('[data-role="combo"]');
+    ui.iconlist = root.querySelector('[data-role="iconlist"]');
+    ui.iconfile = root.querySelector('[data-role="iconfile"]');
+    ui.sndfile = root.querySelector('[data-role="sndfile"]');
+    ui.cfgfile = root.querySelector('[data-role="cfgfile"]');
+    ui.vols = {};
+    ui.volvals = {};
+    ['bgm', 'sfx', 'master'].forEach(function (k) {
+      ui.vols[k] = root.querySelector('[data-vol="' + k + '"]');
+      ui.volvals[k] = root.querySelector('[data-volval="' + k + '"]');
+    });
+
+    rebuildIconList();
+    root.addEventListener('click', onClick, false);
+    root.addEventListener('input', onInput, false);
+    root.addEventListener('change', onInputChange, false);
+    document.addEventListener('keydown', onKey, false);
+  }
+
+  /* 依据 MF.LOGIC.ICONS（或内置表）重建 10 个卡面行；open() 时重查一次以便晚加载 */
+  function rebuildIconList() {
+    if (!ui.iconlist) return;
+    ui.iconlist.innerHTML = iconIdList().map(function (p) {
+      return '<div class="mfcp-iconrow" data-icon="' + esc(p[0]) + '">'
+        + '<span class="mfcp-icprev" data-role="icprev"></span>'
+        + '<span class="mfcp-icinfo"><span class="mfcp-icname">' + esc(p[1]) + '</span>'
+        + '<span class="mfcp-icstate" data-role="icstate">默认卡面</span></span>'
+        + '<button type="button" class="mfcp-btn" data-iact="up">换图</button>'
+        + '<button type="button" class="mfcp-btn mfcp-hide" data-iact="reset">还原</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  /* ---------------- 事件分发 ---------------- */
+  function onClick(e) {
+    var t = e.target;
+    if (!(t instanceof Element)) return;
+    if (t.closest('.mfcp-mask') || t.closest('.mfcp-close')) { close(); return; }
+    var tab = t.closest('.mfcp-tab');
+    if (tab) { showTab(tab.getAttribute('data-tab')); return; }
+    var seg = t.closest('[data-grid]');
+    if (seg) {
+      if (work) {
+        var g = seg.getAttribute('data-grid');
+        if (work.grid !== g) { work.grid = g; notify(); syncUI(); }
+      }
+      return;
+    }
+    var iact = t.closest('[data-iact]');
+    if (iact) { doIconAct(iact.closest('[data-icon]'), iact.getAttribute('data-iact')); return; }
+    var sact = t.closest('[data-sact]');
+    if (sact) { doCueAct(sact.closest('[data-cue]'), sact.getAttribute('data-sact')); return; }
+    var act = t.closest('[data-act]');
+    if (act) doAct(act.getAttribute('data-act'));
+  }
+
+  function onInput(e) {
+    if (!work) return;
+    var t = e.target;
+    if (t.classList && t.classList.contains('mfcp-range')) {
+      var k = t.getAttribute('data-vol');
+      if (k && work.vols && (k in work.vols)) {
+        work.vols[k] = clamp01(t.value, 0);
+        if (ui.volvals[k]) ui.volvals[k].textContent = pct(work.vols[k]);
+        notify();
+      }
+      return;
+    }
+    if (t.hasAttribute && t.hasAttribute('data-num')) commitNum(t, true);
+  }
+
+  function onInputChange(e) {
+    if (!work) return;
+    var t = e.target;
+    if (t === ui.combo) { work.comboOn = !!ui.combo.checked; notify(); syncUI(); return; }
+    if (t === ui.iconfile) {
+      var f = ui.iconfile.files && ui.iconfile.files[0];
+      var ic = ui.iconfile.getAttribute('data-icon');
+      ui.iconfile.value = '';
+      handleIconFile(ic, f);
+      return;
+    }
+    if (t === ui.sndfile) {
+      var sf = ui.sndfile.files && ui.sndfile.files[0];
+      var cue = ui.sndfile.getAttribute('data-cue');
+      ui.sndfile.value = '';
+      handleSndFile(cue, sf);
+      return;
+    }
+    if (t === ui.cfgfile) {
+      var cf = ui.cfgfile.files && ui.cfgfile.files[0];
+      ui.cfgfile.value = '';
+      handleCfgFile(cf);
+      return;
+    }
+    if (t.hasAttribute && t.hasAttribute('data-num')) commitNum(t, false);
+  }
+
+  function onKey(e) {
+    if (opened && (e.key === 'Escape' || e.keyCode === 27)) close();
+  }
+
+  /* ---------------- 行为实现 ---------------- */
+  function doIconAct(row, act) {
+    if (!row || !work) return;
+    var id = row.getAttribute('data-icon');
+    if (act === 'up') {
+      ui.iconfile.setAttribute('data-icon', id);
+      ui.iconfile.click();
+    } else if (act === 'reset') {
+      delete work.icons[id];
+      notify(); syncUI();
+      toast('已还原「' + iconName(id) + '」默认卡面');
+    }
+  }
+
+  function doCueAct(row, act) {
+    if (!row || !work) return;
+    var cue = row.getAttribute('data-cue');
+    if (act === 'play') { previewCue(cue); return; }
+    if (act === 'up') {
+      ui.sndfile.setAttribute('data-cue', cue);
+      ui.sndfile.click();
+    } else if (act === 'clear') {
+      delete work.sounds[cue];
+      notify(); syncUI();
+      toast('已清除「' + cueName(cue) + '」，恢复合成音');
+    }
+  }
+
+  function doAct(act) {
+    if (!work) return;
+    switch (act) {
+      case 'done': close(); break;
+      case 'icons-reset':
+        work.icons = {}; notify(); syncUI();
+        toast('已全部还原默认卡面');
+        break;
+      case 'export': doExport(); break;
+      case 'import': ui.cfgfile.click(); break;
+      case 'factory':
+        work = sanitize(defaultCfg());
+        notify(); syncUI();
+        toast('已恢复出厂设置（最佳纪录保留）');
+        break;
+      case 'clearbest': fireClearBest(); break;
+    }
+  }
+
+  /* 数值输入钳制：soft=true 时输入中即时钳制（空值等待），false 时失焦/确认回写 */
+  function commitNum(input, soft) {
+    if (!input || !work) return;
+    var key = input.getAttribute('data-num');
+    var spec = NUMSPEC[key];
+    if (!spec) return;
+    var raw = parseFloat(input.value);
+    if (!isFinite(raw)) {
+      if (!soft) input.value = String(work[key]);
+      return;
+    }
+    var v = Math.round(raw);
+    if (spec.step >= 2) v = Math.round(v / spec.step) * spec.step;
+    v = Math.min(spec.max, Math.max(spec.min, v));
+    if (String(input.value) !== String(v)) input.value = String(v);
+    if (work[key] !== v) { work[key] = v; notify(); }
+  }
+
+  /* file → FileReader dataURL（音频不压缩） */
+  function fileToDataURL(file, cb) {
+    if (!file) { cb(null); return; }
+    var fr = new FileReader();
+    fr.onload = function () { cb(typeof fr.result === 'string' ? fr.result : null); };
+    fr.onerror = function () { cb(null); };
+    try { fr.readAsDataURL(file); } catch (e) { cb(null); }
+  }
+  function fileToText(file, cb) {
+    if (!file) { cb(null); return; }
+    var fr = new FileReader();
+    fr.onload = function () { cb(typeof fr.result === 'string' ? fr.result : null); };
+    fr.onerror = function () { cb(null); };
+    try { fr.readAsText(file); } catch (e) { cb(null); }
+  }
+
+  /* file → canvas 压缩 → dataURL 一段式（长边 ≤256，PNG） */
+  function readImageToDataURL(file, maxSize, mime, quality, cb) {
+    if (!file) { cb(null); return; }
+    var fr = new FileReader();
+    fr.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var w = img.naturalWidth || img.width || maxSize;
+          var h = img.naturalHeight || img.height || maxSize;
+          var s = Math.min(1, maxSize / Math.max(w, h));
+          var cv = document.createElement('canvas');
+          cv.width = Math.max(1, Math.round(w * s));
+          cv.height = Math.max(1, Math.round(h * s));
+          cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+          cb(cv.toDataURL(mime, quality));
+        } catch (e) { cb(null); }
+      };
+      img.onerror = function () { cb(null); };
+      img.src = fr.result;
+    };
+    fr.onerror = function () { cb(null); };
+    try { fr.readAsDataURL(file); } catch (e) { cb(null); }
+  }
+
+  function handleIconFile(id, file) {
+    if (!id || !file) return;
+    if (file.type && !/^image\//.test(file.type)) { toast('请选择图片文件'); return; }
+    readImageToDataURL(file, 256, 'image/png', undefined, function (url) {
+      if (!url) { toast('图片读取失败，请换一张试试'); return; }
+      if (!work) return;
+      work.icons[id] = url;
+      notify(); syncUI();
+      toast('「' + iconName(id) + '」卡面已更新');
+    });
+  }
+
+  function handleSndFile(cue, file) {
+    if (!cue || !file) return;
+    if (file.type && !/^audio\//.test(file.type)) { toast('请选择音频文件'); return; }
+    fileToDataURL(file, function (url) {
+      if (!url) { toast('音频读取失败'); return; }
+      if (!work) return;
+      work.sounds[cue] = url;
+      notify(); syncUI();
+      toast('「' + cueName(cue) + '」音效已更新');
+    });
+  }
+
+  function handleCfgFile(file) {
+    if (!file) return;
+    fileToText(file, function (txt) {
+      if (txt == null) { toast('导入失败：文件读取失败'); return; }
+      var obj;
+      try { obj = JSON.parse(txt); } catch (e) { toast('导入失败：不是有效的 JSON 文件'); return; }
+      if (!obj || typeof obj !== 'object') { toast('导入失败：配置格式不正确'); return; }
+      if (!work) return;
+      work = sanitize(obj);
+      notify(); syncUI();
+      toast('配置已导入');
+    });
+  }
+
+  function doExport() {
+    try {
+      var data = JSON.stringify(deepCopy(work), null, 2);
+      var blob = new Blob([data], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'mf-config.json';
+      document.body.appendChild(a);
+      a.click();
+      a.parentNode.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 800);
+      toast('配置已导出');
+    } catch (e) { toast('导出失败'); }
+  }
+
+  function previewCue(cue) {
+    var A = window.MF && window.MF.AUDIO;
+    if (A && typeof A.play === 'function') {
+      try {
+        if (typeof A.unlock === 'function') A.unlock();
+        if (work && typeof A.setMasterVolume === 'function') A.setMasterVolume(clamp01(work.vols.master, 1));
+        if (work && typeof A.setSFXVolume === 'function') A.setSFXVolume(clamp01(work.vols.sfx, 0.9));
+        if (work && cue === 'bgm' && typeof A.setBGMVolume === 'function') A.setBGMVolume(clamp01(work.vols.bgm, 0.4));
+        A.play(cue);
+      } catch (err) { toast('试听失败'); }
+      return;
+    }
+    toast('音效模块未加载，无法试听');
+  }
+
+  function fireClearBest() {
+    cbsBest.forEach(function (cb) {
+      try { cb(); } catch (e) { /* 回调异常不影响面板 */ }
+    });
+    toast('已发出「清除最佳纪录」事件');
+  }
+
+  /* ---------------- 渲染同步 ---------------- */
+  function showTab(tab) {
+    curTab = TAB_ALIAS[tab] || 'cards';
+    ui.tabs.forEach(function (b) {
+      var on = b.getAttribute('data-tab') === curTab;
+      b.classList.toggle('mfcp-on', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    ui.panels.forEach(function (p) {
+      p.hidden = p.getAttribute('data-panel') !== curTab;
+    });
+  }
+
+  function renderIconPreview(prevEl, id, custom) {
+    var url = custom || artUrl(id);
+    prevEl.innerHTML = '';
+    var b = document.createElement('span');
+    b.className = 'mfcp-badge' + (custom ? '' : ' mfcp-hide');
+    b.textContent = '已自定义';
+    prevEl.appendChild(b);
+    if (url) {
+      var img = document.createElement('img');
+      img.setAttribute('alt', iconName(id) + '卡面预览');
+      img.setAttribute('src', url);
+      prevEl.appendChild(img);
+    } else {
+      var ph = document.createElement('span');
+      ph.className = 'mfcp-icph';
+      ph.textContent = '暂无预览';
+      prevEl.appendChild(ph);
+    }
+  }
+
+  function syncUI() {
+    if (!root || !work) return;
+    /* 玩法 */
+    ui.segBtns.forEach(function (b) {
+      var on = b.getAttribute('data-grid') === work.grid;
+      b.classList.toggle('mfcp-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    Object.keys(NUMSPEC).forEach(function (k) {
+      var inp = root.querySelector('[data-num="' + k + '"]');
+      if (inp && document.activeElement !== inp) inp.value = String(work[k]);
+    });
+    if (ui.combo) ui.combo.checked = !!work.comboOn;
+    /* 音量 */
+    ['bgm', 'sfx', 'master'].forEach(function (k) {
+      if (ui.vols[k]) ui.vols[k].value = String(clamp01(work.vols[k], 0));
+      if (ui.volvals[k]) ui.volvals[k].textContent = pct(work.vols[k]);
+    });
+    /* 卡面 */
+    Array.prototype.forEach.call(root.querySelectorAll('.mfcp-iconrow'), function (row) {
+      var id = row.getAttribute('data-icon');
+      var custom = typeof work.icons[id] === 'string' && work.icons[id];
+      var badge = row.querySelector('.mfcp-badge');
+      var rb = row.querySelector('[data-iact="reset"]');
+      var state = row.querySelector('[data-role="icstate"]');
+      if (badge) badge.classList.toggle('mfcp-hide', !custom);
+      if (rb) rb.classList.toggle('mfcp-hide', !custom);
+      if (state) state.textContent = custom ? '已自定义' : '默认卡面';
+      var prev = row.querySelector('[data-role="icprev"]');
+      if (prev) renderIconPreview(prev, id, custom);
+    });
+    /* 音效 */
+    Array.prototype.forEach.call(root.querySelectorAll('.mfcp-cuerow'), function (row) {
+      var cue = row.getAttribute('data-cue');
+      var custom = typeof work.sounds[cue] === 'string' && work.sounds[cue];
+      var chip = row.querySelector('.mfcp-chip');
+      var cb = row.querySelector('[data-sact="clear"]');
+      if (chip) chip.classList.toggle('mfcp-hide', !custom);
+      if (cb) cb.classList.toggle('mfcp-hide', !custom);
+    });
+    /* 试听按钮：缺 MF.AUDIO 时隐藏 */
+    var okAudio = hasAudio();
+    Array.prototype.forEach.call(root.querySelectorAll('[data-sact="play"]'), function (b) {
+      b.classList.toggle('mfcp-hide', !okAudio);
+    });
+  }
+
+  function toast(msg) {
+    if (!ui.toast) return;
+    ui.toast.textContent = msg;
+    ui.toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { if (ui.toast) ui.toast.hidden = true; }, 1800);
+  }
+
+  /* ---------------- 对外接口 ---------------- */
+  function notify() {
+    if (!work) return;
+    cbs.forEach(function (cb) {
+      try { cb(deepCopy(work)); } catch (e) { /* 回调异常不影响面板 */ }
+    });
+  }
+
+  function mount(el) {
+    if (!el) el = document.body;
+    ensureStyle();
+    if (root && root.parentNode === el) return;
+    if (root && root.parentNode) root.parentNode.removeChild(root);
+    host = el;
+    buildDOM();
+    root.hidden = true;
+    host.appendChild(root);
+  }
+
+  function open(tab) {
+    if (!root) mount(null);
+    var c = (window.MF && window.MF.cfg && typeof window.MF.cfg === 'object')
+      ? window.MF.cfg : defaultCfg();
+    work = sanitize(deepCopy(c));   // 深拷贝 + schema 补全
+    rebuildIconList();              // 兼容 LOGIC 晚加载
+    showTab(tab);
+    syncUI();
+    opened = true;
+    root.hidden = false;
+    root.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { root.classList.add('mfcp-open'); });
+    });
+  }
+
+  function close() {
+    if (!root || !opened) return;
+    opened = false;
+    root.classList.remove('mfcp-open');
+    root.setAttribute('aria-hidden', 'true');
+    setTimeout(function () { if (!opened && root) root.hidden = true; }, 280);
+  }
+
+  function isOpen() { return opened; }
+
+  function onChange(cb) {
+    if (typeof cb === 'function') cbs.push(cb);
+    return function off() {
+      var i = cbs.indexOf(cb);
+      if (i >= 0) cbs.splice(i, 1);
+    };
+  }
+
+  /* 「清除最佳纪录」独立通道：非 cfg 字段，恢复出厂/导入均不触发 */
+  function onClearBest(cb) {
+    if (typeof cb === 'function') cbsBest.push(cb);
+    return function off() {
+      var i = cbsBest.indexOf(cb);
+      if (i >= 0) cbsBest.splice(i, 1);
+    };
+  }
+
+  return { mount: mount, open: open, close: close, isOpen: isOpen, onChange: onChange, onClearBest: onClearBest };
+})();
+
+</script>
+<script>
+/* ===== src/game.js ===== */
+/* ===== 翻牌赢好礼 · game.js —— 状态机/翻牌引擎/结算/持久化（主线） ===== */
+window.MF = window.MF || {};
+MF.GAME = (() => {
+  const L = MF.LOGIC;
+  const $ = id => document.getElementById(id);
+
+  /* ---- 可缺模块 NOOP 兜底（子代理模块未就绪时游戏必须能跑） ---- */
+  const noop = function () {};
+  function NOOP(base) {
+    return new Proxy(base || {}, { get: (t, k) => (k in t ? t[k] : noop) });
+  }
+  function phSVG(inner, bg) {
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+      '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="12" fill="' + bg + '"/><rect x="6" y="6" width="88" height="88" rx="8" fill="none" stroke="#3A2E24" stroke-width="3"/>' + inner + '</svg>');
+  }
+  function phIcon(id) {
+    const ch = (L.ICON_NAME[id] || '?').slice(0, 1);
+    return phSVG('<circle cx="50" cy="50" r="25" fill="#FFF9EE" stroke="#B93A2B" stroke-width="3"/><text x="50" y="61" font-size="30" text-anchor="middle" fill="#8F2B20" font-family="serif" font-weight="bold">' + ch + '</text>', '#F4D8A8');
+  }
+  function phBack() {
+    return phSVG('<circle cx="50" cy="50" r="22" fill="none" stroke="#E4B95B" stroke-width="3"/><text x="50" y="61" font-size="28" text-anchor="middle" fill="#E4B95B" font-family="serif" font-weight="bold">礼</text>', '#A93426');
+  }
+  const A = () => window.MF.ART || NOOP({ card: phIcon, back: phBack, trayIcon: phIcon });
+  const U = () => window.MF.AUDIO || NOOP();
+  const X = () => window.MF.FX || NOOP();
+
+  /* ---- 配置与存档 ---- */
+  function loadJSON(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+  let cfg = L.deepMerge(L.defaultCfg(), loadJSON(L.LS_CFG));
+  // 契约约定：面板 open() 读 window.MF.cfg —— 用 getter 发布，onChange 换引用后自动同步
+  try { Object.defineProperty(MF, 'cfg', { get: () => cfg, configurable: true }); } catch (e) {}
+  const st = Object.assign({ best: {}, plays: {}, muted: false }, loadJSON(L.LS_ST) || {});
+  const saveSt = () => { try { localStorage.setItem(L.LS_ST, JSON.stringify(st)); } catch (e) {} };
+  const saveCfg = () => { try { localStorage.setItem(L.LS_CFG, JSON.stringify(cfg)); } catch (e) {} };
+
+  // URL 参数覆盖（不落盘）
+  const GRID_KEYS = Object.keys(L.GRIDS);
+  if (GRID_KEYS.includes(L.Q.get('grid'))) cfg.grid = L.Q.get('grid');
+  const qt = parseInt(L.Q.get('time'), 10); if (!isNaN(qt)) cfg.timeLimit = L.clamp(qt, 0, 600);
+  const qp = parseFloat(L.Q.get('peek')); if (!isNaN(qp)) cfg.peekSec = L.clamp(qp, 0, 10);
+
+  /* ---- 局内状态 ---- */
+  const S = {
+    phase: 'cover',            // cover | peek | play | result
+    grid: cfg.grid, deck: [], open: [], matchedSet: {}, matched: 0,
+    moves: 0, score: 0, combo: 0, maxCombo: 0,
+    busy: false, startedAt: 0, deadline: 0, lastTickSec: null,
+    trayIcons: [], result: null, auto: false, selGrid: cfg.grid,
+  };
+  const mem = {};              // 自动演示的记忆：id -> [idx]
+
+  /* ---- DOM ---- */
+  const app = $('mf-app'), board = $('mf-board'), cover = $('mf-cover');
+  const elMoves = $('mf-moves'), elScore = $('mf-score'), elCombo = $('mf-combo'), elComboN = $('mf-combo-n');
+  const elBar = $('mf-timebar'), elTime = $('mf-time-num');
+  const trayRow = $('mf-tray-row'), resultEl = $('mf-result'), toastEl = $('mf-toast');
+  const ICON_SND_ON = '<svg viewBox="0 0 24 24" fill="none"><path d="M11 5 6.4 9H3.4v6h3L11 19z" fill="#B93A2B" stroke="#3A2E24" stroke-width="1.8" stroke-linejoin="round"/><path d="M15 8.6a4.6 4.6 0 0 1 0 6.8M17.8 6.2a8.2 8.2 0 0 1 0 11.6" stroke="#2B2622" stroke-width="2" stroke-linecap="round"/></svg>';
+  const ICON_SND_OFF = '<svg viewBox="0 0 24 24" fill="none"><path d="M11 5 6.4 9H3.4v6h3L11 19z" fill="#B7A893" stroke="#3A2E24" stroke-width="1.8" stroke-linejoin="round"/><path d="M15.6 9.4l5.2 5.2M20.8 9.4l-5.2 5.2" stroke="#8F2B20" stroke-width="2.2" stroke-linecap="round"/></svg>';
+  const ICON_GEAR = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.4" fill="#B93A2B" stroke="#3A2E24" stroke-width="1.8"/><path d="M12 2.6v2.8M12 18.6v2.8M2.6 12h2.8M18.6 12h2.8M5.3 5.3l2 2M16.7 16.7l2 2M18.7 5.3l-2 2M7.3 16.7l-2 2" stroke="#2B2622" stroke-width="2" stroke-linecap="round"/></svg>';
+  const STAR = '<svg viewBox="0 0 24 24"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5L2.6 9.4l6.5-.9z"/></svg>';
+
+  let toastTimer = 0;
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1900);
+  }
+
+  /* ---- 音频接线 ---- */
+  function applyVolumes() {
+    const a = U();
+    a.setMasterVolume(st.muted ? 0 : cfg.vols.master);
+    a.setBGMVolume(cfg.vols.bgm); a.setSFXVolume(cfg.vols.sfx);
+  }
+  function firstGestureUnlock() { try { U().unlock(); } catch (e) {} }
+  ['pointerdown', 'touchend', 'keydown'].forEach(ev =>
+    document.addEventListener(ev, firstGestureUnlock, { passive: true }));
+
+  function frontSrc(id) { return (cfg.icons && cfg.icons[id]) || A().card(id) || phIcon(id); }
+  function traySrc(id) { return (cfg.icons && cfg.icons[id]) || A().trayIcon(id) || A().card(id) || phIcon(id); }
+  function backSrc() { return A().back() || phBack(); }
+
+  /* ---- 封面 ---- */
+  function playsLeft() {
+    if (!cfg.dailyLimit) return Infinity;
+    return Math.max(0, cfg.dailyLimit - (st.plays[L.today()] || 0));
+  }
+  function renderCover() {
+    const diff = $('mf-diff'); diff.innerHTML = '';
+    GRID_KEYS.forEach(k => {
+      const g = L.GRIDS[k];
+      const b = document.createElement('button');
+      b.innerHTML = g.label + '<small>' + g.cols + '×' + g.rows + ' · ' + g.pairs + '对</small>';
+      if (k === S.selGrid) b.classList.add('on');
+      b.onclick = () => { S.selGrid = k; cfg.grid = k; saveCfg(); U().play('click'); renderCover(); };
+      diff.appendChild(b);
+    });
+    const best = st.best[S.selGrid];
+    $('mf-best').innerHTML = best
+      ? '本难度最佳：<b>' + best.score + ' 分</b> · 用时 ' + L.fmtTime(best.time) + ' · ' + best.stars + ' 星'
+      : '本难度暂无纪录，快来开创纪录';
+    const left = playsLeft();
+    $('mf-plays').innerHTML = cfg.dailyLimit
+      ? (left > 0 ? '今日还可挑战 <b>' + left + '</b> 次' : '今日次数已用完，明天再来')
+      : '';
+    $('mf-btn-start').disabled = left <= 0;
+  }
+
+  /* ---- 开局 ---- */
+  function start(grid) {
+    if (S.phase === 'peek' || S.phase === 'play') return false;
+    const g = GRID_KEYS.includes(grid) ? grid : S.selGrid;
+    if (playsLeft() <= 0) { toast('今日次数已用完，明天再来'); return false; }
+    st.plays[L.today()] = (st.plays[L.today()] || 0) + 1; saveSt();
+    S.selGrid = g; cfg.grid = g; saveCfg();
+
+    S.grid = g; S.deck = L.dealPairs(g);
+    S.open = []; S.matchedSet = {}; S.matched = 0; S.moves = 0; S.score = 0;
+    S.combo = 0; S.maxCombo = 0; S.busy = true; S.deadline = 0; S.lastTickSec = null;
+    S.trayIcons = []; S.result = null; S.phase = 'peek';
+    for (const k in mem) delete mem[k];
+
+    cover.classList.add('off');
+    buildTray(); buildBoard();
+    elBar.style.width = '100%'; elBar.classList.remove('low');
+    elTime.textContent = cfg.timeLimit > 0 ? cfg.timeLimit + 's' : '0s';
+    updHUD(); renderCover();
+
+    U().play('click');
+    try { U().startLoop('bgm'); } catch (e) {}
+
+    const go = () => {
+      S.phase = 'play'; S.startedAt = Date.now();
+      S.deadline = cfg.timeLimit > 0 ? S.startedAt + cfg.timeLimit * 1000 : 0;
+      S.busy = false;
+    };
+    const peekMs = (cfg.peekSec > 0 ? cfg.peekSec : 0) * 1000;
+    if (peekMs > 0) {
+      board.querySelectorAll('.card').forEach(c => c.classList.add('peek'));
+      X().bigText('记住卡面！', { sub: '开局记忆时间', dur: Math.max(900, peekMs - 200) });
+      setTimeout(() => {
+        board.querySelectorAll('.card').forEach(c => c.classList.remove('peek'));
+        go();
+      }, peekMs);
+    } else { go(); }
+    return true;
+  }
+
+  function buildBoard() {
+    const g = L.GRIDS[S.grid];
+    board.style.setProperty('--cols', g.cols);
+    board.innerHTML = '';
+    const back = backSrc();
+    S.deck.forEach((id, i) => {
+      const c = document.createElement('button');
+      c.className = 'card'; c.dataset.i = i; c.setAttribute('aria-label', '卡牌');
+      c.innerHTML =
+        '<div class="card-inner">' +
+        '<div class="face back"><img src="' + back + '" alt=""></div>' +
+        '<div class="face front"><img src="' + frontSrc(id) + '" alt="' + (L.ICON_NAME[id] || id) + '"></div>' +
+        '</div>';
+      c.addEventListener('click', () => flip(i));
+      board.appendChild(c);
+    });
+    // 同步计算即可：clientWidth 读取会强制布局，不依赖渲染帧（后台标签 rAF 会被挂起）
+    fitBoard();
+    requestAnimationFrame(fitBoard); // 布局稳定后二次校准（字体/滚动条等次生变化）
+  }
+
+  // 卡牌尺寸双向约束：宽（列数）与高（行数）取小者，保持 3:4 且总高不出牌桌
+  function fitBoard() {
+    if (!S.deck.length) return;
+    const g = L.GRIDS[S.grid];
+    const cs = getComputedStyle(board);
+    const availW = board.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const availH = board.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    const gap = parseFloat(cs.columnGap) || 10;
+    const w = Math.floor(Math.min(
+      (availW - (g.cols - 1) * gap) / g.cols,
+      ((availH - (g.rows - 1) * gap) / g.rows) * 3 / 4
+    ));
+    board.style.setProperty('--cw', Math.max(w, 36) + 'px');
+    board.style.setProperty('--ch', Math.round(Math.max(w, 36) * 4 / 3) + 'px');
+  }
+  window.addEventListener('resize', fitBoard);
+  function buildTray() {
+    const g = L.GRIDS[S.grid];
+    trayRow.innerHTML = '<span class="cap">好礼 <b id="mf-tray-cap">0/' + g.pairs + '</b></span>';
+    for (let i = 0; i < g.pairs; i++) {
+      const s = document.createElement('span');
+      s.className = 'slot'; s.dataset.slot = i;
+      s.innerHTML = '<img alt="" hidden>';
+      trayRow.appendChild(s);
+    }
+  }
+  function refreshCardImages() {
+    const back = backSrc();
+    board.querySelectorAll('.card').forEach(c => {
+      const i = +c.dataset.i;
+      c.querySelector('.face.back img').src = back;
+      c.querySelector('.face.front img').src = frontSrc(S.deck[i]);
+    });
+  }
+
+  /* ---- HUD ---- */
+  function updHUD() {
+    elMoves.textContent = S.moves;
+    elScore.textContent = S.score;
+    if (S.combo >= 2 && cfg.comboOn) {
+      elCombo.hidden = false; elComboN.textContent = Math.min(S.combo, 9);
+      elCombo.classList.remove('pop'); void elCombo.offsetWidth; elCombo.classList.add('pop');
+    } else { elCombo.hidden = true; }
+  }
+  function tickTimer() {
+    if (S.phase !== 'play') return;
+    const now = Date.now();
+    if (S.deadline) {
+      const total = cfg.timeLimit * 1000;
+      const leftMs = Math.max(0, S.deadline - now);
+      const leftS = leftMs / 1000;
+      elBar.style.width = (leftMs / total * 100) + '%';
+      elBar.classList.toggle('low', leftS <= 5.05);
+      const disp = Math.ceil(leftS);
+      elTime.textContent = disp + 's';
+      if (leftS <= 5.05 && disp !== S.lastTickSec && disp > 0) {
+        S.lastTickSec = disp; U().play('tick');
+      }
+      if (leftMs <= 0) finish(false);
+    } else {
+      elBar.style.width = '100%'; elBar.classList.remove('low');
+      elTime.textContent = Math.floor((now - S.startedAt) / 1000) + 's';
+    }
+  }
+  setInterval(tickTimer, 200);
+
+  /* ---- 翻牌 ---- */
+  function cardEl(i) { return board.querySelector('.card[data-i="' + i + '"]'); }
+  function centerOf(i) {
+    const r = cardEl(i).getBoundingClientRect(), h = $('mf-fx').getBoundingClientRect();
+    return { x: r.left - h.left + r.width / 2, y: r.top - h.top + r.height / 2 };
+  }
+  function flip(i) {
+    if (S.phase !== 'play' || S.busy) return;
+    const el = cardEl(i);
+    if (!el || el.classList.contains('open') || S.matchedSet[i]) return;
+    el.classList.add('open');
+    U().play('flip');
+    if (S.auto) { (mem[S.deck[i]] = mem[S.deck[i]] || []).push(i); }
+    S.open.push(i);
+    if (S.open.length < 2) return;
+
+    const [a, b] = S.open;
+    S.moves++; S.busy = true; updHUD();
+    if (S.deck[a] === S.deck[b]) onMatch(a, b); else onMiss(a, b);
+  }
+
+  function onMatch(a, b) {
+    S.combo++; S.maxCombo = Math.max(S.maxCombo, S.combo);
+    const pts = L.pairScore(cfg.baseScore, S.combo, cfg.comboOn);
+    S.score += pts;
+    S.matchedSet[a] = S.matchedSet[b] = true;
+    S.matched++;
+    const id = S.deck[a];
+    S.trayIcons.push(id);
+
+    [a, b].forEach(i => {
+      const el = cardEl(i);
+      el.classList.add('matched', 'hit');
+      setTimeout(() => el.classList.remove('hit'), 400);
+    });
+
+    U().play('match');
+    if (cfg.comboOn && S.combo >= 2) {
+      U().play('combo', { level: Math.min(S.combo, 4) });
+      X().bigText('连击×' + Math.min(S.combo, 9), { sub: '奖励 ×' + L.comboMult(S.combo, true), dur: 950 });
+    }
+    const c = centerOf(b);
+    X().burst(c.x, c.y, { n: 16, colors: ['#C99A3C', '#E4B95B', '#B93A2B', '#FFF9EE'] });
+    const slot = trayRow.querySelector('.slot[data-slot="' + (S.matched - 1) + '"]');
+    if (slot) {
+      const sr = slot.getBoundingClientRect(), h = $('mf-fx').getBoundingClientRect();
+      X().coinFly(c.x, c.y, sr.left - h.left + sr.width / 2, sr.top - h.top + sr.height / 2,
+        { n: 3, icon: traySrc(id) });
+      setTimeout(() => {
+        const img = slot.querySelector('img');
+        img.src = traySrc(id); img.hidden = false;
+        slot.classList.add('got');
+        const cap = $('mf-tray-cap'); if (cap) cap.textContent = S.matched + '/' + L.GRIDS[S.grid].pairs;
+      }, 430);
+    }
+
+    updHUD();
+    S.open = [];
+    const total = L.GRIDS[S.grid].pairs;
+    setTimeout(() => {
+      S.busy = false;
+      if (S.matched >= total) finish(true);
+    }, 400);
+  }
+
+  function onMiss(a, b) {
+    S.combo = 0; updHUD();
+    U().play('miss');
+    [a, b].forEach(i => cardEl(i).classList.add('wrong'));
+    setTimeout(() => {
+      [a, b].forEach(i => {
+        const el = cardEl(i);
+        if (el) { el.classList.remove('open', 'wrong'); }
+      });
+      S.open = []; S.busy = false;
+    }, 780);
+  }
+
+  /* ---- 结算 ---- */
+  function finish(win) {
+    if (S.phase !== 'play') return;
+    S.phase = 'result'; S.busy = false;
+    const timeS = Math.max(1, Math.round((Date.now() - S.startedAt) / 1000));
+    if (win && S.deadline) {
+      const bonus = Math.round(Math.max(0, (S.deadline - Date.now()) / 1000)) * cfg.timeBonus;
+      if (bonus > 0) { S.score += bonus; toast('时间奖励 +' + bonus); }
+    }
+    const total = L.GRIDS[S.grid].pairs;
+    const stars = win ? L.stars(total, S.moves) : 0;
+    S.result = {
+      win, score: S.score, stars, time: timeS, moves: S.moves,
+      maxCombo: S.maxCombo, pairs: S.matched, totalPairs: total,
+      claimed: false, code: null,
+    };
+    if (win) {
+      const best = st.best[S.grid] || (st.best[S.grid] = {});
+      if (!best.score || S.score > best.score) best.score = S.score;
+      if (!best.time || timeS < best.time) best.time = timeS;
+      if (!best.combo || S.maxCombo > best.combo) best.combo = S.maxCombo;
+      if (!best.stars || stars > best.stars) best.stars = stars;
+      saveSt();
+      U().play('win');
+      X().confetti(150);
+      X().bigText('挑战成功！', { sub: '好礼全部集齐', dur: 1400 });
+    } else {
+      U().play('lose');
+      X().bigText('时间到！', { sub: '差一点点，再试试', dur: 1300, color: '#8F2B20' });
+      board.querySelectorAll('.card.open').forEach(c => c.classList.remove('open'));
+      S.open = [];
+    }
+    renderCover();
+    setTimeout(showResult, win ? 950 : 700);
+  }
+
+  function genCode() {
+    const cs = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let c = 'MF-';
+    for (let s = 0; s < 2; s++) {
+      if (s) c += '-';
+      for (let i = 0; i < 4; i++) c += cs[Math.floor(Math.random() * cs.length)];
+    }
+    return c;
+  }
+
+  function showResult() {
+    const r = S.result; if (!r) return;
+    $('mf-rt').textContent = r.win ? '活 动 结 果' : '本 局 结 果';
+    $('mf-rt-title').textContent = r.win ? '挑战成功' : '差一点点';
+    const starRow = $('mf-stars');
+    starRow.innerHTML = '';
+    if (r.win) {
+      for (let i = 0; i < 3; i++) {
+        const sp = document.createElement('span');
+        sp.className = 'st' + (i < r.stars ? ' on' : '');
+        sp.style.animationDelay = (0.15 + i * 0.18) + 's';
+        sp.innerHTML = STAR;
+        starRow.appendChild(sp);
+      }
+      starRow.style.display = 'flex';
+    } else starRow.style.display = 'none';
+    starRow.querySelectorAll('.st').forEach(s => {
+      if (!s.classList.contains('on')) s.querySelector('svg path').style.fill = '#D8CCB8';
+    });
+
+    $('mf-r-score').textContent = r.score;
+    $('mf-rows').innerHTML =
+      '<div><span>用时</span><b>' + L.fmtTime(r.time) + '</b></div>' +
+      '<div><span>翻牌步数</span><b>' + r.moves + '</b></div>' +
+      '<div><span>最高连击</span><b>×' + Math.max(r.maxCombo, 1) + '</b></div>' +
+      '<div><span>收集好礼</span><b>' + r.pairs + ' / ' + r.totalPairs + ' 对</b></div>';
+
+    const pz = $('mf-prizes');
+    pz.innerHTML = '';
+    if (r.pairs > 0) {
+      S.trayIcons.forEach(id => {
+        const img = document.createElement('img');
+        img.src = traySrc(id); img.alt = L.ICON_NAME[id] || id;
+        pz.appendChild(img);
+      });
+    }
+    if (!r.win) {
+      const lack = document.createElement('span');
+      lack.className = 'lack';
+      lack.textContent = '还差 ' + (r.totalPairs - r.pairs) + ' 件好礼';
+      pz.appendChild(lack);
+    }
+
+    const codeEl = $('mf-code');
+    codeEl.hidden = true; codeEl.textContent = '';
+    $('mf-btn-claim').hidden = !r.win;
+    $('mf-btn-claim').textContent = '一键领取好礼';
+    $('mf-btn-share').hidden = !r.win;
+    $('mf-btn-again').textContent = r.win ? '再来一局' : '再挑战一次';
+    resultEl.hidden = false;
+    if (r.claimed) applyClaimed();
+  }
+
+  function applyClaimed() {
+    const r = S.result; if (!r) return;
+    $('mf-btn-claim').textContent = '复制券码';
+    const codeEl = $('mf-code');
+    codeEl.hidden = false; codeEl.textContent = r.code || '';
+  }
+
+  function claim() {
+    const r = S.result; if (!r || !r.win) return;
+    if (!r.claimed) {
+      r.claimed = true; r.code = genCode();
+      applyClaimed();
+      X().confetti(90); U().play('win');
+      toast('好礼已领取，券码已生成');
+    } else {
+      copyText('MF-券码 ' + (r.code || '') + '（本地演示券码）');
+    }
+  }
+
+  function copyText(t) {
+    const done = () => toast('已复制，去粘贴吧');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(done, () => fallbackCopy(t, done));
+    } else fallbackCopy(t, done);
+  }
+  function fallbackCopy(t, done) {
+    const ta = document.createElement('textarea');
+    ta.value = t; ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('复制失败'); }
+    ta.remove();
+  }
+  function share() {
+    const r = S.result; if (!r) return;
+    copyText('我在「翻牌赢好礼」记忆翻牌挑战中，用 ' + r.moves + ' 步集齐 ' + r.totalPairs +
+      ' 件好礼，拿下 ' + r.score + ' 分、' + r.stars + ' 星评价！你能比我更快吗？');
+  }
+
+  /* ---- 自动演示（AI 带记忆贪心） ---- */
+  let lastAuto = 0;
+  setInterval(() => {
+    if (!S.auto) return;
+    if (S.phase === 'result' || S.phase === 'cover') { S.auto = false; return; }
+    if (S.phase !== 'play' || S.busy) return;
+    const now = Date.now();
+    if (now - lastAuto < 580) return;
+
+    const seen = {}; const total = S.deck.length;
+    for (const id in mem) mem[id].forEach(i => { seen[i] = id; });
+    const isMatched = i => S.matchedSet[i];
+    // 已知对优先（去重：同一张卡可能被记忆多次）
+    for (const id in mem) {
+      const idxs = Array.from(new Set(mem[id])).filter(i => !isMatched(i));
+      if (idxs.length >= 2) {
+        lastAuto = now; flip(idxs[0]);
+        setTimeout(() => flip(idxs[1]), 500);
+        return;
+      }
+    }
+    // 翻未知牌
+    const unknown = [];
+    for (let i = 0; i < total; i++) if (!isMatched(i) && !seen[i] && !S.open.includes(i)) unknown.push(i);
+    const pool = unknown.length ? unknown : [];
+    if (!pool.length) {
+      for (let i = 0; i < total; i++) if (!isMatched(i) && !S.open.includes(i)) pool.push(i);
+    }
+    if (pool.length) { lastAuto = now; flip(pool[Math.floor(Math.random() * pool.length)]); }
+  }, 140);
+
+  /* ---- 按钮接线 ---- */
+  $('mf-btn-start').addEventListener('click', () => start());
+  $('mf-btn-again').addEventListener('click', () => {
+    U().play('click'); resultEl.hidden = true; S.auto = false; S.phase = 'cover';
+    renderCover();
+    cover.classList.remove('off');
+  });
+  $('mf-btn-claim').addEventListener('click', claim);
+  $('mf-btn-share').addEventListener('click', share);
+  const btnSnd = $('mf-btn-sound'), btnCfg = $('mf-btn-cfg');
+  function renderSnd() { btnSnd.innerHTML = st.muted ? ICON_SND_OFF : ICON_SND_ON; }
+  btnSnd.addEventListener('click', () => {
+    st.muted = !st.muted; saveSt(); applyVolumes(); renderSnd();
+    toast(st.muted ? '已静音' : '声音已开启');
+    if (!st.muted) U().play('click');
+  });
+  btnCfg.innerHTML = ICON_GEAR;
+  btnCfg.addEventListener('click', () => {
+    U().play('click');
+    if (window.MF && MF.CONFIG_PANEL && MF.CONFIG_PANEL.mounted) MF.CONFIG_PANEL.open();
+    else if (window.MF && MF.CONFIG_PANEL) MF.CONFIG_PANEL.open();
+    else toast('配置面板未就绪');
+  });
+  renderSnd();
+
+  /* ---- 配置面板接线 ---- */
+  if (window.MF.CONFIG_PANEL) {
+    try {
+      MF.CONFIG_PANEL.mount($('mf-cfg-host'));
+      MF.CONFIG_PANEL.onChange(nc => {
+        cfg = nc; saveCfg();
+        applyVolumes();
+        try { U().applyOverrides(cfg.sounds || {}); } catch (e) {}
+        refreshCardImages();
+        if (!GRID_KEYS.includes(cfg.grid)) cfg.grid = '4x4';
+        S.selGrid = cfg.grid;
+        renderCover();
+      });
+      if (MF.CONFIG_PANEL.onClearBest) {
+        MF.CONFIG_PANEL.onClearBest(() => {
+          st.best = {}; saveSt(); renderCover(); toast('最佳纪录已清除');
+        });
+      }
+    } catch (e) { /* 面板异常不阻塞游戏 */ }
+  }
+  applyVolumes();
+  try { U().applyOverrides(cfg.sounds || {}); } catch (e) {}
+  try { MF.FX.init($('mf-fx')); } catch (e) {}
+
+  /* ---- 启动 ---- */
+  renderCover();
+  if (L.Q.get('reset') === '1') setTimeout(() => toast('已清档重来'), 400);
+  if (L.Q.get('muted') === '1') { st.muted = true; saveSt(); applyVolumes(); renderSnd(); }
+  if (L.Q.get('auto') === '1') {
+    setTimeout(() => { S.auto = true; start(); }, 700);
+  }
+
+  /* ---- 测试钩子 ---- */
+  window.__mf = {
+    version: '1.0',
+    get state() { return S; },
+    get cfg() { return cfg; },
+    get st() { return st; },
+    get busy() { return S.phase !== 'play' || S.busy; },
+    flip, start, claim, share, toast,
+    setMuted(b) { st.muted = !!b; saveSt(); applyVolumes(); renderSnd(); },
+    setAuto(on) { S.auto = !!on; if (on && S.phase === 'cover') start(); },
+  };
+
+  return { start, flip };
+})();
+
+</script>
+
+</body>
+</html>

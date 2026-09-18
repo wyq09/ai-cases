@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MF.FX 自检预览</title>
+<style>
+  html,body{margin:0;padding:28px 0;background:#E7DDC8;font-family:system-ui,-apple-system,"PingFang SC",sans-serif;}
+  #stage{position:relative;width:390px;height:844px;margin:0 auto;background:#F6EFE2;border:2px solid #3A2E24;
+         box-shadow:6px 6px 0 rgba(58,46,36,.3);overflow:hidden;}
+  #stage::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:repeating-linear-gradient(0deg,rgba(58,46,36,.05) 0 1px,transparent 1px 28px),
+                     repeating-linear-gradient(90deg,rgba(58,46,36,.05) 0 1px,transparent 1px 28px);}
+  #fxhost{position:absolute;inset:0;}
+  #done{position:absolute;top:10px;left:10px;z-index:9;font:700 13px/1.4 system-ui;color:#2B2622;
+        background:#FFF9EE;border:2px solid #3A2E24;border-radius:6px;padding:6px 10px;
+        box-shadow:3px 3px 0 rgba(58,46,36,.9);}
+  .bar{position:absolute;left:10px;right:10px;bottom:12px;z-index:9;display:flex;flex-wrap:wrap;gap:8px;}
+  .bar button{appearance:none;font:700 13px/1 system-ui,"PingFang SC",sans-serif;padding:10px 11px;color:#B93A2B;
+        background:#FFF9EE;border:2px solid #3A2E24;border-radius:6px;box-shadow:3px 3px 0 rgba(58,46,36,.9);cursor:pointer;}
+  .bar button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(58,46,36,.9);}
+  .tip{position:absolute;top:10px;right:10px;z-index:9;font:400 11px/1.5 system-ui;color:#8F2B20;}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="fxhost"></div>
+  <div id="done">coinFly done: 0</div>
+  <div class="tip">FX 自检页</div>
+  <div class="bar">
+    <button data-fx="burst">burst</button>
+    <button data-fx="coin">coinFly</button>
+    <button data-fx="confetti">confetti</button>
+    <button data-fx="big">bigText</button>
+    <button data-fx="ring">ring</button>
+    <button data-fx="flash">flash</button>
+    <button data-fx="spark">spark</button>
+    <button data-fx="stop">stopAll</button>
+  </div>
+</div>
+<script src="../src/fx.js"></script>
+<script>
+  var host=document.getElementById('fxhost');
+  MF.FX.init(host);
+  var doneN=0, doneEl=document.getElementById('done');
+  var cx=195, cy=400;
+
+  function act(k){
+    if(k==='burst') MF.FX.burst(cx,cy,{n:36});
+    else if(k==='coin'){
+      MF.FX.coinFly(cx,620,cx,120,{n:6,done:function(){ doneN++; doneEl.textContent='coinFly done: '+doneN; }});
+    }
+    else if(k==='confetti') MF.FX.confetti(70);
+    else if(k==='big') MF.FX.bigText('连击×3',{sub:'奖励翻倍',dur:2200});
+    else if(k==='ring') MF.FX.ring(cx,cy);
+    else if(k==='flash') MF.FX.flash('#B93A2B',0.22);
+    else if(k==='spark') MF.FX.spark(cx,cy,'#E4B95B',12);
+    else if(k==='stop') MF.FX.stopAll();
+  }
+  var btns=document.querySelectorAll('.bar button');
+  for(var i=0;i<btns.length;i++){
+    (function(b){ b.addEventListener('click',function(){ act(b.getAttribute('data-fx')); }); })(btns[i]);
+  }
+
+  /* 自动循环触发：confetti 类特效持续 >=3s，保证 headless 截图能捕到中间帧 */
+  function loopFire(){
+    MF.FX.confetti(48);
+    MF.FX.burst(cx,cy,{n:20});
+    MF.FX.spark(cx+90,cy-60,'#C99A3C',6);
+  }
+  loopFire();
+  MF.FX.bigText('连击×3',{sub:'奖励翻倍',dur:2600});
+  MF.FX.coinFly(60,600,330,130,{n:5,done:function(){ doneN++; doneEl.textContent='coinFly done: '+doneN; }});
+  MF.FX.ring(cx,cy);
+  MF.FX.flash('#B93A2B',0.16);
+  setInterval(loopFire,1000);
+  /* 延迟补发一拨慢速铜钱：供截图捕捉飞行中间帧（贝塞尔弧线 + scaleX 翻转） */
+  setTimeout(function(){
+    MF.FX.coinFly(40,760,350,150,{n:8,done:function(){ doneN++; doneEl.textContent='coinFly done: '+doneN; }});
+  },1400);
+  /* ring/flash 生命短（0.5s/0.38s），周期性补发保证任意时刻截图都能捕到 */
+  setInterval(function(){ MF.FX.ring(110+Math.random()*170,230+Math.random()*380); },700);
+  setInterval(function(){ MF.FX.flash('#B93A2B',0.18); },1300);
+</script>
+</body>
+</html>

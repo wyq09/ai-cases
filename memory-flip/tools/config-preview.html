@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MF 配置面板自检</title>
+<style>
+  body{margin:0;background:#F6EFE2;font-family:system-ui,-apple-system,"PingFang SC",sans-serif;color:#2B2622;}
+  .bar{position:sticky;top:0;z-index:10001;display:flex;flex-wrap:wrap;gap:8px;padding:10px;background:#F6EFE2;border-bottom:2px solid #3A2E24;}
+  .bar button{min-height:44px;padding:0 12px;border:2px solid #3A2E24;border-radius:6px;background:#FFF9EE;
+    color:#2B2622;font:700 14px/1.2 system-ui;cursor:pointer;box-shadow:2px 2px 0 rgba(58,46,36,.9);}
+  .bar button:active{transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(58,46,36,.9);}
+  #host{height:600px;}
+  #log{position:fixed;top:64px;left:6px;right:6px;max-height:52%;overflow:auto;z-index:10002;display:none;
+    background:#3A2E24;color:#F6EFE2;font:12px/1.6 Menlo,Consolas,monospace;padding:10px;border:2px solid #B93A2B;border-radius:6px;white-space:pre-wrap;}
+</style>
+</head>
+<body>
+<div class="bar">
+  <button data-t="cards">开：卡面</button>
+  <button data-t="sound">开：音效</button>
+  <button data-t="play">开：玩法</button>
+  <button data-t="data">开：数据</button>
+  <button id="b-close">关闭</button>
+  <button id="b-resetcfg">改 cfg（模拟外部变更）</button>
+</div>
+<div id="host"></div>
+<pre id="log"></pre>
+
+<script>
+/* ---------- stub：MF 主线模块的最小替身 ---------- */
+window.MF = {};
+MF.cfg = {
+  grid: '4x4', timeLimit: 90, peekSec: 2, comboOn: true, baseScore: 100, timeBonus: 10, dailyLimit: 3,
+  vols: { bgm: 0.4, sfx: 0.9, master: 1 },
+  icons: { koi: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#E4B95B"/><circle cx="32" cy="32" r="18" fill="#B93A2B"/></svg>') },
+  sounds: { flip: 'data:audio/wav;base64,UklGRstub' }
+};
+MF.LOGIC = { ICONS: ['ingot','hongbao','coupon','gift','koi','cat','crown','gem','firework','coin'] };
+MF.ART = {
+  card: function (id) {
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="64" height="64">' +
+      '<rect x="4" y="4" width="92" height="92" rx="6" fill="#FFF9EE" stroke="#3A2E24" stroke-width="3"/>' +
+      '<circle cx="50" cy="42" r="24" fill="#C99A3C" stroke="#3A2E24" stroke-width="3"/>' +
+      '<text x="50" y="88" font-size="16" text-anchor="middle" fill="#B93A2B" font-family="sans-serif">' + id + '</text></svg>');
+  }
+};
+MF.AUDIO = {
+  names: ['flip','match','miss','combo','win','lose','tick','click','bgm'],
+  __last: null,
+  unlock: function () {},
+  play: function (n) { MF.AUDIO.__last = n; },
+  setBGMVolume: function () {}, setSFXVolume: function () {}, setMasterVolume: function () {}
+};
+
+function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+/* 条件等待：FileReader 等真实异步 I/O 在 virtual-time 下会滞后于虚拟时钟，
+   轮询谓词（每次 await 都让出真实事件循环）直到满足或超次 */
+/* 条件等待：headless 后台页对链式 setTimeout 有 ~1s 钳制，tick 不能太碎 */
+async function waitFor(pred, tries){
+  tries = tries || 8;
+  for (var i = 0; i < tries && !pred(); i++) { await wait(150); }
+  return pred();
+}
+</script>
+<script src="../src/config-panel.js"></script>
+<script>
+/* ---------- 预览驱动 ---------- */
+var P = MF.CONFIG_PANEL;
+P.mount(document.getElementById('host'));
+document.querySelectorAll('.bar button[data-t]').forEach(function (b) {
+  b.addEventListener('click', function () { P.open(b.getAttribute('data-t')); });
+});
+document.getElementById('b-close').addEventListener('click', function () { P.close(); });
+document.getElementById('b-resetcfg').addEventListener('click', function () {
+  MF.cfg = { grid: '5x4', timeLimit: 60, peekSec: 0, comboOn: false, baseScore: 40, timeBonus: 5, dailyLimit: 1,
+    vols: { bgm: 0.2, sfx: 0.5, master: 0.8 }, icons: {}, sounds: {} };
+  P.open('play');
+});
+
+/* ---------- 行为自检（?selftest=1） ---------- */
+async function runSelfTest() {
+  var out = [], failed = false;
+  var snaps = [];
+  P.onChange(function (s) { snaps.push(s); });
+  function A(c, m) { if (!c) throw new Error(m || '断言失败'); }
+  function last() { return snaps[snaps.length - 1]; }
+  function fire(el, type) { el.dispatchEvent(new Event(type, { bubbles: true })); }
+  async function T(name, fn) {
+    try { await fn(); out.push('PASS ' + name); }
+    catch (e) { failed = true; out.push('FAIL ' + name + ' :: ' + (e && e.message)); }
+  }
+  function setInput(sel, val) {
+    var el = document.querySelector(sel);
+    el.value = val; fire(el, 'input'); fire(el, 'change');
+    return el;
+  }
+  async function dropFile(sel, file, pred) {
+    var inp = document.querySelector(sel);
+    var dt = new DataTransfer();
+    dt.items.add(file);
+    inp.files = dt.files;
+    fire(inp, 'change');
+    if (pred) await waitFor(pred);
+    else await wait(120);
+  }
+
+  /* 1. 滑条 → onChange 完整快照 */
+  await T('滑条onChange收到完整快照且值正确', function () {
+    P.open('sound');
+    var n0 = snaps.length;
+    var r = document.querySelector('.mfcp-range[data-vol="bgm"]');
+    r.value = '0.55'; fire(r, 'input');
+    A(snaps.length === n0 + 1, '未收到 onChange');
+    var s = last();
+    A(Math.abs(s.vols.bgm - 0.55) < 1e-9, 'bgm=' + s.vols.bgm);
+    ['grid','timeLimit','peekSec','comboOn','baseScore','timeBonus','dailyLimit','vols','icons','sounds']
+      .forEach(function (k) { A(k in s, '快照缺字段 ' + k); });
+    A(s.vols.sfx === 0.9 && s.vols.master === 1, '音量其他字段丢失');
+    A(s.grid === '4x4' && s.baseScore === 100, '玩法字段丢失');
+  });
+
+  /* 2. 快照为深拷贝（外部篡改不污染 work） */
+  await T('快照是深拷贝', function () {
+    last().grid = '__hack__';
+    var r = document.querySelector('.mfcp-range[data-vol="master"]');
+    r.value = '0.5'; fire(r, 'input');
+    A(last().grid === '4x4', '快照被污染，非深拷贝');
+  });
+
+  /* 3. 数值钳制 */
+  await T('限时秒钳制 999→300', function () {
+    P.open('play');
+    var n0 = snaps.length;
+    var el = setInput('.mfcp-num[data-num="timeLimit"]', '999');
+    A(snaps.length === n0 + 1, '输入未 notify');
+    A(last().timeLimit === 300, 'timeLimit=' + last().timeLimit);
+    A(el.value === '300', '输入框未回写 300：' + el.value);
+  });
+  await T('基础分步进钳制 1234→1000', function () {
+    setInput('.mfcp-num[data-num="baseScore"]', '1234');
+    A(last().baseScore === 1000, 'baseScore=' + last().baseScore);
+  });
+  await T('预览秒钳制 99→5，负数→0', function () {
+    setInput('.mfcp-num[data-num="peekSec"]', '99');
+    A(last().peekSec === 5, 'peekSec=' + last().peekSec);
+    setInput('.mfcp-num[data-num="peekSec"]', '-3');
+    A(last().peekSec === 0, 'peekSec 负值=' + last().peekSec);
+    setInput('.mfcp-num[data-num="peekSec"]', '2');
+  });
+
+  /* 4. 难度三选一 + 连击开关 */
+  await T('难度三选一', function () {
+    document.querySelector('.mfcp-seg button[data-grid="5x4"]').click();
+    A(last().grid === '5x4', 'grid=' + last().grid);
+    A(document.querySelector('.mfcp-seg button[data-grid="5x4"]').classList.contains('mfcp-on'), '选中态未同步');
+  });
+  await T('连击开关', function () {
+    var c = document.querySelector('[data-role="combo"]');
+    c.checked = false; fire(c, 'change');
+    A(last().comboOn === false, 'comboOn=' + last().comboOn);
+    c.checked = true; fire(c, 'change');
+    A(last().comboOn === true, 'comboOn 复原失败');
+  });
+
+  /* 5. 卡面：角标 / 默认图 / 用户图 */
+  await T('卡面角标与默认图、用户图', function () {
+    P.open('cards');
+    var koi = document.querySelector('.mfcp-iconrow[data-icon="koi"]');
+    A(koi, '缺 koi 行');
+    A(!koi.querySelector('.mfcp-badge').classList.contains('mfcp-hide'), 'koi 缺「已自定义」角标');
+    A(koi.querySelector('img').src.indexOf('data:image/svg') === 0, 'koi 未显示用户图');
+    A(koi.querySelector('[data-iact="reset"]') && !koi.querySelector('[data-iact="reset"]').classList.contains('mfcp-hide'), 'koi 缺还原按钮');
+    var ing = document.querySelector('.mfcp-iconrow[data-icon="ingot"]');
+    A(ing.querySelector('.mfcp-badge').classList.contains('mfcp-hide'), 'ingot 不应有角标');
+    A(ing.querySelector('img').src.indexOf('data:') === 0, 'ingot 未显示 MF.ART 默认图');
+    A(document.querySelectorAll('.mfcp-iconrow').length === 10, '卡面行数≠10');
+  });
+
+  /* 6. 上传替换卡面（DataTransfer 注入 SVG 文件 → 压缩 PNG） */
+  await T('上传替换卡面并压缩为PNG', async function () {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400"><rect width="800" height="400" fill="#8F2B20"/></svg>';
+    await dropFile('input[data-role="iconfile"]', new File([svg], 'up.svg', { type: 'image/svg+xml' }),
+      function () { return typeof (last().icons || {}).ingot === 'string'; });
+    var s = last();
+    A(typeof s.icons.ingot === 'string' && s.icons.ingot.indexOf('data:image/png') === 0, 'ingot 未生成 PNG dataURL');
+    var row = document.querySelector('.mfcp-iconrow[data-icon="ingot"]');
+    A(!row.querySelector('.mfcp-badge').classList.contains('mfcp-hide'), '上传后角标未显示');
+  });
+
+  /* 7. 单项还原 / 全部还原卡面 */
+  await T('单项还原卡面', function () {
+    var n0 = snaps.length;
+    document.querySelector('.mfcp-iconrow[data-icon="ingot"] [data-iact="reset"]').click();
+    A(snaps.length === n0 + 1, '还原未 notify');
+    A(!('ingot' in last().icons), 'ingot 未删除');
+    A(document.querySelector('.mfcp-iconrow[data-icon="ingot"] .mfcp-badge').classList.contains('mfcp-hide'), '还原后角标未隐藏');
+  });
+  await T('全部还原卡面', function () {
+    document.querySelector('[data-act="icons-reset"]').click();
+    var ic = last().icons;
+    A(Object.keys(ic).length === 0, 'icons 未清空：' + Object.keys(ic));
+  });
+
+  /* 8. 音效 chip / 清除；试听走 MF.AUDIO */
+  await T('音效自定义标记与清除', function () {
+    P.open('sound');
+    var row = document.querySelector('.mfcp-cuerow[data-cue="flip"]');
+    A(!row.querySelector('.mfcp-chip').classList.contains('mfcp-hide'), 'flip 未标已自定义');
+    var n0 = snaps.length;
+    row.querySelector('[data-sact="clear"]').click();
+    A(snaps.length === n0 + 1, '清除未 notify');
+    A(!('flip' in last().sounds), 'flip 未删除');
+    A(row.querySelector('[data-sact="clear"]').classList.contains('mfcp-hide'), '清除后按钮未隐藏');
+  });
+  await T('试听按钮存在且调用AUDIO.play', function () {
+    var b = document.querySelector('.mfcp-cuerow[data-cue="match"] [data-sact="play"]');
+    A(b && !b.classList.contains('mfcp-hide'), 'AUDIO 存在时试听按钮被隐藏');
+    b.click();
+    A(MF.AUDIO.__last === 'match', '未调用 AUDIO.play');
+  });
+
+  /* 9. 三个文件 input 均存在（上传流程本体已在上/下行覆盖） */
+  await T('隐藏文件input齐备', function () {
+    A(document.querySelector('input[data-role="iconfile"]').accept === 'image/*', 'iconfile 缺失');
+    A(document.querySelector('input[data-role="sndfile"]').accept === 'audio/*', 'sndfile 缺失');
+    A(document.querySelector('input[data-role="cfgfile"]'), 'cfgfile 缺失');
+  });
+
+  /* 10. 音量上传（DataTransfer 注入音频 File） */
+  await T('上传替换音效', async function () {
+    await dropFile('input[data-role="sndfile"]',
+      new File([new Uint8Array([82,73,70,70])], 'a.wav', { type: 'audio/wav' }),
+      function () { return typeof (last().sounds || {}).match === 'string'; });
+    A(typeof last().sounds.match === 'string' && last().sounds.match.indexOf('data:audio') === 0, 'match 音效未写入');
+  });
+
+  /* 11. 坏 JSON 导入不炸且有错误提示 */
+  await T('坏JSON导入不炸且有提示', async function () {
+    P.open('data');
+    var good = last();
+    await dropFile('input[data-role="cfgfile"]', new File(['{bad json'], 'bad.json', { type: 'application/json' }),
+      function () {
+        var t = document.querySelector('.mfcp-toast');
+        return !!(t && t.textContent.indexOf('导入失败') >= 0);
+      });
+    A(P.isOpen(), '面板意外关闭');
+    var t = document.querySelector('.mfcp-toast');
+    A(t && t.textContent.indexOf('导入失败') >= 0, '无导入失败提示：' + (t && t.textContent));
+    A(last() === good || JSON.stringify(last()) === JSON.stringify(good), '坏导入改动了配置');
+  });
+
+  /* 12. 好 JSON 导入：sanitize + notify + 兜底 */
+  await T('好JSON导入sanitize并notify', async function () {
+    var n0 = snaps.length;
+    await dropFile('input[data-role="cfgfile"]',
+      new File([JSON.stringify({ grid: '4x3', timeLimit: 1234, vols: { bgm: 2 }, junk: 1 })], 'good.json', { type: 'application/json' }),
+      function () { return last().grid === '4x3'; });
+    A(snaps.length === n0 + 1, '导入未 notify');
+    var s = last();
+    A(s.grid === '4x3', 'grid=' + s.grid);
+    A(s.timeLimit === 300, 'timeLimit 钳制=' + s.timeLimit);
+    A(s.vols.bgm === 1, 'bgm 钳制=' + s.vols.bgm);
+    A(s.peekSec === 2 && s.baseScore === 100 && s.timeBonus === 10, '缺省字段未兜底');
+    A(!('junk' in s), '未知字段未剔除');
+  });
+
+  /* 13. 清除最佳纪录独立通道；恢复出厂/导入不清纪录 */
+  await T('清除最佳纪录独立通道', function () {
+    var fired = 0;
+    var off = P.onClearBest(function () { fired++; });
+    var n0 = snaps.length;
+    document.querySelector('[data-act="factory"]').click();
+    A(fired === 0, '恢复出厂误触清除通道');
+    document.querySelector('[data-act="clearbest"]').click();
+    A(fired === 1, '清除通道未触发');
+    A(snaps.length === n0 + 1, '恢复出厂应 notify 一次');
+    var s = last();
+    A(s.dailyLimit === 0, '恢复出厂未回默认 dailyLimit：' + s.dailyLimit);
+    off();
+    document.querySelector('[data-act="clearbest"]').click();
+    A(fired === 1, 'off() 未生效');
+  });
+
+  /* 14. 恢复出厂值 */
+  await T('恢复出厂设置', function () {
+    document.querySelector('[data-act="factory"]').click();
+    var s = last();
+    A(s.grid === '4x4' && s.timeLimit === 90 && s.peekSec === 2 && s.comboOn === true
+      && s.baseScore === 100 && s.timeBonus === 10 && s.dailyLimit === 0, '出厂值不对');
+    A(Math.abs(s.vols.bgm - 0.4) < 1e-9 && s.vols.sfx === 0.9 && s.vols.master === 1, '出厂音量不对');
+    A(Object.keys(s.icons).length === 0 && Object.keys(s.sounds).length === 0, '出厂未清自定义素材');
+  });
+
+  /* 15. 导出不抛异常 */
+  await T('导出配置不抛异常', function () {
+    document.querySelector('[data-act="export"]').click();
+    A(P.isOpen(), '导出后面板状态异常');
+  });
+
+  /* 16. open/close/isOpen 与中文 tab 别名 */
+  await T('open/close/isOpen与中文tab别名', function () {
+    P.close();
+    A(!P.isOpen(), 'close 后仍 isOpen');
+    P.open('玩法');
+    A(P.isOpen(), 'open 失败');
+    A(document.querySelector('.mfcp-tab[data-tab="play"]').classList.contains('mfcp-on'), '中文别名未定位玩法页');
+    P.open('数据');
+    A(document.querySelector('.mfcp-panel[data-panel="data"]').hidden === false, '数据页未显示');
+    P.close();
+  });
+
+  /* 17. open() 深拷贝外部 cfg，且后续编辑不影响 MF.cfg 本体 */
+  await T('open深拷贝MF.cfg不回写本体', function () {
+    var before = JSON.stringify(MF.cfg);
+    P.open('sound');
+    var r = document.querySelector('.mfcp-range[data-vol="sfx"]');
+    r.value = '0.3'; fire(r, 'input');
+    A(JSON.stringify(MF.cfg) === before, '编辑回写污染了 MF.cfg 本体');
+    P.close();
+  });
+
+  out.push(failed ? 'RESULT: SELFTEST-FAIL' : 'RESULT: SELFTEST-PASS');
+  var log = document.getElementById('log');
+  log.style.display = 'block';
+  log.textContent = out.join('\n');
+  document.title = failed ? 'SELFTEST-FAIL' : 'SELFTEST-PASS';
+  console.log(out.join('\n'));
+}
+
+/* ---------- 启动 ---------- */
+(function init() {
+  var qs = new URLSearchParams(location.search);
+  if (qs.get('bare') === '1') {
+    delete MF.ART; delete MF.AUDIO; delete MF.LOGIC;   // 存在性兜底自检
+  }
+  var t = qs.get('tab');
+  if (t) P.open(t);
+  if (qs.get('selftest') === '1') {
+    /* 自检模式下用 /hold 挂起 load 事件，测试完成后 /release 放行 —— 让
+       headless --dump-dom 在测试结束后才输出 DOM（FileReader 需要真实时间） */
+    var hold = document.createElement('img');
+    hold.style.display = 'none';
+    hold.src = '/hold?ts=' + Date.now();
+    document.body.appendChild(hold);
+    var done = function () { try { fetch('/release'); } catch (e) {} };
+    runSelfTest().then(done, function (e) {
+      document.title = 'SELFTEST-ERROR ' + (e && e.message);
+      done();
+    });
+  }
+})();
+</script>
+</body>
+</html>

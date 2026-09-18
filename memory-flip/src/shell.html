@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#F6EFE2">
+<title>翻牌赢好礼 · 记忆翻牌</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+  html, body { overflow: hidden; position: fixed; inset: 0; }
+  body {
+    touch-action: manipulation; user-select: none; -webkit-user-select: none;
+    font-family: -apple-system, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+    background: #E8DFCC;
+    color: #2B2622;
+  }
+  button { font-family: inherit; border: 0; background: none; cursor: pointer; color: inherit; }
+  img { display: block; -webkit-user-drag: none; }
+
+  /* ===== 通高列 ===== */
+  #mf-app {
+    position: relative; height: 100dvh; max-height: 100dvh;
+    width: min(100vw, 410px); margin: 0 auto;
+    background: #F6EFE2;
+    background-image: radial-gradient(rgba(58,46,36,.055) 1px, transparent 1.2px);
+    background-size: 16px 16px;
+    border-left: 1px solid rgba(58,46,36,.14); border-right: 1px solid rgba(58,46,36,.14);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  @media (min-width: 480px) {
+    #mf-app { border-radius: 0; }
+  }
+
+  /* ===== 顶栏 ===== */
+  #mf-top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: calc(10px + env(safe-area-inset-top)) 14px 8px;
+    border-bottom: 2px solid #2B2622;
+    background: #F6EFE2;
+    position: relative; z-index: 25; /* 盖过封面：开始页也能用声音/设置 */
+  }
+  #mf-top .brand { display: flex; align-items: center; gap: 9px; }
+  #mf-top .seal {
+    width: 34px; height: 34px; background: #B93A2B; color: #FFF6E8;
+    border: 2px solid #3A2E24; border-radius: 6px;
+    box-shadow: 2px 2px 0 rgba(58,46,36,.85);
+    display: grid; place-items: center;
+    font-family: "Songti SC", "STSong", "SimSun", serif; font-weight: 900; font-size: 19px;
+    transform: rotate(-4deg);
+  }
+  #mf-top h1 { font-size: 19px; font-weight: 900; letter-spacing: 1px; }
+  #mf-top h1 small { display: block; font-size: 10px; font-weight: 600; letter-spacing: 3px; color: #8F2B20; }
+  #mf-top .ops { display: flex; gap: 8px; }
+  #mf-top .ops button {
+    width: 36px; height: 36px; border: 2px solid #3A2E24; border-radius: 8px;
+    background: #FFF9EE; box-shadow: 2px 2px 0 rgba(58,46,36,.85);
+    display: grid; place-items: center; transition: transform .06s, box-shadow .06s;
+  }
+  #mf-top .ops button:active { transform: translate(2px, 2px); box-shadow: none; }
+  #mf-top .ops svg { width: 19px; height: 19px; }
+
+  /* ===== HUD ===== */
+  #mf-hud { padding: 10px 14px 6px; position: relative; z-index: 4; }
+  #mf-hud .timerow { display: flex; align-items: center; gap: 9px; }
+  #mf-hud .bar {
+    flex: 1; height: 12px; border: 2px solid #3A2E24; border-radius: 7px;
+    background: #FFF9EE; overflow: hidden;
+  }
+  #mf-hud .bar i {
+    display: block; height: 100%; width: 100%;
+    background: #B93A2B;
+    transition: width .25s linear;
+  }
+  #mf-hud .bar i.low { background: #8F2B20; animation: blink .5s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: .55; } }
+  #mf-time-num { font-size: 14px; font-weight: 900; min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; }
+  #mf-hud .stats {
+    display: flex; align-items: center; gap: 14px; margin-top: 7px;
+    font-size: 12px; color: #6B5F52;
+  }
+  #mf-hud .stats b { font-size: 14px; color: #2B2622; font-variant-numeric: tabular-nums; }
+  #mf-hud .stats .div { width: 1px; height: 12px; background: rgba(58,46,36,.25); }
+  #mf-combo {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 1px 8px; border: 2px solid #8F2B20; border-radius: 6px;
+    background: #F4D8A8; color: #8F2B20; font-weight: 900;
+  }
+  #mf-combo.pop { animation: comboPop .28s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes comboPop { 40% { transform: scale(1.28) rotate(-3deg); } }
+  #mf-combo[hidden] { display: none; }
+
+  /* ===== 收集栏 ===== */
+  #mf-tray { padding: 2px 14px 8px; position: relative; z-index: 4; }
+  #mf-tray .row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  #mf-tray .cap { font-size: 11px; color: #6B5F52; margin-right: 4px; white-space: nowrap; }
+  #mf-tray .cap b { color: #8F2B20; }
+  #mf-tray .slot {
+    width: 30px; height: 30px; border: 2px dashed rgba(58,46,36,.35); border-radius: 50%;
+    background: rgba(255,249,238,.6); display: grid; place-items: center; overflow: hidden;
+  }
+  #mf-tray .slot img { width: 82%; height: 82%; opacity: 0; transform: scale(.2); }
+  #mf-tray .slot.got { border: 2px solid #3A2E24; background: #F4D8A8; box-shadow: 2px 2px 0 rgba(58,46,36,.7); }
+  #mf-tray .slot.got img { opacity: 1; transform: scale(1); transition: transform .3s cubic-bezier(.3,1.8,.5,1), opacity .15s; }
+
+  /* ===== 牌桌 ===== */
+  #mf-board {
+    flex: 1; min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 4), var(--cw, 80px));
+    grid-auto-rows: var(--ch, 106px);
+    gap: clamp(6px, 1.6vw, 10px);
+    justify-content: center; align-content: center;
+    padding: 6px 14px calc(14px + env(safe-area-inset-bottom));
+    position: relative; z-index: 3;
+  }
+  .card { position: relative; width: var(--cw, 80px); height: var(--ch, 106px); perspective: 700px; display: block; padding: 0; }
+  .card-inner {
+    position: absolute; inset: 0; transform-style: preserve-3d;
+    transition: transform .45s cubic-bezier(.25, .9, .35, 1.12);
+  }
+  .card.open .card-inner, .card.peek .card-inner { transform: rotateY(180deg); }
+  .face {
+    position: absolute; inset: 0; border-radius: 8px; overflow: hidden;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    border: 2px solid #3A2E24; box-shadow: 3px 3px 0 rgba(58,46,36,.8);
+  }
+  .face.back { background: #A93426; }
+  .face.back img { width: 100%; height: 100%; object-fit: cover; }
+  .face.front {
+    transform: rotateY(180deg);
+    background: #FFF9EE;
+    display: grid; place-items: center;
+  }
+  .face.front img { width: 76%; height: 76%; object-fit: contain; }
+  .card:active .card-inner { transition-duration: .3s; }
+  .card.matched { pointer-events: none; }
+  .card.matched .face.front { border-color: #C99A3C; box-shadow: 3px 3px 0 rgba(201,154,60,.55); }
+  .card.matched .face.front::after {
+    content: ""; position: absolute; right: 3px; top: 3px; width: 10px; height: 10px;
+    background: #C99A3C; border-radius: 50%; border: 1.5px solid #3A2E24;
+  }
+  .card.wrong { animation: shake .4s; }
+  @keyframes shake {
+    20% { transform: translateX(-4px); } 40% { transform: translateX(4px); }
+    60% { transform: translateX(-3px); } 80% { transform: translateX(2px); }
+  }
+  .card.hit { animation: hitPop .35s cubic-bezier(.3,1.8,.5,1); }
+  @keyframes hitPop { 45% { transform: scale(1.09); } }
+
+  /* ===== 封面 ===== */
+  #mf-cover {
+    position: absolute; inset: 0; z-index: 20;
+    background: #F6EFE2;
+    background-image: radial-gradient(rgba(58,46,36,.055) 1px, transparent 1.2px);
+    background-size: 16px 16px;
+    display: flex; flex-direction: column;
+    padding: calc(70px + env(safe-area-inset-top)) 22px calc(16px + env(safe-area-inset-bottom));
+    overflow-y: auto; overscroll-behavior: contain;
+    transition: transform .4s cubic-bezier(.4,0,.2,1), opacity .35s;
+  }
+  #mf-cover.off { transform: translateY(-14px); opacity: 0; pointer-events: none; }
+  #mf-cover .hero { text-align: center; padding: 10px 0 4px; }
+  #mf-cover .hero .seal {
+    width: 58px; height: 58px; margin: 0 auto 12px;
+    background: #B93A2B; color: #FFF6E8;
+    border: 2.5px solid #3A2E24; border-radius: 10px;
+    box-shadow: 3px 3px 0 rgba(58,46,36,.85);
+    display: grid; place-items: center;
+    font-family: "Songti SC", "STSong", "SimSun", serif; font-weight: 900; font-size: 32px;
+    transform: rotate(-5deg);
+  }
+  #mf-cover .hero h2 {
+    font-family: "Songti SC", "STSong", "SimSun", serif;
+    font-size: 34px; font-weight: 900; letter-spacing: 4px; color: #B93A2B;
+  }
+  #mf-cover .hero .sub { margin-top: 6px; font-size: 12px; letter-spacing: 5px; color: #6B5F52; }
+  #mf-cover .rules { margin: 18px 0 0; border-top: 2px solid #2B2622; }
+  #mf-cover .rules li {
+    list-style: none; display: flex; gap: 10px; align-items: baseline;
+    padding: 9px 2px; border-bottom: 1px solid rgba(58,46,36,.2);
+    font-size: 13px; line-height: 1.5;
+  }
+  #mf-cover .rules li i { font-style: normal; font-weight: 900; color: #B93A2B; font-size: 12px; }
+  #mf-cover .sec { margin-top: 16px; font-size: 12px; font-weight: 900; letter-spacing: 2px; color: #6B5F52; }
+  #mf-diff { display: flex; margin-top: 8px; border: 2px solid #3A2E24; border-radius: 8px; overflow: hidden; background: #FFF9EE; box-shadow: 3px 3px 0 rgba(58,46,36,.85); }
+  #mf-diff button {
+    flex: 1; padding: 10px 0 8px; text-align: center; font-size: 13px; font-weight: 700;
+    border-right: 2px solid #3A2E24; color: #2B2622;
+  }
+  #mf-diff button:last-child { border-right: 0; }
+  #mf-diff button small { display: block; font-size: 10px; font-weight: 500; color: #6B5F52; margin-top: 1px; }
+  #mf-diff button.on { background: #B93A2B; color: #FFF6E8; }
+  #mf-diff button.on small { color: #F4D8A8; }
+  #mf-best { margin-top: 10px; font-size: 12px; color: #6B5F52; min-height: 18px; }
+  #mf-best b { color: #8F2B20; }
+  #mf-btn-start {
+    margin-top: 16px; padding: 15px 0;
+    background: #B93A2B; color: #FFF6E8;
+    border: 2.5px solid #3A2E24; border-radius: 10px;
+    box-shadow: 4px 4px 0 rgba(58,46,36,.9);
+    font-size: 18px; font-weight: 900; letter-spacing: 6px;
+    transition: transform .06s, box-shadow .06s;
+  }
+  #mf-btn-start:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 rgba(58,46,36,.9); }
+  #mf-btn-start[disabled] { background: #B7A893; color: #F6EFE2; }
+  #mf-plays { margin-top: 10px; text-align: center; font-size: 12px; color: #6B5F52; min-height: 16px; }
+  #mf-plays b { color: #8F2B20; }
+  #mf-cover .foot { margin-top: auto; padding-top: 14px; text-align: center; font-size: 10px; letter-spacing: 2px; color: rgba(58,46,36,.4); }
+
+  /* ===== 结算 ===== */
+  #mf-result {
+    position: absolute; inset: 0; z-index: 30;
+    background: rgba(43,38,34,.5);
+    display: grid; place-items: center; padding: 20px;
+  }
+  #mf-result[hidden] { display: none; }
+  #mf-result .paper {
+    width: min(100%, 330px);
+    background: #FFF9EE;
+    background-image: radial-gradient(rgba(58,46,36,.05) 1px, transparent 1.2px);
+    background-size: 14px 14px;
+    border: 2.5px solid #3A2E24; border-radius: 12px;
+    box-shadow: 6px 6px 0 rgba(43,38,34,.55);
+    padding: 22px 20px calc(18px);
+    text-align: center;
+    animation: paperIn .38s cubic-bezier(.3,1.4,.5,1);
+  }
+  @keyframes paperIn { from { transform: translateY(26px) scale(.94); opacity: 0; } }
+  #mf-result .rt { font-size: 12px; letter-spacing: 4px; color: #6B5F52; }
+  #mf-result h3 { font-family: "Songti SC", "STSong", serif; font-size: 26px; font-weight: 900; color: #B93A2B; margin-top: 2px; letter-spacing: 3px; }
+  #mf-result .starRow { display: flex; justify-content: center; gap: 6px; margin: 10px 0 4px; }
+  #mf-result .starRow svg { width: 34px; height: 34px; }
+  #mf-result .starRow svg path { fill: #C99A3C; stroke: #3A2E24; stroke-width: 1.6; }
+  #mf-result .starRow .st { opacity: .22; transform: scale(.85); }
+  #mf-result .starRow .st.on { opacity: 1; animation: starPop .4s cubic-bezier(.3,1.8,.5,1) backwards; }
+  @keyframes starPop { 55% { transform: scale(1.35) rotate(8deg); } }
+  #mf-result .bigscore { font-size: 40px; font-weight: 900; color: #2B2622; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  #mf-result .bigscore small { font-size: 12px; font-weight: 700; color: #6B5F52; letter-spacing: 2px; display: block; }
+  #mf-result .rows { margin: 14px 0 0; border-top: 1.5px solid rgba(58,46,36,.25); }
+  #mf-result .rows div {
+    display: flex; justify-content: space-between; padding: 7px 2px;
+    border-bottom: 1px solid rgba(58,46,36,.18); font-size: 13px; color: #6B5F52;
+  }
+  #mf-result .rows div b { color: #2B2622; font-variant-numeric: tabular-nums; }
+  #mf-result .prizeRow {
+    display: flex; justify-content: center; gap: 5px; flex-wrap: wrap;
+    margin: 13px 0 0; padding: 10px 8px;
+    border: 2px dashed rgba(143,43,32,.5); border-radius: 8px; background: #FBF3DF;
+  }
+  #mf-result .prizeRow img { width: 30px; height: 30px; }
+  #mf-result .prizeRow .lack { align-self: center; font-size: 12px; color: #6B5F52; }
+  #mf-result .code {
+    margin-top: 12px; padding: 9px; border: 2px solid #8F2B20; border-radius: 8px;
+    background: #F4D8A8; font-weight: 900; letter-spacing: 2px; color: #8F2B20; font-size: 17px;
+  }
+  #mf-result .btns { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+  #mf-result .btns button {
+    padding: 12px 0; border: 2.5px solid #3A2E24; border-radius: 9px;
+    font-size: 15px; font-weight: 900; letter-spacing: 3px;
+    box-shadow: 3px 3px 0 rgba(58,46,36,.85);
+    transition: transform .06s, box-shadow .06s;
+  }
+  #mf-result .btns button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(58,46,36,.85); }
+  #mf-result .btns .main { background: #B93A2B; color: #FFF6E8; }
+  #mf-result .btns .ghost { background: #FFF9EE; color: #2B2622; }
+
+  /* ===== FX 容器 / toast ===== */
+  #mf-fx { position: absolute; inset: 0; z-index: 40; pointer-events: none; overflow: hidden; }
+  #mf-toast {
+    position: absolute; left: 50%; bottom: calc(64px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(8px);
+    background: #2B2622; color: #F6EFE2; font-size: 13px;
+    padding: 9px 16px; border-radius: 8px; border: 2px solid #F6EFE2;
+    opacity: 0; pointer-events: none; transition: opacity .22s, transform .22s;
+    z-index: 60; max-width: 82%; text-align: center;
+  }
+  #mf-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div id="mf-app">
+  <header id="mf-top">
+    <div class="brand">
+      <span class="seal">礼</span>
+      <h1>翻牌赢好礼<small>MEMORY FLIP</small></h1>
+    </div>
+    <div class="ops">
+      <button id="mf-btn-sound" aria-label="声音开关"></button>
+      <button id="mf-btn-cfg" aria-label="设置"></button>
+    </div>
+  </header>
+
+  <section id="mf-hud">
+    <div class="timerow">
+      <div class="bar"><i id="mf-timebar"></i></div>
+      <b id="mf-time-num">--</b>
+    </div>
+    <div class="stats">
+      <span>步数 <b id="mf-moves">0</b></span>
+      <span class="div"></span>
+      <span id="mf-combo" hidden>连击×<b id="mf-combo-n">2</b></span>
+      <span class="div"></span>
+      <span>得分 <b id="mf-score">0</b></span>
+    </div>
+  </section>
+
+  <section id="mf-tray"><div class="row" id="mf-tray-row"></div></section>
+
+  <main id="mf-board" aria-label="牌桌"></main>
+
+  <div id="mf-cover">
+    <div class="hero">
+      <div class="seal">礼</div>
+      <h2>翻牌赢好礼</h2>
+      <div class="sub">经 典 记 忆 翻 牌 挑 战</div>
+    </div>
+    <ul class="rules">
+      <li><i>01</i>开局有短暂记忆时间，亮出的卡面要记牢</li>
+      <li><i>02</i>连续配对成功触发连击，奖励分数翻倍</li>
+      <li><i>03</i>限定时间内全部配对成功，即可领取全部好礼</li>
+    </ul>
+    <div class="sec">选择难度</div>
+    <div id="mf-diff"></div>
+    <div id="mf-best"></div>
+    <button id="mf-btn-start">开始挑战</button>
+    <div id="mf-plays"></div>
+    <div class="foot">活动最终解释权归本店所有 · 纯本地演示</div>
+  </div>
+
+  <div id="mf-result" hidden>
+    <div class="paper">
+      <div class="rt" id="mf-rt">挑战结果</div>
+      <h3 id="mf-rt-title">挑战成功</h3>
+      <div class="starRow" id="mf-stars"></div>
+      <div class="bigscore"><span id="mf-r-score">0</span><small>本局得分</small></div>
+      <div class="rows" id="mf-rows"></div>
+      <div class="prizeRow" id="mf-prizes"></div>
+      <div class="code" id="mf-code" hidden></div>
+      <div class="btns">
+        <button class="main" id="mf-btn-claim">一键领取好礼</button>
+        <button class="ghost" id="mf-btn-again">再来一局</button>
+        <button class="ghost" id="mf-btn-share" hidden>分享战绩</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mf-cfg-host"></div>
+  <div id="mf-fx"></div>
+  <div id="mf-toast"></div>
+</div>
+<!-- MODULE_SCRIPTS -->
+</body>
+</html>
