@@ -52,14 +52,15 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
 
 /* ---------- 开局准备 ---------- */
 #page-setup { padding: 0 0 calc(env(safe-area-inset-bottom, 0px) + 12px); overflow-y: auto; }
-.su-head { display: flex; align-items: center; gap: 14px; padding: calc(env(safe-area-inset-top, 0px) + 12px) 20px 10px; }
+.su-head { display: flex; align-items: center; gap: 14px; padding: calc(env(safe-area-inset-top, 0px) + 14px) 20px 10px; }
 #su-back { width: 34px; height: 34px; border-radius: 9px; background: var(--panel2); display: flex; align-items: center; justify-content: center; }
 #su-back img { width: 18px; height: 18px; }
 .su-head h1 { font-size: 21px; font-weight: 700; }
-.tags { display: flex; gap: 15px; padding: 4px 20px 10px; overflow-x: auto; white-space: nowrap; }
-.tags span { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--text); }
+.tags { display: flex; gap: 9px; padding: 4px 14px 10px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+.tags::-webkit-scrollbar { display: none; }
+.tags span { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; color: var(--text); flex: none; }
 .tags span[data-lock] { color: var(--dim); }
-.tags span img { width: 14px; height: 14px; }
+.tags span img { width: 12px; height: 12px; }
 .su-body { flex: 1; padding: 0 20px; }
 .sec { display: flex; align-items: baseline; gap: 10px; margin: 13px 0 8px; }
 .sec .no { color: var(--rose); font-size: 14px; font-weight: 700; }
@@ -89,7 +90,8 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
 .st .cur { display: inline-flex; align-items: center; gap: 5px; color: var(--rose); font-size: 12px; margin-top: 4px; }
 .st .cur::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--rose); }
 .st .lk { position: absolute; top: 12px; right: 12px; width: 12px; height: 12px; opacity: .6; }
-.st .ul { color: var(--dim); font-size: 12px; margin-top: 4px; }
+.st .ul { color: var(--dim); font-size: 11.5px; margin-top: 4px; }
+.st .ul.done { color: var(--rose); }
 .su-foot { padding: 12px 20px 0; border-top: 1px solid var(--line); margin-top: 12px; }
 #su-go { width: 100%; padding: 14px; font-size: 16px; border-radius: 12px; }
 #su-first { text-align: center; color: var(--dim); font-size: 12px; margin-top: 8px; }
@@ -163,6 +165,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
 .rp-slogan { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
 .rp-slogan b { font-size: 17px; }
 #rp-qr { width: 62px; height: 62px; background: #fff; border-radius: 6px; padding: 4px; }
+.bailout { margin-top: 14px; border: 1.5px dashed var(--rose); border-radius: 10px; padding: 12px; text-align: center; color: var(--rose); font-size: 14px; background: rgba(244,63,94,0.06); cursor: pointer; }
 .rp-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
 .rp-btns .btn { padding: 11px; font-size: 14.5px; }
 #rp-again { background: var(--rose); color: #fff; font-weight: 600; }
@@ -200,6 +203,10 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
 .cfg-switches { display: flex; gap: 22px; }
 .cfg-sw { display: inline-flex; align-items: center; gap: 8px; color: var(--text); }
 .cfg-io { display: flex; gap: 10px; }
+.cfg-recharge { display: flex; gap: 8px; }
+.cfg-recharge .btn { flex: 1; }
+.pay-amt { font-size: 36px; font-weight: 800; margin: 6px 0 10px; }
+.dlg-card.pay h3 { color: var(--text); }
 .cfg-foot { display: flex; gap: 10px; margin-top: 18px; }
 .cfg-foot .btn { flex: 1; }
 
@@ -247,10 +254,10 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       <span data-name="dividend"><img data-ic="dividend" alt="">股息</span>
       <span data-name="buyback"><img data-ic="buyback" alt="">回购</span>
       <span data-name="issue"><img data-ic="issue" alt="">增发</span>
-      <span data-lock="1"><img data-ic="bank" alt="">银行借款</span>
-      <span data-lock="1"><img data-ic="microloan" alt="">小额贷</span>
-      <span data-lock="1"><img data-ic="leverage" alt="">杠杆</span>
-      <span data-lock="1"><img data-ic="short" alt="">做空</span>
+      <span data-lock="1" id="tg-bank"><img data-ic="bank" alt="">银行借款</span>
+      <span data-lock="1" id="tg-micro"><img data-ic="microloan" alt="">小额贷</span>
+      <span data-lock="1" id="tg-lev"><img data-ic="leverage" alt="">杠杆</span>
+      <span data-lock="1" id="tg-short"><img data-ic="short" alt="">做空</span>
     </div>
     <div class="su-body">
       <div class="sec"><span class="no">01</span><h2>选择市场</h2></div>
@@ -258,7 +265,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
         <button class="mk on" data-mk="main">主板</button>
         <button class="mk" data-mk="cy">创业板 · 未解锁<img class="lk" id="lk1" data-ic="lock" alt=""></button>
       </div>
-      <div class="su-note">涨跌幅限制 ±10% · 年化股息 2.5%<br>创业板：总资产达到 ¥200,000 后开放</div>
+      <div class="su-note">涨跌幅限制 ±10% · 年化股息 2.5%<br><span id="su-cy-note">创业板：总资产达到 ¥200,000 后开放</span></div>
 
       <div class="sec"><span class="no">02</span><h2>本局投入</h2>
         <span class="side"><button id="su-borrow">借款加仓 ›</button></span>
@@ -276,17 +283,17 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
 
       <div class="sec"><span class="no">03</span><h2>交易风格</h2></div>
       <div class="styles">
-        <button class="st on" data-st="half">
+        <button class="st" data-st="half">
           <b>半仓滚动</b><i>每次使用一半资金</i><span class="cur">当前使用</span>
         </button>
         <button class="st" data-st="all">
-          <img class="lk" id="lk2" data-ic="lock" alt=""><b>梭哈</b><i>每次全额投入</i><span class="ul">未解锁</span>
+          <img class="lk" id="lk2" data-ic="lock" alt=""><b>梭哈</b><i>每次全额投入</i><span class="ul" id="ul-all">未解锁</span>
         </button>
         <button class="st" data-st="grid">
-          <img class="lk" id="lk3" data-ic="lock" alt=""><b>定额分批</b><i>按份固定金额</i><span class="ul">未解锁</span>
+          <img class="lk" id="lk3" data-ic="lock" alt=""><b>定额分批</b><i>按份固定金额</i><span class="ul" id="ul-grid">未解锁</span>
         </button>
         <button class="st" data-st="light">
-          <img class="lk" id="lk4" data-ic="lock" alt=""><b>轻仓试探</b><i>每次使用四分之一资金</i><span class="ul">未解锁</span>
+          <img class="lk" id="lk4" data-ic="lock" alt=""><b>轻仓试探</b><i>每次使用四分之一资金</i><span class="ul" id="ul-light">未解锁</span>
         </button>
       </div>
       <div class="su-note">每次投入剩余可用现金的 50%，可连续加仓。<br>碰挡板或触边结束：浮盈需平仓兑现，浮亏扣除。</div>
@@ -361,6 +368,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
         <img id="rp-qr" alt="">
       </div>
     </div>
+    <div id="rp-bailout" class="bailout" style="display:none">东山再起：领取 <b>¥25,000</b> 重启资金 →</div>
     <div class="rp-btns">
       <button id="rp-detail" class="btn">查看明细</button>
       <button id="rp-shot" class="btn">截图模式</button>
@@ -1120,6 +1128,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   function importJSON(str) { var o = JSON.parse(str); apply(o); }
 
   // ---------- 面板 ----------
+  var $ = function (id) { return document.getElementById(id); };
   var panel = null;
   function openPanel() {
     if (!panel) build();
@@ -1181,6 +1190,44 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       sw1.appendChild(l);
     });
     card.appendChild(sw1);
+    // 充值中心（虚拟资金）
+    var rc = el('div', 'cfg-row');
+    rc.innerHTML = '<label>充值中心 <i style="font-style:normal;opacity:.6">虚拟资金 · 仅用于游戏</i></label>';
+    var rcRow = el('div', 'cfg-recharge');
+    [10000, 100000, 1000000].forEach(function (amt) {
+      var b = el('button', 'btn ghost sm', '+¥' + (amt >= 10000 ? (amt / 10000) + '万' : amt));
+      b.onclick = function () { openPay(amt, b); };
+      rcRow.appendChild(b);
+    });
+    rc.appendChild(rcRow);
+    card.appendChild(rc);
+    // 模拟支付确认
+    var payDlg = null;
+    function openPay(amt, btn) {
+      if (!payDlg) {
+        payDlg = document.createElement('div');
+        payDlg.className = 'dlg';
+        payDlg.innerHTML = '<div class="dlg-card pay"><h3>模拟支付</h3>' +
+          '<div class="pay-amt">¥<b id="pay-amt">0</b></div>' +
+          '<p class="dim">这是游戏虚拟资金充值，不涉及任何真实货币，点击即到账。</p>' +
+          '<button class="btn primary" id="pay-ok">确认支付</button>' +
+          '<button class="btn ghost" id="pay-no">取消</button></div>';
+        document.body.appendChild(payDlg);
+        $('pay-no').onclick = function () { payDlg.classList.remove('show'); };
+      }
+      $('pay-amt').textContent = amt.toLocaleString('en-US');
+      var ok = $('pay-ok');
+      ok.textContent = '确认支付'; ok.disabled = false;
+      ok.onclick = function () {
+        ok.disabled = true; ok.textContent = '支付中…';
+        setTimeout(function () {
+          payDlg.classList.remove('show');
+          if (BF.UI && BF.UI.recharge) BF.UI.recharge(amt);
+          if (BF.SFX && BF.SFX.play) { try { BF.SFX.play('buy'); } catch (e) {} }
+        }, 700);
+      };
+      payDlg.classList.add('show');
+    }
     // 导出导入
     var io = el('div', 'cfg-row cfg-io');
     var be = el('button', 'btn ghost sm', '导出配置');
@@ -1245,7 +1292,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   }
   var CANDLE_KEEP = 90, NAV_EVERY = 5, NAV_KEEP = 720;
 
-  function newRound(principal, loan) {
+  function newRound(principal, loan, style, market) {
     cfgCache = null;
     var c = cfg();
     S = {
@@ -1254,6 +1301,8 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       realized: 0, fees: 0, tradeN: 0,
       price: 100, vy: 0, peakPrice: 100, lowPrice: 100,
       status: 'ready',           // ready→flying→dead
+      style: style || 'half',    // 交易风格：half|all|grid|light（缺省 half，兼容旧调用）
+      market: market || 'main',  // 市场：main|cy（缺省 main，兼容旧调用）
       ticks: 0, candleN: 0, firstBuyAt: Math.round(0.4 * 60),
       candles: [], cur: null,
       nav: [], navPeak: 0, maxDD: 0,
@@ -1288,10 +1337,18 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   function nav() { return S.cash + S.shares * S.price - S.loan; }
   function avgCost() { return S.shares > 0 ? S.costBasis / S.shares : 0; }
 
-  function doBuy(style) {
+  // 本次买入金额：按交易风格（S 上无 style 时回退 half，与旧行为一致）
+  function buyAmount() {
+    if (!S) return 0;
+    var st = S.style || 'half';
+    if (st === 'all') return S.cash;                          // 梭哈：剩余现金全上
+    if (st === 'grid') return Math.min(S.invested * 0.25, S.cash); // 定额分批：投入×25%，不足用余款
+    if (st === 'light') return S.cash * 0.25;                 // 轻仓试探
+    return S.cash * 0.5;                                      // half 及未知值回退
+  }
+  function doBuy() {
     var c = cfg();
-    var ratio = style || 0.5;
-    var amt = S.cash * ratio;
+    var amt = buyAmount();
     if (amt < 1 || S.price <= 0) return null;
     var fee = amt * c.feeRate;
     var sh = (amt - fee) / S.price;
@@ -1327,7 +1384,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
     // 首仓
     if (S.firstBuyAt >= 0) {
       S.firstBuyAt -= dt * 60;
-      if (S.firstBuyAt < 0) { var tr0 = doBuy(0.5); if (tr0) tr0.auto = 'open'; }
+      if (S.firstBuyAt < 0) { var tr0 = doBuy(); if (tr0) tr0.auto = 'open'; }
     }
     // 蜡烛由 game 层按世界滚动距离驱动 finalize（每 56px 一根），保证与滚动严格同步；
     // 此处只更新当前未完成蜡烛的 h/l/c
@@ -1335,9 +1392,10 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
     S.cur.c = S.price;
     if (S.price > S.cur.h) S.cur.h = S.price;
     if (S.price < S.cur.l) S.cur.l = S.price;
-    // 股息（持仓派息，游戏化：10 分钟≈一年）
+    // 股息（持仓派息，游戏化：10 分钟≈一年；创业板年化 5%，主板 2.5%）
     if (S.shares > 0) {
-      var div = S.shares * S.price * 0.025 * dt / 600;
+      var divRate = S.market === 'cy' ? 0.05 : 0.025;
+      var div = S.shares * S.price * divRate * dt / 600;
       S.cash += div; S.realized += div; S.divAcc += div;
     }
     // NAV 曲线 + 回撤
@@ -1398,6 +1456,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   LOGIC.pushPrice = pushPrice;
   LOGIC.finalizeCandle = finalizeCandle;
   LOGIC.buy = doBuy;
+  LOGIC.buyAmount = buyAmount;
   LOGIC.sellAll = doSell;
   LOGIC.finish = finish;
   LOGIC.nav = function () { return S ? nav() : 0; };
@@ -1437,6 +1496,9 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   function cfg(k, d) {
     try { var c = BF.CFG.all(); return c[k] !== undefined ? c[k] : d; } catch (e) { return d; }
   }
+  // 市场乘数（S 上无 market 时恒为 1，与旧行为一致）：创业板买入机会更频繁 / 噪声更大
+  function buyEveryMul() { var s = BF.LOGIC.state(); return s && s.market === 'cy' ? 0.6 : 1; }
+  function noiseMul() { var s = BF.LOGIC.state(); return s && s.market === 'cy' ? 1.9 : 1; }
   function chartTop() { return H * 0.02; }
   function chartH() { return H - chartTop() * 2; }
   function priceToY(p) { return chartTop() + (110 - p) / 20 * chartH(); }
@@ -1448,8 +1510,8 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
     spawnedPipes = 0; btnTimer = 0; hintTimer = 0; aiCool = 0; finishPending = 0; deathCause = '';
     candleBoundary = GAP;
     limitT = 0; limitHinted = false;
-    // 缓和的开局：首个管道 ~5s 后、首个买钮 ~2s 后
-    nextPipeAt = 9; nextBuyAt = 2.2; nextSellAt = 6;
+    // 缓和的开局：首个管道 ~5s 后、首个买钮 ~2s 后（创业板买入机会 ×0.6 更频繁）
+    nextPipeAt = 9; nextBuyAt = 2.2 * buyEveryMul(); nextSellAt = 6;
     lastGapY = priceToY(100);
     bull.x = W * bullXRatio; bull.y = priceToY(100); bull.vy = -240; bull.tilt = 0;
     bull.dead = false; bull.deadRot = 0;
@@ -1562,7 +1624,8 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       var g = cfg('gravity', 540);
       bull.vy += g * dt;
       bull.vy = Math.min(bull.vy, cfg('maxFall', 250));   // 下坠封顶：停手有反应时间
-      bull.vy += (Math.random() - 0.5) * cfg('noise', 20) * 60 * dt;
+      var noise = cfg('noise', 20) * noiseMul();          // 创业板噪声 ×1.9，只影响噪声不影响重力/跳力
+      bull.vy += (Math.random() - 0.5) * noise * 60 * dt;
       bull.y += bull.vy * dt;
       bull.tilt = Math.max(-0.42, Math.min(0.75, bull.vy / 560));
       bull.wing += dt * (bull.vy < 0 ? 15 : 9);
@@ -1571,7 +1634,8 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       if (worldX > nextPipeAt * GAP) { spawnPipe(); spawnedPipes++; nextPipeAt = worldX / GAP + pe[0] + Math.random() * (pe[1] - pe[0]); }
       btnTimer += dt;
       var be = [Number(cfg('buyEveryMin', 4)), Number(cfg('buyEveryMax', 7))];
-      if (btnTimer > nextBuyAt) { spawnButton('buy'); nextBuyAt = be[0] + Math.random() * (be[1] - be[0]); btnTimer = 0; }
+      var beK = buyEveryMul();   // 创业板间隔 ×0.6
+      if (btnTimer > nextBuyAt) { spawnButton('buy'); nextBuyAt = (be[0] + Math.random() * (be[1] - be[0])) * beK; btnTimer = 0; }
       if (s.shares > 0) { hintTimer += dt; if (hintTimer > 8) { spawnButton('sell'); hintTimer = 0; } }
       // AI 自动演示：追踪最近管道 gap 中心
       if (opts.auto) {
@@ -1603,7 +1667,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
         var dx = btx - bx, dy = bt.y - by;
         if (dx * dx + dy * dy < (bt.r + 16) * (bt.r + 16)) {
           if (bt.kind === 'buy') {
-            var tr = BF.LOGIC.buy(0.5);
+            var tr = BF.LOGIC.buy();
             if (tr) {
               try { BF.SFX.play('buy'); } catch (e) {}
               var f = BF.FX;
@@ -1925,16 +1989,49 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   var page = 'hall';
   var setup = { ratio: 1, amount: 0, borrow: 0 };
   var curReport = null;
+  var toast = function (s) { UI.toast(s); };  // 局部便捷引用（运行时 UI.toast 已就绪）
 
   // ---------- 存档 ----------
   var SAVE_KEY = 'bf.save.v1';
-  function loadSave() {
-    try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || defSave(); } catch (e) { return defSave(); }
+  function defSave() {
+    return { principal: 25892, asset: 25892, best: null, rounds: 0, totalTrades: 0,
+      style: 'half', market: 'main', rechargeTotal: 0, lastReport: null };
   }
-  function defSave() { return { principal: 25892, asset: 25892, best: null, rounds: 0, lastReport: null }; }
+  function loadSave() {
+    try {
+      var o = JSON.parse(localStorage.getItem(SAVE_KEY));
+      return o ? Object.assign(defSave(), o) : defSave();
+    } catch (e) { return defSave(); }
+  }
   function persistSave(s) { try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {} }
   var save = loadSave();
   UI.save = function () { return save; };
+
+  // ---------- 解锁条件表 ----------
+  var UNLOCKS = {
+    cy:    { need: '总资产达到 ¥200,000', ok: function () { return save.asset >= 200000; } },
+    all:   { need: '累计完成 5 局', ok: function () { return (save.rounds || 0) >= 5; } },
+    grid:  { need: '累计成交 30 笔', ok: function () { return (save.totalTrades || 0) >= 30; } },
+    light: { need: '最佳收益 ≥ +8%', ok: function () { return save.best != null && save.best >= 0.08; } },
+    bank:  { need: '累计完成 3 局', ok: function () { return (save.rounds || 0) >= 3; } },
+    micro: { need: '总资产达到 ¥50,000', ok: function () { return save.asset >= 50000; } },
+    lev:   { need: '总资产达到 ¥100,000', ok: function () { return save.asset >= 100000; } }
+  };
+  UI.unlocked = function (k) { return !!(UNLOCKS[k] && UNLOCKS[k].ok()); };
+  function borrowCap() {
+    var r = UI.unlocked('lev') ? 2.0 : UI.unlocked('micro') ? 1.0 : UI.unlocked('bank') ? 0.75 : 0.5;
+    return { ratio: r, cap: Math.round(save.asset * r) };
+  }
+  UI.borrowCap = borrowCap;
+  UI.recharge = function (amt) {
+    amt = Math.max(0, Math.round(amt || 0));
+    if (!amt) return;
+    save.asset += amt;
+    save.rechargeTotal = (save.rechargeTotal || 0) + amt;
+    persistSave(save);
+    UI.toast('充值成功：+¥' + fmt(amt, 0) + ' 已到账（累计充值 ¥' + fmt(save.rechargeTotal, 0) + '）');
+    if (page === 'hall') fillHall();
+  };
 
   // ---------- 页面切换 ----------
   UI.show = function (p) {
@@ -1960,16 +2057,64 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   }
 
   // ---------- 开局准备 ----------
+  function refreshLocks() {
+    // 交易风格卡：解锁态文案 + 当前使用
+    document.querySelectorAll('#page-setup .styles .st').forEach(function (b) {
+      var k = b.dataset.st;
+      var un = k === 'half' || UI.unlocked(k);
+      var ul = b.querySelector('.ul');
+      if (ul) {
+        if (un) { ul.textContent = '已解锁 · 点击选用'; ul.classList.add('done'); }
+        else { ul.textContent = UNLOCKS[k].need + ' 后解锁'; ul.classList.remove('done'); }
+      }
+      var lk = b.querySelector('.lk');
+      if (lk) lk.style.display = un ? 'none' : '';
+      var on = save.style === k && un;
+      b.classList.toggle('on', on);
+      var cur = b.querySelector('.cur');
+      if (cur) cur.style.display = on ? '' : 'none';
+    });
+    // 市场卡
+    var cyOk = UI.unlocked('cy');
+    var cyBtn = document.querySelector('.mk[data-mk="cy"]');
+    if (cyBtn) {
+      cyBtn.innerHTML = cyOk ? '创业板' : '创业板 · 未解锁<img class="lk" id="lk1" data-ic="lock" alt="">';
+      if (!cyOk && BF.ART && BF.ART.ready && BF.ART.icon) {
+        var im = cyBtn.querySelector('.lk'); if (im) im.src = BF.ART.icon('lock');
+      }
+      cyBtn.classList.toggle('on', cyOk && save.market === 'cy');
+    }
+    var mkMain = document.querySelector('.mk[data-mk="main"]');
+    if (mkMain) mkMain.classList.toggle('on', save.market !== 'cy');
+    var cyNote = $('su-cy-note');
+    if (cyNote) cyNote.textContent = cyOk ? '创业板已开放：波动 ×1.9 · 股息 5% · 买入机会更频繁'
+                                         : '创业板：' + UNLOCKS.cy.need + '后开放';
+    // 顶部功能标签：解锁链
+    var tg = { 'tg-bank': 'bank', 'tg-micro': 'micro', 'tg-lev': 'lev' };
+    Object.keys(tg).forEach(function (id) {
+      var el = $(id); if (!el) return;
+      var k = tg[id];
+      if (UI.unlocked(k)) { el.removeAttribute('data-lock'); el.style.opacity = '1'; }
+      else { el.setAttribute('data-lock', '1'); }
+    });
+    var short = $('tg-short');
+    if (short) short.setAttribute('data-lock', '1');
+    // 首仓文案随风格
+    var styleR = { half: 0.5, all: 1, grid: 0.25, light: 0.25 }[save.style] || 0.5;
+    return styleR;
+  }
   function fillSetup() {
     var base = save.asset;
+    var styleR = refreshLocks();
+    var cap = borrowCap();
     setup.amount = Math.round(base * setup.ratio);
-    setup.borrow = Math.min(setup.borrow || 0, Math.round(base * 0.5));
+    setup.borrow = Math.min(setup.borrow || 0, cap.cap);
     $('su-amount').textContent = '¥' + fmt(setup.amount + setup.borrow, 0);
     $('su-pct').textContent = Math.round(setup.ratio * 100) + '%';
     $('su-enter').textContent = '本局入场 ¥' + fmt(setup.amount + setup.borrow, 0) + '  /  预留 ¥' + fmt(base - setup.amount, 0);
     $('su-debt').textContent = '总负债 ¥' + fmt(setup.borrow, 2);
     var total = setup.amount + setup.borrow;
-    var first = total * 0.5;
+    var first = total * styleR;
     $('su-first').textContent = '首笔持仓 ¥' + fmt(first - first * 0.0004, 2) + ' · 税费 ¥' + (first * 0.0004).toFixed(2);
     $('su-go').textContent = '投入 ¥' + fmt(total, 0) + ' · 开盘 →';
     var slider = $('su-slider');
@@ -1983,8 +2128,12 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
     $('su-back').onclick = function () { UI.show('hall'); };
     document.querySelectorAll('#page-setup .market .mk').forEach(function (b) {
       b.onclick = function () {
-        if (b.dataset.mk === 'cy') toast('创业板：总资产达到 ¥200,000 后开放');
-        else { document.querySelectorAll('#page-setup .market .mk').forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); }
+        if (b.dataset.mk === 'cy') {
+          if (!UI.unlocked('cy')) { toast('创业板解锁条件：' + UNLOCKS.cy.need + '（当前 ¥' + fmt(save.asset, 0) + '）'); return; }
+          save.market = 'cy';
+        } else save.market = 'main';
+        persistSave(save);
+        refreshLocks(); fillSetup();
       };
     });
     document.querySelectorAll('#page-setup .quick button').forEach(function (b) {
@@ -1996,16 +2145,27 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       fillSetup();
     };
     $('su-borrow').onclick = openBorrow;
-    document.querySelectorAll('#page-setup .style .st').forEach(function (b) {
-      b.onclick = function () { if (!b.classList.contains('on')) toast('该交易风格未解锁'); };
+    document.querySelectorAll('#page-setup .styles .st').forEach(function (b) {
+      b.onclick = function () {
+        var k = b.dataset.st;
+        if (k !== 'half' && !UI.unlocked(k)) { toast('「' + b.querySelector('b').textContent + '」解锁条件：' + UNLOCKS[k].need); return; }
+        save.style = k; persistSave(save);
+        refreshLocks(); fillSetup();
+      };
     });
     document.querySelectorAll('#page-setup .tags span').forEach(function (s) {
-      s.onclick = function () { if (s.dataset.lock) toast('「' + s.textContent + '」未解锁'); };
+      s.onclick = function () {
+        if (s.id === 'tg-short') { toast('做空正在研发中，敬请期待'); return; }
+        if (s.id === 'tg-bank' && UI.unlocked('bank')) { toast('银行借款已开放：借款上限提升至 75%'); return; }
+        if (s.id === 'tg-micro' && UI.unlocked('micro')) { toast('小额贷已开放：借款上限提升至 100%'); return; }
+        if (s.id === 'tg-lev' && UI.unlocked('lev')) { toast('杠杆已开放：借款上限提升至 200%'); return; }
+        if (s.dataset.lock) toast('「' + s.textContent.replace(/^[^\u4e00-\u9fa5]*/, '') + '」未解锁');
+      };
     });
     $('su-go').onclick = function () {
       var amount = Math.max(0, Math.round(save.asset * setup.ratio));
       if (amount < 100) { toast('投入太少，加一点仓再开盘'); return; }
-      BF.LOGIC.newRound(amount, setup.borrow);
+      BF.LOGIC.newRound(amount, setup.borrow, save.style, save.market);
       UI.show('game');
       BF.GAME.start();
     };
@@ -2017,7 +2177,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       borrowDlg.className = 'dlg borrow';
       borrowDlg.innerHTML =
         '<div class="dlg-card"><h3>借款加仓</h3>' +
-        '<p class="dim">最多可借总资产的 50%，收盘自动还贷，还不上即破产。</p>' +
+        '<p class="dim" id="bw-tip"></p>' +
         '<div class="borrow-amt">¥<b id="bw-amt">0</b></div>' +
         '<input type="range" id="bw-slider" min="0" value="0">' +
         '<button class="btn primary" id="bw-ok">确认借款</button>' +
@@ -2026,11 +2186,17 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       $('bw-ok').onclick = function () { setup.borrow = parseInt($('bw-slider').value, 10) || 0; fillSetup(); borrowDlg.classList.remove('show'); };
       $('bw-no').onclick = function () { borrowDlg.classList.remove('show'); };
     }
-    var cap = Math.round(save.asset * 0.5);
+    var cap = borrowCap();
     var sl = $('bw-slider');
-    sl.max = cap; sl.value = setup.borrow;
-    $('bw-amt').textContent = fmt(setup.borrow, 0);
+    sl.max = cap.cap; sl.value = Math.min(setup.borrow, cap.cap);
+    $('bw-amt').textContent = fmt(Math.min(setup.borrow, cap.cap), 0);
     sl.oninput = function () { $('bw-amt').textContent = fmt(parseInt(sl.value, 10), 0); };
+    var nextTip = cap.ratio >= 2 ? '借款上限已满级。'
+      : cap.ratio >= 1 ? '总资产达到 ¥100,000 解锁杠杆（上限 200%）。'
+      : cap.ratio >= 0.75 ? '总资产达到 ¥50,000 解锁小额贷（上限 100%）。'
+      : '累计完成 3 局解锁银行借款（上限 75%）。';
+    $('bw-tip').textContent = '当前可借总资产的 ' + Math.round(cap.ratio * 100) + '%（¥' + fmt(cap.cap, 0) +
+      '），收盘自动还贷，还不上即破产。' + nextTip;
     borrowDlg.classList.add('show');
   }
 
@@ -2071,8 +2237,8 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       if (BF.GAME.state() === 'flying') { e.preventDefault(); BF.GAME.tap(); }
     };
     cv.addEventListener('pointerdown', onTap);
-    $('hud-lever').onclick = function () { toast('杠杆未解锁'); };
-    $('hud-margin').onclick = function () { toast('融券未解锁'); };
+    $('hud-lever').onclick = function () { toast('杠杆功能在「开局准备 → 借款加仓」中，总资产 ¥100,000 解锁'); };
+    $('hud-margin').onclick = function () { toast('融券（做空）正在研发中，敬请期待'); };
   }
   UI.onPause = function () { showPause(); };
   function showPause() {
@@ -2108,9 +2274,12 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
     curReport = rep;
     save.asset = Math.max(0, Math.round(rep.asset));
     save.rounds = (save.rounds || 0) + 1;
+    save.totalTrades = (save.totalTrades || 0) + rep.trades;
     if (save.best == null || rep.ret > save.best) save.best = rep.ret;
     save.lastReport = { ret: rep.ret, net: rep.net, title: rep.title };
     persistSave(save);
+    var bail = $('rp-bailout');
+    if (bail) bail.style.display = save.asset < 1000 ? '' : 'none';
     $('rp-title').textContent = rep.title;
     $('rp-sub').textContent = rep.sub;
     var hi = BF.ART && BF.ART.ready && BF.ART.bullHead;
@@ -2195,6 +2364,13 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
     $('rp-shot').onclick = function () { shotReport(); };
     $('rp-hall').onclick = function () { UI.show('hall'); };
     $('rp-again').onclick = function () { setup.ratio = 1; setup.borrow = 0; UI.show('setup'); };
+    $('rp-bailout').onclick = function () {
+      save.asset += 25000;
+      persistSave(save);
+      $('rp-bailout').style.display = 'none';
+      toast('重启资金 ¥25,000 已到账，东山再起！');
+      try { BF.SFX.play('profit'); } catch (e) {}
+    };
   }
   // 截图模式：自绘战报卡导出 PNG
   function shotReport() {

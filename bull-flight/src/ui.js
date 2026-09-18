@@ -16,16 +16,49 @@
   var page = 'hall';
   var setup = { ratio: 1, amount: 0, borrow: 0 };
   var curReport = null;
+  var toast = function (s) { UI.toast(s); };  // 局部便捷引用（运行时 UI.toast 已就绪）
 
   // ---------- 存档 ----------
   var SAVE_KEY = 'bf.save.v1';
-  function loadSave() {
-    try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || defSave(); } catch (e) { return defSave(); }
+  function defSave() {
+    return { principal: 25892, asset: 25892, best: null, rounds: 0, totalTrades: 0,
+      style: 'half', market: 'main', rechargeTotal: 0, lastReport: null };
   }
-  function defSave() { return { principal: 25892, asset: 25892, best: null, rounds: 0, lastReport: null }; }
+  function loadSave() {
+    try {
+      var o = JSON.parse(localStorage.getItem(SAVE_KEY));
+      return o ? Object.assign(defSave(), o) : defSave();
+    } catch (e) { return defSave(); }
+  }
   function persistSave(s) { try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {} }
   var save = loadSave();
   UI.save = function () { return save; };
+
+  // ---------- 解锁条件表 ----------
+  var UNLOCKS = {
+    cy:    { need: '总资产达到 ¥200,000', ok: function () { return save.asset >= 200000; } },
+    all:   { need: '累计完成 5 局', ok: function () { return (save.rounds || 0) >= 5; } },
+    grid:  { need: '累计成交 30 笔', ok: function () { return (save.totalTrades || 0) >= 30; } },
+    light: { need: '最佳收益 ≥ +8%', ok: function () { return save.best != null && save.best >= 0.08; } },
+    bank:  { need: '累计完成 3 局', ok: function () { return (save.rounds || 0) >= 3; } },
+    micro: { need: '总资产达到 ¥50,000', ok: function () { return save.asset >= 50000; } },
+    lev:   { need: '总资产达到 ¥100,000', ok: function () { return save.asset >= 100000; } }
+  };
+  UI.unlocked = function (k) { return !!(UNLOCKS[k] && UNLOCKS[k].ok()); };
+  function borrowCap() {
+    var r = UI.unlocked('lev') ? 2.0 : UI.unlocked('micro') ? 1.0 : UI.unlocked('bank') ? 0.75 : 0.5;
+    return { ratio: r, cap: Math.round(save.asset * r) };
+  }
+  UI.borrowCap = borrowCap;
+  UI.recharge = function (amt) {
+    amt = Math.max(0, Math.round(amt || 0));
+    if (!amt) return;
+    save.asset += amt;
+    save.rechargeTotal = (save.rechargeTotal || 0) + amt;
+    persistSave(save);
+    UI.toast('充值成功：+¥' + fmt(amt, 0) + ' 已到账（累计充值 ¥' + fmt(save.rechargeTotal, 0) + '）');
+    if (page === 'hall') fillHall();
+  };
 
   // ---------- 页面切换 ----------
   UI.show = function (p) {
@@ -51,16 +84,64 @@
   }
 
   // ---------- 开局准备 ----------
+  function refreshLocks() {
+    // 交易风格卡：解锁态文案 + 当前使用
+    document.querySelectorAll('#page-setup .styles .st').forEach(function (b) {
+      var k = b.dataset.st;
+      var un = k === 'half' || UI.unlocked(k);
+      var ul = b.querySelector('.ul');
+      if (ul) {
+        if (un) { ul.textContent = '已解锁 · 点击选用'; ul.classList.add('done'); }
+        else { ul.textContent = UNLOCKS[k].need + ' 后解锁'; ul.classList.remove('done'); }
+      }
+      var lk = b.querySelector('.lk');
+      if (lk) lk.style.display = un ? 'none' : '';
+      var on = save.style === k && un;
+      b.classList.toggle('on', on);
+      var cur = b.querySelector('.cur');
+      if (cur) cur.style.display = on ? '' : 'none';
+    });
+    // 市场卡
+    var cyOk = UI.unlocked('cy');
+    var cyBtn = document.querySelector('.mk[data-mk="cy"]');
+    if (cyBtn) {
+      cyBtn.innerHTML = cyOk ? '创业板' : '创业板 · 未解锁<img class="lk" id="lk1" data-ic="lock" alt="">';
+      if (!cyOk && BF.ART && BF.ART.ready && BF.ART.icon) {
+        var im = cyBtn.querySelector('.lk'); if (im) im.src = BF.ART.icon('lock');
+      }
+      cyBtn.classList.toggle('on', cyOk && save.market === 'cy');
+    }
+    var mkMain = document.querySelector('.mk[data-mk="main"]');
+    if (mkMain) mkMain.classList.toggle('on', save.market !== 'cy');
+    var cyNote = $('su-cy-note');
+    if (cyNote) cyNote.textContent = cyOk ? '创业板已开放：波动 ×1.9 · 股息 5% · 买入机会更频繁'
+                                         : '创业板：' + UNLOCKS.cy.need + '后开放';
+    // 顶部功能标签：解锁链
+    var tg = { 'tg-bank': 'bank', 'tg-micro': 'micro', 'tg-lev': 'lev' };
+    Object.keys(tg).forEach(function (id) {
+      var el = $(id); if (!el) return;
+      var k = tg[id];
+      if (UI.unlocked(k)) { el.removeAttribute('data-lock'); el.style.opacity = '1'; }
+      else { el.setAttribute('data-lock', '1'); }
+    });
+    var short = $('tg-short');
+    if (short) short.setAttribute('data-lock', '1');
+    // 首仓文案随风格
+    var styleR = { half: 0.5, all: 1, grid: 0.25, light: 0.25 }[save.style] || 0.5;
+    return styleR;
+  }
   function fillSetup() {
     var base = save.asset;
+    var styleR = refreshLocks();
+    var cap = borrowCap();
     setup.amount = Math.round(base * setup.ratio);
-    setup.borrow = Math.min(setup.borrow || 0, Math.round(base * 0.5));
+    setup.borrow = Math.min(setup.borrow || 0, cap.cap);
     $('su-amount').textContent = '¥' + fmt(setup.amount + setup.borrow, 0);
     $('su-pct').textContent = Math.round(setup.ratio * 100) + '%';
     $('su-enter').textContent = '本局入场 ¥' + fmt(setup.amount + setup.borrow, 0) + '  /  预留 ¥' + fmt(base - setup.amount, 0);
     $('su-debt').textContent = '总负债 ¥' + fmt(setup.borrow, 2);
     var total = setup.amount + setup.borrow;
-    var first = total * 0.5;
+    var first = total * styleR;
     $('su-first').textContent = '首笔持仓 ¥' + fmt(first - first * 0.0004, 2) + ' · 税费 ¥' + (first * 0.0004).toFixed(2);
     $('su-go').textContent = '投入 ¥' + fmt(total, 0) + ' · 开盘 →';
     var slider = $('su-slider');
@@ -74,8 +155,12 @@
     $('su-back').onclick = function () { UI.show('hall'); };
     document.querySelectorAll('#page-setup .market .mk').forEach(function (b) {
       b.onclick = function () {
-        if (b.dataset.mk === 'cy') toast('创业板：总资产达到 ¥200,000 后开放');
-        else { document.querySelectorAll('#page-setup .market .mk').forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); }
+        if (b.dataset.mk === 'cy') {
+          if (!UI.unlocked('cy')) { toast('创业板解锁条件：' + UNLOCKS.cy.need + '（当前 ¥' + fmt(save.asset, 0) + '）'); return; }
+          save.market = 'cy';
+        } else save.market = 'main';
+        persistSave(save);
+        refreshLocks(); fillSetup();
       };
     });
     document.querySelectorAll('#page-setup .quick button').forEach(function (b) {
@@ -87,16 +172,27 @@
       fillSetup();
     };
     $('su-borrow').onclick = openBorrow;
-    document.querySelectorAll('#page-setup .style .st').forEach(function (b) {
-      b.onclick = function () { if (!b.classList.contains('on')) toast('该交易风格未解锁'); };
+    document.querySelectorAll('#page-setup .styles .st').forEach(function (b) {
+      b.onclick = function () {
+        var k = b.dataset.st;
+        if (k !== 'half' && !UI.unlocked(k)) { toast('「' + b.querySelector('b').textContent + '」解锁条件：' + UNLOCKS[k].need); return; }
+        save.style = k; persistSave(save);
+        refreshLocks(); fillSetup();
+      };
     });
     document.querySelectorAll('#page-setup .tags span').forEach(function (s) {
-      s.onclick = function () { if (s.dataset.lock) toast('「' + s.textContent + '」未解锁'); };
+      s.onclick = function () {
+        if (s.id === 'tg-short') { toast('做空正在研发中，敬请期待'); return; }
+        if (s.id === 'tg-bank' && UI.unlocked('bank')) { toast('银行借款已开放：借款上限提升至 75%'); return; }
+        if (s.id === 'tg-micro' && UI.unlocked('micro')) { toast('小额贷已开放：借款上限提升至 100%'); return; }
+        if (s.id === 'tg-lev' && UI.unlocked('lev')) { toast('杠杆已开放：借款上限提升至 200%'); return; }
+        if (s.dataset.lock) toast('「' + s.textContent.replace(/^[^\u4e00-\u9fa5]*/, '') + '」未解锁');
+      };
     });
     $('su-go').onclick = function () {
       var amount = Math.max(0, Math.round(save.asset * setup.ratio));
       if (amount < 100) { toast('投入太少，加一点仓再开盘'); return; }
-      BF.LOGIC.newRound(amount, setup.borrow);
+      BF.LOGIC.newRound(amount, setup.borrow, save.style, save.market);
       UI.show('game');
       BF.GAME.start();
     };
@@ -108,7 +204,7 @@
       borrowDlg.className = 'dlg borrow';
       borrowDlg.innerHTML =
         '<div class="dlg-card"><h3>借款加仓</h3>' +
-        '<p class="dim">最多可借总资产的 50%，收盘自动还贷，还不上即破产。</p>' +
+        '<p class="dim" id="bw-tip"></p>' +
         '<div class="borrow-amt">¥<b id="bw-amt">0</b></div>' +
         '<input type="range" id="bw-slider" min="0" value="0">' +
         '<button class="btn primary" id="bw-ok">确认借款</button>' +
@@ -117,11 +213,17 @@
       $('bw-ok').onclick = function () { setup.borrow = parseInt($('bw-slider').value, 10) || 0; fillSetup(); borrowDlg.classList.remove('show'); };
       $('bw-no').onclick = function () { borrowDlg.classList.remove('show'); };
     }
-    var cap = Math.round(save.asset * 0.5);
+    var cap = borrowCap();
     var sl = $('bw-slider');
-    sl.max = cap; sl.value = setup.borrow;
-    $('bw-amt').textContent = fmt(setup.borrow, 0);
+    sl.max = cap.cap; sl.value = Math.min(setup.borrow, cap.cap);
+    $('bw-amt').textContent = fmt(Math.min(setup.borrow, cap.cap), 0);
     sl.oninput = function () { $('bw-amt').textContent = fmt(parseInt(sl.value, 10), 0); };
+    var nextTip = cap.ratio >= 2 ? '借款上限已满级。'
+      : cap.ratio >= 1 ? '总资产达到 ¥100,000 解锁杠杆（上限 200%）。'
+      : cap.ratio >= 0.75 ? '总资产达到 ¥50,000 解锁小额贷（上限 100%）。'
+      : '累计完成 3 局解锁银行借款（上限 75%）。';
+    $('bw-tip').textContent = '当前可借总资产的 ' + Math.round(cap.ratio * 100) + '%（¥' + fmt(cap.cap, 0) +
+      '），收盘自动还贷，还不上即破产。' + nextTip;
     borrowDlg.classList.add('show');
   }
 
@@ -162,8 +264,8 @@
       if (BF.GAME.state() === 'flying') { e.preventDefault(); BF.GAME.tap(); }
     };
     cv.addEventListener('pointerdown', onTap);
-    $('hud-lever').onclick = function () { toast('杠杆未解锁'); };
-    $('hud-margin').onclick = function () { toast('融券未解锁'); };
+    $('hud-lever').onclick = function () { toast('杠杆功能在「开局准备 → 借款加仓」中，总资产 ¥100,000 解锁'); };
+    $('hud-margin').onclick = function () { toast('融券（做空）正在研发中，敬请期待'); };
   }
   UI.onPause = function () { showPause(); };
   function showPause() {
@@ -199,9 +301,12 @@
     curReport = rep;
     save.asset = Math.max(0, Math.round(rep.asset));
     save.rounds = (save.rounds || 0) + 1;
+    save.totalTrades = (save.totalTrades || 0) + rep.trades;
     if (save.best == null || rep.ret > save.best) save.best = rep.ret;
     save.lastReport = { ret: rep.ret, net: rep.net, title: rep.title };
     persistSave(save);
+    var bail = $('rp-bailout');
+    if (bail) bail.style.display = save.asset < 1000 ? '' : 'none';
     $('rp-title').textContent = rep.title;
     $('rp-sub').textContent = rep.sub;
     var hi = BF.ART && BF.ART.ready && BF.ART.bullHead;
@@ -286,6 +391,13 @@
     $('rp-shot').onclick = function () { shotReport(); };
     $('rp-hall').onclick = function () { UI.show('hall'); };
     $('rp-again').onclick = function () { setup.ratio = 1; setup.borrow = 0; UI.show('setup'); };
+    $('rp-bailout').onclick = function () {
+      save.asset += 25000;
+      persistSave(save);
+      $('rp-bailout').style.display = 'none';
+      toast('重启资金 ¥25,000 已到账，东山再起！');
+      try { BF.SFX.play('profit'); } catch (e) {}
+    };
   }
   // 截图模式：自绘战报卡导出 PNG
   function shotReport() {

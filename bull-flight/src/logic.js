@@ -16,7 +16,7 @@
   }
   var CANDLE_KEEP = 90, NAV_EVERY = 5, NAV_KEEP = 720;
 
-  function newRound(principal, loan) {
+  function newRound(principal, loan, style, market) {
     cfgCache = null;
     var c = cfg();
     S = {
@@ -25,6 +25,8 @@
       realized: 0, fees: 0, tradeN: 0,
       price: 100, vy: 0, peakPrice: 100, lowPrice: 100,
       status: 'ready',           // ready→flying→dead
+      style: style || 'half',    // 交易风格：half|all|grid|light（缺省 half，兼容旧调用）
+      market: market || 'main',  // 市场：main|cy（缺省 main，兼容旧调用）
       ticks: 0, candleN: 0, firstBuyAt: Math.round(0.4 * 60),
       candles: [], cur: null,
       nav: [], navPeak: 0, maxDD: 0,
@@ -59,10 +61,18 @@
   function nav() { return S.cash + S.shares * S.price - S.loan; }
   function avgCost() { return S.shares > 0 ? S.costBasis / S.shares : 0; }
 
-  function doBuy(style) {
+  // 本次买入金额：按交易风格（S 上无 style 时回退 half，与旧行为一致）
+  function buyAmount() {
+    if (!S) return 0;
+    var st = S.style || 'half';
+    if (st === 'all') return S.cash;                          // 梭哈：剩余现金全上
+    if (st === 'grid') return Math.min(S.invested * 0.25, S.cash); // 定额分批：投入×25%，不足用余款
+    if (st === 'light') return S.cash * 0.25;                 // 轻仓试探
+    return S.cash * 0.5;                                      // half 及未知值回退
+  }
+  function doBuy() {
     var c = cfg();
-    var ratio = style || 0.5;
-    var amt = S.cash * ratio;
+    var amt = buyAmount();
     if (amt < 1 || S.price <= 0) return null;
     var fee = amt * c.feeRate;
     var sh = (amt - fee) / S.price;
@@ -98,7 +108,7 @@
     // 首仓
     if (S.firstBuyAt >= 0) {
       S.firstBuyAt -= dt * 60;
-      if (S.firstBuyAt < 0) { var tr0 = doBuy(0.5); if (tr0) tr0.auto = 'open'; }
+      if (S.firstBuyAt < 0) { var tr0 = doBuy(); if (tr0) tr0.auto = 'open'; }
     }
     // 蜡烛由 game 层按世界滚动距离驱动 finalize（每 56px 一根），保证与滚动严格同步；
     // 此处只更新当前未完成蜡烛的 h/l/c
@@ -106,9 +116,10 @@
     S.cur.c = S.price;
     if (S.price > S.cur.h) S.cur.h = S.price;
     if (S.price < S.cur.l) S.cur.l = S.price;
-    // 股息（持仓派息，游戏化：10 分钟≈一年）
+    // 股息（持仓派息，游戏化：10 分钟≈一年；创业板年化 5%，主板 2.5%）
     if (S.shares > 0) {
-      var div = S.shares * S.price * 0.025 * dt / 600;
+      var divRate = S.market === 'cy' ? 0.05 : 0.025;
+      var div = S.shares * S.price * divRate * dt / 600;
       S.cash += div; S.realized += div; S.divAcc += div;
     }
     // NAV 曲线 + 回撤
@@ -169,6 +180,7 @@
   LOGIC.pushPrice = pushPrice;
   LOGIC.finalizeCandle = finalizeCandle;
   LOGIC.buy = doBuy;
+  LOGIC.buyAmount = buyAmount;
   LOGIC.sellAll = doSell;
   LOGIC.finish = finish;
   LOGIC.nav = function () { return S ? nav() : 0; };

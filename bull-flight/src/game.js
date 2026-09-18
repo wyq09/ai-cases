@@ -27,6 +27,9 @@
   function cfg(k, d) {
     try { var c = BF.CFG.all(); return c[k] !== undefined ? c[k] : d; } catch (e) { return d; }
   }
+  // 市场乘数（S 上无 market 时恒为 1，与旧行为一致）：创业板买入机会更频繁 / 噪声更大
+  function buyEveryMul() { var s = BF.LOGIC.state(); return s && s.market === 'cy' ? 0.6 : 1; }
+  function noiseMul() { var s = BF.LOGIC.state(); return s && s.market === 'cy' ? 1.9 : 1; }
   function chartTop() { return H * 0.02; }
   function chartH() { return H - chartTop() * 2; }
   function priceToY(p) { return chartTop() + (110 - p) / 20 * chartH(); }
@@ -38,8 +41,8 @@
     spawnedPipes = 0; btnTimer = 0; hintTimer = 0; aiCool = 0; finishPending = 0; deathCause = '';
     candleBoundary = GAP;
     limitT = 0; limitHinted = false;
-    // 缓和的开局：首个管道 ~5s 后、首个买钮 ~2s 后
-    nextPipeAt = 9; nextBuyAt = 2.2; nextSellAt = 6;
+    // 缓和的开局：首个管道 ~5s 后、首个买钮 ~2s 后（创业板买入机会 ×0.6 更频繁）
+    nextPipeAt = 9; nextBuyAt = 2.2 * buyEveryMul(); nextSellAt = 6;
     lastGapY = priceToY(100);
     bull.x = W * bullXRatio; bull.y = priceToY(100); bull.vy = -240; bull.tilt = 0;
     bull.dead = false; bull.deadRot = 0;
@@ -152,7 +155,8 @@
       var g = cfg('gravity', 540);
       bull.vy += g * dt;
       bull.vy = Math.min(bull.vy, cfg('maxFall', 250));   // 下坠封顶：停手有反应时间
-      bull.vy += (Math.random() - 0.5) * cfg('noise', 20) * 60 * dt;
+      var noise = cfg('noise', 20) * noiseMul();          // 创业板噪声 ×1.9，只影响噪声不影响重力/跳力
+      bull.vy += (Math.random() - 0.5) * noise * 60 * dt;
       bull.y += bull.vy * dt;
       bull.tilt = Math.max(-0.42, Math.min(0.75, bull.vy / 560));
       bull.wing += dt * (bull.vy < 0 ? 15 : 9);
@@ -161,7 +165,8 @@
       if (worldX > nextPipeAt * GAP) { spawnPipe(); spawnedPipes++; nextPipeAt = worldX / GAP + pe[0] + Math.random() * (pe[1] - pe[0]); }
       btnTimer += dt;
       var be = [Number(cfg('buyEveryMin', 4)), Number(cfg('buyEveryMax', 7))];
-      if (btnTimer > nextBuyAt) { spawnButton('buy'); nextBuyAt = be[0] + Math.random() * (be[1] - be[0]); btnTimer = 0; }
+      var beK = buyEveryMul();   // 创业板间隔 ×0.6
+      if (btnTimer > nextBuyAt) { spawnButton('buy'); nextBuyAt = (be[0] + Math.random() * (be[1] - be[0])) * beK; btnTimer = 0; }
       if (s.shares > 0) { hintTimer += dt; if (hintTimer > 8) { spawnButton('sell'); hintTimer = 0; } }
       // AI 自动演示：追踪最近管道 gap 中心
       if (opts.auto) {
@@ -193,7 +198,7 @@
         var dx = btx - bx, dy = bt.y - by;
         if (dx * dx + dy * dy < (bt.r + 16) * (bt.r + 16)) {
           if (bt.kind === 'buy') {
-            var tr = BF.LOGIC.buy(0.5);
+            var tr = BF.LOGIC.buy();
             if (tr) {
               try { BF.SFX.play('buy'); } catch (e) {}
               var f = BF.FX;

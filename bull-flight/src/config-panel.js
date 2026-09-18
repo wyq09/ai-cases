@@ -37,6 +37,7 @@
   function importJSON(str) { var o = JSON.parse(str); apply(o); }
 
   // ---------- 面板 ----------
+  var $ = function (id) { return document.getElementById(id); };
   var panel = null;
   function openPanel() {
     if (!panel) build();
@@ -98,6 +99,44 @@
       sw1.appendChild(l);
     });
     card.appendChild(sw1);
+    // 充值中心（虚拟资金）
+    var rc = el('div', 'cfg-row');
+    rc.innerHTML = '<label>充值中心 <i style="font-style:normal;opacity:.6">虚拟资金 · 仅用于游戏</i></label>';
+    var rcRow = el('div', 'cfg-recharge');
+    [10000, 100000, 1000000].forEach(function (amt) {
+      var b = el('button', 'btn ghost sm', '+¥' + (amt >= 10000 ? (amt / 10000) + '万' : amt));
+      b.onclick = function () { openPay(amt, b); };
+      rcRow.appendChild(b);
+    });
+    rc.appendChild(rcRow);
+    card.appendChild(rc);
+    // 模拟支付确认
+    var payDlg = null;
+    function openPay(amt, btn) {
+      if (!payDlg) {
+        payDlg = document.createElement('div');
+        payDlg.className = 'dlg';
+        payDlg.innerHTML = '<div class="dlg-card pay"><h3>模拟支付</h3>' +
+          '<div class="pay-amt">¥<b id="pay-amt">0</b></div>' +
+          '<p class="dim">这是游戏虚拟资金充值，不涉及任何真实货币，点击即到账。</p>' +
+          '<button class="btn primary" id="pay-ok">确认支付</button>' +
+          '<button class="btn ghost" id="pay-no">取消</button></div>';
+        document.body.appendChild(payDlg);
+        $('pay-no').onclick = function () { payDlg.classList.remove('show'); };
+      }
+      $('pay-amt').textContent = amt.toLocaleString('en-US');
+      var ok = $('pay-ok');
+      ok.textContent = '确认支付'; ok.disabled = false;
+      ok.onclick = function () {
+        ok.disabled = true; ok.textContent = '支付中…';
+        setTimeout(function () {
+          payDlg.classList.remove('show');
+          if (BF.UI && BF.UI.recharge) BF.UI.recharge(amt);
+          if (BF.SFX && BF.SFX.play) { try { BF.SFX.play('buy'); } catch (e) {} }
+        }, 700);
+      };
+      payDlg.classList.add('show');
+    }
     // 导出导入
     var io = el('div', 'cfg-row cfg-io');
     var be = el('button', 'btn ghost sm', '导出配置');

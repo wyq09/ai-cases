@@ -16,10 +16,13 @@
 - 世界坐标驱动：管道/按钮存 born=生成时 worldX，渲染 x = x0 − (worldX−born)；蜡烛每
   56px 世界距离由 game 层调 LOGIC.finalizeCandle() 定界一根（newRound 预生成 9 根历史 K）；
   任何帧率/暂停恢复/遮挡节流下位移严格 = speed×dt
-- 难度默认（config-panel DEF）：gravity 540 / jumpV 300 / noise 20 / scrollSpeed 115 /
-  pipeGap 0.24 / pipeEvery 7–11 根蜡烛 / buyEvery 4–7s / 首管道 ~4.4s / gap 中心可过性约束
-  （距牛位 ≤3.2 价位、距上个 gap ≤3.6 价位）；牛视觉 82×62，hitbox ±15/±11
+- 难度默认（config-panel DEF）：gravity 450 / jumpV 260 / noise 8 / maxFall 250 /
+  scrollSpeed 95 / pipeGap 0.30 / pipeEvery 12–16 根蜡烛 / buyEvery 4–7s / 首管道 ~5s /
+  gap 中心可过性约束；牛视觉 82×62，hitbox ±15/±11；软涨跌停贴边 0.75s 宽限
 - 首仓：开局 ~0.4s 后自动按交易风格建首仓（对应视频"空仓待入场"→"多头·1笔"）
+- 解锁体系（ui.js UNLOCKS 表）：创业板=资产 20 万（噪声×1.9/股息 5%/买钮×0.6 频率）、
+  梭哈=5 局、定额分批=30 笔成交、轻仓试探=最佳收益 +8%、借款上限链
+  银行借款(3 局)75%→小额贷(5 万)100%→杠杆(10 万)200%；充值中心在设置面板（虚拟资金）
 - 买钮（玫红圆 R34"买"+价签）：牛碰到 → 半仓滚动买入（cash×50%，税费 0.04% 摊入成本）
 - 卖钮（绿色圆 R30"卖"+价签）：仅持仓时生成，碰到 → 全部平仓，盈亏落袋
 - 管道：宽 78px，成对上下伸出，gap 高约 15% 视高，端帽斜纹；碰到=本局结束

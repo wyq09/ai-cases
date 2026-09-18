@@ -40,10 +40,10 @@
       <span data-name="dividend"><img data-ic="dividend" alt="">股息</span>
       <span data-name="buyback"><img data-ic="buyback" alt="">回购</span>
       <span data-name="issue"><img data-ic="issue" alt="">增发</span>
-      <span data-lock="1"><img data-ic="bank" alt="">银行借款</span>
-      <span data-lock="1"><img data-ic="microloan" alt="">小额贷</span>
-      <span data-lock="1"><img data-ic="leverage" alt="">杠杆</span>
-      <span data-lock="1"><img data-ic="short" alt="">做空</span>
+      <span data-lock="1" id="tg-bank"><img data-ic="bank" alt="">银行借款</span>
+      <span data-lock="1" id="tg-micro"><img data-ic="microloan" alt="">小额贷</span>
+      <span data-lock="1" id="tg-lev"><img data-ic="leverage" alt="">杠杆</span>
+      <span data-lock="1" id="tg-short"><img data-ic="short" alt="">做空</span>
     </div>
     <div class="su-body">
       <div class="sec"><span class="no">01</span><h2>选择市场</h2></div>
@@ -51,7 +51,7 @@
         <button class="mk on" data-mk="main">主板</button>
         <button class="mk" data-mk="cy">创业板 · 未解锁<img class="lk" id="lk1" data-ic="lock" alt=""></button>
       </div>
-      <div class="su-note">涨跌幅限制 ±10% · 年化股息 2.5%<br>创业板：总资产达到 ¥200,000 后开放</div>
+      <div class="su-note">涨跌幅限制 ±10% · 年化股息 2.5%<br><span id="su-cy-note">创业板：总资产达到 ¥200,000 后开放</span></div>
 
       <div class="sec"><span class="no">02</span><h2>本局投入</h2>
         <span class="side"><button id="su-borrow">借款加仓 ›</button></span>
@@ -69,17 +69,17 @@
 
       <div class="sec"><span class="no">03</span><h2>交易风格</h2></div>
       <div class="styles">
-        <button class="st on" data-st="half">
+        <button class="st" data-st="half">
           <b>半仓滚动</b><i>每次使用一半资金</i><span class="cur">当前使用</span>
         </button>
         <button class="st" data-st="all">
-          <img class="lk" id="lk2" data-ic="lock" alt=""><b>梭哈</b><i>每次全额投入</i><span class="ul">未解锁</span>
+          <img class="lk" id="lk2" data-ic="lock" alt=""><b>梭哈</b><i>每次全额投入</i><span class="ul" id="ul-all">未解锁</span>
         </button>
         <button class="st" data-st="grid">
-          <img class="lk" id="lk3" data-ic="lock" alt=""><b>定额分批</b><i>按份固定金额</i><span class="ul">未解锁</span>
+          <img class="lk" id="lk3" data-ic="lock" alt=""><b>定额分批</b><i>按份固定金额</i><span class="ul" id="ul-grid">未解锁</span>
         </button>
         <button class="st" data-st="light">
-          <img class="lk" id="lk4" data-ic="lock" alt=""><b>轻仓试探</b><i>每次使用四分之一资金</i><span class="ul">未解锁</span>
+          <img class="lk" id="lk4" data-ic="lock" alt=""><b>轻仓试探</b><i>每次使用四分之一资金</i><span class="ul" id="ul-light">未解锁</span>
         </button>
       </div>
       <div class="su-note">每次投入剩余可用现金的 50%，可连续加仓。<br>碰挡板或触边结束：浮盈需平仓兑现，浮亏扣除。</div>
@@ -154,6 +154,7 @@
         <img id="rp-qr" alt="">
       </div>
     </div>
+    <div id="rp-bailout" class="bailout" style="display:none">东山再起：领取 <b>¥25,000</b> 重启资金 →</div>
     <div class="rp-btns">
       <button id="rp-detail" class="btn">查看明细</button>
       <button id="rp-shot" class="btn">截图模式</button>
