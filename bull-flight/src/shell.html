@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>小飞牛 · 炒股大冒险</title>
+<style>
+/*STYLE_INLINE*/
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 大厅 -->
+  <section id="page-hall" class="page active">
+    <div class="hall-hero">
+      <img id="hall-bull" alt="">
+      <div class="hall-title">小飞牛 · <em>炒股大冒险</em></div>
+      <div class="hall-sub">在 K 线里飞行：低位买入，高位卖出，别撞挡板</div>
+    </div>
+    <div class="hall-stats">
+      <div><i>总资产</i><b id="hall-asset">—</b></div>
+      <div><i>最佳收益率</i><b id="hall-best">—</b></div>
+      <div><i>累计局数</i><b id="hall-rounds">—</b></div>
+    </div>
+    <button id="hall-start" class="btn primary big">进入交易大厅 →</button>
+    <button id="hall-cfg" class="btn ghost">设置 · 换小牛立绘 · 调玩法参数</button>
+    <div id="hall-tip">主板涨跌幅 ±10%，触及涨跌停或撞上挡板即强制平仓<br>浮盈需平仓兑现，浮亏直接扣除</div>
+  </section>
+
+  <!-- 开局准备 -->
+  <section id="page-setup" class="page">
+    <div class="su-head">
+      <button id="su-back"><img alt="返回" id="ic-back" data-ic="back"></button>
+      <h1>开局准备</h1>
+    </div>
+    <div class="tags">
+      <span data-name="dividend"><img data-ic="dividend" alt="">股息</span>
+      <span data-name="buyback"><img data-ic="buyback" alt="">回购</span>
+      <span data-name="issue"><img data-ic="issue" alt="">增发</span>
+      <span data-lock="1"><img data-ic="bank" alt="">银行借款</span>
+      <span data-lock="1"><img data-ic="microloan" alt="">小额贷</span>
+      <span data-lock="1"><img data-ic="leverage" alt="">杠杆</span>
+      <span data-lock="1"><img data-ic="short" alt="">做空</span>
+    </div>
+    <div class="su-body">
+      <div class="sec"><span class="no">01</span><h2>选择市场</h2></div>
+      <div class="market">
+        <button class="mk on" data-mk="main">主板</button>
+        <button class="mk" data-mk="cy">创业板 · 未解锁<img class="lk" id="lk1" data-ic="lock" alt=""></button>
+      </div>
+      <div class="su-note">涨跌幅限制 ±10% · 年化股息 2.5%<br>创业板：总资产达到 ¥200,000 后开放</div>
+
+      <div class="sec"><span class="no">02</span><h2>本局投入</h2>
+        <span class="side"><button id="su-borrow">借款加仓 ›</button></span>
+      </div>
+      <div class="amt-row"><span id="su-amount">0</span><span id="su-pct">100%</span></div>
+      <div class="quick">
+        <button data-r="0.1">10%</button>
+        <button data-r="0.3">30%</button>
+        <button data-r="0.5">50%</button>
+        <button data-r="1" class="on">全部投入</button>
+      </div>
+      <input type="range" id="su-slider" min="0" max="100" value="100">
+      <div class="su-line" id="su-enter">本局入场 ¥0 / 预留 ¥0</div>
+      <div class="su-line" id="su-debt">总负债 ¥0.00</div>
+
+      <div class="sec"><span class="no">03</span><h2>交易风格</h2></div>
+      <div class="styles">
+        <button class="st on" data-st="half">
+          <b>半仓滚动</b><i>每次使用一半资金</i><span class="cur">当前使用</span>
+        </button>
+        <button class="st" data-st="all">
+          <img class="lk" id="lk2" data-ic="lock" alt=""><b>梭哈</b><i>每次全额投入</i><span class="ul">未解锁</span>
+        </button>
+        <button class="st" data-st="grid">
+          <img class="lk" id="lk3" data-ic="lock" alt=""><b>定额分批</b><i>按份固定金额</i><span class="ul">未解锁</span>
+        </button>
+        <button class="st" data-st="light">
+          <img class="lk" id="lk4" data-ic="lock" alt=""><b>轻仓试探</b><i>每次使用四分之一资金</i><span class="ul">未解锁</span>
+        </button>
+      </div>
+      <div class="su-note">每次投入剩余可用现金的 50%，可连续加仓。<br>碰挡板或触边结束：浮盈需平仓兑现，浮亏扣除。</div>
+    </div>
+    <div class="su-foot">
+      <button id="su-go" class="btn primary">投入 ¥0 · 开盘 →</button>
+      <div id="su-first">首笔持仓 ¥0 · 税费 ¥0</div>
+    </div>
+  </section>
+
+  <!-- 游戏 -->
+  <section id="page-game" class="page">
+    <header id="hud-top">
+      <div class="col">
+        <div class="lab">本局净资产</div>
+        <div id="hud-nav">0</div>
+        <div id="hud-cash">现金 <b>¥0</b></div>
+      </div>
+      <div class="col hud-mid">
+        <div class="lab">总盈亏 <span id="hud-pnl-r">+0.00%</span></div>
+        <div id="hud-pnl">+0.00</div>
+        <div id="hud-state">空仓 · 待入场</div>
+      </div>
+      <div class="col hud-right">
+        <button id="hud-pause">❚❚</button>
+        <div class="lab">主板 <span id="hud-price">100.00</span></div>
+      </div>
+    </header>
+    <div id="hud-pos">
+      <span class="pl">仓位</span><span id="hud-posr">0%</span>
+      <span id="hud-pos-state">空仓</span>
+      <button class="hud-lock" id="hud-lever"><img id="ic-lever" data-ic="leverage" alt="">杠杆<i>未解锁</i></button>
+      <button class="hud-lock" id="hud-margin"><img id="ic-margin" data-ic="short" alt="">融券<i>未解锁</i></button>
+      <div id="hud-segs"></div>
+      <div id="hud-float" class="fl up">浮盈亏 +0</div>
+    </div>
+    <div id="cv-wrap">
+      <canvas id="cv"></canvas>
+      <div id="hint"></div>
+    </div>
+    <footer id="hud-bottom">
+      <span class="lab">主板 · 周K <b id="mini-price">100.00</b></span>
+      <canvas id="mini" width="220" height="60"></canvas>
+      <span class="boll">BOLL 20/2</span>
+    </footer>
+  </section>
+
+  <!-- 收盘战报 -->
+  <section id="page-report" class="page">
+    <div class="rp-card">
+      <div class="rp-cap">收盘战报</div>
+      <div class="rp-hero">
+        <img id="rp-bull" alt="">
+        <div><h2 id="rp-title">平稳盈利</h2><p id="rp-sub"></p></div>
+      </div>
+      <div class="rp-sec">账户结算</div>
+      <div class="rp-main">
+        <div><div class="lab">本局收益率</div><div id="rp-ret" class="big up">+0.00%</div></div>
+        <div><div class="lab">已结算净收益</div><div id="rp-net" class="up">+0.00</div></div>
+      </div>
+      <div class="rp-tri">
+        <div><i>本局投入</i><b id="rp-invested">¥0</b></div>
+        <div><i>买卖次数</i><b id="rp-trades">0 次</b></div>
+        <div><i>最大回撤</i><b id="rp-dd">0.00%</b></div>
+      </div>
+      <div class="rp-sec">收益走势<span class="pk" id="rp-peak">峰值 +0</span></div>
+      <canvas id="rp-nav"></canvas>
+      <div class="rp-axis"><span>2026-01</span><span>2026-03</span><span>2026-05</span></div>
+      <div class="rp-axis"><span>2026 起 · 模拟日期</span><b id="rp-close">收盘 +0.00%</b></div>
+      <div class="rp-slogan">
+        <b>不服？你来画一根。</b>
+        <img id="rp-qr" alt="">
+      </div>
+    </div>
+    <div class="rp-btns">
+      <button id="rp-detail" class="btn">查看明细</button>
+      <button id="rp-shot" class="btn">截图模式</button>
+      <button id="rp-hall" class="btn">返回大厅</button>
+      <button id="rp-again" class="btn">再来一局</button>
+    </div>
+  </section>
+
+  <!-- 暂停弹层 -->
+  <div id="dlg-pause" class="dlg">
+    <div class="dlg-card">
+      <h3>还没收盘</h3>
+      <p>本模式不限复活次数。持仓与贷款保留，每次完整观看广告后继续。</p>
+      <button id="pa-ad" class="btn primary">看广告复活</button>
+      <button id="pa-end" class="btn ghost">结束本局并结算</button>
+    </div>
+  </div>
+
+  <!-- 明细弹层 -->
+  <div id="dlg-detail" class="dlg dlg-detail">
+    <div class="dlg-card">
+      <h3>成交明细</h3>
+      <div id="dlg-detail-list"></div>
+      <button id="dlg-detail-close" class="btn ghost">关闭</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+</div>
+<script>
+/*RESET_INLINE*/
+/*MODULE_SCRIPTS*/
+</script>
+</body>
+</html>

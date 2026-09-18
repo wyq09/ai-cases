@@ -1,0 +1,2353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>小飞牛 · 炒股大冒险</title>
+<style>
+/* bull-flight style —— 深色金融终端 × 玫红主题，照视频复刻 */
+:root {
+  --bg: #0c0d10; --panel: #16181d; --panel2: #1b1e24;
+  --rose: #f43f5e; --rose-deep: #be123c;
+  --up: #ff5d76; --down: #35c08e;
+  --text: #f2f3f5; --dim: #8b909a; --line: #262a32;
+  --amber: #d4a938;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  background: #08090b; color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden; user-select: none; -webkit-user-select: none;
+}
+#app { position: fixed; inset: 0; max-width: 560px; margin: 0 auto; background: var(--bg); overflow: hidden; }
+.page { position: absolute; inset: 0; display: none; flex-direction: column; }
+.page.active { display: flex; }
+button { font-family: inherit; border: none; background: none; color: inherit; cursor: pointer; }
+.btn { border-radius: 10px; padding: 12px 18px; font-size: 15px; }
+.btn.primary { background: var(--rose); color: #fff; font-weight: 600; }
+.btn.ghost { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
+.btn.sm { padding: 8px 14px; font-size: 13px; border-radius: 8px; }
+.btn.big { width: 100%; padding: 15px; font-size: 17px; border-radius: 12px; }
+.dim { color: var(--dim); }
+.up { color: var(--up) !important; }
+.down { color: var(--down) !important; }
+
+/* ---------- 大厅 ---------- */
+#page-hall { padding: calc(env(safe-area-inset-top, 0px) + 48px) 24px 24px; align-items: stretch; gap: 18px; }
+.hall-hero { text-align: center; padding: 12px 0 0; }
+.hall-hero img { width: 190px; filter: drop-shadow(0 12px 24px rgba(244,63,94,0.18)); }
+.hall-title { font-size: 26px; font-weight: 800; letter-spacing: 1px; margin-top: 4px; }
+.hall-title em { font-style: normal; color: var(--rose); }
+.hall-sub { color: var(--dim); font-size: 13px; margin-top: 8px; }
+.hall-stats { display: flex; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.hall-stats > div { flex: 1; padding: 14px 6px; text-align: center; }
+.hall-stats > div + div { border-left: 1px solid var(--line); }
+.hall-stats i { display: block; font-style: normal; color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+.hall-stats b { font-size: 17px; }
+#hall-tip { color: var(--dim); font-size: 12px; text-align: center; margin-top: auto; line-height: 1.7; }
+
+/* ---------- 开局准备 ---------- */
+#page-setup { padding: 0 0 calc(env(safe-area-inset-bottom, 0px) + 12px); overflow-y: auto; }
+.su-head { display: flex; align-items: center; gap: 14px; padding: calc(env(safe-area-inset-top, 0px) + 12px) 20px 10px; }
+#su-back { width: 34px; height: 34px; border-radius: 9px; background: var(--panel2); display: flex; align-items: center; justify-content: center; }
+#su-back img { width: 18px; height: 18px; }
+.su-head h1 { font-size: 21px; font-weight: 700; }
+.tags { display: flex; gap: 15px; padding: 4px 20px 10px; overflow-x: auto; white-space: nowrap; }
+.tags span { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--text); }
+.tags span[data-lock] { color: var(--dim); }
+.tags span img { width: 14px; height: 14px; }
+.su-body { flex: 1; padding: 0 20px; }
+.sec { display: flex; align-items: baseline; gap: 10px; margin: 13px 0 8px; }
+.sec .no { color: var(--rose); font-size: 14px; font-weight: 700; }
+.sec h2 { font-size: 16px; font-weight: 700; }
+.sec .side { margin-left: auto; }
+#su-borrow { background: var(--panel2); border-radius: 8px; padding: 7px 12px; color: var(--rose); font-size: 13px; }
+.market { display: flex; gap: 12px; }
+.mk { flex: 1; padding: 13px; border-radius: 12px; background: var(--panel); border: 1.5px solid var(--line); color: var(--text); font-size: 16px; position: relative; }
+.mk.on { border-color: var(--rose); background: linear-gradient(180deg, rgba(244,63,94,0.10), rgba(244,63,94,0.04)); color: var(--rose); }
+.mk .lk { position: absolute; top: 10px; right: 10px; width: 13px; height: 13px; opacity: .7; }
+.su-note { color: var(--dim); font-size: 12px; line-height: 1.85; margin-top: 6px; }
+.amt-row { display: flex; align-items: baseline; }
+#su-amount { font-size: 38px; font-weight: 800; letter-spacing: .5px; }
+#su-pct { margin-left: auto; color: var(--rose); font-size: 22px; font-weight: 600; }
+.quick { display: flex; gap: 10px; margin-top: 11px; }
+.quick button { flex: 1; padding: 10px 0; border-radius: 10px; background: var(--panel); border: 1.5px solid var(--line); font-size: 14.5px; color: var(--text); }
+.quick button.on { border-color: var(--rose); color: var(--rose); background: linear-gradient(180deg, rgba(244,63,94,0.10), rgba(244,63,94,0.03)); }
+#su-slider { width: 100%; margin: 13px 0 4px; appearance: none; height: 4px; border-radius: 2px; background: var(--panel2); outline: none; }
+#su-slider::-webkit-slider-thumb { appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--rose); border: 4px solid #2a1219; }
+.su-line { color: var(--dim); font-size: 12.5px; margin-top: 7px; }
+#su-total-asset { color: var(--dim); font-size: 12px; margin-top: 2px; }
+.styles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.st { position: relative; text-align: left; padding: 11px 12px; border-radius: 12px; background: var(--panel); border: 1.5px solid var(--line); color: var(--text); }
+.st.on { border-color: var(--rose); background: linear-gradient(180deg, rgba(244,63,94,0.10), rgba(244,63,94,0.03)); }
+.st b { display: block; font-size: 15px; margin-bottom: 4px; }
+.st i { display: block; font-style: normal; color: var(--dim); font-size: 12px; line-height: 1.7; }
+.st .cur { display: inline-flex; align-items: center; gap: 5px; color: var(--rose); font-size: 12px; margin-top: 4px; }
+.st .cur::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--rose); }
+.st .lk { position: absolute; top: 12px; right: 12px; width: 12px; height: 12px; opacity: .6; }
+.st .ul { color: var(--dim); font-size: 12px; margin-top: 4px; }
+.su-foot { padding: 12px 20px 0; border-top: 1px solid var(--line); margin-top: 12px; }
+#su-go { width: 100%; padding: 14px; font-size: 16px; border-radius: 12px; }
+#su-first { text-align: center; color: var(--dim); font-size: 12px; margin-top: 8px; }
+
+/* ---------- 游戏 ---------- */
+#page-game { background: var(--bg); }
+#hud-top { display: flex; padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 8px; gap: 8px; align-items: flex-start; }
+#hud-top .col { flex: 1; }
+#hud-top .lab { color: var(--dim); font-size: 12px; }
+#hud-nav { font-size: 26px; font-weight: 800; }
+#hud-cash { color: var(--dim); font-size: 12px; margin-top: 2px; }
+#hud-cash b { color: var(--text); font-weight: 600; }
+.hud-mid { text-align: center; }
+.hud-mid .lab { color: var(--dim); font-size: 12px; }
+#hud-pnl-r { font-size: 13px; margin-top: 3px; }
+#hud-pnl { font-size: 20px; font-weight: 700; margin-top: 1px; }
+#hud-state { color: var(--rose); font-size: 12px; margin-top: 2px; }
+.hud-right { text-align: right; }
+#hud-pause { width: 40px; height: 40px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--panel); font-size: 15px; color: var(--text); }
+.hud-right .lab { color: var(--dim); font-size: 12px; margin-top: 4px; }
+#hud-price { font-size: 15px; font-weight: 600; }
+#hud-pos { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 6px 16px 10px; }
+#hud-pos .pl { color: var(--dim); font-size: 12px; }
+#hud-posr { font-size: 24px; font-weight: 800; margin-right: auto; }
+#hud-pos-state { color: var(--dim); font-size: 12.5px; margin-right: 4px; }
+#hud-pos-state.held { color: var(--rose); }
+#hud-segs { display: flex; gap: 4px; flex-basis: 100%; margin-top: 4px; }
+#hud-segs i { flex: 1; height: 5px; border-radius: 3px; background: #262a32; }
+#hud-segs i.on { background: var(--rose); }
+#hud-float { flex-basis: 100%; font-size: 12px; margin-top: 2px; }
+#hud-float.down { color: var(--down); } #hud-float.up { color: var(--up); }
+.hud-lock { width: 62px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); padding: 5px 0 4px; text-align: center; color: var(--text); flex: none; }
+.hud-lock img { width: 15px; height: 15px; display: block; margin: 1px auto 2px; }
+.hud-lock i { font-style: normal; font-size: 10px; color: var(--dim); display: block; }
+#cv-wrap { flex: 1; position: relative; min-height: 0; }
+#cv { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+#hint { position: absolute; left: 16px; bottom: 12px; color: var(--up); font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; text-shadow: 0 1px 4px rgba(0,0,0,.6); }
+#hint.show { opacity: 1; }
+#hud-bottom { display: flex; align-items: center; gap: 10px; padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 10px); border-top: 1px solid var(--line); }
+#hud-bottom .lab { color: var(--dim); font-size: 12px; }
+#mini-price { color: var(--text); }
+#mini { width: 110px; height: 30px; }
+.boll { margin-left: auto; color: var(--dim); font-size: 11px; }
+
+/* ---------- 战报 ---------- */
+#page-report { padding: calc(env(safe-area-inset-top, 0px) + 30px) 18px calc(env(safe-area-inset-bottom, 0px) + 14px); overflow-y: auto; }
+.rp-card { background: #eef1f6; color: #171b24; border-radius: 16px; padding: 16px 16px; }
+.rp-cap { color: #7c8494; font-size: 12.5px; margin-bottom: 9px; }
+.rp-hero { display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #dbe7fa, #e9f1fd); border-radius: 12px; padding: 11px 14px; }
+.rp-hero img { width: 62px; height: 62px; flex: none; }
+.rp-hero h2 { font-size: 20px; font-weight: 800; }
+.rp-hero p { color: #5a6474; font-size: 12px; margin-top: 4px; }
+.rp-sec { display: flex; align-items: baseline; gap: 8px; margin: 13px 0 8px; font-size: 14.5px; font-weight: 700; }
+.rp-sec .pk { margin-left: auto; font-size: 12px; font-weight: 600; color: #d9203e; }
+.rp-sec::before { content: ""; width: 4px; height: 15px; border-radius: 2px; background: #2f6bdb; }
+.rp-main { display: flex; gap: 12px; }
+.rp-main > div:first-child { flex: 1.15; }
+.rp-main > div:last-child { flex: 1; min-width: 0; }
+.rp-main .lab { color: #7c8494; font-size: 12.5px; }
+#rp-ret { font-size: 34px; font-weight: 800; margin-top: 6px; white-space: nowrap; }
+#rp-net { font-size: 19px; font-weight: 700; margin-top: 14px; white-space: nowrap; }
+#rp-ret.up, #rp-net.up { color: #d9203e; }
+#rp-ret.down, #rp-net.down { color: #0f9962; }
+.rp-tri { display: flex; margin-top: 12px; padding-top: 10px; border-top: 1px solid #dfe3ea; }
+.rp-tri > div { flex: 1; }
+.rp-tri i { font-style: normal; color: #7c8494; font-size: 12px; display: block; }
+.rp-tri b { font-size: 16px; display: block; margin-top: 4px; }
+#rp-nav { width: 100%; height: 158px; display: block; }
+.rp-axis { display: flex; justify-content: space-between; color: #7c8494; font-size: 11.5px; margin-top: 4px; }
+.rp-axis b { font-weight: 600; color: #d9203e; }
+.rp-slogan { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+.rp-slogan b { font-size: 17px; }
+#rp-qr { width: 62px; height: 62px; background: #fff; border-radius: 6px; padding: 4px; }
+.rp-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.rp-btns .btn { padding: 11px; font-size: 14.5px; }
+#rp-again { background: var(--rose); color: #fff; font-weight: 600; }
+#rp-detail, #rp-hall, #rp-shot { background: #171a21; color: var(--text); border: 1px solid var(--line); }
+
+/* ---------- 弹层 ---------- */
+.dlg { position: fixed; inset: 0; background: rgba(5,6,9,0.62); display: none; align-items: center; justify-content: center; z-index: 40; padding: 24px; }
+.dlg.show { display: flex; }
+.dlg-card { width: 100%; max-width: 420px; background: #191c22; border: 1px solid var(--line); border-radius: 16px; padding: 22px 20px; }
+.dlg-card h3 { color: var(--rose); font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+.dlg-card p { color: var(--dim); font-size: 13.5px; line-height: 1.8; margin-bottom: 16px; }
+.dlg-card .btn { width: 100%; margin-top: 10px; padding: 13px; }
+.borrow-amt { font-size: 34px; font-weight: 800; margin: 8px 0 10px; }
+.borrow-amt b { font-size: inherit; }
+#bw-slider { width: 100%; margin: 6px 0 10px; appearance: none; height: 4px; border-radius: 2px; background: var(--panel2); outline: none; }
+#bw-slider::-webkit-slider-thumb { appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--rose); border: 4px solid #2a1219; }
+.dlg-detail .dlg-card { max-height: 70vh; overflow-y: auto; }
+.tr { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.tr .b { color: var(--up); } .tr .s { color: var(--down); }
+.tr span { flex: 1; text-align: right; }
+.tr span:first-child { flex: 0 0 44px; text-align: left; }
+.tr .empty { text-align: center; padding: 20px 0; }
+
+/* ---------- 设置面板 ---------- */
+.cfg-panel { position: fixed; inset: 0; background: rgba(5,6,9,0.62); display: none; align-items: flex-end; justify-content: center; z-index: 50; }
+.cfg-panel.show { display: flex; }
+.cfg-card { width: 100%; max-width: 560px; max-height: 82vh; overflow-y: auto; background: #16181d; border-radius: 18px 18px 0 0; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 20px); }
+.cfg-title { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
+.cfg-row { margin: 14px 0; }
+.cfg-row label { display: flex; justify-content: space-between; font-size: 13.5px; color: var(--dim); margin-bottom: 8px; }
+.cfg-row label b { color: var(--text); }
+.cfg-row input[type=range] { width: 100%; appearance: none; height: 4px; border-radius: 2px; background: var(--panel2); }
+.cfg-row input[type=range]::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--rose); }
+.cfg-file { color: var(--dim); font-size: 12px; }
+.cfg-switches { display: flex; gap: 22px; }
+.cfg-sw { display: inline-flex; align-items: center; gap: 8px; color: var(--text); }
+.cfg-io { display: flex; gap: 10px; }
+.cfg-foot { display: flex; gap: 10px; margin-top: 18px; }
+.cfg-foot .btn { flex: 1; }
+
+/* ---------- toast ---------- */
+#toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(8px); background: rgba(30,33,40,0.95); border: 1px solid var(--line); color: var(--text); font-size: 13.5px; padding: 10px 18px; border-radius: 10px; opacity: 0; pointer-events: none; transition: all .25s; z-index: 60; max-width: 86%; text-align: center; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---------- 桌面宽屏 ---------- */
+@media (min-width: 700px) {
+  body { display: flex; align-items: center; justify-content: center; background: #050608; }
+  #app { max-width: 430px; height: min(100vh, 900px); border-radius: 20px; border: 1px solid #1d2026; overflow: hidden; }
+  .cfg-panel { align-items: center; }
+  .cfg-card { border-radius: 18px; }
+}
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 大厅 -->
+  <section id="page-hall" class="page active">
+    <div class="hall-hero">
+      <img id="hall-bull" alt="">
+      <div class="hall-title">小飞牛 · <em>炒股大冒险</em></div>
+      <div class="hall-sub">在 K 线里飞行：低位买入，高位卖出，别撞挡板</div>
+    </div>
+    <div class="hall-stats">
+      <div><i>总资产</i><b id="hall-asset">—</b></div>
+      <div><i>最佳收益率</i><b id="hall-best">—</b></div>
+      <div><i>累计局数</i><b id="hall-rounds">—</b></div>
+    </div>
+    <button id="hall-start" class="btn primary big">进入交易大厅 →</button>
+    <button id="hall-cfg" class="btn ghost">设置 · 换小牛立绘 · 调玩法参数</button>
+    <div id="hall-tip">主板涨跌幅 ±10%，触及涨跌停或撞上挡板即强制平仓<br>浮盈需平仓兑现，浮亏直接扣除</div>
+  </section>
+
+  <!-- 开局准备 -->
+  <section id="page-setup" class="page">
+    <div class="su-head">
+      <button id="su-back"><img alt="返回" id="ic-back" data-ic="back"></button>
+      <h1>开局准备</h1>
+    </div>
+    <div class="tags">
+      <span data-name="dividend"><img data-ic="dividend" alt="">股息</span>
+      <span data-name="buyback"><img data-ic="buyback" alt="">回购</span>
+      <span data-name="issue"><img data-ic="issue" alt="">增发</span>
+      <span data-lock="1"><img data-ic="bank" alt="">银行借款</span>
+      <span data-lock="1"><img data-ic="microloan" alt="">小额贷</span>
+      <span data-lock="1"><img data-ic="leverage" alt="">杠杆</span>
+      <span data-lock="1"><img data-ic="short" alt="">做空</span>
+    </div>
+    <div class="su-body">
+      <div class="sec"><span class="no">01</span><h2>选择市场</h2></div>
+      <div class="market">
+        <button class="mk on" data-mk="main">主板</button>
+        <button class="mk" data-mk="cy">创业板 · 未解锁<img class="lk" id="lk1" data-ic="lock" alt=""></button>
+      </div>
+      <div class="su-note">涨跌幅限制 ±10% · 年化股息 2.5%<br>创业板：总资产达到 ¥200,000 后开放</div>
+
+      <div class="sec"><span class="no">02</span><h2>本局投入</h2>
+        <span class="side"><button id="su-borrow">借款加仓 ›</button></span>
+      </div>
+      <div class="amt-row"><span id="su-amount">0</span><span id="su-pct">100%</span></div>
+      <div class="quick">
+        <button data-r="0.1">10%</button>
+        <button data-r="0.3">30%</button>
+        <button data-r="0.5">50%</button>
+        <button data-r="1" class="on">全部投入</button>
+      </div>
+      <input type="range" id="su-slider" min="0" max="100" value="100">
+      <div class="su-line" id="su-enter">本局入场 ¥0 / 预留 ¥0</div>
+      <div class="su-line" id="su-debt">总负债 ¥0.00</div>
+
+      <div class="sec"><span class="no">03</span><h2>交易风格</h2></div>
+      <div class="styles">
+        <button class="st on" data-st="half">
+          <b>半仓滚动</b><i>每次使用一半资金</i><span class="cur">当前使用</span>
+        </button>
+        <button class="st" data-st="all">
+          <img class="lk" id="lk2" data-ic="lock" alt=""><b>梭哈</b><i>每次全额投入</i><span class="ul">未解锁</span>
+        </button>
+        <button class="st" data-st="grid">
+          <img class="lk" id="lk3" data-ic="lock" alt=""><b>定额分批</b><i>按份固定金额</i><span class="ul">未解锁</span>
+        </button>
+        <button class="st" data-st="light">
+          <img class="lk" id="lk4" data-ic="lock" alt=""><b>轻仓试探</b><i>每次使用四分之一资金</i><span class="ul">未解锁</span>
+        </button>
+      </div>
+      <div class="su-note">每次投入剩余可用现金的 50%，可连续加仓。<br>碰挡板或触边结束：浮盈需平仓兑现，浮亏扣除。</div>
+    </div>
+    <div class="su-foot">
+      <button id="su-go" class="btn primary">投入 ¥0 · 开盘 →</button>
+      <div id="su-first">首笔持仓 ¥0 · 税费 ¥0</div>
+    </div>
+  </section>
+
+  <!-- 游戏 -->
+  <section id="page-game" class="page">
+    <header id="hud-top">
+      <div class="col">
+        <div class="lab">本局净资产</div>
+        <div id="hud-nav">0</div>
+        <div id="hud-cash">现金 <b>¥0</b></div>
+      </div>
+      <div class="col hud-mid">
+        <div class="lab">总盈亏 <span id="hud-pnl-r">+0.00%</span></div>
+        <div id="hud-pnl">+0.00</div>
+        <div id="hud-state">空仓 · 待入场</div>
+      </div>
+      <div class="col hud-right">
+        <button id="hud-pause">❚❚</button>
+        <div class="lab">主板 <span id="hud-price">100.00</span></div>
+      </div>
+    </header>
+    <div id="hud-pos">
+      <span class="pl">仓位</span><span id="hud-posr">0%</span>
+      <span id="hud-pos-state">空仓</span>
+      <button class="hud-lock" id="hud-lever"><img id="ic-lever" data-ic="leverage" alt="">杠杆<i>未解锁</i></button>
+      <button class="hud-lock" id="hud-margin"><img id="ic-margin" data-ic="short" alt="">融券<i>未解锁</i></button>
+      <div id="hud-segs"></div>
+      <div id="hud-float" class="fl up">浮盈亏 +0</div>
+    </div>
+    <div id="cv-wrap">
+      <canvas id="cv"></canvas>
+      <div id="hint"></div>
+    </div>
+    <footer id="hud-bottom">
+      <span class="lab">主板 · 周K <b id="mini-price">100.00</b></span>
+      <canvas id="mini" width="220" height="60"></canvas>
+      <span class="boll">BOLL 20/2</span>
+    </footer>
+  </section>
+
+  <!-- 收盘战报 -->
+  <section id="page-report" class="page">
+    <div class="rp-card">
+      <div class="rp-cap">收盘战报</div>
+      <div class="rp-hero">
+        <img id="rp-bull" alt="">
+        <div><h2 id="rp-title">平稳盈利</h2><p id="rp-sub"></p></div>
+      </div>
+      <div class="rp-sec">账户结算</div>
+      <div class="rp-main">
+        <div><div class="lab">本局收益率</div><div id="rp-ret" class="big up">+0.00%</div></div>
+        <div><div class="lab">已结算净收益</div><div id="rp-net" class="up">+0.00</div></div>
+      </div>
+      <div class="rp-tri">
+        <div><i>本局投入</i><b id="rp-invested">¥0</b></div>
+        <div><i>买卖次数</i><b id="rp-trades">0 次</b></div>
+        <div><i>最大回撤</i><b id="rp-dd">0.00%</b></div>
+      </div>
+      <div class="rp-sec">收益走势<span class="pk" id="rp-peak">峰值 +0</span></div>
+      <canvas id="rp-nav"></canvas>
+      <div class="rp-axis"><span>2026-01</span><span>2026-03</span><span>2026-05</span></div>
+      <div class="rp-axis"><span>2026 起 · 模拟日期</span><b id="rp-close">收盘 +0.00%</b></div>
+      <div class="rp-slogan">
+        <b>不服？你来画一根。</b>
+        <img id="rp-qr" alt="">
+      </div>
+    </div>
+    <div class="rp-btns">
+      <button id="rp-detail" class="btn">查看明细</button>
+      <button id="rp-shot" class="btn">截图模式</button>
+      <button id="rp-hall" class="btn">返回大厅</button>
+      <button id="rp-again" class="btn">再来一局</button>
+    </div>
+  </section>
+
+  <!-- 暂停弹层 -->
+  <div id="dlg-pause" class="dlg">
+    <div class="dlg-card">
+      <h3>还没收盘</h3>
+      <p>本模式不限复活次数。持仓与贷款保留，每次完整观看广告后继续。</p>
+      <button id="pa-ad" class="btn primary">看广告复活</button>
+      <button id="pa-end" class="btn ghost">结束本局并结算</button>
+    </div>
+  </div>
+
+  <!-- 明细弹层 -->
+  <div id="dlg-detail" class="dlg dlg-detail">
+    <div class="dlg-card">
+      <h3>成交明细</h3>
+      <div id="dlg-detail-list"></div>
+      <button id="dlg-detail-close" class="btn ghost">关闭</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+</div>
+<script>
+(function(){var Q={};location.search.replace(/^\?/,'').split('&').forEach(function(kv){var p=kv.split('=');Q[decodeURIComponent(p[0])]=p[1]===undefined?true:decodeURIComponent(p[1]);});if(Q.reset){try{localStorage.removeItem('bf.cfg.v1');localStorage.removeItem('bf.save.v1');}catch(e){}}window.__errs=window.__errs||[];window.onerror=function(m,s2,l,c){__errs.push(String(m).slice(0,200)+' @'+(l||'?'));};window.onunhandledrejection=function(e){__errs.push('rej:'+String(e&&e.reason).slice(0,200));};})();
+/* ==== art.js ==== */
+/* bull-flight 美术资源（全 SVG dataURI，无外部依赖）
+ * 接口：BF.ART.bullFrame(i) / bullHead() / bullBig() / icon(name) / qr(seed) / ready
+ */
+(function () {
+  'use strict';
+
+  var D = '#4a2f1a';   // 深描边
+  var B = '#eecf96';   // 奶油黄棕身体
+  var P = '#8a5a33';   // 深棕斑块
+  var W = '#fdfaf2';   // 翅膀白 / 浅色
+  var G = '#8f97a4';   // 翅膀灰描边
+  var PK = '#ef9d94';  // 粉鼻粉耳
+ var HN = '#cf8b41';  // 角
+
+  function esc(s) { return 'data:image/svg+xml,' + encodeURIComponent(s); }
+
+  function svg(vb, w, h, inner) {
+    return "<svg xmlns='http://www.w3.org/2000/svg' viewBox='" + vb + "' width='" + w + "' height='" + h + "'>" + inner + '</svg>';
+  }
+
+  // 翅膀（三羽瓣、圆钝羽尖），t 为 transform；羽瓣+羽纹同组
+  function wing(t, fill) {
+    return "<g transform='" + t + "'><path d='M58 42Q44 34 34 16Q42 19 46 25Q45 9 51 3Q56 10 58 21Q65 9 71 7Q72 22 66 33Q61 40 58 42Z' fill='" + fill + "' stroke='" + G + "' stroke-width='2'/><path d='M48 30Q42 24 38 15M56 25Q54 14 53 7' stroke='" + G + "' stroke-width='1.5' fill='none'/></g>";
+  }
+
+  // 远侧翅膀基变换：肩点挪到(50,46)并缩小
+  var FARB = 'translate(50 46) scale(.8) ';
+  var HOOF = '#3a2410';
+
+  /* 小飞牛本体（120x90 画布，朝右），nearT/farT 为两片翅膀 transform */
+  function bullInner(nearT, farT) {
+    return wing(farT, '#e7dfca') +
+      // 尾巴
+      "<path d='M40 52Q28 48 26 37' stroke='" + D + "' stroke-width='2.4' fill='none'/>" +
+      "<path d='M26 37q-6-4-3-9q6 1 7 6q4 0 5 4q-4 3-9-1z' fill='" + P + "' stroke='" + D + "' stroke-width='2'/>" +
+      // 远侧两腿（略深，成对合并）
+      "<path d='M72 62L84 75M46 68L37 79' stroke='" + D + "' stroke-width='8' fill='none'/>" +
+      "<path d='M72 62L84 75M46 68L37 79' stroke='#d9b878' stroke-width='4.2' fill='none'/>" +
+      "<circle cx='85.5' cy='76.5' r='2.4' fill='" + HOOF + "'/><circle cx='36' cy='80.5' r='2.4' fill='" + HOOF + "'/>" +
+      // 身体 + 两块斑块
+      "<ellipse cx='56' cy='58' rx='25' ry='19' fill='" + B + "' stroke='" + D + "' stroke-width='2.4'/>" +
+      "<path d='M44 46q-8 2-7 9q1 6 8 5q7-1 6-8q-1-7-7-6zM63 68q-6 0-6 6q0 5 6 5q6 0 6-5q0-6-6-6z' fill='" + P + "'/>" +
+      // 近侧两腿（前伸/后蹬）
+      "<path d='M78 64L90 74M52 72L46 84' stroke='" + D + "' stroke-width='8' fill='none'/>" +
+      "<path d='M78 64L90 74M52 72L46 84' stroke='" + B + "' stroke-width='4.2' fill='none'/>" +
+      "<circle cx='91.5' cy='75.5' r='2.4' fill='" + HOOF + "'/><circle cx='45.5' cy='85.5' r='2.4' fill='" + HOOF + "'/>" +
+      // 耳（近侧）
+      "<path d='M63 29Q53 25 51 16Q61 17 66 25Z' fill='" + B + "' stroke='" + D + "' stroke-width='2.2'/>" +
+      // 双角
+      "<path d='M70 22Q64 10 74 8Q73 15 78 20Z' fill='" + HN + "' stroke='" + D + "' stroke-width='2'/>" +
+      "<path d='M84 22Q90 10 80 8Q81 15 76 20Z' fill='" + HN + "' stroke='" + D + "' stroke-width='2'/>" +
+      // 刘海
+      "<path d='M68 24Q76 17 85 24Q80 28 76 27Q72 28 68 24Z' fill='" + W + "' stroke='" + D + "' stroke-width='1.8'/>" +
+      // 头 + 脸部斑块
+      "<circle cx='77' cy='38' r='17.5' fill='" + B + "' stroke='" + D + "' stroke-width='2.4'/>" +
+      "<path d='M79 21q13 1 14 13q0 9-9 9q-7 0-8-8q-1-10 3-14z' fill='" + P + "'/>" +
+      // 眼（黑豆眼+高光）+ 眉
+      "<circle cx='74' cy='36' r='3.1' fill='#241505'/><circle cx='72.9' cy='34.9' r='1.05' fill='#fff'/>" +
+      "<path d='M69 30Q74 27.5 79 29' stroke='" + D + "' stroke-width='2.2' fill='none'/>" +
+      // 吻部：粉鼻 + 笑
+      "<ellipse cx='87' cy='47' rx='12' ry='9.5' fill='" + W + "' stroke='" + D + "' stroke-width='2.4'/>" +
+      "<ellipse cx='91.5' cy='45' rx='2' ry='2.6' fill='" + PK + "'/>" +
+      "<path d='M80 52Q85 56 91 52' stroke='" + D + "' stroke-width='2' fill='none'/>" +
+      // 近侧大翅膀
+      wing(nearT, W);
+  }
+
+  function bullWrap(nearT, farT, tilt) {
+    // linecap/linejoin 提到根组继承，压缩体积
+    return "<g stroke-linecap='round' stroke-linejoin='round'><g transform='rotate(" + tilt + " 58 50)'>" +
+      bullInner(nearT, farT) + '</g></g>';
+  }
+
+  function bullFrame(i) {
+    var near = 'translate(-4 2) ' + (i ? 'rotate(-60 58 42)' : 'rotate(26 58 42)');
+    var far = FARB + (i ? 'rotate(15)' : 'rotate(-55)') + ' translate(-58 -42)';
+    return esc(svg('0 0 120 90', 120, 90, bullWrap(near, far, -8)));
+  }
+
+  function bullBig() {
+    return esc(svg('0 0 240 180', 240, 180,
+      "<g transform='translate(20 12) scale(1.7)'>" +
+      bullWrap('translate(-4 2) rotate(32 58 42)', FARB + 'rotate(-20) translate(-58 -42)', -6) + '</g>'));
+  }
+
+  /* 圆脸牛头 96x96：眨眼笑 */
+  function bullHead() {
+    return esc(svg('0 0 96 96', 96, 96,
+      // 耳
+      "<path d='M20 36Q9 31 10 21Q21 24 26 33Z' fill='" + B + "' stroke='" + D + "' stroke-width='2.2' stroke-linejoin='round'/>" +
+      "<path d='M76 36Q87 31 86 21Q75 24 70 33Z' fill='" + B + "' stroke='" + D + "' stroke-width='2.2' stroke-linejoin='round'/>" +
+      // 角
+      "<path d='M32 22Q26 9 37 7Q36 15 41 20Z' fill='" + HN + "' stroke='" + D + "' stroke-width='2' stroke-linejoin='round'/>" +
+      "<path d='M64 22Q70 9 59 7Q60 15 55 20Z' fill='" + HN + "' stroke='" + D + "' stroke-width='2' stroke-linejoin='round'/>" +
+      // 脸
+      "<circle cx='48' cy='50' r='30' fill='" + B + "' stroke='" + D + "' stroke-width='2.6'/>" +
+      // 斑块（右上含眼）
+      "<path d='M50 22q16 1 17 15q0 11-11 11q-9 0-10-10q-1-12 4-16z' fill='" + P + "'/>" +
+      // 刘海
+      "<path d='M36 25Q48 17 60 25Q54 30 48 29Q42 30 36 25Z' fill='" + W + "' stroke='" + D + "' stroke-width='1.8' stroke-linejoin='round'/>" +
+      // 眨眼笑：左眼弯弯闭眼，右眼黑豆眼
+      "<path d='M28 48Q32 43.5 36 48' stroke='" + D + "' stroke-width='2.6' fill='none' stroke-linecap='round'/>" +
+      "<circle cx='61' cy='48' r='3.4' fill='#241505'/><circle cx='59.8' cy='46.8' r='1.15' fill='#fff'/>" +
+      // 腮红
+      "<ellipse cx='30' cy='58' rx='4.2' ry='2.6' fill='" + PK + "' opacity='.75'/>" +
+      // 吻部
+      "<ellipse cx='48' cy='66' rx='17' ry='11.5' fill='" + W + "' stroke='" + D + "' stroke-width='2.6'/>" +
+      "<ellipse cx='41.5' cy='62.5' rx='2.4' ry='3' fill='" + PK + "'/>" +
+      "<ellipse cx='54.5' cy='62.5' rx='2.4' ry='3' fill='" + PK + "'/>" +
+      "<path d='M42 71Q48 76 54 71' stroke='" + D + "' stroke-width='2.2' fill='none' stroke-linecap='round'/>"));
+  }
+
+  /* ---------------- 图标：24x24 单色线条 #e6e8ec ---------------- */
+  var IC = {
+    pause: "<path d='M9 5v14M15.5 5v14'/>",
+    play: "<path d='M8 5.5l10.5 6.5L8 18.5z'/>",
+    lock: "<rect x='5' y='11' width='14' height='9' rx='2'/><path d='M8 11V8a4 4 0 0 1 8 0v3'/><path d='M12 14.5v2' stroke-width='2.4'/>",
+    back: "<path d='M14.5 6l-6 6 6 6'/>",
+    settings: "<circle cx='12' cy='12' r='3.4'/><path d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z'/>",
+    loan: "<path d='M9.5 7.5h5l3 4.2c1.4 2 .8 6.8-5.5 6.8s-6.9-4.8-5.5-6.8l3-4.2z'/><path d='M9.5 7.5L8.5 5h7l-1 2.5'/><path d='M18.8 3v4M16.8 5h4'/>",
+    share: "<path d='M13.5 5.5l6 4.7-6 4.7v-3.2c-4.6.2-7 2.4-8.6 5.8.3-5.2 3-8.9 8.6-9.6V5.5z'/>",
+    dividend: "<circle cx='12' cy='12' r='8.5'/><path d='M9 7.5l3 4 3-4M12 11.5V17M9.3 13h5.4M9.3 15.2h5.4'/>",
+    buyback: "<path d='M5.2 13a7 7 0 0 1 12.1-4.8'/><path d='M17.6 4.4v4h-4'/><path d='M18.8 11a7 7 0 0 1-12.1 4.8'/><path d='M6.4 19.6v-4h4'/>",
+    issue: "<rect x='5.5' y='3.5' width='11.5' height='17' rx='1.6'/><path d='M11.2 16.5v-5.2M8.9 13.4l2.3-2.3 2.3 2.3'/>",
+    bank: "<path d='M4 9.5L12 4l8 5.5H4z'/><path d='M6.5 12.5v4.5M10.2 12.5v4.5M13.8 12.5v4.5M17.5 12.5v4.5M4 19.5h16'/>",
+    microloan: "<rect x='3.5' y='6.5' width='17' height='12' rx='2'/><path d='M15 10.5h5.5v4H15a2 2 0 0 1 0-4z'/>",
+    leverage: "<path d='M6.5 6.5l11 11M17.5 6.5l-11 11'/>",
+    short: "<path d='M12 4.5V17M6.8 12.2L12 17.5l5.2-5.3M6 20h12'/>"
+  };
+
+  function icon(name) {
+    var p = IC[name];
+    if (!p) return '';
+    return esc(svg('0 0 24 24', 24, 24,
+      "<g fill='none' stroke='#e6e8ec' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" + p + '</g>'));
+  }
+
+  /* ---------------- 装饰二维码：seed 确定性 21x21 ---------------- */
+  function qr(seed) {
+    var h = 1779033703 ^ String(seed).length;
+    for (var i = 0; i < String(seed).length; i++) {
+      h = Math.imul(h ^ String(seed).charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    var s = (h ^= h >>> 16) >>> 0;
+    function rnd() {
+      s = (s + 0x6D2B79F5) >>> 0;
+      var t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+    function finder(r, c) {
+      return (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4)) ? 1 : 0;
+    }
+    var d = '', r, c, run = 0, on = 0;
+    function flush(j) {
+      if (on) d += 'M' + (j - run) + ' ' + r + 'h' + run + 'v1h-' + run + 'z';
+      on = 0; run = 0;
+    }
+    for (r = 0; r < 21; r++) {
+      for (c = 0; c <= 21; c++) {
+        var v = 0;
+        if (c < 21) {
+          if (r < 7 && c < 7) v = finder(r, c);
+          else if (r < 7 && c > 13) v = finder(r, c - 14);
+          else if (r > 13 && c < 7) v = finder(r - 14, c);
+          else if (r === 6 || c === 6) v = ((r + c) % 2 === 0) ? 1 : 0;
+          else v = rnd() < 0.47 ? 1 : 0;
+        }
+        if (v) { on = 1; run++; } else flush(c);
+      }
+    }
+    return esc(svg('0 0 21 21', 160, 160,
+      "<rect width='21' height='21' fill='#fff'/>" +
+      "<path d='" + d + "' fill='#17181c'/>").replace("<svg ", "<svg shape-rendering='crispEdges' "));
+  }
+
+  window.BF = window.BF || {};
+  window.BF.ART = {
+    bullFrame: bullFrame,
+    bullHead: bullHead,
+    bullBig: bullBig,
+    icon: icon,
+    qr: qr,
+    ready: true
+  };
+})();
+
+
+/* ==== audio.js ==== */
+/* ============================================================
+ * bull-flight · src/audio.js —— 音频模块（音频代理负责）
+ * 全 WebAudio 实时合成：9 个 SFX cue + 8 小节 lo-fi BGM 循环。
+ * 无外部音频文件、无 fetch；唯一对外名字 window.BF.SFX。
+ * 接口：init() / unlock() / play(name) / setMuted(b) / bgmOn(b)
+ *       applyOverrides(map) / ready
+ * ============================================================ */
+(function () {
+  'use strict';
+
+  var BF = window.BF = window.BF || {};
+
+  /* ---------------- 内部状态 ---------------- */
+  var ctx = null;        // AudioContext（惰性创建，首次 init/unlock/play 建）
+  var master = null;     // 总线：master -> compressor -> destination
+  var sfxBus = null;     // 音效支路
+  var bgmBus = null;     // BGM 支路（整体压低）
+  var noiseBuf = null;   // 共享 1s 白噪声 buffer
+  var muted = false;
+  var ready = false;
+  var bound = false;     // 手势 / 可见性监听只绑一次
+  var overrides = {};    // name -> { gain, freq, ... } 合成参数缩放
+
+  /* BGM：BPM 96、8 小节、16 分音符网格、lookahead 调度 */
+  var BPM = 96, STEP = 60 / BPM / 4, TOTAL = 128;
+  var AHEAD = 0.12, TICK_MS = 25, SWING = 0.10, BGM_VOL = 0.085;
+  var bgmWanted = true, bgmPlaying = false, hiddenPaused = false;
+  var timer = null, stepIdx = 0, nextNoteTime = 0;
+  var liveArr = [];      // 存活的 BGM 声源，stop 时统一掐掉防拖音
+
+  /* ---------------- 小工具 ---------------- */
+  function mf(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+  function track(src, nodes, live) {
+    if (live) liveArr.push(src);
+    src.onended = function () {
+      if (live) {
+        var i = liveArr.indexOf(src);
+        if (i >= 0) liveArr.splice(i, 1);
+      }
+      for (var j = 0; j < nodes.length; j++) {
+        try { nodes[j].disconnect(); } catch (e) {}
+      }
+      src.onended = null;
+    };
+  }
+
+  /* 振荡器音符：{t,type,f,f2,slide,dur,peak,a,lp,q,dest,live} */
+  function tone(o) {
+    if (!ctx) return null;
+    var t0 = o.t, dest = o.dest || sfxBus;
+    var osc = ctx.createOscillator();
+    osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(Math.max(1, o.f), t0);
+    if (o.f2) {
+      osc.frequency.exponentialRampToValueAtTime(
+        Math.max(1, o.f2), t0 + (o.slide != null ? o.slide : o.dur));
+    }
+    var g = ctx.createGain();
+    var pk = Math.max(0.0002, o.peak);
+    g.gain.setValueAtTime(0.0002, t0);
+    g.gain.exponentialRampToValueAtTime(pk, t0 + (o.a != null ? o.a : 0.008));
+    g.gain.exponentialRampToValueAtTime(0.0002, t0 + o.dur);
+    var last = osc;
+    if (o.lp) {
+      var fl = ctx.createBiquadFilter();
+      fl.type = 'lowpass'; fl.frequency.value = o.lp; fl.Q.value = o.q || 0.7;
+      osc.connect(fl); last = fl;
+    }
+    last.connect(g); g.connect(dest);
+    osc.start(t0); osc.stop(t0 + o.dur + 0.05);
+    track(osc, [osc, g, last], o.live);
+    return osc;
+  }
+
+  /* 噪声音符：{t,dur,peak,a,ft,f,f2,q,dest,live} */
+  function noise(o) {
+    if (!ctx) return null;
+    var t0 = o.t, dest = o.dest || sfxBus;
+    var src = ctx.createBufferSource();
+    src.buffer = noiseBuf; src.loop = true;
+    var fl = ctx.createBiquadFilter();
+    fl.type = o.ft || 'bandpass';
+    fl.frequency.setValueAtTime(Math.max(10, o.f), t0);
+    if (o.f2) fl.frequency.exponentialRampToValueAtTime(Math.max(10, o.f2), t0 + o.dur);
+    fl.Q.value = o.q || 1;
+    var g = ctx.createGain();
+    var pk = Math.max(0.0002, o.peak);
+    g.gain.setValueAtTime(0.0002, t0);
+    g.gain.exponentialRampToValueAtTime(pk, t0 + (o.a != null ? o.a : 0.006));
+    g.gain.exponentialRampToValueAtTime(0.0002, t0 + o.dur);
+    src.connect(fl); fl.connect(g); g.connect(dest);
+    src.start(t0, Math.random() * 0.5); src.stop(t0 + o.dur + 0.05);
+    track(src, [src, fl, g], o.live);
+    return src;
+  }
+
+  /* 覆盖缩放：freq 缩放频率、gain 缩放峰值（供配置面板换音色） */
+  function fr(n, base) { var o = overrides[n]; return o && o.freq ? base * o.freq : base; }
+  function gn(n, base) { var o = overrides[n]; return (o && o.gain != null) ? base * o.gain : base; }
+
+  /* ---------------- 9 个 SFX cue ---------------- */
+  var cues = {
+    /* 点击扑翅：带通噪声快滑频的"嗖" + 极轻低频衬底 */
+    tap: function (t) {
+      noise({ t: t, dur: 0.11, peak: gn('tap', 0.16), a: 0.004,
+        ft: 'bandpass', f: fr('tap', 480), f2: fr('tap', 2400), q: 1.1 });
+      tone({ t: t, type: 'triangle', f: fr('tap', 260), f2: fr('tap', 140),
+        slide: 0.09, dur: 0.09, peak: gn('tap', 0.05) });
+    },
+    /* 买入成交：金属叮（双正弦非谐波）+ 上行明快双音 */
+    buy: function (t) {
+      tone({ t: t, type: 'sine', f: fr('buy', 1568), dur: 0.32, peak: gn('buy', 0.11), a: 0.002 });
+      tone({ t: t, type: 'sine', f: fr('buy', 2349), dur: 0.20, peak: gn('buy', 0.05), a: 0.002 });
+      tone({ t: t + 0.07, type: 'triangle', f: fr('buy', 659), dur: 0.09, peak: gn('buy', 0.18) });
+      tone({ t: t + 0.17, type: 'triangle', f: fr('buy', 880), dur: 0.15, peak: gn('buy', 0.22) });
+    },
+    /* 卖出平仓：收银"哒"（闷方波短音）+"叮"（亮铃双泛音） */
+    sell: function (t) {
+      tone({ t: t, type: 'square', f: fr('sell', 392), dur: 0.05, peak: gn('sell', 0.16), lp: 2200 });
+      tone({ t: t + 0.08, type: 'sine', f: fr('sell', 1319), dur: 0.30, peak: gn('sell', 0.13), a: 0.002 });
+      tone({ t: t + 0.08, type: 'sine', f: fr('sell', 1976), dur: 0.18, peak: gn('sell', 0.05), a: 0.002 });
+    },
+    /* 盈利落袋：上行三连音琶音 C5-E5-G5 + 高频微光噪声 */
+    profit: function (t) {
+      var seq = [523.25, 659.25, 783.99];
+      for (var i = 0; i < 3; i++) {
+        tone({ t: t + i * 0.09, type: 'triangle', f: fr('profit', seq[i]),
+          dur: (i === 2 ? 0.26 : 0.11), peak: gn('profit', 0.17 + i * 0.03) });
+      }
+      noise({ t: t + 0.18, dur: 0.16, peak: gn('profit', 0.05), ft: 'highpass', f: fr('profit', 5600), q: 0.7 });
+    },
+    /* 亏损：下行两音 A4->E4 尾音微降，柔三角波不刺耳 */
+    loss: function (t) {
+      tone({ t: t, type: 'sine', f: fr('loss', 440), dur: 0.17, peak: gn('loss', 0.15) });
+      tone({ t: t + 0.16, type: 'sine', f: fr('loss', 330), f2: fr('loss', 294),
+        slide: 0.28, dur: 0.32, peak: gn('loss', 0.14), a: 0.02 });
+    },
+    /* 撞管道：锯齿波坠落滑频 + 低通闷响 + 次低音冲击 */
+    crash: function (t) {
+      tone({ t: t, type: 'sawtooth', f: fr('crash', 420), f2: fr('crash', 55),
+        slide: 0.36, dur: 0.40, peak: gn('crash', 0.20), lp: fr('crash', 950), q: 0.8 });
+      noise({ t: t + 0.14, dur: 0.22, peak: gn('crash', 0.34), a: 0.004,
+        ft: 'lowpass', f: fr('crash', 260), f2: fr('crash', 80), q: 0.6 });
+      tone({ t: t + 0.14, type: 'sine', f: fr('crash', 75), f2: fr('crash', 40),
+        slide: 0.18, dur: 0.20, peak: gn('crash', 0.30) });
+    },
+    /* 按钮：方波短哒 + 高通噪声 tick */
+    ui: function (t) {
+      tone({ t: t, type: 'square', f: fr('ui', 1150), f2: fr('ui', 900),
+        slide: 0.03, dur: 0.035, peak: gn('ui', 0.11), lp: fr('ui', 3200) });
+      noise({ t: t, dur: 0.02, peak: gn('ui', 0.07), ft: 'highpass', f: fr('ui', 4200), q: 0.7 });
+    },
+    /* 开盘锣：低频基音 + 非谐波泛音簇长衰减 + 敲击噪声 */
+    open: function (t) {
+      var parts = [[98, 0.24, 1.8], [98.7, 0.09, 1.6], [147, 0.13, 1.4],
+                   [244, 0.08, 1.05], [352, 0.05, 0.8], [523, 0.03, 0.55]];
+      for (var i = 0; i < parts.length; i++) {
+        tone({ t: t, type: 'sine', f: fr('open', parts[i][0]),
+          dur: parts[i][2], peak: gn('open', parts[i][1]), a: 0.004 });
+      }
+      noise({ t: t, dur: 0.07, peak: gn('open', 0.14), ft: 'bandpass', f: fr('open', 420), q: 0.9 });
+    },
+    /* 暂停：短滴（正弦微降滑音） */
+    pause: function (t) {
+      tone({ t: t, type: 'sine', f: fr('pause', 1046), f2: fr('pause', 784),
+        slide: 0.07, dur: 0.08, peak: gn('pause', 0.15) });
+    }
+  };
+
+  /* ---------------- BGM：8 小节 lo-fi 循环 ----------------
+   * 和弦进行 C-G-Am-F / C-G-F-G，三角波贝斯 + 低通方波旋律
+   * + 柔 kick/边击 + hi-hat 噪声，轻 swing。 */
+  var ROOTS = [48, 43, 45, 41, 48, 43, 41, 43];
+  var CHORDS = [[48, 52, 55], [43, 47, 50], [45, 48, 52], [41, 45, 48],
+                [48, 52, 55], [43, 47, 50], [41, 45, 48], [43, 47, 50]];
+  var MEL = [
+    [0, 76, 2], [4, 79, 2], [8, 81, 3], [12, 79, 2],
+    [16, 74, 2], [20, 79, 2], [24, 74, 3], [28, 71, 2],
+    [32, 72, 2], [36, 76, 2], [40, 81, 3], [44, 79, 2],
+    [48, 77, 2], [52, 76, 2], [56, 74, 4],
+    [64, 76, 2], [68, 79, 2], [72, 84, 3], [76, 81, 2],
+    [80, 79, 2], [84, 74, 2], [88, 71, 3], [92, 74, 2],
+    [96, 77, 2], [100, 81, 2], [104, 79, 3], [108, 76, 2],
+    [112, 74, 3], [118, 71, 2], [122, 67, 3], [126, 72, 1]
+  ];
+  var MELMAP = {};
+  (function () {
+    for (var i = 0; i < MEL.length; i++) MELMAP[MEL[i][0]] = [MEL[i][1], MEL[i][2]];
+  })();
+
+  function bLead(f, t, dur) {
+    f = f * (1 + (Math.random() * 0.004 - 0.002));
+    tone({ t: t, type: 'square', f: f, dur: dur, peak: 0.17, a: 0.012,
+      lp: 1700, q: 0.6, dest: bgmBus, live: true });
+  }
+  function bBass(f, t, dur) {
+    f = f * (1 + (Math.random() * 0.003 - 0.0015));
+    tone({ t: t, type: 'triangle', f: f, dur: dur, peak: 0.30, a: 0.008,
+      dest: bgmBus, live: true });
+  }
+  function bStab(ch, t) {
+    for (var i = 0; i < 3; i++) {
+      tone({ t: t + i * 0.004, type: 'square', f: mf(ch[i] + 12), dur: 0.13,
+        peak: 0.04, a: 0.006, lp: 1300, dest: bgmBus, live: true });
+    }
+  }
+  function bKick(t) {
+    tone({ t: t, type: 'sine', f: 150, f2: 44, slide: 0.10, dur: 0.13,
+      peak: 0.5, a: 0.003, dest: bgmBus, live: true });
+  }
+  function bRim(t) {
+    noise({ t: t, dur: 0.05, peak: 0.13, ft: 'bandpass', f: 1800, q: 1.1, dest: bgmBus, live: true });
+  }
+  function bHat(t, p) {
+    noise({ t: t, dur: 0.03, peak: p, ft: 'highpass', f: 6800, q: 0.7, dest: bgmBus, live: true });
+  }
+
+  function scheduleStep(s, t) {
+    var bar = (s >> 4) & 7, pos = s & 15;
+    var ch = CHORDS[bar];
+    if (pos === 0) bBass(mf(ROOTS[bar] - 12), t, 0.40);
+    else if (pos === 8) bBass(mf(ROOTS[bar] - 12), t, 0.28);
+    else if (pos === 12) bBass(mf(ROOTS[bar] - 5), t, 0.22);
+    if (pos === 4 || pos === 12) bStab(ch, t);
+    if (pos === 0 || pos === 10) bKick(t);
+    if (pos === 8) bRim(t);
+    if ((pos & 3) === 2) bHat(t, pos === 6 ? 0.045 : 0.03);
+    var m = MELMAP[s];
+    if (m) bLead(mf(m[0]), t, m[1] * STEP * 0.9);
+  }
+
+  function schedTick() {
+    if (!ctx || !bgmPlaying) return;
+    var horizon = ctx.currentTime + AHEAD, guard = 0;
+    while (nextNoteTime < horizon && guard++ < 64) {
+      var sw = (stepIdx % 2 === 1) ? SWING * STEP : 0;
+      scheduleStep(stepIdx, nextNoteTime + sw);
+      stepIdx = (stepIdx + 1) % TOTAL;
+      nextNoteTime += STEP;
+    }
+  }
+
+  function startBgm() {
+    if (!ctx || bgmPlaying) return;
+    bgmPlaying = true;
+    var t = ctx.currentTime;
+    try {
+      bgmBus.gain.cancelScheduledValues(t);
+      bgmBus.gain.setValueAtTime(0.0002, t);
+      bgmBus.gain.exponentialRampToValueAtTime(BGM_VOL, t + 0.8);
+    } catch (e) {}
+    stepIdx = 0;
+    nextNoteTime = t + 0.08;
+    if (timer) { clearInterval(timer); timer = null; }
+    timer = setInterval(schedTick, TICK_MS);
+    schedTick();
+  }
+
+  function stopBgm() {
+    if (timer) { clearInterval(timer); timer = null; }  // 防孤儿定时器
+    bgmPlaying = false;
+    if (ctx && bgmBus) {
+      var t = ctx.currentTime;
+      try {
+        bgmBus.gain.cancelScheduledValues(t);
+        bgmBus.gain.setTargetAtTime(0.0002, t, 0.04);
+      } catch (e) {}
+    }
+    var arr = liveArr.splice(0, liveArr.length);
+    for (var i = 0; i < arr.length; i++) {
+      try { arr[i].stop(0); } catch (e) {}
+    }
+  }
+
+  /* ---------------- 上下文 / 生命周期 ---------------- */
+  function resumeCtx() {
+    if (!ctx || ctx.state !== 'suspended' || !ctx.resume) return;
+    var p = null;
+    try { p = ctx.resume(); } catch (e) { return; }
+    if (p && p.catch) p.catch(function () {});
+  }
+
+  function onVis() {
+    if (!ctx) return;
+    if (document.hidden) {
+      if (bgmPlaying) { hiddenPaused = true; stopBgm(); }
+    } else {
+      resumeCtx();
+      if (hiddenPaused) {
+        hiddenPaused = false;
+        if (bgmWanted && !bgmPlaying) startBgm();
+      }
+    }
+  }
+
+  function onGesture() { unlock(); }
+
+  function bindOnce() {
+    if (bound || typeof document === 'undefined') return;
+    bound = true;
+    var opt = { passive: true, capture: true };
+    document.addEventListener('pointerdown', onGesture, opt);
+    document.addEventListener('touchend', onGesture, opt);
+    document.addEventListener('keydown', onGesture, opt);
+    document.addEventListener('visibilitychange', onVis, false);
+  }
+
+  function ensure() {
+    if (ctx) return true;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    try { ctx = new AC(); } catch (e) { ctx = null; return false; }
+    master = ctx.createGain();
+    master.gain.value = muted ? 0.0001 : 1;
+    var comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -18; comp.knee.value = 24; comp.ratio.value = 6;
+    comp.attack.value = 0.004; comp.release.value = 0.18;
+    master.connect(comp); comp.connect(ctx.destination);
+    sfxBus = ctx.createGain(); sfxBus.gain.value = 1; sfxBus.connect(master);
+    bgmBus = ctx.createGain(); bgmBus.gain.value = 0.0001; bgmBus.connect(master);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    var ch = noiseBuf.getChannelData(0), i;
+    for (i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+    ready = true;
+    bindOnce();
+    return true;
+  }
+
+  /* ---------------- 对外接口 ---------------- */
+  function init() { ensure(); }
+
+  function unlock() {
+    if (!ensure()) return;
+    resumeCtx();
+    if (ctx.state === 'running') {
+      if (bgmPlaying && timer && nextNoteTime < ctx.currentTime + 0.01) {
+        nextNoteTime = ctx.currentTime + 0.06;  // 挂起冻结后重新对表
+      }
+      if (bgmWanted && !bgmPlaying && !document.hidden) startBgm();
+    }
+  }
+
+  function play(name) {
+    if (!ensure()) return;
+    var c = cues[name];
+    if (!c) return;
+    if (ctx.state === 'suspended') resumeCtx();  // 无手势时静默失败，有手势即响
+    try { c(ctx.currentTime + 0.02); }
+    catch (e) { if (window.console && console.warn) console.warn('[BF.SFX]', name, e); }
+  }
+
+  function setMuted(b) {
+    muted = !!b;
+    if (ctx && master) {
+      var t = ctx.currentTime;
+      try {
+        master.gain.cancelScheduledValues(t);
+        master.gain.setTargetAtTime(muted ? 0.0001 : 1, t, 0.012);
+      } catch (e) {
+        try { master.gain.value = muted ? 0 : 1; } catch (e2) {}
+      }
+    }
+  }
+
+  function bgmOn(b) {
+    bgmWanted = !!b;
+    if (!ensure()) return;
+    if (bgmWanted) {
+      if (!bgmPlaying && !document.hidden) startBgm();
+    } else {
+      hiddenPaused = false;
+      stopBgm();
+    }
+  }
+
+  function applyOverrides(map) {
+    if (!map || typeof map !== 'object') return;
+    for (var name in map) {
+      if (!Object.prototype.hasOwnProperty.call(map, name)) continue;
+      var v = map[name];
+      if (!v) { delete overrides[name]; continue; }
+      var o = overrides[name] = overrides[name] || {};
+      for (var k in v) {
+        if (Object.prototype.hasOwnProperty.call(v, k)) o[k] = v[k];
+      }
+    }
+  }
+
+  BF.SFX = {
+    init: init,
+    unlock: unlock,
+    play: play,
+    setMuted: setMuted,
+    bgmOn: bgmOn,
+    applyOverrides: applyOverrides
+  };
+  Object.defineProperty(BF.SFX, 'ready', {
+    get: function () { return !!ready; },
+    configurable: true
+  });
+})();
+
+
+/* ==== fx.js ==== */
+/* bull-flight fx —— Canvas 粒子：金币/羽毛/扑翅尘/浮字（对象池，无 shadowBlur） */
+(function () {
+  window.BF = window.BF || {};
+  var pool = [], texts = [];
+  var MAX = 160;
+  function get() {
+    if (pool.length) return pool.pop();
+    return {};
+  }
+  function rel(p) { if (pool.length < MAX) pool.push(p); }
+  function burst(x, y, type) {
+    var n = type === 'coin' ? 10 : type === 'feather' ? 7 : type === 'wing' ? 4 : 6;
+    for (var i = 0; i < n; i++) {
+      var p = get();
+      var a = Math.random() * 6.283, sp = 60 + Math.random() * 160;
+      p.x = x; p.y = y;
+      p.vx = Math.cos(a) * sp * (type === 'wing' ? 0.4 : 1);
+      p.vy = Math.sin(a) * sp - (type === 'coin' ? 120 : 40);
+      p.g = type === 'feather' ? 160 : 420;
+      p.life = p.max = type === 'coin' ? 0.8 : type === 'feather' ? 1.1 : 0.5;
+      p.rot = Math.random() * 6.283; p.vr = (Math.random() - 0.5) * 8;
+      if (type === 'coin') { p.kind = 'coin'; p.col = i % 3 ? '#f5c04a' : '#ffe08a'; p.r = 4 + Math.random() * 3; }
+      else if (type === 'feather') { p.kind = 'feather'; p.col = '#f4efe6'; p.r = 5 + Math.random() * 4; }
+      else if (type === 'dust') { p.kind = 'dot'; p.col = '#9aa4b2'; p.r = 2.5 + Math.random() * 2; }
+      else { p.kind = 'dot'; p.col = 'rgba(232,201,143,0.9)'; p.r = 2 + Math.random() * 2.5; }
+      live.push(p);
+    }
+  }
+  var live = [];
+  function floatText(x, y, str, color) {
+    texts.push({ kind: 'text', x: x, y: y, str: str, col: color || '#fff', life: 1.1, max: 1.1, vy: -46 });
+  }
+  function step(dt, ctx) {
+    for (var i = live.length - 1; i >= 0; i--) {
+      var p = live[i];
+      p.life -= dt;
+      if (p.life <= 0) { live.splice(i, 1); rel(p); continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vy += (p.g || 0) * dt;
+      if (p.vr) p.rot += p.vr * dt;
+      if (p.kind === 'feather') { p.vx *= 0.98; p.vy = Math.min(p.vy, 90); }
+    }
+    for (i = texts.length - 1; i >= 0; i--) {
+      var t = texts[i];
+      t.life -= dt;
+      if (t.life <= 0) { texts.splice(i, 1); continue; }
+      t.y += (t.vy || -46) * dt;
+    }
+  }
+  function draw(ctx) {
+    var i, p;
+    for (i = 0; i < live.length; i++) {
+      p = live[i];
+      var a = Math.max(0, Math.min(1, p.life / p.max));
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.translate(p.x, p.y);
+      if (p.kind === 'coin') {
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.col;
+        ctx.beginPath(); ctx.ellipse(0, 0, p.r, p.r * (0.6 + 0.4 * Math.abs(Math.cos(p.rot))), 0, 0, 6.283); ctx.fill();
+        ctx.strokeStyle = 'rgba(122,84,20,0.8)'; ctx.lineWidth = 1; ctx.stroke();
+      } else if (p.kind === 'feather') {
+        ctx.rotate(Math.sin(p.life * 5) * 0.6 + p.rot * 0.2);
+        ctx.fillStyle = p.col;
+        ctx.beginPath(); ctx.ellipse(0, 0, p.r, p.r * 0.42, 0.4, 0, 6.283); ctx.fill();
+        ctx.strokeStyle = 'rgba(120,100,70,0.6)'; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(-p.r, 0); ctx.lineTo(p.r, 0); ctx.stroke();
+      } else {
+        ctx.fillStyle = p.col;
+        ctx.beginPath(); ctx.arc(0, 0, p.r, 0, 6.283); ctx.fill();
+      }
+      ctx.restore();
+    }
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.font = '700 17px -apple-system,system-ui';
+    for (i = 0; i < texts.length; i++) {
+      var t = texts[i];
+      ctx.globalAlpha = Math.max(0, Math.min(1, t.life / t.max));
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,10,14,0.75)';
+      ctx.strokeText(t.str, t.x, t.y);
+      ctx.fillStyle = t.col;
+      ctx.fillText(t.str, t.x, t.y);
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+  window.BF.FX = { burst: burst, floatText: floatText, step: step, draw: draw };
+})();
+
+
+/* ==== config-panel.js ==== */
+/* bull-flight config —— 配置中心：默认值/localStorage/work 副本/设置面板（主线负责）
+ * 红线：面板永不直接写 localStorage，统一走 apply()
+ */
+(function () {
+  window.BF = window.BF || {};
+  var KEY = 'bf.cfg.v1';
+  var DEF = {
+    gravity: 620, jumpV: 330, noise: 26, candleTicks: 22, scrollSpeed: 130,
+    pipeGap: 0.17, pipeEveryMin: 4, pipeEveryMax: 7, buyEveryMin: 3, buyEveryMax: 6,
+    feeRate: 0.0004, loanK: 0.5, bgm: true, sfx: true, bullImg: null
+  };
+  var cur = load();
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return JSON.parse(JSON.stringify(DEF));
+      var o = JSON.parse(raw), r = JSON.parse(JSON.stringify(DEF));
+      for (var k in r) if (o[k] !== undefined) r[k] = o[k];
+      return r;
+    } catch (e) { return JSON.parse(JSON.stringify(DEF)); }
+  }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(cur)); } catch (e) {} }
+  function all() { return cur; }
+  function apply(snapshot) {
+    var r = JSON.parse(JSON.stringify(DEF));
+    for (var k in r) if (snapshot[k] !== undefined) r[k] = snapshot[k];
+    cur = r; persist(); onChange();
+  }
+  function set(k, v) { cur[k] = v; persist(); onChange(); }
+  function onChange() {
+    try {
+      if (BF.SFX) { BF.SFX.setMuted(!cur.sfx); BF.SFX.bgmOn(cur.bgm); }
+      if (cur.bullImg && BF.GAME) { BF.GAME.setBullImg(0, cur.bullImg); BF.GAME.setBullImg(1, cur.bullImg); }
+    } catch (e) {}
+  }
+  function exportJSON() { return JSON.stringify(cur, null, 2); }
+  function importJSON(str) { var o = JSON.parse(str); apply(o); }
+
+  // ---------- 面板 ----------
+  var panel = null;
+  function openPanel() {
+    if (!panel) build();
+    panel.classList.add('show');
+    syncForm();
+  }
+  function closePanel() { if (panel) panel.classList.remove('show'); }
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+  function build() {
+    panel = el('div', 'cfg-panel'); panel.id = 'panel-cfg';
+    var card = el('div', 'cfg-card');
+    card.appendChild(el('div', 'cfg-title', null || '<span>设置</span>'));
+    // 牛图片上传
+    var imgRow = el('div', 'cfg-row');
+    imgRow.innerHTML = '<label>小牛立绘替换</label>';
+    var imgInput = document.createElement('input');
+    imgInput.type = 'file'; imgInput.accept = 'image/*'; imgInput.className = 'cfg-file';
+    imgInput.onchange = function () {
+      var f = imgInput.files && imgInput.files[0];
+      if (!f) return;
+      var rd = new FileReader();
+      rd.onload = function () { set('bullImg', rd.result); toast('小牛立绘已更新'); };
+      rd.readAsDataURL(f);
+    };
+    imgRow.appendChild(imgInput);
+    card.appendChild(imgRow);
+    // 滑杆组
+    var sliders = [
+      ['gravity', '重力', 200, 1100, 10],
+      ['jumpV', '点击冲力', 180, 520, 5],
+      ['noise', '行情噪声', 0, 90, 1],
+      ['scrollSpeed', 'K线滚动速度', 70, 260, 5],
+      ['pipeGap', '管道空隙', 0.10, 0.30, 0.005],
+      ['feeRate', '税费率', 0, 0.003, 0.0001]
+    ];
+    var form = {};
+    sliders.forEach(function (s) {
+      var row = el('div', 'cfg-row');
+      var lab = el('label', null, s[1] + ' <b></b>');
+      var inp = document.createElement('input');
+      inp.type = 'range'; inp.min = s[2]; inp.max = s[3]; inp.step = s[4];
+      form[s[0]] = { inp: inp, lab: lab.querySelector('b'), dec: s[0] === 'pipeGap' || s[0] === 'feeRate' ? 4 : 0 };
+      inp.oninput = function () {
+        var v = parseFloat(inp.value);
+        lab.querySelector('b').textContent = form[s[0]].dec ? v.toFixed(form[s[0]].dec) : v;
+      };
+      inp.onchange = function () { set(s[0], parseFloat(inp.value)); };
+      row.appendChild(lab); row.appendChild(inp);
+      card.appendChild(row);
+    });
+    // 开关
+    var sw1 = el('div', 'cfg-row cfg-switches');
+    [['bgm', '背景音乐'], ['sfx', '音效']].forEach(function (p) {
+      var l = el('label', 'cfg-sw', p[1]);
+      var c = document.createElement('input'); c.type = 'checkbox';
+      c.onchange = function () { set(p[0], c.checked); };
+      form[p[0]] = c;
+      l.insertBefore(c, l.firstChild);
+      sw1.appendChild(l);
+    });
+    card.appendChild(sw1);
+    // 导出导入
+    var io = el('div', 'cfg-row cfg-io');
+    var be = el('button', 'btn ghost sm', '导出配置');
+    be.onclick = function () {
+      var blob = new Blob([exportJSON()], { type: 'application/json' });
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'bull-flight-cfg.json'; a.click();
+    };
+    var bi = el('button', 'btn ghost sm', '导入配置');
+    var fi = document.createElement('input'); fi.type = 'file'; fi.accept = 'application/json'; fi.style.display = 'none';
+    fi.onchange = function () {
+      var f = fi.files && fi.files[0]; if (!f) return;
+      var rd = new FileReader();
+      rd.onload = function () { try { importJSON(rd.result); toast('配置已导入'); syncForm(); } catch (e) { toast('导入失败：不是有效配置'); } };
+      rd.readAsText(f);
+    };
+    bi.onclick = function () { fi.click(); };
+    io.appendChild(be); io.appendChild(bi); io.appendChild(fi);
+    card.appendChild(io);
+    // 恢复默认 + 关闭
+    var foot = el('div', 'cfg-foot');
+    var br = el('button', 'btn ghost sm', '恢复默认');
+    br.onclick = function () { apply(JSON.parse(JSON.stringify(DEF))); if (cur.bullImg !== undefined) set('bullImg', null); toast('已恢复默认'); syncForm(); };
+    var bc = el('button', 'btn primary sm', '完成');
+    bc.onclick = closePanel;
+    foot.appendChild(br); foot.appendChild(bc);
+    card.appendChild(foot);
+    panel.appendChild(card);
+    panel.addEventListener('click', function (e) { if (e.target === panel) closePanel(); });
+    document.body.appendChild(panel);
+    function toast(s) { if (BF.UI && BF.UI.toast) BF.UI.toast(s); }
+    function syncForm() {
+      sliders.forEach(function (s) {
+        var f = form[s[0]];
+        f.inp.value = cur[s[0]];
+        f.lab.textContent = f.dec ? Number(cur[s[0]]).toFixed(f.dec) : cur[s[0]];
+      });
+      form.bgm.checked = !!cur.bgm; form.sfx.checked = !!cur.sfx;
+    }
+    panel.__sync = syncForm;
+  }
+  function syncForm() { if (panel && panel.__sync) panel.__sync(); }
+  window.BF.CFG = { all: all, apply: apply, set: set, exportJSON: exportJSON, importJSON: importJSON, openPanel: openPanel, closePanel: closePanel, DEF: DEF };
+})();
+
+
+/* ==== logic.js ==== */
+/* bull-flight logic —— 价格机/账目/结算统计（主线负责）
+ * 恒等式：NAV ≡ principal + loan + realized − fees + 浮盈，每 tick 断言
+ */
+(function () {
+  window.BF = window.BF || {};
+  var LOGIC = { on: false };
+  var S = null; // round state
+  var cfgCache = null;
+  function cfg() {
+    if (!cfgCache) {
+      try { cfgCache = BF.CFG.all(); } catch (e) {
+        cfgCache = { gravity: 620, jumpV: 330, noise: 26, candleTicks: 22, scrollSpeed: 130, pipeGap: 0.15, feeRate: 0.0004, loanK: 0.5 };
+      }
+    }
+    return cfgCache;
+  }
+  var CANDLE_KEEP = 90, NAV_EVERY = 5, NAV_KEEP = 720;
+
+  function newRound(principal, loan) {
+    cfgCache = null;
+    var c = cfg();
+    S = {
+      principal: principal, loan: loan, invested: principal + loan,
+      cash: principal + loan, shares: 0, costBasis: 0,
+      realized: 0, fees: 0, tradeN: 0,
+      price: 100, vy: 0, peakPrice: 100, lowPrice: 100,
+      status: 'ready',           // ready→flying→dead
+      ticks: 0, candleN: 0, firstBuyAt: Math.round(0.4 * 60),
+      candles: [], cur: null,
+      nav: [], navPeak: 0, maxDD: 0,
+      trades: [], divAcc: 0, t: 0,
+      lastPrice: 100, lastCash: principal + loan, lastShares: 0, lastRealized: 0, lastFees: 0
+    };
+    return S;
+  }
+  function assertBooks() {
+    if (!S) return;
+    // 口径：NAV ≡ invested + realized + 浮盈(shares*price - costBasis) - loan
+    // fees 仅作展示统计（买入费已含在 costBasis、卖出费已含在 proceeds，不重复计）
+    var nav = S.cash + S.shares * S.price - S.loan;
+    var want = S.invested + S.realized + (S.shares * S.price - S.costBasis) - S.loan;
+    if (Math.abs(nav - want) > 0.02) {
+      // 账目破坏：回滚到上一 tick 快照并打标
+      S.cash = S.lastCash; S.shares = S.lastShares; S.realized = S.lastRealized;
+      S.costBasis = S.lastCostBasis; S.price = S.lastPrice;
+      S.__bookFix = (S.__bookFix || 0) + 1;
+    }
+    S.lastCash = S.cash; S.lastShares = S.shares; S.lastRealized = S.realized;
+    S.lastCostBasis = S.costBasis; S.lastFees = S.fees; S.lastPrice = S.price;
+  }
+  function nav() { return S.cash + S.shares * S.price - S.loan; }
+  function avgCost() { return S.shares > 0 ? S.costBasis / S.shares : 0; }
+
+  function doBuy(style) {
+    var c = cfg();
+    var ratio = style || 0.5;
+    var amt = S.cash * ratio;
+    if (amt < 1 || S.price <= 0) return null;
+    var fee = amt * c.feeRate;
+    var sh = (amt - fee) / S.price;
+    S.cash -= amt; S.shares += sh; S.costBasis += amt;
+    S.fees += fee; S.tradeN++;
+    var tr = { t: S.t, side: 'buy', price: S.price, shares: sh, amount: amt, fee: fee };
+    S.trades.push(tr);
+    return tr;
+  }
+  function doSell() {
+    var c = cfg();
+    if (S.shares <= 0) return null;
+    var mv = S.shares * S.price;
+    var fee = mv * c.feeRate;
+    var proceeds = mv - fee;
+    var pnl = proceeds - S.costBasis;
+    S.cash += proceeds; S.realized += pnl; S.fees += fee;
+    var tr = { t: S.t, side: 'sell', price: S.price, shares: S.shares, amount: proceeds, fee: fee, pnl: pnl };
+    S.shares = 0; S.costBasis = 0; S.tradeN++;
+    S.trades.push(tr);
+    return tr;
+  }
+
+  function tick(dt) {
+    /* 物理由 game.js 驱动并经 pushPrice 写回，此处仅留接口占位 */
+  }
+  // game 层把视图换算后的价格推回逻辑层，逻辑层负责账目与聚合
+  function pushPrice(p, dt) {
+    if (!S || S.status !== 'flying') return;
+    var c = cfg();
+    S.t += dt;
+    S.price = Math.max(90, Math.min(110, p));
+    // 首仓
+    if (S.firstBuyAt >= 0) {
+      S.firstBuyAt -= dt * 60;
+      if (S.firstBuyAt < 0) { var tr0 = doBuy(0.5); if (tr0) tr0.auto = 'open'; }
+    }
+    // 蜡烛聚合（按时间：candleTicks 帧@60fps → 秒，与滚动速度解耦于帧率）
+    var candleDur = c.candleTicks / 60;
+    if (!S.cur) S.cur = { o: S.price, h: S.price, l: S.price, c: S.price };
+    S.cur.c = S.price;
+    if (S.price > S.cur.h) S.cur.h = S.price;
+    if (S.price < S.cur.l) S.cur.l = S.price;
+    S.candleAcc = (S.candleAcc || 0) + dt;
+    if (S.candleAcc >= candleDur) {
+      S.candleAcc -= candleDur;
+      S.candles.push(S.cur);
+      if (S.candles.length > CANDLE_KEEP) S.candles.shift();
+      S.cur = null;
+    }
+    // 股息（持仓派息，游戏化：10 分钟≈一年）
+    if (S.shares > 0) {
+      var div = S.shares * S.price * 0.025 * dt / 600;
+      S.cash += div; S.realized += div; S.divAcc += div;
+    }
+    // NAV 曲线 + 回撤
+    S.ticks++;
+    if (S.ticks % NAV_EVERY === 0) {
+      var v = nav();
+      S.nav.push(v);
+      if (S.nav.length > NAV_KEEP) S.nav.shift();
+      if (v > S.navPeak) S.navPeak = v;
+      if (S.navPeak > 0) {
+        var dd = (S.navPeak - v) / S.navPeak;
+        if (dd > S.maxDD) S.maxDD = dd;
+      }
+    }
+    assertBooks();
+  }
+  // 强平并结算，返回战报
+  function finish(reason) {
+    if (!S) return null;
+    if (S.shares > 0) { var tr = doSell(); if (tr) tr.auto = 'force'; }
+    S.status = 'dead';
+    var final = nav();
+    var net = final - S.invested - S.loan;           // 已结算净收益
+    if (final < S.loan) net = -S.invested;            // 资不抵债 → 本金全亏（破产）
+    var ret = S.invested > 0 ? net / S.invested : 0;
+    var r = {
+      reason: reason, invested: S.invested, principal: S.principal, loan: S.loan,
+      ret: ret, net: net, asset: Math.max(0, S.principal + net),
+      trades: S.tradeN, maxDD: S.maxDD, nav: S.nav.slice(), peak: S.navPeak,
+      finalPrice: S.price, div: S.divAcc, title: '', sub: ''
+    };
+    var dd = r.maxDD;
+    if (S.tradeN === 0) { r.title = '空仓路过'; r.sub = '一整局什么都没买，也是一种定力。'; }
+    else if (ret >= 0.20) { r.title = '一战封神'; r.sub = 'K 线里杀出的疯牛，全场起立。'; }
+    else if (ret >= 0.10) { r.title = '稳健老牛'; r.sub = '不追高不满仓，稳稳的幸福。'; }
+    else if (ret > 0 && dd >= 0.05) { r.title = '账户医学奇迹'; r.sub = '刚才还在抢救，现在已经盈利。'; }
+    else if (ret > 0) { r.title = '平稳盈利'; r.sub = '落袋为安，落袋才是钱。'; }
+    else if (ret === 0 || (ret > -0.0001 && ret <= 0.0001)) { r.title = '白忙一场'; r.sub = '钱在原地转了个圈。'; }
+    else if (ret >= -0.05) { r.title = '交了点学费'; r.sub = '下次记得，亏损也是止损的一部分。'; }
+    else if (ret >= -0.20) { r.title = '关灯吃面'; r.sub = '面里记得加个蛋。'; }
+    else { r.title = '天台风大'; r.sub = '扶稳，先戒杠杆再谈理想。'; }
+    S.report = r;
+    return r;
+  }
+
+  LOGIC.newRound = newRound;
+  LOGIC.tick = tick;           // 兼容占位：视图驱动走 pushPrice
+  LOGIC.pushPrice = pushPrice;
+  LOGIC.buy = doBuy;
+  LOGIC.sellAll = doSell;
+  LOGIC.finish = finish;
+  LOGIC.nav = function () { return S ? nav() : 0; };
+  LOGIC.avgCost = function () { return S ? avgCost() : 0; };
+  LOGIC.state = function () { return S; };
+  window.BF.LOGIC = LOGIC;
+})();
+
+
+/* ==== game.js ==== */
+/* bull-flight game —— Canvas 引擎：K线世界滚动/物理/碰撞/演出（主线负责）
+ * 物理在像素空间做，价格 = yToPrice(bullY)，推回 LOGIC.pushPrice
+ */
+(function () {
+  window.BF = window.BF || {};
+  var GAME = { on: false, alive: false };
+  var cv, ctx, W, H, dpr;
+  var bullImg = [null, null];
+  var imgReady = false;
+  var worldX = 0;        // 世界已滚动像素
+  var spawnedPipes = 0, nextPipeAt = 0, nextBuyAt = 0, nextSellAt = 0;
+  var pipes = [], buttons = [], feathers = [], sparks = [];
+  var bull = { x: 0, y: 0, vy: 0, tilt: 0, wing: 0, dead: false, deadVy: 0, deadRot: 0 };
+  var btnTimer = 0, hintTimer = 0, aiCool = 0;
+  var PADV = 8;          // 上下留白比例
+  var bullXRatio = 0.30;
+  var state = 'idle';    // idle|flying|dying|dead|paused
+  var opts = { auto: false, fast: 1, snap: false };
+  var lastT = 0, acc = 0, rafId = 0, siId = 0, running = false;
+  var hudAcc = 0;
+  var finishPending = 0;
+  var deathCause = '';
+
+  function cfg(k, d) {
+    try { var c = BF.CFG.all(); return c[k] !== undefined ? c[k] : d; } catch (e) { return d; }
+  }
+  function chartTop() { return H * 0.02; }
+  function chartH() { return H - chartTop() * 2; }
+  function priceToY(p) { return chartTop() + (110 - p) / 20 * chartH(); }
+  function yToPrice(y) { return 110 - (y - chartTop()) / chartH() * 20; }
+  function pxPerUnit() { return chartH() / 20; }
+
+  function resetVisuals() {
+    worldX = 0; pipes = []; buttons = []; feathers = []; sparks = [];
+    spawnedPipes = 0; btnTimer = 0; hintTimer = 0; finishPending = 0; deathCause = '';
+    nextPipeAt = 3.2; nextBuyAt = 1.6; nextSellAt = 6;
+    bull.x = W * bullXRatio; bull.y = priceToY(100); bull.vy = -240; bull.tilt = 0;
+    bull.dead = false; bull.deadRot = 0;
+  }
+  GAME.start = function () {
+    if (!cv) bind();
+    resetVisuals();
+    GAME.clearHint();
+    var s = BF.LOGIC.state(); if (s) s.status = 'flying';
+    state = 'flying'; GAME.alive = true; GAME.on = true;
+    lastT = 0; running = true;
+    try { BF.SFX.play('open'); } catch (e) {}
+    loop(performance.now());
+  };
+  GAME.pause = function () { if (state === 'flying') { state = 'paused'; } };
+  GAME.resume = function () { if (state === 'paused') { state = 'flying'; lastT = 0; } };
+  GAME.stop = function () { running = false; state = 'idle'; GAME.alive = false; GAME.on = false; };
+  GAME.setOpts = function (o) { for (var k in o) opts[k] = o[k]; };
+  GAME.tap = function () {
+    if (state !== 'flying') return;
+    bull.vy = -cfg('jumpV', 330);
+    try { BF.SFX.play('tap'); } catch (e) {}
+    var f = BF.FX;
+    if (f && f.burst) f.burst(bull.x - 14, bull.y + 16, 'wing');
+  };
+
+  function bind() {
+    cv = document.getElementById('cv');
+    if (!cv) return;
+    ctx = cv.getContext('2d');
+    resize();
+    window.addEventListener('resize', resize);
+    loadBull();
+    siId = setInterval(function () {   // 遮挡窗口 rAF 节流兜底
+      if (running && state === 'flying') { var now = performance.now(); if (now - lastT > 200) step(0.05); }
+    }, 120);
+  }
+  function resize() {
+    if (!cv) return;
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    var r = cv.getBoundingClientRect();
+    W = r.width || window.innerWidth; H = r.height || window.innerHeight * 0.6;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    bull.x = W * bullXRatio;
+  }
+  function loadBull() {
+    function toImg(i) {
+      return function (d) {
+        if (!d) return;
+        var im = new Image();
+        im.onload = function () { bullImg[i] = im; imgReady = true; };
+        im.src = d;
+      };
+    }
+    try {
+      var A = BF.ART;
+      if (A && A.bullFrame && A.ready) { toImg(0)(A.bullFrame(0)); toImg(1)(A.bullFrame(1)); }
+      else {
+        var iv = setInterval(function () {
+          if (BF.ART && BF.ART.ready) {
+            clearInterval(iv);
+            toImg(0)(BF.ART.bullFrame(0)); toImg(1)(BF.ART.bullFrame(1));
+          }
+        }, 150);
+      }
+      // 配置替换的立绘
+      var c = null;
+      try { c = BF.CFG.all(); } catch (e) {}
+      if (c && c.bullImg) { toImg(0)(c.bullImg); toImg(1)(c.bullImg); }
+    } catch (e) {}
+  }
+
+  // ---------- 生成 ----------
+  function spawnPipe() {
+    var gh = chartH() * cfg('pipeGap', 0.15);
+    var gy = bull.y + (Math.random() - 0.5) * chartH() * 0.5;
+    gy = Math.max(chartTop() + gh / 2 + 10, Math.min(chartTop() + chartH() - gh / 2 - 10, gy));
+    pipes.push({ x: W + 60, gy: gy, gh: gh, w: 78, counted: false });
+  }
+  function spawnButton(kind) {
+    var y = bull.y + (Math.random() - 0.5) * chartH() * 0.34;
+    y = Math.max(chartTop() + 40, Math.min(chartTop() + chartH() - 60, y));
+    // 避开管道实体：若落入管道区（含端帽裕量），吸附到该管道 gap 中心
+    for (var i = 0; i < pipes.length; i++) {
+      var p = pipes[i];
+      if (p.x < W + 130) {
+        var topH = p.gy - p.gh / 2, botY = p.gy + p.gh / 2;
+        if (y - 36 < topH || y + 36 > botY) { y = p.gy; }
+      }
+    }
+    y = Math.max(chartTop() + 40, Math.min(chartTop() + chartH() - 60, y));
+    buttons.push({ kind: kind, x: W + 50, y: y, base: y, ph: Math.random() * 6.28, r: kind === 'buy' ? 34 : 30 });
+  }
+
+  // ---------- 更新 ----------
+  function step(dt) {
+    var s = BF.LOGIC.state();
+    if (!s) return;
+    var speed = cfg('scrollSpeed', 130) * opts.fast;
+    if (state === 'flying') {
+      worldX += speed * dt;
+      // 物理
+      var g = cfg('gravity', 620);
+      bull.vy += g * dt;
+      bull.vy += (Math.random() - 0.5) * cfg('noise', 26) * 60 * dt;
+      bull.y += bull.vy * dt;
+      bull.tilt = Math.max(-0.5, Math.min(0.9, bull.vy / 500));
+      bull.wing += dt * (bull.vy < 0 ? 26 : 12);
+      // 生成
+      var pe = cfg('pipeEvery', [4, 7]);
+      if (worldX > nextPipeAt * 56) { spawnPipe(); spawnedPipes++; nextPipeAt = worldX / 56 + pe[0] + Math.random() * (pe[1] - pe[0]); }
+      btnTimer += dt;
+      var be = cfg('buyEvery', [3, 6]);
+      if (btnTimer > nextBuyAt) { spawnButton('buy'); nextBuyAt = be[0] + Math.random() * (be[1] - be[0]); btnTimer = 0; }
+      if (s.shares > 0) { hintTimer += dt; if (hintTimer > 7) { spawnButton('sell'); hintTimer = 0; } }
+      // AI 自动演示：追踪最近管道 gap 中心
+      if (opts.auto) {
+        aiCool -= dt;
+        var tgt = chartTop() + chartH() * 0.5;
+        for (var ai = 0; ai < pipes.length; ai++) {
+          var ap = pipes[ai];
+          if (ap.x + ap.w > bull.x - 30 && ap.x < bull.x + 460) { tgt = ap.gy; break; }
+        }
+        if (aiCool <= 0 && bull.y > tgt + 16) { GAME.tap(); aiCool = 0.13; }
+      }
+      // 实体推进
+      var i;
+      for (i = pipes.length - 1; i >= 0; i--) { pipes[i].x -= speed * dt; if (pipes[i].x < -120) pipes.splice(i, 1); }
+      for (i = buttons.length - 1; i >= 0; i--) {
+        var b = buttons[i]; b.x -= speed * dt;
+        b.y = b.base + Math.sin(worldX / 90 + b.ph) * 14;
+        if (b.x < -60) buttons.splice(i, 1);
+      }
+      // 碰撞：按钮
+      var bx = bull.x, by = bull.y;
+      for (i = buttons.length - 1; i >= 0; i--) {
+        var bt = buttons[i];
+        var dx = bt.x - bx, dy = bt.y - by;
+        if (dx * dx + dy * dy < (bt.r + 22) * (bt.r + 22)) {
+          if (bt.kind === 'buy') {
+            var tr = BF.LOGIC.buy(0.5);
+            if (tr) {
+              try { BF.SFX.play('buy'); } catch (e) {}
+              var f = BF.FX;
+              if (f && f.floatText) f.floatText(bt.x, bt.y - 44, '买入 ¥' + fmt0(tr.amount), '#f43f5e');
+              if (f && f.burst) f.burst(bt.x, bt.y, 'coin');
+              hint('买入 ¥' + fmt0(tr.amount) + ' · 成交价 ' + tr.price.toFixed(2) + ' · 税费 ¥' + tr.fee.toFixed(2));
+            }
+            buttons.splice(i, 1);
+          } else {
+            var tr2 = BF.LOGIC.sellAll();
+            if (tr2) {
+              var win = tr2.pnl >= 0;
+              try { BF.SFX.play(win ? 'profit' : 'loss'); } catch (e) {}
+              var f2 = BF.FX;
+              if (f2 && f2.floatText) f2.floatText(bt.x, bt.y - 44, (win ? '+' : '') + fmt0(tr2.pnl) + ' 元', win ? '#ff5d76' : '#35c08e');
+              if (f2 && f2.burst) f2.burst(bt.x, bt.y, win ? 'coin' : 'dust');
+              hint('全部卖出 ' + tr2.price.toFixed(2) + ' · 盈亏 ' + (win ? '+' : '') + tr2.pnl.toFixed(2) + ' 元 · 税费 ¥' + tr2.fee.toFixed(2));
+            }
+            buttons.splice(i, 1);
+          }
+        }
+      }
+      // 碰撞：管道 / 触界
+      var hit = '';
+      if (bull.y < chartTop() + 2) hit = 'limit-up';
+      if (bull.y > chartTop() + chartH() - 2) hit = 'limit-down';
+      for (i = 0; i < pipes.length; i++) {
+        var p = pipes[i];
+        if (bx + 20 > p.x && bx - 20 < p.x + p.w) {
+          if (by - 14 < p.gy - p.gh / 2 || by + 14 > p.gy + p.gh / 2) { hit = 'crash'; break; }
+        }
+      }
+      if (hit) { die(hit, s); }
+      else {
+        BF.LOGIC.pushPrice(yToPrice(bull.y), dt * opts.fast);
+        if (s.status === 'flying' && (s.price <= 90.02 || s.price >= 109.98)) die(s.price >= 109.98 ? 'limit-up' : 'limit-down', s);
+      }
+    } else if (state === 'dying') {
+      bull.deadVy += 900 * dt; bull.y += bull.deadVy * dt; bull.deadRot += dt * 5;
+      bull.tilt = Math.min(1.4, bull.tilt + dt * 2);
+      if (bull.y > chartTop() + chartH() - 20) { bull.y = chartTop() + chartH() - 20; }
+      finishPending -= dt;
+      if (finishPending <= 0) {
+        state = 'dead'; GAME.alive = false;
+        var rep = BF.LOGIC.finish(deathCause);
+        if (rep && BF.UI && BF.UI.showReport) BF.UI.showReport(rep);
+      }
+    }
+    // 粒子
+    stepParticles(dt);
+    // HUD
+    hudAcc += dt;
+    if (hudAcc > 0.1 && BF.UI && BF.UI.refreshHUD) { BF.UI.refreshHUD(); hudAcc = 0; }
+  }
+  function die(cause, s) {
+    if (state !== 'flying') return;
+    deathCause = cause;
+    state = 'dying'; GAME.alive = false;
+    bull.deadVy = -160; finishPending = 1.0;
+    try { BF.SFX.play('crash'); } catch (e) {}
+    var f = BF.FX;
+    if (f && f.burst) for (var k = 0; k < 3; k++) f.burst(bull.x, bull.y, 'feather');
+    hint(cause === 'crash' ? '撞上挡板！强制平仓结算…' : (cause === 'limit-up' ? '触及涨停！强制平仓结算…' : '触及跌停！强制平仓结算…'));
+  }
+
+  // ---------- 渲染 ----------
+  function render() {
+    if (!ctx) return;
+    ctx.clearRect(0, 0, W, H);
+    drawGrid();
+    drawCandles();
+    drawCostLine();
+    drawPipes();
+    drawButtons();
+    drawBull();
+    drawParticles();
+    drawDeadVeil();
+    drawMini();
+  }
+  function drawGrid() {
+    ctx.strokeStyle = 'rgba(255,255,255,0.055)';
+    ctx.lineWidth = 1;
+    var stepY = chartH() / 4, y, i;
+    for (i = 0; i <= 4; i++) { y = chartTop() + i * stepY; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+    for (var x = (-(worldX % 72)); x < W; x += 72) { ctx.beginPath(); ctx.moveTo(x, chartTop()); ctx.lineTo(x, chartTop() + chartH()); ctx.stroke(); }
+    ctx.fillStyle = 'rgba(255,255,255,0.34)';
+    ctx.font = '11px -apple-system,system-ui';
+    ctx.textAlign = 'left';
+    for (i = 0; i <= 4; i++) { y = chartTop() + i * stepY; ctx.fillText(String(110 - i * 5), 4, y - 4); }
+  }
+  function drawCandles() {
+    var s = BF.LOGIC.state(); if (!s) return;
+    var gap = 56, cw = 34;
+    var rightX = W - 24 + (worldX % gap);
+    var idx = s.candles.length - 1;
+    var x = rightX;
+    // 未完成蜡烛
+    if (s.cur) drawCandle(x, s.cur, cw);
+    x -= gap;
+    while (x > -cw && idx >= 0) { drawCandle(x, s.candles[idx], cw); idx--; x -= gap; }
+  }
+  function drawCandle(x, c, cw) {
+    var up = c.c >= c.o;
+    var col = up ? '#e04f63' : '#33b184'; // A 股语义：红涨绿跌
+    if (Math.abs(c.c - c.o) < 0.001) col = '#c8b89a';
+    var yh = priceToY(c.h), yl = priceToY(c.l), yo = priceToY(c.o), yc = priceToY(c.c);
+    var top = Math.min(yo, yc), bot = Math.max(yo, yc);
+    if (bot - top < 2) { top -= 1; bot += 1; }
+    ctx.strokeStyle = col; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x + cw / 2, yh); ctx.lineTo(x + cw / 2, yl); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.fillRect(x, top, cw, bot - top);
+  }
+  function drawCostLine() {
+    var s = BF.LOGIC.state(); if (!s || s.shares <= 0) return;
+    var ac = BF.LOGIC.avgCost(); if (ac < 90 || ac > 110) return;
+    var y = priceToY(ac);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(212,169,56,0.85)';
+    ctx.lineWidth = 2; ctx.setLineDash([14, 10]);
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    ctx.restore();
+  }
+  function drawPipes() {
+    for (var i = 0; i < pipes.length; i++) {
+      var p = pipes[i];
+      var topH = p.gy - p.gh / 2, botY = p.gy + p.gh / 2;
+      drawPipeSeg(p.x, chartTop() - 6, p.w, topH - chartTop() + 6, true);
+      drawPipeSeg(p.x, botY, p.w, chartTop() + chartH() - botY + 6, false);
+    }
+  }
+  function drawPipeSeg(x, y, w, h, fromTop) {
+    if (h <= 0) return;
+    ctx.fillStyle = 'rgba(66,86,112,0.42)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = 'rgba(150,170,195,0.5)'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    // 斜纹端帽
+    var capH = 14, cy = fromTop ? y + h - capH : y;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x, cy, w, capH); ctx.clip();
+    ctx.fillStyle = 'rgba(190,205,222,0.75)';
+    for (var sx = -capH; sx < w + capH; sx += 14) {
+      ctx.beginPath();
+      ctx.moveTo(x + sx, cy + capH); ctx.lineTo(x + sx + 7, cy);
+      ctx.lineTo(x + sx + 13, cy); ctx.lineTo(x + sx + 6, cy + capH);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+  function drawButtons() {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (var i = 0; i < buttons.length; i++) {
+      var b = buttons[i];
+      var isBuy = b.kind === 'buy';
+      var col = isBuy ? '#f43f5e' : '#2fae7f';
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 6.283);
+      ctx.fillStyle = isBuy ? 'rgba(120,26,44,0.55)' : 'rgba(21,84,60,0.55)';
+      ctx.fill();
+      ctx.lineWidth = 3.5; ctx.strokeStyle = col; ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.font = '600 26px -apple-system,system-ui';
+      ctx.fillText(isBuy ? '买' : '卖', b.x, b.y + 1);
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.font = '13px -apple-system,system-ui';
+      var pv = isBuy ? yToPrice(b.y) : (BF.LOGIC.state() ? BF.LOGIC.state().price : 100);
+      ctx.fillText(yToPrice(b.y).toFixed(1), b.x, b.y + b.r + 18);
+    }
+  }
+  function drawBull() {
+    var fr = (Math.floor(bull.wing) % 2 + 2) % 2;
+    var img = bullImg[fr] || bullImg[0];
+    ctx.save();
+    ctx.translate(bull.x, bull.y);
+    ctx.rotate(bull.dead ? bull.deadRot : bull.tilt * 0.6);
+    var w = 112, h = 84;
+    if (img) { try { ctx.drawImage(img, -w / 2, -h / 2, w, h); } catch (e) { fallbackBull(); } }
+    else fallbackBull();
+    ctx.restore();
+  }
+  function fallbackBull() {
+    ctx.fillStyle = '#e8c98f';
+    ctx.beginPath(); ctx.ellipse(0, 0, 30, 20, 0, 0, 6.283); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.ellipse(-14, -18, 16, 9, -0.5, 0, 6.283); ctx.fill();
+  }
+  // ---------- 粒子（自绘轻量版；FX 模块在时交给它） ----------
+  function stepParticles(dt) {
+    var f = BF.FX;
+    if (f && f.step) { f.step(dt, ctx); return; }
+    for (var i = sparks.length - 1; i >= 0; i--) {
+      var p = sparks[i]; p.life -= dt;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt;
+      if (p.life <= 0) sparks.splice(i, 1);
+    }
+  }
+  function drawParticles() {
+    var f = BF.FX;
+    if (f && f.draw) { f.draw(ctx); return; }
+    for (var i = 0; i < sparks.length; i++) {
+      var p = sparks[i];
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.col;
+      ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+    }
+    ctx.globalAlpha = 1;
+  }
+  function drawDeadVeil() {
+    if (state !== 'dead') return;
+    ctx.fillStyle = 'rgba(8,9,12,0.25)';
+    ctx.fillRect(0, 0, W, H);
+  }
+  // 迷你K线画在 hint 条左侧的 #mini
+  function drawMini() {
+    var m = document.getElementById('mini');
+    var s = BF.LOGIC.state();
+    if (!m || !s) return;
+    var g = m.getContext('2d');
+    var mw = m.width, mh = m.height;
+    g.clearRect(0, 0, mw, mh);
+    var all = s.candles.slice(-26); if (s.cur) all = all.concat([s.cur]);
+    if (!all.length) return;
+    var lo = 100, hi = 100;
+    for (var i = 0; i < all.length; i++) { lo = Math.min(lo, all[i].l); hi = Math.max(hi, all[i].h); }
+    var pad = (hi - lo) * 0.12 + 0.01;
+    lo -= pad; hi += pad;
+    var step = mw / all.length;
+    for (i = 0; i < all.length; i++) {
+      var c = all[i];
+      var up = c.c >= c.o;
+      g.fillStyle = up ? '#e04f63' : '#33b184';
+      var y1 = (hi - Math.max(c.o, c.c)) / (hi - lo) * mh;
+      var y2 = (hi - Math.min(c.o, c.c)) / (hi - lo) * mh;
+      g.fillRect(i * step + 0.5, y1, Math.max(1.5, step - 1.5), Math.max(1, y2 - y1));
+    }
+  }
+  function fmt0(v) { return Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  var hintT = 0;
+  function hint(str) {
+    var el = document.getElementById('hint');
+    if (!el) return;
+    el.textContent = str;
+    el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+    clearTimeout(hintT);
+    hintT = setTimeout(function () { el.classList.remove('show'); }, 4200);
+  }
+  GAME.clearHint = function () { var el = document.getElementById('hint'); if (el) el.classList.remove('show'); clearTimeout(hintT); };
+  GAME.hint = hint;
+
+  // ---------- 主循环（rAF + setInterval 双驱动） ----------
+  function loop(t) {
+    rafId = requestAnimationFrame(loop);
+    if (!running) return;
+    if (!lastT) lastT = t;
+    var dt = Math.min(0.05, (t - lastT) / 1000); lastT = t;
+    if (dt <= 0) return;
+    step(dt * opts.fast);
+    render();
+  }
+
+  window.addEventListener('resize', function () { if (cv) resize(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && state === 'flying') { GAME.pause(); if (BF.UI && BF.UI.onPause) BF.UI.onPause(); }
+  });
+
+  GAME.bind = bind;
+  GAME.state = function () { return state; };
+  GAME.bull = function () { return bull; };
+  GAME.setBullImg = function (i, d) { bullImg[i] = d; if (bullImg[0] && bullImg[1]) imgReady = true; };
+  window.BF.GAME = GAME;
+})();
+
+
+/* ==== ui.js ==== */
+/* bull-flight ui —— 页面状态机/HUD/战报（主线负责）
+ * DOM 骨架在 shell.html；本模块只做绑定/刷新/绘制
+ */
+(function () {
+  window.BF = window.BF || {};
+  var UI = {};
+  var $ = function (id) { return document.getElementById(id); };
+  var fmt = function (v, d) {
+    d = d == null ? 2 : d;
+    var neg = v < 0, s = Math.abs(v).toFixed(d);
+    var parts = s.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (neg ? '-' : '') + parts.join('.');
+  };
+  UI.fmt = fmt;
+  var page = 'hall';
+  var setup = { ratio: 1, amount: 0, borrow: 0 };
+  var curReport = null;
+
+  // ---------- 存档 ----------
+  var SAVE_KEY = 'bf.save.v1';
+  function loadSave() {
+    try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || defSave(); } catch (e) { return defSave(); }
+  }
+  function defSave() { return { principal: 25892, asset: 25892, best: null, rounds: 0, lastReport: null }; }
+  function persistSave(s) { try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {} }
+  var save = loadSave();
+  UI.save = function () { return save; };
+
+  // ---------- 页面切换 ----------
+  UI.show = function (p) {
+    page = p;
+    ['hall', 'setup', 'game', 'report'].forEach(function (n) {
+      var el = $('page-' + n);
+      if (el) el.classList.toggle('active', n === p);
+    });
+    if (p === 'hall') fillHall();
+    if (p === 'setup') fillSetup();
+    if (p === 'game') { requestAnimationFrame(function () { if (BF.GAME.bind) BF.GAME.bind(); }); }
+  };
+  UI.page = function () { return page; };
+
+  // ---------- 大厅 ----------
+  function fillHall() {
+    $('hall-asset').textContent = '¥' + fmt(save.asset, 0);
+    $('hall-best').textContent = save.best == null ? '—' : (save.best >= 0 ? '+' : '') + (save.best * 100).toFixed(2) + '%';
+    $('hall-best').className = save.best != null && save.best < 0 ? 'neg' : '';
+    $('hall-rounds').textContent = save.rounds + ' 局';
+    var img = $('hall-bull');
+    if (BF.ART && BF.ART.ready) img.src = BF.ART.bullBig ? BF.ART.bullBig() : BF.ART.bullFrame(0);
+  }
+
+  // ---------- 开局准备 ----------
+  function fillSetup() {
+    var base = save.asset;
+    setup.amount = Math.round(base * setup.ratio);
+    setup.borrow = Math.min(setup.borrow || 0, Math.round(base * 0.5));
+    $('su-amount').textContent = '¥' + fmt(setup.amount + setup.borrow, 0);
+    $('su-pct').textContent = Math.round(setup.ratio * 100) + '%';
+    $('su-enter').textContent = '本局入场 ¥' + fmt(setup.amount + setup.borrow, 0) + '  /  预留 ¥' + fmt(base - setup.amount, 0);
+    $('su-debt').textContent = '总负债 ¥' + fmt(setup.borrow, 2);
+    var total = setup.amount + setup.borrow;
+    var first = total * 0.5;
+    $('su-first').textContent = '首笔持仓 ¥' + fmt(first - first * 0.0004, 2) + ' · 税费 ¥' + (first * 0.0004).toFixed(2);
+    $('su-go').textContent = '投入 ¥' + fmt(total, 0) + ' · 开盘 →';
+    var slider = $('su-slider');
+    if (slider) slider.value = Math.round(setup.ratio * 100);
+    document.querySelectorAll('#page-setup .quick button').forEach(function (b) {
+      b.classList.toggle('on', parseFloat(b.dataset.r) === setup.ratio);
+    });
+  }
+  UI.fillSetup = fillSetup;
+  function bindSetup() {
+    $('su-back').onclick = function () { UI.show('hall'); };
+    document.querySelectorAll('#page-setup .market .mk').forEach(function (b) {
+      b.onclick = function () {
+        if (b.dataset.mk === 'cy') toast('创业板：总资产达到 ¥200,000 后开放');
+        else { document.querySelectorAll('#page-setup .market .mk').forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); }
+      };
+    });
+    document.querySelectorAll('#page-setup .quick button').forEach(function (b) {
+      b.onclick = function () { setup.ratio = parseFloat(b.dataset.r); fillSetup(); };
+    });
+    $('su-slider').oninput = function () {
+      setup.ratio = parseInt(this.value, 10) / 100;
+      document.querySelectorAll('#page-setup .quick button').forEach(function (b) { b.classList.remove('on'); });
+      fillSetup();
+    };
+    $('su-borrow').onclick = openBorrow;
+    document.querySelectorAll('#page-setup .style .st').forEach(function (b) {
+      b.onclick = function () { if (!b.classList.contains('on')) toast('该交易风格未解锁'); };
+    });
+    document.querySelectorAll('#page-setup .tags span').forEach(function (s) {
+      s.onclick = function () { if (s.dataset.lock) toast('「' + s.textContent + '」未解锁'); };
+    });
+    $('su-go').onclick = function () {
+      var amount = Math.max(0, Math.round(save.asset * setup.ratio));
+      if (amount < 100) { toast('投入太少，加一点仓再开盘'); return; }
+      BF.LOGIC.newRound(amount, setup.borrow);
+      UI.show('game');
+      BF.GAME.start();
+    };
+  }
+  var borrowDlg = null;
+  function openBorrow() {
+    if (!borrowDlg) {
+      borrowDlg = document.createElement('div');
+      borrowDlg.className = 'dlg borrow';
+      borrowDlg.innerHTML =
+        '<div class="dlg-card"><h3>借款加仓</h3>' +
+        '<p class="dim">最多可借总资产的 50%，收盘自动还贷，还不上即破产。</p>' +
+        '<div class="borrow-amt">¥<b id="bw-amt">0</b></div>' +
+        '<input type="range" id="bw-slider" min="0" value="0">' +
+        '<button class="btn primary" id="bw-ok">确认借款</button>' +
+        '<button class="btn ghost" id="bw-no">取消</button></div>';
+      document.body.appendChild(borrowDlg);
+      $('bw-ok').onclick = function () { setup.borrow = parseInt($('bw-slider').value, 10) || 0; fillSetup(); borrowDlg.classList.remove('show'); };
+      $('bw-no').onclick = function () { borrowDlg.classList.remove('show'); };
+    }
+    var cap = Math.round(save.asset * 0.5);
+    var sl = $('bw-slider');
+    sl.max = cap; sl.value = setup.borrow;
+    $('bw-amt').textContent = fmt(setup.borrow, 0);
+    sl.oninput = function () { $('bw-amt').textContent = fmt(parseInt(sl.value, 10), 0); };
+    borrowDlg.classList.add('show');
+  }
+
+  // ---------- HUD ----------
+  UI.refreshHUD = function () {
+    var s = BF.LOGIC.state();
+    if (!s) return;
+    var nav = BF.LOGIC.nav();
+    var pnl = nav - s.invested;
+    var pnlR = s.invested > 0 ? pnl / s.invested : 0;
+    $('hud-nav').textContent = '¥' + fmt(nav, 0);
+    $('hud-cash').textContent = '¥' + fmt(s.cash, 0);
+    $('hud-pnl-r').textContent = (pnl >= 0 ? '+' : '') + (pnlR * 100).toFixed(2) + '%';
+    $('hud-pnl').textContent = (pnl >= 0 ? '+' : '−') + '¥' + fmt(Math.abs(pnl));
+    $('hud-pnl').className = pnl >= 0 ? 'up' : 'down';
+    $('hud-pnl-r').className = pnl >= 0 ? 'up' : 'down';
+    $('hud-state').textContent = s.shares > 0 ? '多头 · ' + s.tradeN + ' 笔' : '空仓 · 待入场';
+    $('hud-price').textContent = s.price.toFixed(2);
+    var posR = nav > 0 ? (s.shares * s.price) / nav : 0;
+    $('hud-posr').textContent = Math.round(posR * 100) + '%';
+    $('hud-pos-state').textContent = s.shares > 0 ? '持仓' : '空仓';
+    $('hud-pos-state').className = s.shares > 0 ? 'held' : '';
+    var segs = $('hud-segs').children;
+    var fillN = Math.round(posR * 10);
+    for (var i = 0; i < segs.length; i++) segs[i].classList.toggle('on', i < fillN);
+    var fl = s.shares > 0 ? s.shares * s.price - s.costBasis : 0;
+    $('hud-float').textContent = '浮盈亏 ' + (fl >= 0 ? '+' : '−') + '¥' + fmt(Math.abs(fl), 0);
+    $('hud-float').className = 'fl ' + (fl >= 0 ? 'up' : 'down');
+    $('mini-price').textContent = s.price.toFixed(2);
+  };
+  function bindGame() {
+    $('hud-pause').onclick = function () {
+      if (BF.GAME.state() === 'flying') { BF.GAME.pause(); showPause(); try { BF.SFX.play('pause'); } catch (e) {} }
+    };
+    var cv = $('cv');
+    var onTap = function (e) {
+      if (BF.UI.page() !== 'game') return;
+      if (BF.GAME.state() === 'flying') { e.preventDefault(); BF.GAME.tap(); }
+    };
+    cv.addEventListener('pointerdown', onTap);
+    $('hud-lever').onclick = function () { toast('杠杆未解锁'); };
+    $('hud-margin').onclick = function () { toast('融券未解锁'); };
+  }
+  UI.onPause = function () { showPause(); };
+  function showPause() {
+    $('dlg-pause').classList.add('show');
+  }
+  function bindPause() {
+    $('pa-ad').onclick = function () {
+      var b = $('pa-ad');
+      if (b.dataset.busy) return;
+      b.dataset.busy = '1';
+      var n = 3;
+      b.textContent = '广告播放中 ' + n;
+      var iv = setInterval(function () {
+        n--;
+        if (n <= 0) {
+          clearInterval(iv);
+          delete b.dataset.busy;
+          b.textContent = '看广告复活';
+          $('dlg-pause').classList.remove('show');
+          BF.GAME.resume();
+        } else b.textContent = '广告播放中 ' + n;
+      }, 700);
+    };
+    $('pa-end').onclick = function () {
+      $('dlg-pause').classList.remove('show');
+      var rep = BF.LOGIC.finish('manual');
+      if (rep) UI.showReport(rep);
+    };
+  }
+
+  // ---------- 战报 ----------
+  UI.showReport = function (rep) {
+    curReport = rep;
+    save.asset = Math.max(0, Math.round(rep.asset));
+    save.rounds = (save.rounds || 0) + 1;
+    if (save.best == null || rep.ret > save.best) save.best = rep.ret;
+    save.lastReport = { ret: rep.ret, net: rep.net, title: rep.title };
+    persistSave(save);
+    $('rp-title').textContent = rep.title;
+    $('rp-sub').textContent = rep.sub;
+    var hi = BF.ART && BF.ART.ready && BF.ART.bullHead;
+    if (hi) $('rp-bull').src = BF.ART.bullHead();
+    $('rp-ret').textContent = (rep.ret >= 0 ? '+' : '') + (rep.ret * 100).toFixed(2) + '%';
+    $('rp-ret').className = rep.ret >= 0 ? 'big up' : 'big down';
+    $('rp-net').textContent = (rep.net >= 0 ? '+' : '−') + '¥' + fmt(Math.abs(rep.net));
+    $('rp-net').className = rep.net >= 0 ? 'up' : 'down';
+    $('rp-invested').textContent = '¥' + fmt(rep.invested, 2);
+    $('rp-trades').textContent = rep.trades + ' 次';
+    $('rp-dd').textContent = (rep.maxDD * 100).toFixed(2) + '%';
+    $('rp-peak').textContent = '峰值 ' + (rep.peak - rep.invested >= 0 ? '+' : '−') + '¥' + fmt(Math.abs(rep.peak - rep.invested), 0);
+    $('rp-close').textContent = '收盘 ' + (rep.ret >= 0 ? '+' : '') + (rep.ret * 100).toFixed(2) + '%';
+    var qr = $('rp-qr');
+    if (BF.ART && BF.ART.ready && BF.ART.qr) qr.src = BF.ART.qr(String(Math.round(rep.net * 100) + rep.trades));
+    UI.show('report');
+    requestAnimationFrame(function () { drawNav($('rp-nav'), rep); });
+    try { BF.GAME.stop(); } catch (e) {}
+  };
+  function drawNav(canvas, rep) {
+    var g = canvas.getContext('2d');
+    var W = canvas.clientWidth || canvas.width, H = canvas.clientHeight || canvas.height;
+    canvas.width = W * 2; canvas.height = H * 2; g.scale(2, 2);
+    var nav = rep.nav && rep.nav.length > 1 ? rep.nav : [rep.invested, rep.invested + rep.net];
+    var lo = Infinity, hi = -Infinity;
+    for (var i = 0; i < nav.length; i++) { lo = Math.min(lo, nav[i]); hi = Math.max(hi, nav[i]); }
+    var base = rep.invested;
+    lo = Math.min(lo, base); hi = Math.max(hi, base);
+    var pad = (hi - lo) * 0.15 + 0.01; lo -= pad; hi += pad;
+    var x = function (i) { return 6 + i / (nav.length - 1) * (W - 12); };
+    var y = function (v) { return 6 + (hi - v) / (hi - lo) * (H - 24); };
+    var y0 = y(base);
+    // 网格 + 0 线
+    g.strokeStyle = 'rgba(20,30,50,0.08)'; g.lineWidth = 1;
+    for (i = 1; i < 4; i++) { var gy = 6 + i / 4 * (H - 24); g.beginPath(); g.moveTo(6, gy); g.lineTo(W - 6, gy); g.stroke(); }
+    g.setLineDash([4, 4]); g.strokeStyle = 'rgba(20,30,50,0.25)';
+    g.beginPath(); g.moveTo(6, y0); g.lineTo(W - 6, y0); g.stroke(); g.setLineDash([]);
+    // 面积：红上绿下
+    function area(from, to, col) {
+      g.beginPath();
+      g.moveTo(x(from), y0);
+      for (var i = from; i <= to; i++) g.lineTo(x(i), y(nav[i]));
+      g.lineTo(x(to), y0); g.closePath();
+      g.fillStyle = col; g.fill();
+    }
+    // 找穿越 0 线的分段
+    var segs = [], cur = 0;
+    for (i = 1; i < nav.length; i++) {
+      var up = nav[i] >= base, pu = nav[i - 1] >= base;
+      if (up !== pu) { segs.push([cur, i, pu]); cur = i; }
+    }
+    segs.push([cur, nav.length - 1, nav[cur] >= base]);
+    segs.forEach(function (sg) { area(sg[0], sg[1], sg[2] ? 'rgba(230,57,86,0.16)' : 'rgba(24,160,110,0.16)'); });
+    // 折线分段着色
+    for (i = 1; i < nav.length; i++) {
+      g.strokeStyle = nav[i] >= base ? '#e63956' : '#18a06e';
+      g.lineWidth = 2.2;
+      g.beginPath(); g.moveTo(x(i - 1), y(nav[i - 1])); g.lineTo(x(i), y(nav[i])); g.stroke();
+    }
+    // 末点
+    g.fillStyle = nav[nav.length - 1] >= base ? '#e63956' : '#18a06e';
+    g.beginPath(); g.arc(x(nav.length - 1), y(nav[nav.length - 1]), 4, 0, 6.283); g.fill();
+  }
+  function bindReport() {
+    $('rp-detail').onclick = function () {
+      var s = BF.LOGIC.state();
+      var list = $('dlg-detail-list');
+      var rows = '';
+      var t0 = performance.now();
+      var trades = (s && s.trades) ? s.trades : [];
+      for (var i = 0; i < trades.length; i++) {
+        var t = trades[i];
+        rows += '<div class="tr"><span class="' + (t.side === 'buy' ? 'b' : 's') + '">' + (t.side === 'buy' ? '买入' : '卖出') + '</span>' +
+          '<span>价 ' + t.price.toFixed(2) + '</span><span>¥' + fmt(t.amount) + '</span>' +
+          '<span class="' + (t.pnl != null ? (t.pnl >= 0 ? 'up' : 'down') : 'dim') + '">' + (t.pnl != null ? ((t.pnl >= 0 ? '+' : '') + fmt(t.pnl)) : ('费 ' + t.fee.toFixed(2))) + '</span></div>';
+      }
+      if (!rows) rows = '<div class="empty dim">本局没有成交</div>';
+      list.innerHTML = rows;
+      $('dlg-detail').classList.add('show');
+    };
+    $('dlg-detail-close').onclick = function () { $('dlg-detail').classList.remove('show'); };
+    $('rp-shot').onclick = function () { shotReport(); };
+    $('rp-hall').onclick = function () { UI.show('hall'); };
+    $('rp-again').onclick = function () { setup.ratio = 1; setup.borrow = 0; UI.show('setup'); };
+  }
+  // 截图模式：自绘战报卡导出 PNG
+  function shotReport() {
+    var rep = curReport; if (!rep) return;
+    var cv = document.createElement('canvas');
+    cv.width = 750; cv.height = 1150;
+    var g = cv.getContext('2d');
+    g.fillStyle = '#101116'; g.fillRect(0, 0, 750, 1150);
+    // 卡片
+    roundRect(g, 55, 130, 640, 890, 18); g.fillStyle = '#eef1f6'; g.fill();
+    g.fillStyle = '#8a92a0'; g.font = '22px -apple-system,system-ui';
+    g.fillText('收盘战报', 85, 172);
+    // 横幅
+    roundRect(g, 85, 200, 580, 130, 14);
+    var grd = g.createLinearGradient(0, 200, 580, 330);
+    grd.addColorStop(0, '#dfe9fb'); grd.addColorStop(1, '#e8f1fd');
+    g.fillStyle = grd; g.fill();
+    var bull = new Image();
+    g.fillStyle = '#10131a'; g.font = '700 40px -apple-system,system-ui';
+    g.fillText(rep.title, 240, 262);
+    g.fillStyle = '#5a6474'; g.font = '22px -apple-system,system-ui';
+    g.fillText(rep.sub, 240, 300);
+    if (BF.ART && BF.ART.ready) {
+      bull.onload = function () { g.drawImage(bull, 110, 215, 100, 100); done(); };
+      bull.src = BF.ART.bullHead();
+    }
+    var drawn = false;
+    function done() {
+      if (drawn) return; drawn = true;
+      g.fillStyle = '#3c4557'; g.font = '24px -apple-system,system-ui';
+      g.fillText('账户结算', 85, 390);
+      g.fillStyle = '#8a92a0'; g.font = '20px -apple-system,system-ui';
+      g.fillText('本局收益率', 85, 425);
+      g.fillText('已结算净收益', 420, 425);
+      g.fillStyle = rep.ret >= 0 ? '#d9203e' : '#0f9962'; g.font = '700 62px -apple-system,system-ui';
+      g.fillText((rep.ret >= 0 ? '+' : '') + (rep.ret * 100).toFixed(2) + '%', 85, 490);
+      g.font = '700 34px -apple-system,system-ui';
+      g.fillStyle = rep.net >= 0 ? '#d9203e' : '#0f9962';
+      g.fillText((rep.net >= 0 ? '+' : '') + fmt(rep.net), 420, 480);
+      g.fillStyle = '#8a92a0'; g.font = '20px -apple-system,system-ui';
+      g.fillText('本局投入', 85, 540); g.fillText('买卖次数', 320, 540); g.fillText('最大回撤', 520, 540);
+      g.fillStyle = '#191d26'; g.font = '700 26px -apple-system,system-ui';
+      g.fillText('¥' + fmt(rep.invested, 2), 85, 575); g.fillText(rep.trades + ' 次', 320, 575); g.fillText((rep.maxDD * 100).toFixed(2) + '%', 520, 575);
+      // 走势
+      g.strokeStyle = '#dfe3ea'; g.strokeRect(85, 620, 580, 260);
+      var nav = rep.nav && rep.nav.length > 1 ? rep.nav : [rep.invested, rep.invested + rep.net];
+      var lo = Infinity, hi = -Infinity;
+      for (var i = 0; i < nav.length; i++) { lo = Math.min(lo, nav[i]); hi = Math.max(hi, nav[i]); }
+      lo = Math.min(lo, rep.invested); hi = Math.max(hi, rep.invested);
+      var pad = (hi - lo) * 0.15 + 0.01; lo -= pad; hi += pad;
+      var X = function (i) { return 95 + i / (nav.length - 1) * 560; };
+      var Y = function (v) { return 635 + (hi - v) / (hi - lo) * 220; };
+      var y0 = Y(rep.invested);
+      g.setLineDash([5, 5]); g.strokeStyle = '#b7bfcc';
+      g.beginPath(); g.moveTo(95, y0); g.lineTo(655, y0); g.stroke(); g.setLineDash([]);
+      for (i = 1; i < nav.length; i++) {
+        g.strokeStyle = nav[i] >= rep.invested ? '#d9203e' : '#0f9962';
+        g.lineWidth = 3;
+        g.beginPath(); g.moveTo(X(i - 1), Y(nav[i - 1])); g.lineTo(X(i), Y(nav[i])); g.stroke();
+      }
+      g.fillStyle = '#8a92a0'; g.font = '18px -apple-system,system-ui';
+      g.fillText('2026-01', 95, 908); g.fillText('2026-03', 330, 908); g.fillText('2026-05', 590, 908);
+      g.fillStyle = '#191d26'; g.font = '700 34px -apple-system,system-ui';
+      g.fillText('不服？你来画一根。', 85, 975);
+      if (BF.ART && BF.ART.ready) {
+        var q = new Image();
+        q.onload = function () { g.drawImage(q, 520, 930, 130, 130); fin(); };
+        q.onerror = function () { fin(); };
+        q.src = BF.ART.qr('shot' + Math.round(rep.net * 100));
+      } else fin();
+      function fin() {
+        var a = document.createElement('a');
+        a.download = 'bull-flight-战报.png';
+        a.href = cv.toDataURL('image/png');
+        a.click();
+        UI.toast('战报图已保存');
+      }
+    }
+    setTimeout(function () { done(); }, 800); // 兜底：图片加载失败也能出图
+  }
+  function roundRect(g, x, y, w, h, r) {
+    g.beginPath();
+    g.moveTo(x + r, y);
+    g.arcTo(x + w, y, x + w, y + h, r);
+    g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r);
+    g.arcTo(x, y, x + w, y, r);
+    g.closePath();
+  }
+
+  // ---------- toast ----------
+  var toastT = 0;
+  UI.toast = function (s) {
+    var t = $('toast');
+    t.textContent = s;
+    t.classList.add('show');
+    clearTimeout(toastT);
+    toastT = setTimeout(function () { t.classList.remove('show'); }, 1800);
+  };
+
+  // ---------- 启动绑定 ----------
+  UI.bind = function () {
+    bindSetup(); bindGame(); bindPause(); bindReport();
+    $('hall-start').onclick = function () { setup.ratio = 1; setup.borrow = 0; UI.show('setup'); };
+    $('hall-cfg').onclick = function () { BF.CFG.openPanel(); };
+    // 仓位条分段
+    var segs = $('hud-segs');
+    if (segs && !segs.children.length) for (var i = 0; i < 10; i++) { var d = document.createElement('i'); segs.appendChild(d); }
+    // ART 就绪后补图
+    var n = 0, iv = setInterval(function () {
+      n++;
+      if ((window.BF.ART && BF.ART.ready) || n > 80) {
+        clearInterval(iv);
+        fillHall();
+        document.querySelectorAll('#app img[data-ic]').forEach(function (im) {
+          if (BF.ART.icon) im.src = BF.ART.icon(im.dataset.ic);
+        });
+        $('hud-pause').innerHTML = '<img data-p="pause" alt="" style="width:15px;height:15px;vertical-align:middle">';
+        var hp = $('hud-pause').querySelector('img');
+        if (BF.ART.icon) hp.src = BF.ART.icon('pause');
+        var lb = $('hall-bull'); if (lb && !lb.src) fillHall();
+      }
+    }, 150);
+  };
+  window.BF.UI = UI;
+})();
+
+
+/* ==== main.js ==== */
+/* bull-flight main —— 装配/URL参数/测试钩子（主线负责）
+ * ?reset=1 清档（必须先于任何 localStorage 读取——本文件最先执行）
+ */
+(function () {
+  var Q = {};
+  try {
+    location.search.replace(/^\?/, '').split('&').forEach(function (kv) {
+      if (!kv) return;
+      var p = kv.split('=');
+      Q[decodeURIComponent(p[0])] = p[1] === undefined ? true : decodeURIComponent(p[1]);
+    });
+  } catch (e) {}
+  if (Q.reset) { try { localStorage.removeItem('bf.cfg.v1'); localStorage.removeItem('bf.save.v1'); } catch (e) {} }
+
+  window.BF = window.BF || {};
+  window.__errs = window.__errs || [];
+  window.onerror = function (m, s, l, c) { __errs.push(String(m).slice(0, 200) + ' @' + (l || '?')); };
+  window.onunhandledrejection = function (e) { __errs.push('rej:' + String(e && e.reason).slice(0, 200)); };
+
+  // 模块就绪等待（惰性解析 + 重试；缺失模块走 NOOP 兜底不炸主流程）
+  function waitMods(cb) {
+    var n = 0;
+    var iv = setInterval(function () {
+      n++;
+      var ok = BF.UI && BF.GAME && BF.LOGIC && BF.CFG;
+      if (ok || n > 100) { clearInterval(iv); cb(); }
+    }, 60);
+  }
+
+  function boot() {
+    try { BF.SFX.init(); } catch (e) {}
+    if (Q.muted) { try { BF.SFX.setMuted(true); } catch (e) {} }
+    try {
+      var c = BF.CFG.all();
+      if (c.sfx === false || Q.muted) BF.SFX.setMuted(true);
+      BF.SFX.bgmOn(c.bgm !== false);
+    } catch (e) {}
+    BF.UI.bind();
+    BF.UI.show('hall');
+    if (Q.auto) BF.GAME.setOpts({ auto: true });
+    if (Q.fast) BF.GAME.setOpts({ fast: parseFloat(Q.fast) || 1 });
+    // 解锁音频 + BGM（首次手势）
+    var unlockOnce = function () {
+      try { BF.SFX.unlock(); } catch (e) {}
+      window.removeEventListener('pointerdown', unlockOnce);
+      window.removeEventListener('keydown', unlockOnce);
+    };
+    window.addEventListener('pointerdown', unlockOnce);
+    window.addEventListener('keydown', unlockOnce);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { waitMods(boot); });
+  else waitMods(boot);
+
+  // 测试钩子
+  Object.defineProperty(window, '__bf', {
+    get: function () {
+      return {
+        Q: Q,
+        errs: __errs,
+        CFG: BF.CFG, SFX: BF.SFX, ART: BF.ART, FX: BF.FX,
+        GAME: BF.GAME, LOGIC: BF.LOGIC, UI: BF.UI,
+        state: BF.LOGIC && BF.LOGIC.state ? BF.LOGIC.state() : null,
+        page: BF.UI && BF.UI.page ? BF.UI.page() : null,
+        save: BF.UI && BF.UI.save ? BF.UI.save() : null,
+        quick: {
+          startRound: function (amt, borrow) {
+            BF.LOGIC.newRound(amt || 25892, borrow || 0);
+            BF.UI.show('game'); BF.GAME.start();
+          },
+          finish: function () { return BF.LOGIC.finish('manual'); },
+          tap: function () { BF.GAME.tap(); },
+          books: function () {
+            var s = BF.LOGIC.state(); if (!s) return null;
+            var nav = s.cash + s.shares * s.price - s.loan;
+            var want = s.invested + s.realized + (s.shares * s.price - s.costBasis) - s.loan;
+            return { nav: nav, want: want, diff: Math.abs(nav - want), fixes: s.__bookFix || 0 };
+          }
+        }
+      };
+    }
+  });
+})();
+
+</script>
+</body>
+</html>
