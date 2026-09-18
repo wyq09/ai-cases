@@ -10,6 +10,8 @@ AI 辅助产出的案例集合 —— 方案 · 演示 · 视觉作品。
 
 - [memory-flip](./memory-flip/) — 翻牌赢好礼 · 经典营销活动记忆翻牌 H5 复刻：三档难度、开局记忆预览、连击翻倍计分、限时挑战、星级结算、领奖券码与分享战绩，卡面/音效/玩法参数游戏内可自定义，单文件零外部资源（[在线游玩](https://case.youyongai.com/memory-flip/)）
 
+- [pipe-connect](./pipe-connect/) — 接水管 · 经典微信管道连通益智 H5 复刻：点击旋转限时接通、保证可解的棋盘生成、水流逐格灌充演出、关卡递进与计分持久化、AI 自动演示、三套色板与音效自定义，单文件零外部资源（[在线游玩](https://case.youyongai.com/pipe-connect/)）
+
 - [zuma-infinite](./zuma-infinite/) — 祖玛 · 无尽遗迹：无限关卡、同色三球消除与回吸连锁、横竖屏适配、免费道具、程序化音效和本地进度保存；参考画面尚未完成一比一视觉核验。
 
 - [jump-jump](./jump-jump/) — 跳一跳 · 非官方 H5 复刻：按住蓄力、连续中心奖励、六类平台、自动演示、WebAudio 音效与本地进度保存（[在线游玩](https://case.youyongai.com/jump-jump/)）
