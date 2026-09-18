@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>TF.FX 特效预览</title>
+<style>
+html,body{margin:0;padding:0;background:#04070b}
+#wrap{position:relative;width:420px;height:760px;margin:0 auto;overflow:hidden}
+canvas{display:block}
+#tip{position:absolute;top:6px;left:8px;color:#42556a;font:10px/1.4 Consolas,Menlo,monospace;letter-spacing:.5px;pointer-events:none}
+#bar{position:absolute;left:0;right:0;bottom:0;display:flex;flex-wrap:wrap;gap:4px;padding:6px 6px 8px;background:rgba(4,8,12,.86);border-top:1px solid #1a2530}
+#bar button{font:11px Consolas,Menlo,monospace;color:#35e0c8;background:#0a1219;border:1px solid #263241;padding:4px 7px;cursor:pointer}
+#bar button:active{background:#14242c;color:#bfeee2}
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="cv"></canvas>
+<div id="tip">TF.FX</div>
+<div id="bar"></div>
+</div>
+<script src="../src/fx.js"></script>
+<script>
+(function(){
+var W=420,H=760;
+var DPR=Math.min(window.devicePixelRatio||1,2);
+var cv=document.getElementById('cv');
+cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+cv.style.width=W+'px'; cv.style.height=H+'px';
+var ctx=cv.getContext('2d');
+if(!window.TF||!window.TF.FX){document.getElementById('tip').textContent='FX 模块缺失';return;}
+var FX=window.TF.FX;
+FX.init({W:W,H:H,dpr:DPR,quality:'auto'});
+
+// ---------- 深空底图（静态预渲染一次） ----------
+var bg=document.createElement('canvas');
+bg.width=cv.width; bg.height=cv.height;
+(function(){
+  var g=bg.getContext('2d'); g.scale(DPR,DPR);
+  var gr=g.createLinearGradient(0,0,0,H);
+  gr.addColorStop(0,'#081018'); gr.addColorStop(.55,'#060a10'); gr.addColorStop(1,'#04070b');
+  g.fillStyle=gr; g.fillRect(0,0,W,H);
+  function patch(x,y,r,a){
+    var rg=g.createRadialGradient(x,y,0,x,y,r);
+    rg.addColorStop(0,'rgba(38,55,70,'+a+')'); rg.addColorStop(1,'rgba(38,55,70,0)');
+    g.fillStyle=rg; g.fillRect(x-r,y-r,r*2,r*2);
+  }
+  patch(96,150,190,.10); patch(330,540,230,.08);
+  var seed=1234567; function rr(){seed=(seed*16807)%2147483647;return seed/2147483647;}
+  for(var i=0;i<110;i++){
+    var x=rr()*W,y=rr()*H,s=rr()*1.4+.3;
+    g.fillStyle='rgba(190,205,220,'+(rr()*.5+.06).toFixed(2)+')';
+    g.fillRect(x,y,s,s);
+  }
+})();
+
+// ---------- 帧绘制（底图 -> 相机震偏移 -> world -> screen） ----------
+function draw(){
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.drawImage(bg,0,0);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  var co=FX.camOffset();
+  if(co.x||co.y||co.r){ctx.translate(co.x,co.y);ctx.rotate(co.r);}
+  FX.render(ctx,'world');
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  FX.render(ctx,'screen');
+}
+
+// ---------- 演示动作 ----------
+function combo(){
+  FX.explosion(200,296,1.15);
+  FX.ring(200,296,{r0:12,r1:172,life:.55,color:'#35e0c8',width:3.5});
+  FX.floatText(200,252,'3260',{size:17});
+  FX.flash('#fff5e0',.09,140);
+}
+// 一键全览: 五种 burst + 冲击环 + 炮口×2 + 尾焰带 + 暴击/普通数字 + 闪光 + 震屏
+function comboAll(){
+  FX.burst(70,160,{kind:'spark',n:14});
+  FX.burst(210,160,{kind:'fire',n:10});
+  FX.burst(350,160,{kind:'debris',n:9});
+  FX.burst(70,380,{kind:'star',n:9});
+  FX.ring(210,380,{r0:8,r1:120,life:.6,color:'#35e0c8',width:4});
+  FX.burst(350,380,{kind:'smoke',n:9});
+  FX.muzzle(150,545,-Math.PI/2,1.4);
+  FX.muzzle(240,545,-Math.PI/2+0.5,1);
+  for(var k=0;k<26;k++){var u=k/25;
+    FX.trail(250+u*120,560-u*90+Math.sin(u*7)*14,{size:3.4});}
+  FX.floatText(210,292,'9999',{crit:true});
+  FX.floatText(210,318,'1280',{size:15});
+  FX.flash('#fff5e0',.07,150);
+  FX.addShake(.3);
+}
+var trailT=0;
+var demos=[
+  ['爆1x',function(){FX.explosion(150,250,1);}],
+  ['爆2x',function(){FX.explosion(265,430,2);}],
+  ['火花',function(){FX.burst(210,300,{kind:'spark',n:18});}],
+  ['火',function(){FX.burst(210,300,{kind:'fire',n:12});}],
+  ['碎片',function(){FX.burst(210,300,{kind:'debris',n:10});}],
+  ['烟',function(){FX.burst(210,300,{kind:'smoke',n:8});}],
+  ['闪星',function(){FX.burst(210,300,{kind:'star',n:9,color:'#35e0c8'});}],
+  ['冲击环',function(){FX.ring(210,320,{r0:8,r1:165,life:.6,color:'#35e0c8',width:4});}],
+  ['数字',function(){FX.floatText(210,300,'1280',{size:16});FX.floatText(210,345,'9999',{crit:true});}],
+  ['炮口',function(){for(var k=0;k<3;k++)FX.muzzle(190+k*18,250,-Math.PI/2+(Math.random()-.5)*.5,1.2);}],
+  ['尾焰',function(){trailT=.9;}],
+  ['闪光+震屏',function(){FX.flash('#ffe9c0',.22,260);FX.addShake(.6);}]
+];
+
+// ---------- 模式: ?t=MS 确定性定格（截图用）/ 否则交互 + 自动循环 ----------
+var m=location.search.match(/t=(\d+)/);
+if(m){ deterministic(m[1]|0); return; }
+
+var tipEl=document.getElementById('tip');
+tipEl.textContent='TF.FX 交互预览 — 1s 后自动组合演示';
+var bar=document.getElementById('bar');
+demos.forEach(function(d){
+  var b=document.createElement('button'); b.textContent=d[0];
+  b.addEventListener('click',d[1]); bar.appendChild(b);
+});
+var clearB=document.createElement('button'); clearB.textContent='清空';
+clearB.addEventListener('click',function(){FX.stopAll();}); bar.appendChild(clearB);
+var allB=document.createElement('button'); allB.textContent='一键全览';
+allB.addEventListener('click',comboAll); bar.appendChild(allB);
+
+var comboFired=false,autoT=0,autoI=0,last=performance.now();
+function tick(now){
+  var dt=(now-last)/1000; last=now; if(dt>.05)dt=.05;
+  FX.update(dt);
+  if(!comboFired&&now>=1000){ comboFired=true; combo(); }
+  else if(comboFired){
+    if(trailT>0){ trailT-=dt; var tt=.9-trailT;
+      FX.trail(210+Math.sin(tt*9)*70,230+tt*330,{color:'#35e0c8',size:3.2}); }
+    autoT+=dt;
+    if(autoT>2.4){ autoT=0; var d=demos[autoI++%demos.length];
+      tipEl.textContent='自动演示: '+d[0]; d[1](); }
+  }
+  draw();
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+function deterministic(tms){
+  var all=/d=all/.test(location.search);
+  var fire=all?comboAll:combo;
+  var STEP=1/60,total=1+tms/1000,n=Math.round(total/STEP),fired=false;
+  for(var i=1;i<=n;i++){
+    if(!fired&&i*STEP>=1){ fired=true; fire(); }
+    FX.update(STEP);
+  }
+  draw();
+  document.getElementById('tip').textContent='TF.FX 定格 @ 触发后 '+tms+'ms'+(all?' (全览)':'');
+}
+})();
+</script>
+</body>
+</html>

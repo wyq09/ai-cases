@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+<meta charset='utf-8'>
+<title>TF.ART 自检预览</title>
+<style>
+body{background:#0a0e14;color:#9fb0c0;font:12px/1.4 Menlo,Consolas,monospace;margin:0;padding:18px}
+h1{color:#c9d4e0;font-size:15px;letter-spacing:3px;margin:0 0 4px}
+.sub{color:#5c6d80;margin:0 0 6px}
+h2{color:#35e0c8;font-size:13px;border-bottom:1px solid #1c2733;padding-bottom:4px;margin:20px 0 10px;letter-spacing:1px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.cell{background:#0e141c;border:1px solid #1c2733;padding:6px 6px 4px;text-align:center}
+.cell img{display:block;margin:0 auto}
+.cell div{margin-top:4px;color:#7f93a8;font-size:11px}
+</style>
+</head>
+<body>
+<h1>THUNDER-FIGHTER // TF.ART 自检预览</h1>
+<p class='sub'>深空军事科幻 · gunmetal 三阶 + 队伍色 rim light · 全 SVG dataURI</p>
+<div id='out'></div>
+<script src='../src/art.js'></script>
+<script>
+(function () {
+  var A = window.TF && window.TF.ART;
+  var out = document.getElementById('out');
+  if (!A) { out.textContent = 'TF.ART 加载失败'; return; }
+  function sec(t) {
+    var h = document.createElement('h2'); h.textContent = t; out.appendChild(h);
+    var r = document.createElement('div'); r.className = 'row'; out.appendChild(r);
+    return r;
+  }
+  function cell(row, src, label, w, h) {
+    var c = document.createElement('div'); c.className = 'cell';
+    var i = document.createElement('img'); i.src = src; i.width = w; i.height = h;
+    c.appendChild(i);
+    var d = document.createElement('div'); d.textContent = label; c.appendChild(d);
+    row.appendChild(c);
+  }
+  var SHIP_IDS = ['A', 'B', 'C', 'D', 'E', 'F'];
+  var ENEMY_KINDS = ['grunt', 'gunner', 'diver', 'tank', 'kami', 'elite'];
+  var WING_KINDS = ['gun', 'missile', 'tesla'];
+  var POWER_KINDS = ['P', 'B', 'H', 'S', 'L', 'coin', 'part'];
+  var ICONS = ['pause', 'play', 'settings', 'back', 'close', 'star', 'heart', 'bomb', 'coin', 'part',
+    'lock', 'next', 'prev', 'home', 'cup', 'wing', 'ship', 'refresh', 'check', 'plus', 'minus',
+    'export', 'import', 'reset'];
+  var r1 = sec('玩家战机 ship(A-F) 100x120 机头朝上');
+  SHIP_IDS.forEach(function (id) { cell(r1, A.ship(id), id, 84, 101); });
+  var r2 = sec('战机 40px 缩小剪影（可辨性验证）');
+  SHIP_IDS.forEach(function (id) { cell(r2, A.ship(id), id, 40, 48); });
+  var r3 = sec('敌机 enemy x6 100x100 机头朝下 accent #ff5a3c');
+  ENEMY_KINDS.forEach(function (k) { cell(r3, A.enemy(k), k, 84, 84); });
+  var r4 = sec('敌机 40px 缩小剪影');
+  ENEMY_KINDS.forEach(function (k) { cell(r4, A.enemy(k), k, 40, 40); });
+  var r5 = sec('Boss boss(i,v) 6 原型 x 3 变体 200x240 机头朝下');
+  var i, v;
+  for (i = 0; i < 6; i++) for (v = 0; v < 3; v++) cell(r5, A.boss(i, v), i + ' / v' + v, 130, 156);
+  var r6 = sec('Boss 40px 缩小剪影');
+  for (i = 0; i < 6; i++) for (v = 0; v < 3; v++) cell(r6, A.boss(i, v), i + '.' + v, 40, 48);
+  var r7 = sec('僚机 wing x3 60x60');
+  WING_KINDS.forEach(function (k) { cell(r7, A.wing(k), k, 84, 84); });
+  var r8 = sec('道具 power x7 64x64 深色芯片底+色环');
+  POWER_KINDS.forEach(function (k) { cell(r8, A.power(k), k, 72, 72); });
+  var r9 = sec('图标 icon x24 48x48 3px 线条');
+  ICONS.forEach(function (n) { cell(r9, A.icon(n), n, 48, 48); });
+  var r10 = sec('标题徽章 emblem 240x240');
+  cell(r10, A.emblem(), 'emblem', 200, 200);
+})();
+</script>
+</body>
+</html>

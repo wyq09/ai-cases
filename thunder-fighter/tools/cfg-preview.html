@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<!-- thunder-fighter · TF.CFG 设置面板预览/自检页（仅开发用，不进 build 管线）
+     ?tab=0..3  打开面板并切到指定 tab（供 headless 截图）
+     ?test=1    跑 DOM 行为自检，结果写入 #test-out（供 dump-dom 断言 PASS） -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>雷霆战机 · 设置面板预览</title>
+<style>
+  html,body{margin:0;padding:0;background:#070a0e;height:100%;}
+  .stage{padding:28px 20px;color:#4a5b6c;font-family:ui-monospace,Menlo,Consolas,monospace;}
+  .stage .ttl{font-size:22px;letter-spacing:10px;color:#263241;}
+  .stage .tip{margin-top:10px;font-size:11px;letter-spacing:1px;color:#3c4c5e;line-height:1.8;}
+  #test-out{margin:0;padding:10px 14px;background:#0b0f14;border:1px solid #263241;color:#35e0c8;
+    font:11px/1.7 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="ttl">THUNDER FIGHTER</div>
+  <div class="tip">预览存根页 · TF.ART / TF.SFX / TF.PROFILE 均为桩 · 面板自动展开</div>
+</div>
+<pre id="test-out" style="display:none;"></pre>
+
+<script>
+/* ---- 桩模块（先于 config-panel.js 载入，并清空配置保证截图确定性） ---- */
+window.TF = window.TF || {};
+try { localStorage.removeItem('tf.cfg.v1'); localStorage.removeItem('tf.save.v1'); } catch (e) {}
+
+window.__sfx = { calls: [], overrides: [] };
+window.__profileImport = null;
+
+TF.ART = {
+  ship: function (id) {
+    var c = { A: '#35e0c8', B: '#7f93a8', C: '#ffd0a0', D: '#7f93a8', E: '#35e0c8', F: '#ff7a5c' }[id] || '#7f93a8';
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120">' +
+      '<path d="M50 8 L62 44 L86 98 L50 80 L14 98 L38 44 Z" fill="#46586c" stroke="' + c + '" stroke-width="2"/>' +
+      '<path d="M50 34 L58 74 L50 66 L42 74 Z" fill="#1d2630"/></svg>');
+  },
+  icon: function (name) {
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">' +
+      '<path d="M10 24 H38 M24 10 V38" stroke="#35e0c8" stroke-width="3" fill="none"/></svg>');
+  }
+};
+TF.SFX = {
+  setVol: function (bgm, sfx) { window.__sfx.calls.push([bgm, sfx]); },
+  applyOverrides: function (map) { window.__sfx.overrides.push(map); },
+  play: function () {}
+};
+TF.PROFILE = {
+  export: function () { return { coins: 12345, maxLevel: 7, board: [{ score: 99999, name: 'ACE' }] }; },
+  import: function (o) { window.__profileImport = o; }
+};
+</script>
+<script src="../src/config-panel.js"></script>
+<script>
+(function () {
+  var q = (location.search || '').match(/tab=(\d)/);
+  TF.CFG.openPanel();
+  if (q) {
+    var tabs = document.querySelectorAll('.tfcp-tab');
+    if (tabs[Number(q[1])]) tabs[Number(q[1])].click();
+  }
+  if ((location.search || '').indexOf('confirm=1') >= 0) {
+    var rb = document.querySelector('button[data-act="ask-reset"]');
+    if (rb) rb.click();
+  }
+  if ((location.search || '').indexOf('test=1') < 0) return;
+
+  /* ------------------------- DOM 行为自检 ------------------------- */
+  var out = document.getElementById('test-out');
+  out.style.display = 'block';
+  var lines = [];
+  function say(s) { lines.push(s); }
+  function t(name, fn) { try { fn(); say('PASS ' + name); } catch (e) { say('FAIL ' + name + ' :: ' + ((e && e.message) || e)); } }
+  function ok(c, m) { if (!c) throw new Error(m || 'assert failed'); }
+  function fire(elm, ev) { var e = document.createEvent('Event'); e.initEvent(ev, true, true); elm.dispatchEvent(e); }
+  function $(sel) { return document.querySelector(sel); }
+  var CFG = TF.CFG;
+  var snaps = [];
+  CFG.onChange(function (s) { snaps.push(s); });
+
+  t('api-surface', function () {
+    ['defaultCfg', 'all', 'apply', 'openPanel', 'close', 'isOpen', 'onChange', 'exportJSON', 'importJSON']
+      .forEach(function (k) { ok(typeof CFG[k] === 'function', 'missing ' + k); });
+  });
+
+  t('default-values', function () {
+    var d = CFG.defaultCfg();
+    ok(d.sens === 1.15 && d.fireK === 1 && d.diff === 1 && d.dropK === 1, 'nums');
+    ok(d.shake === 1 && d.vib === 1, 'flags');
+    ok(d.bgmVol === 0.7 && d.sfxVol === 0.9, 'vols');
+    ok(d.quality === 'auto' && d.demoSpd === 1, 'quality/demoSpd');
+    'ABCDEF'.split('').forEach(function (id) { ok(id in d.shipImg, 'ship ' + id); });
+    ok(d.sounds && typeof d.sounds === 'object', 'sounds');
+    ok(CFG.all() !== d, 'defaultCfg 必须返回新副本');
+  });
+
+  t('panel-open', function () {
+    ok(CFG.isOpen(), 'isOpen false');
+    ok($('.tfcp-mask.tfcp-show'), 'mask 未显示');
+  });
+
+  t('dom-structure', function () {
+    ok(document.querySelectorAll('.tfcp-tab').length === 4, 'tab 数');
+    ok(document.querySelectorAll('.tfcp-ship').length === 6, '战机数');
+    ok(document.querySelectorAll('select[data-key="cueSel"] option').length === 12, 'cue 数');
+    ok(document.querySelectorAll('.tfcp-page').length === 4, '页数');
+  });
+
+  t('sens-change-full-snapshot', function () {
+    var before = snaps.length;
+    var r = $('input[data-key="sens"]');
+    ok(r, '找不到 sens 滑条');
+    r.value = '1.5'; fire(r, 'input');
+    ok(snaps.length > before, 'onChange 未触发');
+    var s = snaps[snaps.length - 1];
+    ['sens', 'fireK', 'diff', 'dropK', 'shake', 'vib', 'bgmVol', 'sfxVol', 'quality', 'demoSpd', 'shipImg', 'sounds']
+      .forEach(function (k) { ok(k in s, '快照缺 ' + k); });
+    ok(s.sens === 1.5, 'sens=' + s.sens);
+    ok(s.shipImg && ('A' in s.shipImg) && ('F' in s.shipImg), 'shipImg 不完整');
+  });
+
+  t('volume-slider-setvol', function () {
+    var b = $('input[data-key="bgmVol"]');
+    ok(b, '找不到 BGM 滑条');
+    b.value = '35'; fire(b, 'input');
+    var last = window.__sfx.calls[window.__sfx.calls.length - 1];
+    ok(last && last[0] === 0.35, 'setVol bgm=' + (last && last[0]));
+    ok(Math.abs(last[1] - 0.9) < 1e-9, 'setVol sfx=' + last[1]);
+  });
+
+  t('persist-to-localstorage', function () {
+    var raw = JSON.parse(localStorage.getItem('tf.cfg.v1'));
+    ok(raw.sens === 1.5, '落盘 sens=' + raw.sens);
+  });
+
+  t('import-bad-throws-no-write', function () {
+    var threw = false;
+    try { CFG.importJSON('{bad json'); } catch (e) { threw = true; }
+    ok(threw, '非法 JSON 未抛错');
+    ok(JSON.parse(localStorage.getItem('tf.cfg.v1')).sens === 1.5, '落盘被污染');
+    ok(CFG.all().sens === 1.5, '内存被污染');
+  });
+
+  t('import-good-deep-merge', function () {
+    CFG.importJSON(JSON.stringify({ sens: 1.8, shipImg: { A: 'data:image/png;base64,xxx' } }));
+    ok(CFG.all().sens === 1.8, 'sens 未生效');
+    ok(CFG.all().bgmVol === 0.7, '深合并失败 bgmVol=' + CFG.all().bgmVol);
+    ok(CFG.all().shipImg.A === 'data:image/png;base64,xxx', 'shipImg.A 未合并');
+    ok(CFG.all().shipImg.F === null, 'shipImg.F 应保持默认');
+    ok(CFG.all().sfxVol === 0.9, 'sfxVol 应保持默认');
+  });
+
+  t('apply-merge-and-fire-once', function () {
+    var before = snaps.length;
+    CFG.apply({ sens: 0.8 });
+    ok(snaps.length === before + 1, 'apply 应触发一次 onChange');
+    ok(CFG.all().sens === 0.8 && CFG.all().sfxVol === 0.9, 'apply 合并结果错');
+  });
+
+  t('export-and-live-ref', function () {
+    ok(JSON.parse(CFG.exportJSON()).sens === 0.8, 'exportJSON 值错');
+    ok(CFG.all() === CFG.all(), 'all() 应返回活引用');
+  });
+
+  t('toggle-and-quality', function () {
+    var sw = $('button[data-key="shake"]');
+    sw.click();
+    ok(CFG.all().shake === 0, 'shake 开关未生效');
+    var seg = $('.tfcp-seg[data-key="quality"]');
+    seg.children[2].click();
+    ok(CFG.all().quality === 'low', 'quality 未生效');
+  });
+
+  t('audio-reset-cue', function () {
+    CFG.all().sounds; // noop
+    var sel = $('select[data-key="cueSel"]');
+    sel.value = 'coin'; fire(sel, 'change');
+    $('button[data-act="reset-audio"]').click();
+    ok(!CFG.all().sounds.coin, '恢复合成未清除 sounds.coin');
+  });
+
+  t('tab-switching', function () {
+    var tabs = document.querySelectorAll('.tfcp-tab');
+    tabs[2].click();
+    ok(tabs[2].classList.contains('tfcp-on'), 'tab2 未点亮');
+    ok(document.querySelectorAll('.tfcp-page')[2].classList.contains('tfcp-on'), 'page2 未显示');
+    tabs[0].click();
+  });
+
+  t('close-open', function () {
+    CFG.close();
+    ok(!CFG.isOpen(), 'close 后仍 isOpen');
+    CFG.openPanel();
+    ok(CFG.isOpen(), '重新打开失败');
+  });
+
+  t('factory-reset-confirm-layer', function () {
+    document.querySelectorAll('.tfcp-tab')[3].click();
+    $('button[data-act="ask-reset"]').click();
+    var cf = $('.tfcp-confirm');
+    ok(cf && cf.classList.contains('tfcp-show'), '确认弹层未出现');
+    $('button[data-act="cancel-reset"]').click();
+    ok(!cf.classList.contains('tfcp-show'), '取消未关闭弹层');
+    // 注：不点「确认恢复」，避免 location.reload 打断自检
+  });
+
+  // 还原默认，避免影响后续截图
+  CFG.apply(CFG.defaultCfg());
+
+  var fails = lines.filter(function (l) { return l.indexOf('FAIL') === 0; }).length;
+  var dw = document.querySelector('.tfcp-drawer');
+  say('VIEW ' + window.innerWidth + 'x' + window.innerHeight +
+    ' docW=' + document.documentElement.clientWidth +
+    ' drawerW=' + (dw ? dw.offsetWidth : '?') +
+    ' bodyScrollW=' + document.body.scrollWidth);
+  say(fails ? 'HAS-FAIL' : 'ALL-PASS');
+  out.textContent = lines.join('\n');
+})();
+</script>
+</body>
+</html>

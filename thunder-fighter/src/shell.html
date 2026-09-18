@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05070d">
+<title>雷霆战机 · 银河防线</title>
+<style>/*STYLE_INLINE*/</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== 标题 ===== -->
+  <section id="scr-title" class="scr">
+    <div class="stars stars-a"></div><div class="stars stars-b"></div>
+    <div class="tt-wrap">
+      <img id="title-emblem" alt="">
+      <h1 class="tt-logo">雷霆战机</h1>
+      <div class="tt-sub">THUNDER FIGHTER · 银河防线</div>
+      <nav class="tt-menu">
+        <button class="btn btn-pri" id="btn-start">开始出击</button>
+        <button class="btn" id="btn-hangar">机库</button>
+        <button class="btn" id="btn-levels">关卡选择</button>
+        <button class="btn" id="btn-board">排行榜</button>
+        <button class="btn" id="btn-settings">设置</button>
+      </nav>
+      <div class="tt-best" id="title-best"></div>
+      <div class="tt-ver">TF-01 · 单文件 · 程序化生成</div>
+    </div>
+  </section>
+
+  <!-- ===== 机库 ===== -->
+  <section id="scr-hangar" class="scr">
+    <header class="bar">
+      <button class="icon-btn" id="hg-back"></button>
+      <div class="bar-tt">机库</div>
+      <div class="bar-res">
+        <span class="res"><img id="hg-coin-ic" alt=""><b id="hg-coins">0</b></span>
+        <span class="res"><img id="hg-part-ic" alt=""><b id="hg-parts">0</b></span>
+      </div>
+    </header>
+    <div class="hg-body">
+      <div class="hg-stage">
+        <button class="icon-btn hg-arrow" id="hg-prev"></button>
+        <div class="hg-ship-box"><img id="hg-ship-img" alt=""><div class="hg-thrust"></div></div>
+        <button class="icon-btn hg-arrow" id="hg-next"></button>
+      </div>
+      <div class="hg-name-row"><b id="hg-name">突击者</b><span class="tag" id="hg-tag">T1</span></div>
+      <div class="hg-stars" id="hg-stars"></div>
+      <p class="hg-desc" id="hg-desc"></p>
+      <div class="hg-stats">
+        <div class="stat"><span>装甲</span><div class="statbar"><i id="st-hp"></i></div><b id="stv-hp"></b></div>
+        <div class="stat"><span>火力</span><div class="statbar"><i id="st-fire"></i></div><b id="stv-fire"></b></div>
+        <div class="stat"><span>射速</span><div class="statbar"><i id="st-rate"></i></div><b id="stv-rate"></b></div>
+        <div class="stat"><span>机动</span><div class="statbar"><i id="st-spd"></i></div><b id="stv-spd"></b></div>
+      </div>
+      <div class="hg-actions">
+        <button class="btn" id="hg-buy">购入</button>
+        <button class="btn" id="hg-up">升星</button>
+        <button class="btn btn-pri" id="hg-equip">设为出战</button>
+      </div>
+      <div class="hg-wing">
+        <div class="hg-wing-tt">僚机 <span>左右挂架各一 · 战斗中自动开火</span></div>
+        <div class="hg-wing-row">
+          <button class="wg-slot" id="wg-slotL"></button>
+          <button class="wg-slot" id="wg-slotR"></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 关卡 ===== -->
+  <section id="scr-levels" class="scr">
+    <header class="bar">
+      <button class="icon-btn" id="lv-back"></button>
+      <div class="bar-tt">关卡</div>
+      <div class="bar-res"><span class="res"><img id="lv-coin-ic" alt=""><b id="lv-coins">0</b></span></div>
+    </header>
+    <div class="lv-body">
+      <button class="lv-next" id="lv-next">
+        <div class="lv-next-cat">NEXT</div>
+        <div class="lv-next-no" id="lv-next-no">第 1 关</div>
+        <div class="lv-next-sub" id="lv-next-sub">敌军先锋 · 建议火力 T1</div>
+        <span class="lv-go">出击 →</span>
+      </button>
+      <div class="lv-grid-tt">作战记录</div>
+      <div class="lv-grid" id="lv-grid"></div>
+      <div class="lv-note">关卡无限递进，敌方强度逐关提升；机库升级与僚机配置跨关保留。</div>
+    </div>
+  </section>
+
+  <!-- ===== 战斗 ===== -->
+  <section id="scr-game" class="scr">
+    <canvas id="cv"></canvas>
+    <div id="hud">
+      <div class="hud-top">
+        <div class="hud-score-wrap">
+          <div class="hud-score" id="hud-score">0</div>
+          <div class="hud-combo" id="hud-combo"></div>
+        </div>
+        <div class="hud-mid">
+          <div class="hud-lv" id="hud-lv">第 1 关</div>
+          <div class="hud-waves" id="hud-waves"></div>
+        </div>
+        <button class="icon-btn hud-pause" id="btn-pause"></button>
+      </div>
+      <div id="bossbar">
+        <div class="boss-name" id="boss-name">敌舰</div>
+        <div class="boss-track"><i id="bossbar-fill"></i><em class="boss-mk m1"></em><em class="boss-mk m2"></em></div>
+      </div>
+      <div class="hud-bot">
+        <div class="hud-hp">
+          <div class="hp-row"><span class="hp-lb">装甲</span><div class="hp-bar"><i id="hp-fill"></i></div><b id="hp-num" class="mono">100</b></div>
+          <div class="hp-row2"><span id="hud-lives"></span><span id="hud-power" class="mono"></span></div>
+        </div>
+        <button id="btn-bomb"><img id="bomb-ic" alt=""><b id="bomb-n">2</b></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 弹层 ===== -->
+  <div id="dlg-pause" class="dlg">
+    <div class="dlg-panel">
+      <div class="dlg-tt">暂停</div>
+      <div class="dlg-btns">
+        <button class="btn btn-pri" id="pa-resume">继续作战</button>
+        <button class="btn" id="pa-retry">重新出击</button>
+        <button class="btn" id="pa-cfg">设置</button>
+        <button class="btn" id="pa-home">返回基地</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dlg-settle" class="dlg">
+    <div class="dlg-panel">
+      <div class="dlg-tt" id="stl-tt">关卡完成</div>
+      <div class="stl-stars" id="stl-stars"></div>
+      <div class="stl-rows" id="stl-rows"></div>
+      <div class="dlg-btns">
+        <button class="btn btn-pri" id="stl-next">下一关</button>
+        <button class="btn" id="stl-retry">再战</button>
+        <button class="btn" id="stl-home">返回基地</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dlg-over" class="dlg">
+    <div class="dlg-panel">
+      <div class="dlg-tt danger">战机坠毁</div>
+      <div class="stl-rows" id="ov-rows"></div>
+      <div class="dlg-btns">
+        <button class="btn btn-pri" id="ov-revive">复活</button>
+        <button class="btn" id="ov-home">放弃结算</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dlg-board" class="dlg">
+    <div class="dlg-panel">
+      <div class="dlg-tt">战绩排行</div>
+      <div class="board-list" id="board-list"></div>
+      <div class="dlg-btns"><button class="btn btn-pri" id="bd-close">关闭</button></div>
+    </div>
+  </div>
+
+  <div id="dlg-wing" class="dlg">
+    <div class="dlg-panel">
+      <div class="dlg-tt" id="wing-tt">僚机挂架 · 左</div>
+      <div class="wing-list" id="wing-list"></div>
+      <div class="dlg-btns"><button class="btn btn-pri" id="wg-close">完成</button></div>
+    </div>
+  </div>
+
+  <div id="panel-cfg"></div>
+  <div id="toast"></div>
+  <div id="demo-badge">AI 演示中</div>
+</div>
+<script>/*RESET_INLINE*/</script>
+<script>
+/*MODULE_SCRIPTS*/
+</script>
+</body>
+</html>
