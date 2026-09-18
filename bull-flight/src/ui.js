@@ -228,6 +228,11 @@
   }
 
   // ---------- HUD ----------
+  function fitNum(el) {
+    var n = el.textContent.length;
+    el.classList.toggle('xsmall', n >= 13);
+    el.classList.toggle('small', n >= 11 && n < 13);
+  }
   UI.refreshHUD = function () {
     var s = BF.LOGIC.state();
     if (!s) return;
@@ -235,9 +240,11 @@
     var pnl = nav - s.invested;
     var pnlR = s.invested > 0 ? pnl / s.invested : 0;
     $('hud-nav').textContent = '¥' + fmt(nav, 0);
+    fitNum($('hud-nav'));
     $('hud-cash').textContent = '¥' + fmt(s.cash, 0);
     $('hud-pnl-r').textContent = (pnl >= 0 ? '+' : '') + (pnlR * 100).toFixed(2) + '%';
     $('hud-pnl').textContent = (pnl >= 0 ? '+' : '−') + '¥' + fmt(Math.abs(pnl));
+    fitNum($('hud-pnl'));
     $('hud-pnl').className = pnl >= 0 ? 'up' : 'down';
     $('hud-pnl-r').className = pnl >= 0 ? 'up' : 'down';
     $('hud-state').textContent = s.shares > 0 ? '多头 · ' + s.tradeN + ' 笔' : '空仓 · 待入场';

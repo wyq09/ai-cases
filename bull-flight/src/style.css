@@ -89,13 +89,18 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
 
 /* ---------- 游戏 ---------- */
 #page-game { background: var(--bg); }
-#hud-top { display: flex; padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 8px; gap: 8px; align-items: flex-start; }
+#hud-top { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto; gap: 8px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 8px; align-items: start; }
+#hud-top .col { min-width: 0; }
+#hud-nav { font-size: 26px; font-weight: 800; white-space: nowrap; }
+#hud-nav.small { font-size: 20px; }
+#hud-nav.xsmall { font-size: 16px; }
+#hud-pnl { font-size: 20px; font-weight: 700; margin-top: 1px; white-space: nowrap; }
+#hud-pnl.small { font-size: 16px; }
 #hud-top .col { flex: 1; }
 #hud-top .lab { color: var(--dim); font-size: 12px; }
-#hud-nav { font-size: 26px; font-weight: 800; }
-#hud-cash { color: var(--dim); font-size: 12px; margin-top: 2px; }
+#hud-cash { color: var(--dim); font-size: 12px; margin-top: 2px; white-space: nowrap; }
 #hud-cash b { color: var(--text); font-weight: 600; }
-.hud-mid { text-align: center; }
+.hud-mid { text-align: center; min-width: 0; }
 .hud-mid .lab { color: var(--dim); font-size: 12px; }
 #hud-pnl-r { font-size: 13px; margin-top: 3px; }
 #hud-pnl { font-size: 20px; font-weight: 700; margin-top: 1px; }
@@ -106,7 +111,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
 #hud-price { font-size: 15px; font-weight: 600; }
 #hud-pos { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 6px 16px 10px; }
 #hud-pos .pl { color: var(--dim); font-size: 12px; }
-#hud-posr { font-size: 24px; font-weight: 800; margin-right: auto; }
+#hud-posr { font-size: 24px; font-weight: 800; margin-right: auto; min-width: 3.1ch; }
 #hud-pos-state { color: var(--dim); font-size: 12.5px; margin-right: 4px; }
 #hud-pos-state.held { color: var(--rose); }
 #hud-segs { display: flex; gap: 4px; flex-basis: 100%; margin-top: 4px; }
@@ -163,7 +168,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
 #rp-detail, #rp-hall, #rp-shot { background: #171a21; color: var(--text); border: 1px solid var(--line); }
 
 /* ---------- 弹层 ---------- */
-.dlg { position: fixed; inset: 0; background: rgba(5,6,9,0.62); display: none; align-items: center; justify-content: center; z-index: 40; padding: 24px; }
+.dlg { position: fixed; inset: 0; background: rgba(5,6,9,0.62); display: none; align-items: center; justify-content: center; z-index: 56; padding: 24px; }
 .dlg.show { display: flex; }
 .dlg-card { width: 100%; max-width: 420px; background: #191c22; border: 1px solid var(--line); border-radius: 16px; padding: 22px 20px; }
 .dlg-card h3 { color: var(--rose); font-size: 22px; font-weight: 800; margin-bottom: 10px; }
