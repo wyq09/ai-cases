@@ -160,7 +160,6 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
 .rp-axis b { font-weight: 600; color: #d9203e; }
 .rp-slogan { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
 .rp-slogan b { font-size: 17px; }
-#rp-qr { width: 62px; height: 62px; background: #fff; border-radius: 6px; padding: 4px; }
 .bailout { margin-top: 14px; border: 1.5px dashed var(--rose); border-radius: 10px; padding: 12px; text-align: center; color: var(--rose); font-size: 14px; background: rgba(244,63,94,0.06); cursor: pointer; }
 .rp-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
 .rp-btns .btn { padding: 11px; font-size: 14.5px; }

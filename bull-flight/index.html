@@ -169,7 +169,6 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
 .rp-axis b { font-weight: 600; color: #d9203e; }
 .rp-slogan { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
 .rp-slogan b { font-size: 17px; }
-#rp-qr { width: 62px; height: 62px; background: #fff; border-radius: 6px; padding: 4px; }
 .bailout { margin-top: 14px; border: 1.5px dashed var(--rose); border-radius: 10px; padding: 12px; text-align: center; color: var(--rose); font-size: 14px; background: rgba(244,63,94,0.06); cursor: pointer; }
 .rp-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
 .rp-btns .btn { padding: 11px; font-size: 14.5px; }
@@ -370,7 +369,6 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       <div class="rp-axis"><span>2026 起 · 模拟日期</span><b id="rp-close">收盘 +0.00%</b></div>
       <div class="rp-slogan">
         <b>不服？你来画一根。</b>
-        <img id="rp-qr" alt="">
       </div>
     </div>
     <div id="rp-bailout" class="bailout" style="display:none">东山再起：领取 <b>¥25,000</b> 重启资金 →</div>
@@ -1102,7 +1100,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   var KEY = 'bf.cfg.v1';
   var DEF = {
     gravity: 450, jumpV: 260, noise: 8, candleTicks: 22, scrollSpeed: 95,
-    pipeGap: 0.30, pipeEveryMin: 12, pipeEveryMax: 16, buyEveryMin: 4, buyEveryMax: 7,
+    candleW: 26, candleGap: 72, pipeGap: 0.34, pipeEveryMin: 8, pipeEveryMax: 12, buyEveryMin: 4, buyEveryMax: 7,
     maxFall: 250, feeRate: 0.0004, loanK: 0.5, bgm: true, sfx: true, bullImg: null
   };
   var cur = load();
@@ -1166,7 +1164,9 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       ['jumpV', '点击冲力', 160, 480, 5],
       ['noise', '行情噪声', 0, 60, 1],
       ['scrollSpeed', 'K线滚动速度', 60, 220, 5],
-      ['pipeGap', '管道空隙', 0.14, 0.34, 0.005],
+      ['candleW', '蜡烛宽度', 14, 44, 1],
+      ['candleGap', '蜡烛间距', 40, 110, 2],
+      ['pipeGap', '管道上下空隙', 0.14, 0.40, 0.005],
       ['feeRate', '税费率', 0, 0.003, 0.0001]
     ];
     var form = {};
@@ -1488,8 +1488,9 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   var btnTimer = 0, hintTimer = 0, aiCool = 0;
   var PADV = 8;          // 上下留白比例
   var bullXRatio = 0.30;
-  var GAP = 56;          // 蜡烛间距（世界 px），蜡烛生成 = 每 GAP 距离一根
-  var candleBoundary = GAP, lastGapY = 0;
+  var GAP_DEF = 72;      // 蜡烛间距（世界 px，可配置 candleGap），蜡烛生成 = 每 GAP 距离一根
+  function GAP() { return cfg('candleGap', GAP_DEF); }
+  var candleBoundary = GAP_DEF, lastGapY = 0;
   var limitT = 0, limitHinted = false;
   var state = 'idle';    // idle|flying|dying|dead|paused
   var opts = { auto: false, fast: 1, snap: false };
@@ -1513,7 +1514,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   function resetVisuals() {
     worldX = 0; pipes = []; buttons = []; feathers = []; sparks = [];
     spawnedPipes = 0; btnTimer = 0; hintTimer = 0; aiCool = 0; finishPending = 0; deathCause = '';
-    candleBoundary = GAP;
+    candleBoundary = GAP();
     limitT = 0; limitHinted = false;
     // 缓和的开局：首个管道 ~5s 后、首个买钮 ~2s 后（创业板买入机会 ×0.6 更频繁）
     nextPipeAt = 9; nextBuyAt = 2.2 * buyEveryMul(); nextSellAt = 6;
@@ -1636,7 +1637,8 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       bull.wing += dt * (bull.vy < 0 ? 15 : 9);
       // 生成（距离/时间双制式：管道按蜡烛数，按钮按秒）
       var pe = [Number(cfg('pipeEveryMin', 7)), Number(cfg('pipeEveryMax', 11))];
-      if (worldX > nextPipeAt * GAP) { spawnPipe(); spawnedPipes++; nextPipeAt = worldX / GAP + pe[0] + Math.random() * (pe[1] - pe[0]); }
+      var G = GAP();
+      if (worldX > nextPipeAt * G) { spawnPipe(); spawnedPipes++; nextPipeAt = worldX / G + pe[0] + Math.random() * (pe[1] - pe[0]); }
       btnTimer += dt;
       var be = [Number(cfg('buyEveryMin', 4)), Number(cfg('buyEveryMax', 7))];
       var beK = buyEveryMul();   // 创业板间隔 ×0.6
@@ -1662,7 +1664,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       }
       // 蜡烛定界：世界每前进 GAP px 结算一根（与滚动严格同步）
       while (worldX >= candleBoundary) {
-        if (BF.LOGIC.finalizeCandle()) candleBoundary += GAP;
+        if (BF.LOGIC.finalizeCandle()) candleBoundary += GAP();
         else break;
       }
       // 碰撞：按钮
@@ -1777,19 +1779,20 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
   }
   function drawCandles() {
     var s = BF.LOGIC.state(); if (!s) return;
-    var cw = 34;
+    var cw = cfg('candleW', 26);
     var rightX = W - 24;
     var i, x;
     // 未完成蜡烛：born = candleBoundary - GAP（与历史蜡烛同一坐标系，随世界左滚）
+    var G = GAP();
     if (s.cur) {
-      x = rightX - (worldX - (candleBoundary - GAP));
+      x = rightX - (worldX - (candleBoundary - G));
       drawCandle(x, s.cur, cw);
     }
     // 历史蜡烛：从最新往旧遍历。最新一根的 born 必须等于它作为 cur 时的
     // born（candleBoundary - 2*GAP 段起点），否则 finalize 瞬间会 +GAP 右跳
     var n = s.candles.length;
     for (i = n - 1; i >= 0; i--) {
-      var born = candleBoundary - (n - i + 1) * GAP;
+      var born = candleBoundary - (n - i + 1) * G;
       x = rightX - (worldX - born);
       if (x < -cw) break;
       drawCandle(x, s.candles[i], cw);
@@ -2305,8 +2308,6 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
     $('rp-dd').textContent = (rep.maxDD * 100).toFixed(2) + '%';
     $('rp-peak').textContent = '峰值 ' + (rep.peak - rep.invested >= 0 ? '+' : '−') + '¥' + fmt(Math.abs(rep.peak - rep.invested), 0);
     $('rp-close').textContent = '收盘 ' + (rep.ret >= 0 ? '+' : '') + (rep.ret * 100).toFixed(2) + '%';
-    var qr = $('rp-qr');
-    if (BF.ART && BF.ART.ready && BF.ART.qr) qr.src = BF.ART.qr(String(Math.round(rep.net * 100) + rep.trades));
     UI.show('report');
     requestAnimationFrame(function () { drawNav($('rp-nav'), rep); });
     try { BF.GAME.stop(); } catch (e) {}
@@ -2447,12 +2448,7 @@ button { font-family: inherit; border: none; background: none; color: inherit; c
       g.fillText('2026-01', 95, 908); g.fillText('2026-03', 330, 908); g.fillText('2026-05', 590, 908);
       g.fillStyle = '#191d26'; g.font = '700 34px -apple-system,system-ui';
       g.fillText('不服？你来画一根。', 85, 975);
-      if (BF.ART && BF.ART.ready) {
-        var q = new Image();
-        q.onload = function () { g.drawImage(q, 520, 930, 130, 130); fin(); };
-        q.onerror = function () { fin(); };
-        q.src = BF.ART.qr('shot' + Math.round(rep.net * 100));
-      } else fin();
+      fin();
       function fin() {
         var a = document.createElement('a');
         a.download = 'bull-flight-战报.png';

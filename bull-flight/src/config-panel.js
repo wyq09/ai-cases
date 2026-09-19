@@ -6,7 +6,7 @@
   var KEY = 'bf.cfg.v1';
   var DEF = {
     gravity: 450, jumpV: 260, noise: 8, candleTicks: 22, scrollSpeed: 95,
-    pipeGap: 0.30, pipeEveryMin: 12, pipeEveryMax: 16, buyEveryMin: 4, buyEveryMax: 7,
+    candleW: 26, candleGap: 72, pipeGap: 0.34, pipeEveryMin: 8, pipeEveryMax: 12, buyEveryMin: 4, buyEveryMax: 7,
     maxFall: 250, feeRate: 0.0004, loanK: 0.5, bgm: true, sfx: true, bullImg: null
   };
   var cur = load();
@@ -70,7 +70,9 @@
       ['jumpV', '点击冲力', 160, 480, 5],
       ['noise', '行情噪声', 0, 60, 1],
       ['scrollSpeed', 'K线滚动速度', 60, 220, 5],
-      ['pipeGap', '管道空隙', 0.14, 0.34, 0.005],
+      ['candleW', '蜡烛宽度', 14, 44, 1],
+      ['candleGap', '蜡烛间距', 40, 110, 2],
+      ['pipeGap', '管道上下空隙', 0.14, 0.40, 0.005],
       ['feeRate', '税费率', 0, 0.003, 0.0001]
     ];
     var form = {};

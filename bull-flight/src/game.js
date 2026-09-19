@@ -14,8 +14,9 @@
   var btnTimer = 0, hintTimer = 0, aiCool = 0;
   var PADV = 8;          // 上下留白比例
   var bullXRatio = 0.30;
-  var GAP = 56;          // 蜡烛间距（世界 px），蜡烛生成 = 每 GAP 距离一根
-  var candleBoundary = GAP, lastGapY = 0;
+  var GAP_DEF = 72;      // 蜡烛间距（世界 px，可配置 candleGap），蜡烛生成 = 每 GAP 距离一根
+  function GAP() { return cfg('candleGap', GAP_DEF); }
+  var candleBoundary = GAP_DEF, lastGapY = 0;
   var limitT = 0, limitHinted = false;
   var state = 'idle';    // idle|flying|dying|dead|paused
   var opts = { auto: false, fast: 1, snap: false };
@@ -39,7 +40,7 @@
   function resetVisuals() {
     worldX = 0; pipes = []; buttons = []; feathers = []; sparks = [];
     spawnedPipes = 0; btnTimer = 0; hintTimer = 0; aiCool = 0; finishPending = 0; deathCause = '';
-    candleBoundary = GAP;
+    candleBoundary = GAP();
     limitT = 0; limitHinted = false;
     // 缓和的开局：首个管道 ~5s 后、首个买钮 ~2s 后（创业板买入机会 ×0.6 更频繁）
     nextPipeAt = 9; nextBuyAt = 2.2 * buyEveryMul(); nextSellAt = 6;
@@ -162,7 +163,8 @@
       bull.wing += dt * (bull.vy < 0 ? 15 : 9);
       // 生成（距离/时间双制式：管道按蜡烛数，按钮按秒）
       var pe = [Number(cfg('pipeEveryMin', 7)), Number(cfg('pipeEveryMax', 11))];
-      if (worldX > nextPipeAt * GAP) { spawnPipe(); spawnedPipes++; nextPipeAt = worldX / GAP + pe[0] + Math.random() * (pe[1] - pe[0]); }
+      var G = GAP();
+      if (worldX > nextPipeAt * G) { spawnPipe(); spawnedPipes++; nextPipeAt = worldX / G + pe[0] + Math.random() * (pe[1] - pe[0]); }
       btnTimer += dt;
       var be = [Number(cfg('buyEveryMin', 4)), Number(cfg('buyEveryMax', 7))];
       var beK = buyEveryMul();   // 创业板间隔 ×0.6
@@ -188,7 +190,7 @@
       }
       // 蜡烛定界：世界每前进 GAP px 结算一根（与滚动严格同步）
       while (worldX >= candleBoundary) {
-        if (BF.LOGIC.finalizeCandle()) candleBoundary += GAP;
+        if (BF.LOGIC.finalizeCandle()) candleBoundary += GAP();
         else break;
       }
       // 碰撞：按钮
@@ -303,19 +305,20 @@
   }
   function drawCandles() {
     var s = BF.LOGIC.state(); if (!s) return;
-    var cw = 34;
+    var cw = cfg('candleW', 26);
     var rightX = W - 24;
     var i, x;
     // 未完成蜡烛：born = candleBoundary - GAP（与历史蜡烛同一坐标系，随世界左滚）
+    var G = GAP();
     if (s.cur) {
-      x = rightX - (worldX - (candleBoundary - GAP));
+      x = rightX - (worldX - (candleBoundary - G));
       drawCandle(x, s.cur, cw);
     }
     // 历史蜡烛：从最新往旧遍历。最新一根的 born 必须等于它作为 cur 时的
     // born（candleBoundary - 2*GAP 段起点），否则 finalize 瞬间会 +GAP 右跳
     var n = s.candles.length;
     for (i = n - 1; i >= 0; i--) {
-      var born = candleBoundary - (n - i + 1) * GAP;
+      var born = candleBoundary - (n - i + 1) * G;
       x = rightX - (worldX - born);
       if (x < -cw) break;
       drawCandle(x, s.candles[i], cw);

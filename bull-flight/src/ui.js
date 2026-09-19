@@ -327,8 +327,6 @@
     $('rp-dd').textContent = (rep.maxDD * 100).toFixed(2) + '%';
     $('rp-peak').textContent = '峰值 ' + (rep.peak - rep.invested >= 0 ? '+' : '−') + '¥' + fmt(Math.abs(rep.peak - rep.invested), 0);
     $('rp-close').textContent = '收盘 ' + (rep.ret >= 0 ? '+' : '') + (rep.ret * 100).toFixed(2) + '%';
-    var qr = $('rp-qr');
-    if (BF.ART && BF.ART.ready && BF.ART.qr) qr.src = BF.ART.qr(String(Math.round(rep.net * 100) + rep.trades));
     UI.show('report');
     requestAnimationFrame(function () { drawNav($('rp-nav'), rep); });
     try { BF.GAME.stop(); } catch (e) {}
@@ -469,12 +467,7 @@
       g.fillText('2026-01', 95, 908); g.fillText('2026-03', 330, 908); g.fillText('2026-05', 590, 908);
       g.fillStyle = '#191d26'; g.font = '700 34px -apple-system,system-ui';
       g.fillText('不服？你来画一根。', 85, 975);
-      if (BF.ART && BF.ART.ready) {
-        var q = new Image();
-        q.onload = function () { g.drawImage(q, 520, 930, 130, 130); fin(); };
-        q.onerror = function () { fin(); };
-        q.src = BF.ART.qr('shot' + Math.round(rep.net * 100));
-      } else fin();
+      fin();
       function fin() {
         var a = document.createElement('a');
         a.download = 'bull-flight-战报.png';
