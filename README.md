@@ -6,6 +6,8 @@ AI 辅助产出的案例集合 —— 方案 · 演示 · 视觉作品。
 
 ## Cases
 
+- [tomato-timer](./tomato-timer/) — 番茄时钟 · 专注：番茄工作法倒计时复刻，专注/休息循环、跳过重置、时长切换、当日番茄统计，四种 WebAudio 合成铃声 + 本地音频上传自定义（IndexedDB 存储），后台计时校准，手机竖屏/横屏/桌面自适应，单文件零外部资源（[在线体验](https://case.youyongai.com/tomato-timer/)）
+
 - [thunder-fighter](./thunder-fighter/) — 雷霆战机 · 银河防线 · 经典竖版飞行射击复刻：6 级战机升星与僚机挂架、无限关卡递进、6 大 Boss 三阶段弹幕、火力/炸弹/护盾道具、血条生命与币复活、连击擦弹计分与本地排行、hitstop/震屏/慢动作打击感、WebAudio 24 音效 + 3 轨 BGM、AI 演示可挂机，单文件零外部资源（[在线游玩](https://case.youyongai.com/thunder-fighter/)）
 
 - [bull-flight](./bull-flight/) — 小飞牛炒股大冒险 · "炒股版 Flappy Bird"复刻：小飞牛在 K 线图里飞行、点屏冲高、撞买/卖按钮建仓平仓（半仓滚动/税费/借款还贷）、躲挡板+±10% 涨跌停强制平仓、收盘战报（收益率/最大回撤/称号评定/收益走势图）、本金跨局滚动、牛立绘音效玩法参数可自定义+配置导出导入、AI 自动演示、WebAudio 音效，单文件零外部资源（[在线游玩](https://case.youyongai.com/bull-flight/)）

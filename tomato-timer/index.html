@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#F7EFCB">
+<title>番茄时钟 · 专注</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+    color:#5A4A3F;
+    background:#F1EBD2;
+    overflow:hidden;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:manipulation;
+  }
+  button { font-family:inherit; border:0; background:none; cursor:pointer; color:inherit; }
+
+  /* ---------- 舞台背景 ---------- */
+  #stage {
+    position:fixed; inset:0;
+    display:flex; flex-direction:column;
+    background:linear-gradient(168deg, #FAF0C9 0%, #F3EFD6 42%, #E3EEDD 74%, #D8EBE0 100%);
+    transition:background 1.2s ease;
+  }
+  body.break #stage {
+    background:linear-gradient(168deg, #F5F2D2 0%, #E4F0D8 46%, #CDE9DA 78%, #BFE3D6 100%);
+  }
+  .wrap {
+    width:100%; max-width:520px; margin:0 auto; height:100%;
+    display:flex; flex-direction:column;
+    padding:calc(env(safe-area-inset-top, 0px) + 14px) 22px calc(env(safe-area-inset-bottom, 0px) + 14px);
+  }
+
+  /* ---------- 背景装饰 ---------- */
+  .deco { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+  .deco svg { position:absolute; opacity:.9; }
+  .d1 { left:9%;  top:21%; width:17px; }
+  .d2 { left:6%;  top:47%; width:12px; opacity:.75; }
+  .d3 { left:13%; top:69%; width:14px; }
+  .d4 { right:8%; top:24%; width:11px; }
+  .d5 { right:6%; top:50%; width:16px; }
+  .d6 { right:13%;top:73%; width:12px; opacity:.8; }
+  .d7 { left:24%; top:33%; width:9px; opacity:.6; }
+  .d8 { right:25%;top:65%; width:9px; opacity:.6; }
+
+  /* ---------- 顶栏 ---------- */
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    position:relative; z-index:2;
+  }
+  .mode-pill {
+    background:linear-gradient(180deg, #F76B52, #EF5440);
+    color:#fff; font-size:19px; font-weight:700; letter-spacing:6px;
+    padding:11px 20px 11px 26px; border-radius:999px;
+    box-shadow:0 4px 10px rgba(224,84,60,.28);
+    transition:all .5s;
+    min-width:118px; text-align:center;
+  }
+  body.break .mode-pill {
+    background:linear-gradient(180deg, #4FBFAE, #3BA99A);
+    box-shadow:0 4px 10px rgba(59,169,154,.28);
+  }
+  .top-actions { display:flex; gap:12px; }
+  .round-btn {
+    width:48px; height:48px; border-radius:50%;
+    background:#fff; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 10px rgba(90,120,90,.14);
+    transition:transform .15s;
+  }
+  .round-btn:active { transform:scale(.9); }
+  .round-btn svg { width:22px; height:22px; }
+
+  /* ---------- 番茄表盘 ---------- */
+  main { flex:1; display:flex; align-items:center; justify-content:center; position:relative; z-index:1; min-height:0; }
+  .tomato-wrap {
+    position:relative;
+    width:min(80vw, 46svh, 350px);
+    aspect-ratio:1;
+  }
+  @supports not (height:46svh) { .tomato-wrap { width:min(80vw, 46vh, 350px); } }
+  .leaves {
+    position:absolute; left:50%; top:-13.5%; transform:translateX(-50%);
+    width:62%; z-index:0;
+    transform-origin:50% 95%;
+  }
+  .tomato-wrap.running .leaves { animation:sway 2.8s ease-in-out infinite alternate; }
+  @keyframes sway { from { transform:translateX(-50%) rotate(-2.4deg); } to { transform:translateX(-50%) rotate(2.4deg); } }
+  .tomato {
+    position:relative; z-index:1;
+    width:100%; height:100%; border-radius:50%;
+    background:radial-gradient(circle at 36% 28%, #FF8E72 0%, #F4573E 48%, #E14430 78%, #D63C2B 100%);
+    box-shadow:
+      inset 0 -18px 34px rgba(160,32,22,.28),
+      inset 0 12px 26px rgba(255,255,255,.16),
+      inset 0 0 0 4px rgba(230,72,48,.9),
+      inset 0 0 0 11px rgba(255,255,255,.05),
+      0 22px 40px rgba(214,68,44,.24);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    transition:filter .5s;
+  }
+  body.break .tomato {
+    background:radial-gradient(circle at 36% 28%, #8FD06E 0%, #6CB94E 48%, #55A83C 78%, #479832 100%);
+    box-shadow:
+      inset 0 -18px 34px rgba(52,110,38,.30),
+      inset 0 12px 26px rgba(255,255,255,.18),
+      inset 0 0 0 4px rgba(78,150,54,.9),
+      inset 0 0 0 11px rgba(255,255,255,.06),
+      0 22px 40px rgba(84,160,60,.26);
+  }
+  .tomato-wrap.running .tomato { animation:breath 4.2s ease-in-out infinite; }
+  @keyframes breath { 0%,100% { transform:scale(1); } 50% { transform:scale(1.014); } }
+  .shine { position:absolute; inset:0; z-index:2; pointer-events:none; }
+  .dial { display:flex; flex-direction:column; align-items:center; z-index:3; }
+  .time {
+    color:#fff; font-weight:800;
+    font-size:clamp(44px, 17.5vw, 66px);
+    line-height:1.05;
+    font-family:"DIN Alternate", "Helvetica Neue", -apple-system, sans-serif;
+    font-variant-numeric:tabular-nums;
+    text-shadow:0 2px 0 rgba(178,44,28,.28);
+    letter-spacing:1px;
+  }
+  body.break .time { text-shadow:0 2px 0 rgba(58,110,40,.28); }
+  .rule { width:112px; height:2px; background:rgba(255,255,255,.8); border-radius:2px; margin:10px 0 8px; }
+  .unit { color:rgba(255,255,255,.95); font-size:16px; letter-spacing:4px; font-weight:500; }
+
+  /* ---------- 底部按钮 ---------- */
+  footer { position:relative; z-index:2; }
+  .btn-row {
+    display:flex; align-items:center; justify-content:center; gap:13px;
+    flex-wrap:nowrap;
+  }
+  .pill {
+    height:48px; border-radius:999px; color:#fff;
+    font-size:17px; font-weight:700; letter-spacing:1px;
+    display:flex; align-items:center; justify-content:center; gap:5px;
+    transition:transform .12s, filter .2s;
+    box-shadow:0 5px 12px rgba(80,110,90,.16);
+    padding:0 20px;
+  }
+  .pill:active { transform:scale(.94); }
+  .pill svg { width:16px; height:16px; flex:none; }
+  .btn-teal { background:linear-gradient(180deg, #55C0B2, #40AAA0); }
+  .btn-red  { background:linear-gradient(180deg, #F6664E, #EA4F3C); box-shadow:0 5px 12px rgba(224,84,60,.3); }
+  #btnStart { min-width:112px; }
+  #btnSkip, #btnDur { min-width:104px; }
+  .stats {
+    text-align:center; margin-top:14px;
+    font-size:12.5px; color:#9AA98E; letter-spacing:1px;
+  }
+  .stats b { color:#7FA06F; font-weight:700; }
+
+  /* ---------- 设置抽屉 ---------- */
+  #scrim {
+    position:fixed; inset:0; background:rgba(70,60,40,.36);
+    opacity:0; pointer-events:none; transition:opacity .3s; z-index:20;
+  }
+  #scrim.on { opacity:1; pointer-events:auto; }
+  #sheet {
+    position:fixed; left:50%; bottom:0; transform:translate(-50%, 105%);
+    width:100%; max-width:520px; max-height:88svh; overflow-y:auto;
+    background:#FCF7E8; border-radius:26px 26px 0 0;
+    padding:20px 22px calc(env(safe-area-inset-bottom, 0px) + 22px);
+    transition:transform .36s cubic-bezier(.32,.9,.35,1); z-index:21;
+    -webkit-overflow-scrolling:touch;
+  }
+  @supports not (height:88svh) { #sheet { max-height:88vh; } }
+  #sheet.on { transform:translate(-50%, 0); }
+  .sh-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .sh-head h2 { font-size:19px; font-weight:800; color:#4A3B32; letter-spacing:2px; }
+  .sh-close { width:34px; height:34px; border-radius:50%; background:#F0E7CF; display:flex; align-items:center; justify-content:center; }
+  .sh-close svg { width:15px; height:15px; }
+  .group { margin-top:16px; }
+  .g-title { font-size:12.5px; font-weight:700; color:#A9997F; letter-spacing:2px; margin-bottom:10px; }
+  .tone-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .tone {
+    height:44px; border-radius:14px; background:#F2EAD3;
+    font-size:14.5px; font-weight:600; color:#8A7A62;
+    display:flex; align-items:center; justify-content:center; gap:7px;
+    border:2px solid transparent; transition:all .18s;
+  }
+  .tone.on { background:#fff; border-color:#4FBFAE; color:#2E968A; }
+  .tone .dot { width:8px; height:8px; border-radius:50%; background:currentColor; opacity:.35; }
+  .tone.on .dot { opacity:1; }
+  .custom-row { display:flex; align-items:center; gap:9px; margin-top:10px; }
+  .custom-btn {
+    flex:1; height:46px; border-radius:14px; border:2px dashed #C9BC9C;
+    color:#A08F6E; font-size:14px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:8px; background:#F7F0DC;
+  }
+  .custom-file {
+    flex:1; height:46px; border-radius:14px; border:2px solid #4FBFAE;
+    background:#fff; color:#2E968A; font-size:13.5px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    overflow:hidden; white-space:nowrap;
+  }
+  .custom-file .nm { max-width:150px; overflow:hidden; text-overflow:ellipsis; }
+  .icon-btn { width:46px; height:46px; border-radius:14px; background:#F2EAD3; display:flex; align-items:center; justify-content:center; color:#8A7A62; flex:none; }
+  .icon-btn.del { color:#E06A55; }
+  .icon-btn svg { width:17px; height:17px; }
+  .row { display:flex; align-items:center; justify-content:space-between; padding:11px 2px; }
+  .row + .row { border-top:1px solid #EFE5CB; }
+  .row .lb { font-size:15px; font-weight:600; color:#5A4A3F; }
+  .row .hint { font-size:11.5px; color:#B3A488; margin-top:3px; }
+  input[type=range] { -webkit-appearance:none; width:158px; height:5px; border-radius:3px; background:#E8DEC2; outline:none; }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:22px; height:22px; border-radius:50%;
+    background:#4FBFAE; border:3px solid #fff; box-shadow:0 2px 6px rgba(60,140,130,.4);
+  }
+  .stepper { display:flex; align-items:center; gap:0; background:#F2EAD3; border-radius:12px; overflow:hidden; }
+  .stepper button { width:38px; height:36px; font-size:19px; font-weight:700; color:#A08F6E; display:flex; align-items:center; justify-content:center; }
+  .stepper .val { min-width:58px; text-align:center; font-size:14.5px; font-weight:700; color:#5A4A3F; font-variant-numeric:tabular-nums; }
+  .switch { position:relative; width:48px; height:28px; border-radius:14px; background:#E0D5B8; transition:background .22s; flex:none; }
+  .switch::after {
+    content:""; position:absolute; left:3px; top:3px; width:22px; height:22px; border-radius:50%;
+    background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.18); transition:transform .22s;
+  }
+  .switch.on { background:#4FBFAE; }
+  .switch.on::after { transform:translateX(20px); }
+  .reset-line { text-align:center; margin-top:20px; }
+  .reset-line button { font-size:13.5px; color:#C08A76; font-weight:600; text-decoration:underline; text-underline-offset:3px; }
+  .sh-note { font-size:11px; color:#BFB295; text-align:center; margin-top:10px; line-height:1.6; }
+
+  /* ---------- 完成浮层 ---------- */
+  #done {
+    position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
+    background:rgba(70,60,40,.4); opacity:0; pointer-events:none; transition:opacity .3s;
+  }
+  #done.on { opacity:1; pointer-events:auto; }
+  .done-card {
+    width:min(84vw, 320px); background:#FCF7E8; border-radius:24px;
+    padding:30px 24px 24px; text-align:center;
+    transform:scale(.86); transition:transform .32s cubic-bezier(.34,1.4,.5,1);
+  }
+  #done.on .done-card { transform:scale(1); }
+  .done-ico { width:58px; height:58px; margin:0 auto 14px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; }
+  .done-ico.focus { background:linear-gradient(180deg,#F76B52,#EF5440); box-shadow:0 8px 18px rgba(224,84,60,.35); }
+  .done-ico.break { background:linear-gradient(180deg,#4FBFAE,#3BA99A); box-shadow:0 8px 18px rgba(59,169,154,.35); }
+  .done-ico svg { width:28px; height:28px; }
+  .done-card h3 { font-size:20px; font-weight:800; color:#4A3B32; letter-spacing:1px; }
+  .done-card p { font-size:13.5px; color:#A08F6E; margin:9px 0 20px; line-height:1.6; }
+  .done-main {
+    width:100%; height:48px; border-radius:999px; color:#fff; font-size:16.5px; font-weight:700;
+    background:linear-gradient(180deg,#F6664E,#EA4F3C); letter-spacing:1px;
+  }
+  .done-main.teal { background:linear-gradient(180deg,#55C0B2,#40AAA0); }
+  .done-sub { margin-top:12px; font-size:13.5px; color:#B3A488; font-weight:600; }
+
+  /* ---------- Toast ---------- */
+  #toast {
+    position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 96px);
+    transform:translate(-50%, 14px); z-index:40;
+    background:rgba(74,59,50,.92); color:#FFF6E3; font-size:13.5px; font-weight:600;
+    padding:10px 20px; border-radius:999px; letter-spacing:1px;
+    opacity:0; pointer-events:none; transition:all .28s; max-width:82vw; text-align:center;
+  }
+  #toast.on { opacity:1; transform:translate(-50%, 0); }
+
+  /* ---------- 横屏/桌面 ---------- */
+  @media (min-aspect-ratio:1/1) and (max-height:520px) {
+    .wrap { max-width:860px; display:grid; grid-template-columns:1fr 1fr; align-items:center; padding:12px 34px; column-gap:30px; }
+    header { grid-column:1; }
+    main { grid-column:1; }
+    footer { grid-column:2; }
+    .tomato-wrap { width:min(56vh, 330px); }
+    .stats { margin-top:12px; }
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="deco" aria-hidden="true">
+    <svg class="d1" viewBox="0 0 24 24"><path d="M12 1c.8 6.5 4.5 10.2 11 11-6.5.8-10.2 4.5-11 11-.8-6.5-4.5-10.2-11-11 6.5-.8 10.2-4.5 11-11z" fill="#fff"/></svg>
+    <svg class="d2" viewBox="0 0 24 24"><path d="M12 1c.8 6.5 4.5 10.2 11 11-6.5.8-10.2 4.5-11 11-.8-6.5-4.5-10.2-11-11 6.5-.8 10.2-4.5 11-11z" fill="#8FC79A"/></svg>
+    <svg class="d3" viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" fill="#7DBD8B"/></svg>
+    <svg class="d4" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="#F5C9A8"/></svg>
+    <svg class="d5" viewBox="0 0 24 24"><path d="M12 1c.8 6.5 4.5 10.2 11 11-6.5.8-10.2 4.5-11 11-.8-6.5-4.5-10.2-11-11 6.5-.8 10.2-4.5 11-11z" fill="#fff"/></svg>
+    <svg class="d6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="#A5D6B0"/></svg>
+    <svg class="d7" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="#F3D9A4"/></svg>
+    <svg class="d8" viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" fill="#fff"/></svg>
+  </div>
+
+  <div class="wrap">
+    <header>
+      <div class="mode-pill" id="modePill">专注</div>
+      <div class="top-actions">
+        <button class="round-btn" id="btnSet" aria-label="设置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#3BA99A" stroke-width="2.3" stroke-linecap="round">
+            <path d="M4 7h9M17.5 7H20"/><circle cx="15.2" cy="7" r="2.3"/>
+            <path d="M4 17h2.5M11 17h9"/><circle cx="8.8" cy="17" r="2.3"/>
+          </svg>
+        </button>
+        <button class="round-btn" id="btnReset" aria-label="重置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#3BA99A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.6 9.2A8 8 0 1 1 4 13"/>
+            <path d="M4.2 4.4v4.8H9" fill="none"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <div class="tomato-wrap" id="wrap">
+        <svg class="leaves" viewBox="0 0 200 88" aria-hidden="true">
+          <defs>
+            <linearGradient id="lgL" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#6DBE6C"/><stop offset="1" stop-color="#3E8E4E"/>
+            </linearGradient>
+            <linearGradient id="lgR" x1="1" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#6DBE6C"/><stop offset="1" stop-color="#3E8E4E"/>
+            </linearGradient>
+          </defs>
+          <path d="M100 86 C100 60 99 42 96 20" stroke="#3C8A4C" stroke-width="11" stroke-linecap="round" fill="none"/>
+          <path d="M97 42 C74 16 40 8 18 22 C26 48 66 56 95 48 Z" fill="url(#lgL)" stroke="#357C44" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M88 40 C70 28 48 24 32 27" stroke="#8FCF8A" stroke-width="3.5" stroke-linecap="round" fill="none" opacity=".8"/>
+          <path d="M99 40 C124 14 160 7 182 22 C172 48 132 56 101 48 Z" fill="url(#lgR)" stroke="#357C44" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M110 38 C128 27 150 23 166 26" stroke="#8FCF8A" stroke-width="3.5" stroke-linecap="round" fill="none" opacity=".8"/>
+        </svg>
+        <div class="tomato">
+          <svg class="shine" viewBox="0 0 100 100" aria-hidden="true">
+            <path d="M17 42 C14 30 22 18 33 13" stroke="rgba(255,255,255,.75)" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+            <path d="M84 62 C86 70 82 79 75 84" stroke="rgba(255,255,255,.4)" stroke-width="3" stroke-linecap="round" fill="none"/>
+          </svg>
+          <div class="dial">
+            <div class="time" id="timeText">25:00</div>
+            <div class="rule"></div>
+            <div class="unit">分钟</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="btn-row">
+        <button class="pill btn-teal" id="btnSkip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6l6 6-6 6M13 6l6 6-6 6"/></svg>
+          跳过
+        </button>
+        <button class="pill btn-red" id="btnStart">
+          <svg id="icoPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.8c0-1.1 1.2-1.8 2.2-1.2l11 6.4c1 .6 1 2 0 2.6l-11 6.4c-1 .6-2.2-.1-2.2-1.2z"/></svg>
+          <svg id="icoPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="5.5" y="4" width="4.6" height="16" rx="1.6"/><rect x="13.9" y="4" width="4.6" height="16" rx="1.6"/></svg>
+          <span id="startText">开始</span>
+        </button>
+        <button class="pill btn-teal" id="btnDur"><span id="durText">25分钟</span></button>
+      </div>
+      <div class="stats" id="stats">今日专注 0 个番茄 · 0 分钟</div>
+    </footer>
+  </div>
+</div>
+
+<!-- 设置抽屉 -->
+<div id="scrim"></div>
+<div id="sheet">
+  <div class="sh-head">
+    <h2>设置</h2>
+    <button class="sh-close" id="btnCloseSheet" aria-label="关闭">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#A08F6E" stroke-width="3" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+    </button>
+  </div>
+
+  <div class="group">
+    <div class="g-title">完成提醒音 · 支持自定义上传</div>
+    <div class="tone-grid" id="toneGrid">
+      <button class="tone" data-tone="dingdong"><span class="dot"></span>叮咚</button>
+      <button class="tone" data-tone="chime"><span class="dot"></span>清脆三连</button>
+      <button class="tone" data-tone="bird"><span class="dot"></span>小鸟啾啾</button>
+      <button class="tone" data-tone="ring"><span class="dot"></span>复古闹铃</button>
+    </div>
+    <div class="custom-row" id="customRow">
+      <button class="custom-btn" id="btnUpload">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M12 16V5M7.5 9.5L12 5l4.5 4.5M5 19h14"/></svg>
+        上传本地音频
+      </button>
+      <input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac,.flac" hidden>
+    </div>
+    <div class="row">
+      <div><div class="lb">提醒音量</div></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span id="volText" style="font-size:12.5px;color:#B3A488;width:30px;text-align:right;font-variant-numeric:tabular-nums;">80%</span>
+        <input type="range" id="volSlider" min="0" max="100" value="80">
+      </div>
+    </div>
+    <div class="row">
+      <div><div class="lb">试听提醒音</div><div class="hint">选好铃声后点这里听效果</div></div>
+      <button class="icon-btn" id="btnPreview" aria-label="试听">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5c0-1.1 1.2-1.8 2.1-1.2l9.6 6.3c.9.6.9 1.9 0 2.5l-9.6 6.3c-.9.6-2.1-.1-2.1-1.2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="g-title">时长</div>
+    <div class="row">
+      <div class="lb">专注时长</div>
+      <div class="stepper">
+        <button id="focusMinus">−</button>
+        <span class="val" id="focusVal">25 分钟</span>
+        <button id="focusPlus">＋</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="lb">休息时长</div>
+      <div class="stepper">
+        <button id="breakMinus">−</button>
+        <span class="val" id="breakVal">5 分钟</span>
+        <button id="breakPlus">＋</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="g-title">自动化</div>
+    <div class="row">
+      <div class="lb">专注结束自动开始休息</div>
+      <button class="switch" id="swAutoBreak" aria-label="自动休息"></button>
+    </div>
+    <div class="row">
+      <div class="lb">休息结束自动开始专注</div>
+      <button class="switch" id="swAutoFocus" aria-label="自动专注"></button>
+    </div>
+    <div class="row">
+      <div><div class="lb">完成时手机振动</div><div class="hint">支持振动的浏览器生效</div></div>
+      <button class="switch" id="swVibrate" aria-label="振动"></button>
+    </div>
+  </div>
+
+  <div class="reset-line"><button id="btnRestore">恢复默认设置</button></div>
+  <div class="sh-note">上传的音频仅保存在本机浏览器中，不会上传服务器。<br>自定义音频过时可直接删除换新。</div>
+</div>
+
+<!-- 完成浮层 -->
+<div id="done">
+  <div class="done-card">
+    <div class="done-ico focus" id="doneIco">
+      <svg id="doneIcoSvg" viewBox="0 0 24 24" fill="#fff"><path d="M9 16.2l-3.5-3.5-1.6 1.6L9 19.4 20.3 8.1l-1.6-1.6z"/></svg>
+    </div>
+    <h3 id="doneTitle">专注完成！</h3>
+    <p id="doneDesc">已经专注 25 分钟，起来喝口水，休息一下吧。</p>
+    <button class="done-main" id="doneMain">开始休息</button>
+    <button class="done-sub" id="doneSub">留在此页</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= 常量与配置 ================= */
+  var LS_CFG = 'tomato-timer-cfg-v1';
+  var LS_STATS = 'tomato-timer-stats-v1';
+  var IDB_NAME = 'tomato-timer';
+  var IDB_STORE = 'files';
+  var DUR_CYCLE = [15, 20, 25, 30, 45];
+  var TONES = { dingdong: '叮咚', chime: '清脆三连', bird: '小鸟啾啾', ring: '复古闹铃', custom: '自定义' };
+
+  function defaultCfg() {
+    return {
+      tone: 'dingdong',        // 内置铃声 key 或 'custom'
+      customName: '',          // 自定义音频文件名（持久化显示用）
+      volume: 0.8,
+      focusMin: 25,
+      breakMin: 5,
+      autoBreak: true,
+      autoFocus: false,
+      vibrate: true
+    };
+  }
+
+  if (location.search.indexOf('reset=1') >= 0) {
+    try { localStorage.removeItem(LS_CFG); localStorage.removeItem(LS_STATS); } catch (e) {}
+    if (indexedDB) { indexedDB.deleteDatabase(IDB_NAME); }
+  }
+
+  var cfg = defaultCfg();
+  try {
+    var saved = JSON.parse(localStorage.getItem(LS_CFG) || 'null');
+    if (saved) for (var k in cfg) if (saved[k] !== undefined) cfg[k] = saved[k];
+    if (cfg.focusMin !== 25 && DUR_CYCLE.indexOf(cfg.focusMin) < 0) DUR_CYCLE.push(cfg.focusMin), DUR_CYCLE.sort(function (a, b) { return a - b; });
+  } catch (e) {}
+
+  function saveCfg() { try { localStorage.setItem(LS_CFG, JSON.stringify(cfg)); } catch (e) {} }
+
+  /* ================= 统计 ================= */
+  var stats = { date: todayStr(), count: 0, focusMin: 0 };
+  try {
+    var s = JSON.parse(localStorage.getItem(LS_STATS) || 'null');
+    if (s && s.date === todayStr()) stats = s;
+  } catch (e) {}
+  function todayStr() { var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+  function saveStats() { stats.date = todayStr(); try { localStorage.setItem(LS_STATS, JSON.stringify(stats)); } catch (e) {} }
+  function renderStats() {
+    document.getElementById('stats').innerHTML =
+      '今日专注 <b>' + stats.count + '</b> 个番茄 · <b>' + stats.focusMin + '</b> 分钟';
+  }
+
+  /* ================= IndexedDB（自定义铃声） ================= */
+  function idbOpen() {
+    return new Promise(function (res, rej) {
+      var rq = indexedDB.open(IDB_NAME, 1);
+      rq.onupgradeneeded = function () { rq.result.createObjectStore(IDB_STORE); };
+      rq.onsuccess = function () { res(rq.result); };
+      rq.onerror = function () { rej(rq.error); };
+    });
+  }
+  function idbPut(key, blob) {
+    return idbOpen().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(blob, key);
+        tx.oncomplete = res; tx.onerror = function () { rej(tx.error); };
+      });
+    });
+  }
+  function idbGet(key) {
+    return idbOpen().then(function (db) {
+      return new Promise(function (res, rej) {
+        var rq = db.transaction(IDB_STORE).objectStore(IDB_STORE).get(key);
+        rq.onsuccess = function () { res(rq.result || null); };
+        rq.onerror = function () { rej(rq.error); };
+      });
+    });
+  }
+  function idbDel(key) {
+    return idbOpen().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).delete(key);
+        tx.oncomplete = res; tx.onerror = function () { rej(tx.error); };
+      });
+    });
+  }
+
+  /* ================= 音频 ================= */
+  var actx = null, customBuffer = null, previewTimer = null;
+  function ensureCtx() {
+    if (!actx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      actx = new AC();
+    }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  function beep(ctx, when, type, freq, dur, gain, slideTo) {
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, when);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, when + dur);
+    g.gain.setValueAtTime(0, when);
+    g.gain.linearRampToValueAtTime(gain, when + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0008, when + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(when); o.stop(when + dur + 0.05);
+  }
+  // 内置铃声：返回总时长（秒）
+  function renderBuiltIn(name, t0) {
+    var ctx = actx, v = cfg.volume;
+    if (name === 'dingdong') {          // 叮—咚
+      beep(ctx, t0, 'sine', 830, 0.5, .5 * v);
+      beep(ctx, t0 + 0.42, 'sine', 622, 0.9, .5 * v);
+      return 1.5;
+    }
+    if (name === 'chime') {             // 清脆三连上行
+      [523, 659, 784].forEach(function (f, i) {
+        beep(ctx, t0 + i * 0.16, 'triangle', f, 0.55, .42 * v);
+        beep(ctx, t0 + i * 0.16, 'sine', f * 2, 0.3, .12 * v);
+      });
+      return 1.3;
+    }
+    if (name === 'bird') {              // 小鸟啾啾
+      for (var i = 0; i < 3; i++) {
+        beep(ctx, t0 + i * 0.3, 'sine', 2500 + i * 120, 0.16, .3 * v, 3400);
+        beep(ctx, t0 + i * 0.3 + 0.12, 'sine', 3000, 0.1, .2 * v, 2400);
+      }
+      beep(ctx, t0 + 1.0, 'sine', 2700, 0.22, .28 * v, 3600);
+      return 1.5;
+    }
+    if (name === 'ring') {              // 复古闹铃：高频颤音两轮
+      for (var j = 0; j < 2; j++) {
+        var t = t0 + j * 0.9;
+        for (var i2 = 0; i2 < 9; i2++) {
+          beep(ctx, t + i2 * 0.05, 'square', i2 % 2 ? 880 : 1180, 0.045, .13 * v);
+        }
+      }
+      return 1.9;
+    }
+    return renderBuiltIn('dingdong', t0); // 未知 key 兜底（如自定义音频读取失败）
+  }
+  function playAlarm() {
+    var ctx = ensureCtx();
+    if (!ctx) { if (cfg.vibrate) vibrate(); return; }
+    if (cfg.tone === 'custom' && customBuffer) {
+      var src = ctx.createBufferSource(), g = ctx.createGain();
+      src.buffer = customBuffer;
+      g.gain.value = cfg.volume;
+      src.connect(g); g.connect(ctx.destination);
+      src.start();
+      if (cfg.vibrate) vibrate();
+    } else {
+      renderBuiltIn(cfg.tone, ctx.currentTime + 0.03);
+      if (cfg.vibrate) vibrate();
+    }
+  }
+  function vibrate() {
+    if (cfg.vibrate && navigator.vibrate) { try { navigator.vibrate([280, 140, 280]); } catch (e) {} }
+  }
+  function stopPreview() {
+    if (previewTimer) { clearTimeout(previewTimer); previewTimer = null; }
+    // 简化：试听是一次性短音，不需真正停止；重复点击即重播
+  }
+  function preview() {
+    var ctx = ensureCtx();
+    if (!ctx) { toast('当前浏览器不支持音频播放'); return; }
+    if (cfg.tone === 'custom') {
+      if (customBuffer) {
+        var src = ctx.createBufferSource(), g = ctx.createGain();
+        src.buffer = customBuffer; g.gain.value = cfg.volume;
+        src.connect(g); g.connect(ctx.destination); src.start();
+      }
+    } else {
+      renderBuiltIn(cfg.tone, ctx.currentTime + 0.03);
+    }
+  }
+  function loadCustomBuffer() {
+    return idbGet('alarm-audio').then(function (blob) {
+      if (!blob) return false;
+      var ctx = ensureCtx();
+      if (!ctx) return false;
+      return blob.arrayBuffer().then(function (ab) {
+        return new Promise(function (res) {
+          ctx.decodeAudioData(ab, function (buf) { customBuffer = buf; res(true); }, function () { res(false); });
+        });
+      });
+    }).catch(function () { return false; });
+  }
+
+  /* ================= 计时状态机 ================= */
+  var mode = 'focus';        // focus | break
+  var phase = 'idle';        // idle | running | paused | done
+  var total = cfg.focusMin * 60;
+  var endTime = 0;           // running 时的绝对结束时间戳
+  var remain = total;        // paused 时的剩余秒
+  var tickId = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var timeText = $('timeText'), startText = $('startText'),
+      icoPlay = $('icoPlay'), icoPause = $('icoPause'),
+      wrap = $('wrap'), modePill = $('modePill'), durText = $('durText');
+
+  function fmt(sec) {
+    sec = Math.max(0, Math.round(sec));
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+  }
+  function stageTotal() { return (mode === 'focus' ? cfg.focusMin : cfg.breakMin) * 60; }
+  function modeLabel() { return mode === 'focus' ? '专注' : '休息'; }
+
+  function renderTime() {
+    var sec = phase === 'running' ? (endTime - Date.now()) / 1000 : remain;
+    timeText.textContent = fmt(sec);
+    if (phase === 'running') {
+      document.title = fmt(sec) + ' · ' + modeLabel() + '中 · 番茄时钟';
+    } else if (phase === 'idle') {
+      document.title = modeLabel() + ' · 番茄时钟';
+    }
+  }
+  function renderMode() {
+    modePill.textContent = modeLabel();
+    durText.textContent = cfg.focusMin + '分钟';
+    document.body.classList.toggle('break', mode === 'break');
+  }
+  function renderStartBtn() {
+    if (phase === 'running') { startText.textContent = '暂停'; icoPlay.style.display = 'none'; icoPause.style.display = ''; }
+    else if (phase === 'paused') { startText.textContent = '继续'; icoPlay.style.display = ''; icoPause.style.display = 'none'; }
+    else { startText.textContent = '开始'; icoPlay.style.display = ''; icoPause.style.display = 'none'; }
+    wrap.classList.toggle('running', phase === 'running');
+  }
+  function renderAll() { renderTime(); renderMode(); renderStartBtn(); renderStats(); }
+
+  function startTick() {
+    stopTick();
+    tickId = setInterval(function () {
+      if (phase !== 'running') return;
+      var left = (endTime - Date.now()) / 1000;
+      if (left <= 0) { finish(); } else { renderTime(); }
+    }, 200);
+  }
+  function stopTick() { if (tickId) { clearInterval(tickId); tickId = null; } }
+
+  function start() {
+    ensureCtx(); // 借用户手势解锁音频
+    if (phase === 'running') {           // → 暂停
+      remain = Math.max(0, (endTime - Date.now()) / 1000);
+      phase = 'paused'; stopTick();
+    } else {
+      if (phase !== 'paused') remain = stageTotal();
+      endTime = Date.now() + remain * 1000;
+      phase = 'running';
+      startTick();
+    }
+    renderStartBtn(); renderTime();
+  }
+  function resetStage() {
+    phase = 'idle';
+    stopTick();
+    remain = stageTotal();
+    renderAll();
+  }
+  function switchMode(next) {
+    mode = next;
+    phase = 'idle';
+    stopTick();
+    remain = stageTotal();
+    renderAll();
+  }
+  function skip() {
+    if (phase === 'done') return;
+    var next = mode === 'focus' ? 'break' : 'focus';
+    switchMode(next);
+    toast(mode === 'focus' ? '已跳过休息，开始专注吧' : '已切换到休息');
+    if (mode === 'break' ? cfg.autoBreak : cfg.autoFocus) start();
+  }
+  function finish() {
+    stopTick();
+    phase = 'done';
+    remain = 0;
+    renderTime();
+    renderStartBtn();
+    document.title = modeLabel() + '完成 · 番茄时钟';
+    playAlarm();
+    if (mode === 'focus') {
+      stats.count += 1; stats.focusMin += cfg.focusMin; saveStats(); renderStats();
+      showDone(true);
+    } else {
+      showDone(false);
+    }
+  }
+
+  /* ================= 完成浮层 ================= */
+  var autoTimer = null;
+  function showDone(isFocus) {
+    var el = $('done');
+    $('doneIco').className = 'done-ico ' + (isFocus ? 'focus' : 'break');
+    $('doneIcoSvg').innerHTML = isFocus
+      ? '<path d="M9 16.2l-3.5-3.5-1.6 1.6L9 19.4 20.3 8.1l-1.6-1.6z"/>'
+      : '<path d="M12 3C8 3 5 6 5 10c0 4.5 4.4 8.6 6.3 10.2a1.1 1.1 0 0 0 1.4 0C14.6 18.6 19 14.5 19 10c0-4-3-7-7-7zm0 9.2a2.7 2.7 0 1 1 0-5.4 2.7 2.7 0 0 1 0 5.4z"/>';
+    $('doneTitle').textContent = isFocus ? '专注完成！' : '休息结束';
+    $('doneDesc').textContent = isFocus
+      ? '已经专注 ' + cfg.focusMin + ' 分钟，起来喝口水，休息一下吧。'
+      : '休息了 ' + cfg.breakMin + ' 分钟，准备好就回来继续专注。';
+    var mainBtn = $('doneMain');
+    mainBtn.textContent = isFocus ? '开始休息' : '开始专注';
+    mainBtn.className = 'done-main' + (isFocus ? '' : ' teal');
+    $('doneSub').textContent = '留在此页';
+    el.classList.add('on');
+    var autoNext = isFocus ? cfg.autoBreak : cfg.autoFocus;
+    if (autoNext) {
+      var n = 3;
+      mainBtn.textContent = '即将自动开始（' + n + 's）';
+      autoTimer = setInterval(function () {
+        n--;
+        if (n <= 0) { clearInterval(autoTimer); autoTimer = null; closeDoneAndStart(); }
+        else mainBtn.textContent = '即将自动开始（' + n + 's）';
+      }, 1000);
+    }
+  }
+  function closeDoneAndStart() {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+    $('done').classList.remove('on');
+    switchMode(mode === 'focus' ? 'break' : 'focus');
+    start();
+  }
+  $('doneMain').addEventListener('click', closeDoneAndStart);
+  $('doneSub').addEventListener('click', function () {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+    $('done').classList.remove('on');
+    switchMode(mode === 'focus' ? 'break' : 'focus');
+    toast(mode === 'focus' ? '随时点「开始」进入专注' : '休息一下也好，点「开始」继续休息');
+  });
+
+  /* ================= 控件绑定 ================= */
+  $('btnStart').addEventListener('click', function () {
+    if (phase === 'done') return;
+    start();
+  });
+  $('btnReset').addEventListener('click', function () {
+    if (phase === 'done') return;
+    resetStage();
+    toast('已重置为 ' + (mode === 'focus' ? cfg.focusMin : cfg.breakMin) + ':00');
+  });
+  $('btnSkip').addEventListener('click', skip);
+  $('btnDur').addEventListener('click', function () {
+    var idx = DUR_CYCLE.indexOf(cfg.focusMin);
+    if (idx < 0) idx = DUR_CYCLE.indexOf(25);
+    cfg.focusMin = DUR_CYCLE[(idx + 1) % DUR_CYCLE.length];
+    saveCfg();
+    if (mode === 'focus' && phase === 'idle') { remain = stageTotal(); }
+    renderMode(); renderTime(); syncSheet();
+    if (!(mode === 'focus' && phase === 'idle')) toast('时长将在下一轮专注生效');
+  });
+
+  /* ---------- 设置抽屉 ---------- */
+  function openSheet() { $('scrim').classList.add('on'); $('sheet').classList.add('on'); syncSheet(); }
+  function closeSheet() { $('scrim').classList.remove('on'); $('sheet').classList.remove('on'); }
+  $('btnSet').addEventListener('click', openSheet);
+  $('btnCloseSheet').addEventListener('click', closeSheet);
+  $('scrim').addEventListener('click', closeSheet);
+
+  function syncSheet() {
+    document.querySelectorAll('#toneGrid .tone').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.tone === cfg.tone);
+    });
+    $('volSlider').value = Math.round(cfg.volume * 100);
+    $('volText').textContent = Math.round(cfg.volume * 100) + '%';
+    $('focusVal').textContent = cfg.focusMin + ' 分钟';
+    $('breakVal').textContent = cfg.breakMin + ' 分钟';
+    $('swAutoBreak').classList.toggle('on', cfg.autoBreak);
+    $('swAutoFocus').classList.toggle('on', cfg.autoFocus);
+    $('swVibrate').classList.toggle('on', cfg.vibrate);
+    renderCustomRow();
+  }
+  document.querySelectorAll('#toneGrid .tone').forEach(function (b) {
+    b.addEventListener('click', function () {
+      cfg.tone = b.dataset.tone; saveCfg(); syncSheet(); preview();
+    });
+  });
+  $('volSlider').addEventListener('input', function () {
+    cfg.volume = this.value / 100;
+    $('volText').textContent = this.value + '%';
+    saveCfg();
+  });
+  $('volSlider').addEventListener('change', function () { preview(); });
+  $('btnPreview').addEventListener('click', preview);
+
+  function renderCustomRow() {
+    var row = $('customRow');
+    if (cfg.tone !== 'custom') {
+      row.innerHTML =
+        '<button class="custom-btn" id="btnUpload">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M12 16V5M7.5 9.5L12 5l4.5 4.5M5 19h14"/></svg>' +
+        '上传本地音频</button>' +
+        '<input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac,.flac" hidden>';
+      bindUpload();
+      return;
+    }
+    var name = customName || cfg.customName || '自定义音频';
+    row.innerHTML =
+      '<div class="custom-file">' +
+      '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 3v10.6a3.5 3.5 0 1 0 2 3.15V7h4V3z"/></svg>' +
+      '<span class="nm">' + name.replace(/</g, '&lt;') + '</span></div>' +
+      '<button class="icon-btn" id="btnListen" aria-label="试听自定义音频">' +
+      '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5c0-1.1 1.2-1.8 2.1-1.2l9.6 6.3c.9.6.9 1.9 0 2.5l-9.6 6.3c-.9.6-2.1-.1-2.1-1.2z"/></svg></button>' +
+      '<button class="icon-btn del" id="btnDelAudio" aria-label="删除自定义音频">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg></button>';
+    $('btnListen').addEventListener('click', preview);
+    $('btnDelAudio').addEventListener('click', function () {
+      idbDel('alarm-audio').catch(function () {});
+      customBuffer = null; customName = '';
+      cfg.tone = 'dingdong'; cfg.customName = ''; saveCfg(); syncSheet();
+      toast('已删除自定义音频，恢复「叮咚」');
+    });
+  }
+  var customName = '';
+  function bindUpload() {
+    var btn = $('btnUpload'), fi = $('fileInput');
+    if (!btn || !fi) return;
+    btn.addEventListener('click', function () { fi.click(); });
+    fi.addEventListener('change', function () {
+      var f = fi.files && fi.files[0];
+      if (!f) return;
+      if (f.size > 15 * 1024 * 1024) { toast('音频文件请小于 15MB'); return; }
+      toast('正在导入音频…');
+      f.arrayBuffer().then(function (ab) {
+        var ctx = ensureCtx();
+        if (!ctx) throw new Error('no audio');
+        return new Promise(function (res, rej) {
+          ctx.decodeAudioData(ab.slice(0), function (buf) { res(buf); }, rej);
+        });
+      }).then(function (buf) {
+        customBuffer = buf; customName = f.name;
+        return idbPut('alarm-audio', f);
+      }).then(function () {
+        cfg.tone = 'custom'; cfg.customName = customName; saveCfg(); syncSheet();
+        toast('自定义音频已保存');
+        preview();
+      }).catch(function () {
+        toast('该音频格式无法解码，请换 mp3 / m4a / wav');
+      });
+      fi.value = '';
+    });
+  }
+  bindUpload();
+
+  // 启动时若有已存的自定义铃声，读回并解码备用
+  if (cfg.tone === 'custom') loadCustomBuffer();
+
+  /* ---------- 时长步进 / 开关 / 恢复 ---------- */
+  function stepFocus(d) {
+    cfg.focusMin = Math.min(180, Math.max(1, cfg.focusMin + d));
+    saveCfg();
+    if (mode === 'focus' && phase === 'idle') remain = stageTotal();
+    renderMode(); renderTime(); syncSheet();
+  }
+  function stepBreak(d) {
+    cfg.breakMin = Math.min(60, Math.max(1, cfg.breakMin + d));
+    saveCfg();
+    if (mode === 'break' && phase === 'idle') remain = stageTotal();
+    renderTime(); syncSheet();
+  }
+  $('focusMinus').addEventListener('click', function () { stepFocus(-5); });
+  $('focusPlus').addEventListener('click', function () { stepFocus(5); });
+  $('breakMinus').addEventListener('click', function () { stepBreak(-1); });
+  $('breakPlus').addEventListener('click', function () { stepBreak(1); });
+  function bindSwitch(id, key) {
+    $(id).addEventListener('click', function () {
+      cfg[key] = !cfg[key]; saveCfg(); syncSheet();
+    });
+  }
+  bindSwitch('swAutoBreak', 'autoBreak');
+  bindSwitch('swAutoFocus', 'autoFocus');
+  bindSwitch('swVibrate', 'vibrate');
+  $('btnRestore').addEventListener('click', function () {
+    cfg = defaultCfg(); saveCfg();
+    if (mode === 'focus' && phase === 'idle') remain = stageTotal();
+    renderAll(); syncSheet();
+    toast('已恢复默认设置');
+  });
+
+  /* ================= Toast ================= */
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('on');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('on'); }, 2200);
+  }
+
+  /* ================= 回前台校准 & 页面隐藏兜底 ================= */
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && phase === 'running') {
+      var left = (endTime - Date.now()) / 1000;
+      if (left <= 0) finish(); else { renderTime(); startTick(); }
+    }
+  });
+
+  /* ================= init ================= */
+  renderAll();
+
+  // 内部调试/AI 演示钩子：只读状态 + 快进
+  window.TOMATO = {
+    state: function () { return { mode: mode, phase: phase, remain: Math.ceil(remain), total: total }; },
+    seek: function (sec) { if (phase === 'running') endTime = Math.min(endTime, Date.now() + sec * 1000); },
+    finishNow: function () { if (phase === 'running') { endTime = Date.now() - 1; remain = 0; } }
+  };
+})();
+</script>
+</body>
+</html>
