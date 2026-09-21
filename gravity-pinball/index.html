@@ -1,0 +1,3812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#463d35">
+<title>重力弹球王</title>
+<style>
+html, body {
+  margin: 0; padding: 0;
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #26211d;
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none; user-select: none;
+  overscroll-behavior: none;
+}
+#stage { position: fixed; inset: 0; }
+#c { position: absolute; left: 0; top: 0; touch-action: none; }
+
+/* ---------- HUD ---------- */
+#menuBtn {
+  position: absolute; width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(20,16,12,0.85);
+  display: grid; place-items: center;
+  cursor: pointer; z-index: 10;
+}
+#menuBtn img { width: 26px; height: 26px; display: block; pointer-events: none; }
+#menuBtn:active { transform: scale(0.92); }
+
+#scoreTx, #ballTx {
+  position: absolute; z-index: 10;
+  font-size: 27px; font-weight: 900; color: #fff;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.45);
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+#ballTx { text-align: right; }
+
+/* ---------- 底部操作 ---------- */
+#btnCollect {
+  position: absolute; z-index: 10;
+  padding: 8px 20px;
+  background: rgba(255,255,255,0.12);
+  border: 1.5px solid rgba(255,255,255,0.24);
+  border-radius: 10px;
+  color: #ddd; font-size: 20px; font-weight: 700; letter-spacing: 3px;
+  cursor: pointer;
+}
+#btnCollect:active { transform: scale(0.95); background: rgba(255,255,255,0.2); }
+
+#btnAdd {
+  position: absolute; z-index: 10;
+  width: 200px; height: 52px;
+  border-radius: 999px;
+  background: linear-gradient(#ff7078, #e84a5e);
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.3);
+  color: #fff; font-size: 25px; font-weight: 900; letter-spacing: 6px;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  cursor: pointer;
+}
+#btnAdd img { width: 30px; height: 30px; pointer-events: none; }
+#btnAdd:active { transform: scale(0.96); }
+#btnAdd.free {
+  background: linear-gradient(#8a9aa8, #5f7180);
+  letter-spacing: 1px; font-size: 20px;
+}
+
+.slot {
+  position: absolute; z-index: 10;
+  width: 58px; height: 62px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 29px 29px 10px 10px;
+  background:
+    radial-gradient(circle at 35% 22%, rgba(255,255,255,0.26), rgba(255,255,255,0.05) 62%);
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.slot img { width: 40px; height: 40px; pointer-events: none; }
+.slot:active { transform: scale(0.92); }
+.slot .badge {
+  position: absolute; right: -6px; top: -6px;
+  min-width: 21px; height: 21px; padding: 0 5px;
+  border-radius: 11px;
+  background: #f4586a;
+  border: 2px solid rgba(0,0,0,0.28);
+  color: #fff; font-size: 13px; font-weight: 800; font-style: normal;
+  display: grid; place-items: center;
+  box-sizing: border-box;
+  font-variant-numeric: tabular-nums;
+}
+.slot.empty { opacity: 0.45; filter: grayscale(0.7); }
+.slot.armed { border-color: #ffd76a; box-shadow: 0 0 0 2px rgba(255,215,106,0.35); }
+
+/* ---------- 过关横幅 ---------- */
+#banner {
+  position: absolute; left: 0; right: 0; top: 34%;
+  text-align: center; z-index: 20;
+  pointer-events: none;
+  opacity: 0; transform: scale(0.7);
+  transition: opacity 0.25s, transform 0.3s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+#banner.show { opacity: 1; transform: scale(1); }
+#banner .bt {
+  font-size: 36px; font-weight: 900; color: #fff; letter-spacing: 4px;
+  text-shadow: 0 3px 14px rgba(0,0,0,0.55), 0 0 2px rgba(0,0,0,0.4);
+}
+#banner .bs {
+  margin-top: 8px;
+  font-size: 24px; font-weight: 800; color: #ffd76a;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+/* ---------- 菜单弹层 ---------- */
+#menuModal {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(12,9,7,0.62);
+  display: none; align-items: center; justify-content: center;
+}
+#menuModal.show { display: flex; }
+#menuModal .panel {
+  width: min(84%, 320px);
+  background: #2e2823;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 14px;
+  padding: 20px 18px 16px;
+  color: #eee;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.5);
+}
+#menuModal h2 {
+  margin: 0 0 4px; font-size: 21px; font-weight: 900; letter-spacing: 2px;
+}
+#bestTx { font-size: 13px; color: #a89a8a; margin-bottom: 14px; }
+#menuModal button {
+  display: block; width: 100%;
+  margin: 9px 0; padding: 12px 0;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 10px;
+  color: #eee; font-size: 16px; font-weight: 600;
+  cursor: pointer;
+}
+#menuModal button:active { background: rgba(255,255,255,0.16); }
+#menuModal button.danger { color: #ff8f8f; border-color: rgba(255,130,130,0.3); }
+#helpSec {
+  display: none;
+  margin: 4px 0 6px; padding: 10px 12px;
+  background: rgba(0,0,0,0.22);
+  border-radius: 8px;
+  font-size: 13px; color: #cfc8c0; line-height: 1.7;
+}
+#helpSec.show { display: block; }
+#helpSec p { margin: 2px 0; }
+
+/* ---------- toast ---------- */
+#toast {
+  position: absolute; left: 50%; bottom: 34%;
+  transform: translateX(-50%) translateY(6px);
+  z-index: 30;
+  background: rgba(20,16,12,0.88);
+  color: #fff; font-size: 15px;
+  padding: 10px 18px; border-radius: 10px;
+  opacity: 0; transition: opacity 0.22s, transform 0.22s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c"></canvas>
+  <div id="menuBtn"><img id="menuImg" alt="菜单"></div>
+  <div id="scoreTx">0分</div>
+  <div id="ballTx">0球</div>
+  <div id="btnCollect">收球</div>
+  <div id="btnAdd"><img id="addPlusImg" alt=""><span id="addTx">加球</span></div>
+  <div id="slotBomb" class="slot"><img id="bombImg" alt="炸弹"><b id="bombBadge" class="badge">0</b></div>
+  <div id="slotGlass" class="slot"><img id="glassImg" alt="沙漏"><b id="glassBadge" class="badge">0</b></div>
+  <div id="banner"></div>
+  <div id="menuModal">
+    <div class="panel">
+      <h2>重力弹球王</h2>
+      <div id="bestTx">最佳 0 分 · 第 1 关</div>
+      <button id="mResume">继续游戏</button>
+      <button id="mHelp">玩法说明</button>
+      <div id="helpSec">
+        <p>· 球自动从顶部漩涡落入，撞到数字球让数字 −1，减到 0 爆炸得分</p>
+        <p>· 消除得分 = 初始数字 ×5；菱形 ×2 倍、大白球 ×3 倍</p>
+        <p>· 点按屏幕：冲击波把附近小球弹开</p>
+        <p>· 把球点进顶部漩涡：+15 分并回收 +3 球</p>
+        <p>· 收球：把场上静止的球收回球数；加球：花分数买球，分不够可免费领</p>
+        <p>· 炸弹：下一颗球落地即爆，范围内数字 −6</p>
+        <p>· 沙漏：7 秒慢动作，配合点按精准狙击</p>
+        <p>· 清空全部数字球进入下一关，关卡无限</p>
+      </div>
+      <button id="mCfg">设置</button>
+      <button id="mRestart" class="danger">重新开始</button>
+    </div>
+  </div>
+  <div id="toast"></div>
+</div>
+<script>(function(){var Q={};location.search.replace(/^\?/,'').split('&').forEach(function(kv){var p=kv.split('=');Q[decodeURIComponent(p[0])]=p[1]===undefined?true:decodeURIComponent(p[1]);});if(Q.reset){try{localStorage.removeItem('gp_cfg_v1');localStorage.removeItem('gp_state_v1');}catch(e){}}window.__errs=window.__errs||[];window.onerror=function(m,s2,l,c){__errs.push(String(m).slice(0,200)+' @'+(l||'?'));};window.onunhandledrejection=function(e){__errs.push('rej:'+String(e&&e.reason).slice(0,200));};})();</script>
+<script>
+/* ==== core.js ==== */
+/* core.js — 命名空间 / URL 参数 / 配置存储 / 进度存档 / 工具（主线负责） */
+(function () {
+  'use strict';
+  var GP;
+  if (typeof window !== 'undefined') GP = window.GP = window.GP || {};
+  else GP = global.GP = global.GP || {};
+  var HAS_LS = false;
+  try { HAS_LS = typeof localStorage !== 'undefined'; } catch (e) { HAS_LS = false; }
+
+  /* ---------- URL 参数 ---------- */
+  var Q = {};
+  (function () {
+    if (typeof location === 'undefined') return;
+    var s = location.search.replace(/^\?/, '');
+    if (!s) return;
+    var parts = s.split('&');
+    for (var i = 0; i < parts.length; i++) {
+      if (!parts[i]) continue;
+      var kv = parts[i].split('=');
+      Q[decodeURIComponent(kv[0])] = kv[1] === undefined ? true : decodeURIComponent(kv[1]);
+    }
+  })();
+  GP.Q = Q;
+
+  /* ---------- 基础工具 ---------- */
+  GP.clamp = function (v, a, b) { return v < a ? a : (v > b ? b : v); };
+  GP.lerp = function (a, b, t) { return a + (b - a) * t; };
+  GP.TAU = Math.PI * 2;
+
+  /* mulberry32 可注入随机源：关卡生成 / 掉球抖动共用 */
+  GP.rng = function (seed) {
+    var a = (seed >>> 0) || 1;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+
+  /* 可缺模块软引用：方法调用安全兜底，永不抛错 */
+  GP.soft = function (name) {
+    var m = GP[name];
+    if (m) return m;
+    var fn = function () { return undefined; };
+    return new Proxy(fn, {
+      get: function (t, k) {
+        if (k === '__isSoft') return true;
+        if (k === 'then') return undefined;
+        return fn;
+      },
+      apply: function () { return undefined; }
+    });
+  };
+
+  /* ---------- 配置存储（唯一事实：主线路径不依赖 config-panel 也能跑） ---------- */
+  var CFG_KEY = 'gp_cfg_v1';
+  var CFG_DEF = {
+    gravity: 1500,
+    dropInterval: 550,
+    ballR: 11,
+    startBalls: 20,
+    maxBalls: 80,
+    addBallAmount: 10,
+    addBallBaseCost: 100,
+    addBallCostStep: 50,
+    addBallFreeAmount: 5,
+    freeCooldown: 30,
+    bombRadius: 130,
+    bombPower: 6,
+    glassDuration: 6,
+    glassTimeScale: 0.45,
+    restWall: 0.72,
+    restBumper: 0.88,
+    restFloor: 0.55,
+    restBall: 0.4,
+    bumperKick: 150,
+    sfxVolume: 0.8,
+    muted: false,
+    autoCollect: false,
+    icons: { bomb: '', hourglass: '' },
+    sounds: {}
+  };
+  function isObj(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function mergeInto(base, src, root) {
+    if (!isObj(src)) return base;
+    var ks = Object.keys(src);
+    for (var i = 0; i < ks.length; i++) {
+      var k = ks[i];
+      if (root && !Object.prototype.hasOwnProperty.call(base, k)) continue;
+      var b = base[k], s = src[k];
+      if (s === undefined) continue;
+      if (isObj(b) && isObj(s)) mergeInto(b, s, false);
+      else base[k] = s;
+    }
+    return base;
+  }
+  var cfgCur = (function () {
+    var d = clone(CFG_DEF);
+    if (Q.reset) return d;
+    try {
+      var raw = localStorage.getItem(CFG_KEY);
+      if (raw) mergeInto(d, JSON.parse(raw), true);
+    } catch (e) { /* 损坏配置按默认 */ }
+    return d;
+  })();
+  var cfgCbs = [];
+  function cfgPersist() { try { localStorage.setItem(CFG_KEY, JSON.stringify(cfgCur)); } catch (e) {} }
+  GP.CFG = {
+    KEY: CFG_KEY,
+    def: function () { return clone(CFG_DEF); },
+    all: function () { return cfgCur; },
+    onChange: function (cb) {
+      if (typeof cb === 'function') cfgCbs.push(cb);
+      return function () { var i = cfgCbs.indexOf(cb); if (i >= 0) cfgCbs.splice(i, 1); };
+    },
+    apply: function (snap) {
+      cfgCur = mergeInto(clone(CFG_DEF), snap, true);
+      cfgPersist();
+      var out = clone(cfgCur);
+      for (var i = 0; i < cfgCbs.length; i++) { try { cfgCbs[i](out); } catch (e) {} }
+      return clone(cfgCur);
+    },
+    exportJSON: function () { return JSON.stringify(cfgCur, null, 2); },
+    importJSON: function (str) {
+      var o = JSON.parse(str);
+      if (!isObj(o)) throw new Error('配置必须为 JSON 对象');
+      return GP.CFG.apply(o);
+    }
+  };
+
+  /* ---------- 进度存档 ---------- */
+  var SAVE_KEY = 'gp_state_v1';
+  function defState() {
+    return {
+      v: 1, level: 1, score: 0, balls: 20, bombs: 2, glasses: 1,
+      best: 0, addBallUses: 0, tutDone: false, swallows: 0, pops: 0
+    };
+  }
+  var stCur = null;
+  GP.SAVE = {
+    KEY: SAVE_KEY,
+    def: defState,
+    load: function () {
+      var d = defState();
+      if (!Q.reset) {
+        try {
+          var raw = localStorage.getItem(SAVE_KEY);
+          if (raw) {
+            var o = JSON.parse(raw);
+            if (isObj(o)) {
+              for (var k in d) {
+                if (o[k] !== undefined && typeof o[k] === typeof d[k]) d[k] = o[k];
+              }
+            }
+          }
+        } catch (e) { /* 损坏档按新档 */ }
+      }
+      if (Q.level !== undefined) { var n = parseInt(Q.level, 10); if (n > 0) d.level = n; }
+      if (Q.balls !== undefined) { var b = parseInt(Q.balls, 10); if (b >= 0) d.balls = b; }
+      stCur = d;
+      return d;
+    },
+    get: function () { return stCur || GP.SAVE.load(); },
+    save: function () {
+      if (!stCur) return;
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify(stCur)); } catch (e) {}
+    }
+  };
+
+  /* ---------- 调试参数覆盖（?muted=1 等） ---------- */
+  if (Q.muted) cfgCur.muted = true;
+})();
+
+
+/* ==== art.js ==== */
+/* ============================================================
+ * gravity-pinball · GP.ART
+ * 扁平圆润矢量图标集 -> SVG dataURI
+ * 唯一接口: GP.ART.icon(name) -> 'data:image/svg+xml,...'
+ * 纯字符串拼接，不依赖 DOM，node 下可直接 require
+ * ============================================================ */
+(function () {
+  'use strict';
+
+  var GP = (typeof window !== 'undefined')
+    ? (window.GP = window.GP || {})
+    : ((typeof global !== 'undefined') ? (global.GP = global.GP || {}) : {});
+
+  /* ---------- 基础工具 ---------- */
+
+  // 统一 64x64 viewBox 起头；SVG 属性用单引号，避免引号嵌套问题
+  function wrap(inner) {
+    return "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>" + inner + '</svg>';
+  }
+
+  function toURI(svgStr) {
+    if (typeof encodeURIComponent === 'function') {
+      return 'data:image/svg+xml,' + encodeURIComponent(svgStr);
+    }
+    // 极端环境兜底：手动最小转义（保证无裸 < > # & " % 与空格）
+    return 'data:image/svg+xml,' + svgStr
+      .replace(/%/g, '%25')
+      .replace(/"/g, '%22')
+      .replace(/#/g, '%23')
+      .replace(/&/g, '%26')
+      .replace(/</g, '%3C')
+      .replace(/>/g, '%3E')
+      .replace(/\?/g, '%3F')
+      .replace(/ /g, '%20');
+  }
+
+  var W = '#f2efe9'; // 图标通用暖白（对应游戏白线/白字色调）
+
+  /* ---------- 各图标（每个独立函数，64x64） ---------- */
+
+  // 白色圆环 + 内部三条横线（菜单钮，叠在黑圆上）
+  function iMenu() {
+    return wrap(
+      "<circle cx='32' cy='32' r='25' fill='none' stroke='" + W + "' stroke-width='3.6'/>" +
+      "<path d='M22 24.5h20M22 32h20M22 39.5h20' stroke='" + W + "' stroke-width='3.6' stroke-linecap='round' fill='none'/>"
+    );
+  }
+
+  // 卡通黑炸弹：径向球体 + 白眼黑瞳 + 咧嘴白牙笑 + 短引线 + 橙黄火花
+  function iBomb() {
+    return wrap(
+      "<defs><radialGradient id='gpBombG' cx='0.36' cy='0.32' r='0.9'>" +
+      "<stop offset='0' stop-color='#383838'/>" +
+      "<stop offset='0.55' stop-color='#2a2a2a'/>" +
+      "<stop offset='1' stop-color='#111111'/>" +
+      '</radialGradient></defs>' +
+      // 火花星
+      "<path d='M43.5 0.6L45 4.5L49 6L45 7.5L43.5 11.4L42 7.5L38 6L42 4.5Z' fill='#f5b63f'/>" +
+      "<circle cx='43.5' cy='6' r='1.5' fill='#ffdf8a'/>" +
+      // 引线
+      "<path d='M31.5 14.5C31.5 9.5 35.5 10 39 7.2' fill='none' stroke='#6e4a2a' stroke-width='2.8' stroke-linecap='round'/>" +
+      // 球体
+      "<circle cx='31' cy='40' r='20' fill='url(#gpBombG)'/>" +
+      // 引线座
+      "<rect x='26.5' y='13.5' width='9' height='8' rx='3' fill='#333333'/>" +
+      // 高光
+      "<ellipse cx='23' cy='28.5' rx='5.5' ry='3.5' fill='#ffffff' opacity='0.3' transform='rotate(-28 23 28.5)'/>" +
+      // 眼睛（歪一点的椭圆 + 同向黑瞳）
+      "<ellipse cx='24.5' cy='35' rx='5.4' ry='7.4' fill='#ffffff' transform='rotate(-9 24.5 35)'/>" +
+      "<ellipse cx='37' cy='35.6' rx='5.4' ry='7.4' fill='#ffffff' transform='rotate(7 37 35.6)'/>" +
+      "<circle cx='23' cy='36.8' r='2.5' fill='#141414'/>" +
+      "<circle cx='35.4' cy='37.4' r='2.5' fill='#141414'/>" +
+      "<circle cx='22.2' cy='35.9' r='0.9' fill='#ffffff'/>" +
+      "<circle cx='34.6' cy='36.5' r='0.9' fill='#ffffff'/>" +
+      // 咧嘴笑 + 牙缝
+      "<path d='M17.5 44.5Q31 49.5 44.5 44.5Q43 55.5 31 56.5Q19 55.5 17.5 44.5Z' fill='#ffffff'/>" +
+      "<path d='M24.2 46.2V50.8M31 47V52.6M37.8 46.2V50.8' stroke='#141414' stroke-width='1.5' stroke-linecap='round' fill='none'/>"
+    );
+  }
+
+  // 卡通沙漏：橙色粗框（上下横杆 + 左右框柱）+ 上橙沙下蓝沙 + 顶部青色五角星
+  function iHourglass() {
+    return wrap(
+      // 玻璃体
+      "<path d='M22 17H42C42 27.5 35.5 29.5 33.6 32C35.5 34.5 42 36.5 42 47H22C22 36.5 28.5 34.5 30.4 32C28.5 29.5 22 27.5 22 17Z' " +
+      "fill='#d9edf5' fill-opacity='0.35' stroke='#cfe9f2' stroke-width='1.6' stroke-linejoin='round'/>" +
+      // 上半橙黄沙
+      "<path d='M23 21L32 31.8L41 21Q32 26 23 21Z' fill='#f4b04a'/>" +
+      // 沙流
+      "<rect x='31.3' y='31.8' width='1.4' height='11' fill='#7cc3ea'/>" +
+      // 下半蓝沙堆
+      "<path d='M23 48.2H41V47.6Q32 40.2 23 47.6Z' fill='#6fb9e6'/>" +
+      // 橙色粗框：上下横杆 + 左右框柱
+      "<rect x='15' y='9' width='34' height='7' rx='3.5' fill='#ec9a33'/>" +
+      "<rect x='15' y='48' width='34' height='7' rx='3.5' fill='#ec9a33'/>" +
+      "<rect x='16.5' y='10' width='4.5' height='44' rx='2' fill='#ec9a33'/>" +
+      "<rect x='43' y='10' width='4.5' height='44' rx='2' fill='#ec9a33'/>" +
+      // 顶部青色五角星
+      "<path d='M32 1.6L33.6 5.8L38.1 6L34.6 8.8L35.8 13.2L32 10.7L28.2 13.2L29.4 8.8L25.9 6L30.4 5.8Z' " +
+      "fill='#6fd9e8' stroke='#3cb4cc' stroke-width='1' stroke-linejoin='round'/>"
+    );
+  }
+
+  // 白色实心圆 + 红色粗加号（加球钮）
+  function iPlus() {
+    return wrap(
+      "<circle cx='32' cy='32' r='24' fill='#f7f4ef'/>" +
+      "<rect x='26.5' y='17' width='11' height='30' rx='4.5' fill='#e84a5e'/>" +
+      "<rect x='17' y='26.5' width='30' height='11' rx='4.5' fill='#e84a5e'/>"
+    );
+  }
+
+  // ×：深灰衬底 + 暖白主线（深浅底都可见）
+  function iClose() {
+    var d = 'M20.5 20.5L43.5 43.5M43.5 20.5L20.5 43.5';
+    return wrap(
+      "<path d='" + d + "' stroke='#1c1814' stroke-opacity='0.3' stroke-width='8.5' stroke-linecap='round' fill='none'/>" +
+      "<path d='" + d + "' stroke='" + W + "' stroke-width='5.5' stroke-linecap='round' fill='none'/>"
+    );
+  }
+
+  function iSpeaker() {
+    return "<path d='M14.5 26.5h6.5l9.5-8.5v28l-9.5-8.5H14.5z' fill='" + W + "' stroke='" + W +
+      "' stroke-width='3' stroke-linejoin='round'/>";
+  }
+
+  function iVolumeOn() {
+    return wrap(
+      iSpeaker() +
+      "<path d='M37.5 24.5q4.5 7.5 0 15' fill='none' stroke='" + W + "' stroke-width='4' stroke-linecap='round'/>" +
+      "<path d='M43.5 19q8.5 13 0 26' fill='none' stroke='" + W + "' stroke-width='4' stroke-linecap='round'/>"
+    );
+  }
+
+  function iVolumeOff() {
+    return wrap(
+      iSpeaker() +
+      "<path d='M38.5 21.5L52 42.5' stroke='" + W + "' stroke-width='4.5' stroke-linecap='round' fill='none'/>"
+    );
+  }
+
+  function iTray() {
+    return "<path d='M15.5 39.5v6a5.5 5.5 0 0 0 5.5 5.5h21.5a5.5 5.5 0 0 0 5.5-5.5v-6' fill='none' stroke='" +
+      W + "' stroke-width='4.6' stroke-linecap='round' stroke-linejoin='round'/>";
+  }
+
+  function iUpload() {
+    return wrap(
+      iTray() +
+      "<path d='M32 35.5V15M23.5 23.5L32 14.8L40.5 23.5' fill='none' stroke='" + W +
+      "' stroke-width='4.6' stroke-linecap='round' stroke-linejoin='round'/>"
+    );
+  }
+
+  function iDownload() {
+    return wrap(
+      iTray() +
+      "<path d='M32 14.8V34.8M23.5 26.2L32 35L40.5 26.2' fill='none' stroke='" + W +
+      "' stroke-width='4.6' stroke-linecap='round' stroke-linejoin='round'/>"
+    );
+  }
+
+  // 环形箭头（顺时针，右上开口）
+  function iReset() {
+    return wrap(
+      "<path d='M49 32A17 17 0 1 1 32 15' fill='none' stroke='" + W +
+      "' stroke-width='4.8' stroke-linecap='round'/>" +
+      "<path d='M31 8.5L42.5 15L31 21.5Z' fill='" + W + "' stroke='" + W +
+      "' stroke-width='2' stroke-linejoin='round'/>"
+    );
+  }
+
+  function iInfo() {
+    return wrap(
+      "<circle cx='32' cy='32' r='24' fill='none' stroke='" + W + "' stroke-width='3.6'/>" +
+      "<circle cx='32' cy='20' r='3.4' fill='" + W + "'/>" +
+      "<rect x='28.8' y='26.5' width='6.4' height='18.5' rx='3.2' fill='" + W + "'/>"
+    );
+  }
+
+  function iPause() {
+    return wrap(
+      "<rect x='20.5' y='18.5' width='9' height='27' rx='4.4' fill='" + W + "'/>" +
+      "<rect x='34.5' y='18.5' width='9' height='27' rx='4.4' fill='" + W + "'/>"
+    );
+  }
+
+  function iPlay() {
+    return wrap(
+      "<path d='M25 17.5L46 32L25 46.5Z' fill='" + W + "' stroke='" + W +
+      "' stroke-width='4' stroke-linejoin='round'/>"
+    );
+  }
+
+  function iCheck() {
+    return wrap(
+      "<path d='M17.5 33.5L27.5 43.5L46.5 21.5' fill='none' stroke='" + W +
+      "' stroke-width='6.4' stroke-linecap='round' stroke-linejoin='round'/>"
+    );
+  }
+
+  /* ---------- 注册表与对外接口 ---------- */
+
+  var builders = {
+    menu: iMenu,
+    bomb: iBomb,
+    hourglass: iHourglass,
+    plus: iPlus,
+    close: iClose,
+    volumeOn: iVolumeOn,
+    volumeOff: iVolumeOff,
+    upload: iUpload,
+    download: iDownload,
+    reset: iReset,
+    info: iInfo,
+    pause: iPause,
+    play: iPlay,
+    check: iCheck
+  };
+
+  var cache = {};
+  var warned = {};
+
+  GP.ART = {
+    names: ['menu', 'bomb', 'hourglass', 'plus', 'close', 'volumeOn', 'volumeOff',
+      'upload', 'download', 'reset', 'info', 'pause', 'play', 'check'],
+
+    /** icon(name) -> SVG dataURI；未知名回落 menu 并 warn 一次 */
+    icon: function (name) {
+      var known = Object.prototype.hasOwnProperty.call(builders, name);
+      var key = known ? name : 'menu';
+      if (!known && !warned[name]) {
+        warned[name] = true;
+        try { console.warn('[GP.ART] unknown icon "' + name + '", fallback to "menu"'); } catch (e) { /* ignore */ }
+      }
+      if (!cache[key]) { cache[key] = toURI(builders[key]()); }
+      return cache[key];
+    }
+  };
+})();
+
+/* node 自测/导出入口（浏览器下忽略） */
+if (typeof module !== 'undefined' && module.exports) { module.exports = (typeof window !== 'undefined' ? window.GP : (global.GP = global.GP || {})).ART; }
+
+
+/* ==== audio.js ==== */
+/* ============================================================
+ * gravity-pinball · src/audio.js —— GP.AUDIO 全 WebAudio 程序化合成
+ * 休闲弹球手游风：短促、干净、有弹性。零外部资源。
+ *
+ * 链路: sfxBus(用户音量) -> master(静音开关) -> DynamicsCompressor(-14/8) -> destination
+ * applyOverrides: dataURL/ArrayBuffer 异步 decodeAudioData，成功后该名走 buffer，
+ *   失败静默回落合成；原始 map 只存内存，不碰 localStorage。
+ *
+ * 音色表（全部合成）：
+ *   bounce(i) 碰撞 blip    三角波 320+i*500Hz，dur 120->60ms，音量∝i，指数快衰减
+ *   hit       bumper 命中  正弦 180Hz pluck + 高频噪声 click，清脆有弹性
+ *   pop       消除爆       噪声 bandpass 1800->420 + 方波 660->220，80ms
+ *   swallow   漩涡吸入     正弦 600->110Hz 300ms + 9Hz tremolo，神秘
+ *   collect   收球         上行三连音 523/659/784，各 60ms
+ *   clear     过关         C E G C E 五音琶音 262->659 + 尾音闪光垫
+ *   bomb      低爆         噪声 lowpass 400->90 400ms + 60Hz 正弦 thump + duck
+ *   click     UI 点击      1kHz 30ms tick
+ *   slow      慢动作进入   噪声 bandpass 800->200 whoosh；{up:true}/slowUp 反向
+ *   add       加球         双音上行 blip 523/784
+ *   coin/float 浮分轻叮    1300Hz 50ms（float 更轻）
+ *   generic   兜底轻 tick  未知名回落于此，不抛错
+ *
+ * play(name,{vol,pitch,rate})：vol 缩放峰值；pitch 缩放频率；rate 走带式
+ * 缩放（时长/ret，频率×ret）。buffer 覆盖音 playbackRate = rate*pitch。
+ * ============================================================ */
+(function (global) {
+  'use strict';
+
+  /* ---------------- 内部状态 ---------------- */
+  var ctx = null;        // AudioContext（惰性创建，无手势也可创建只是 suspended）
+  var sfxBus = null;     // 用户音量支路
+  var master = null;     // 静音开关
+  var comp = null;       // DynamicsCompressor，多音叠加不削波
+  var noiseBuf = null;   // 共享 1s 白噪声
+  var muted = false;
+  var volume = 0.8;      // 用户音量 0..1（与 cfg.sfxVolume 默认一致）
+  var bound = false;     // 首手势监听只绑一次
+  var live = [];         // 活跃 voice 源（stopAll / onended 防泄漏）
+  var ovrBuf = {};       // name -> AudioBuffer（解码成功，优先使用）
+  var ovrRaw = {};       // name -> 原始 dataURL/ArrayBuffer（ctx 未就绪时挂起）
+  var lastT = {};        // 同名 cue 最小触发间隔（防同帧刷屏）
+  var CURR = 1, CURP = 1; // play(opts) 注入的 rate/pitch，voice 内统一应用
+
+  /* ---------------- 小工具 ---------------- */
+  function clamp(x, a, b) { return x < a ? a : (x > b ? b : x); }
+  function num(v, d) { return (typeof v === 'number' && isFinite(v)) ? v : d; }
+
+  function cleanup(nodes, src) {
+    if (src) {
+      try { src.onended = null; } catch (e0) {}
+      try { src.stop(0); } catch (e1) {}
+    }
+    for (var j = 0; j < nodes.length; j++) {
+      try { if (nodes[j]) nodes[j].disconnect(); } catch (e2) {}
+    }
+  }
+
+  /* 节点用完 stop -> onended -> 全员 disconnect，防泄漏 */
+  function reg(src, nodes) {
+    live.push(src);
+    src.onended = function () {
+      var i = live.indexOf(src);
+      if (i >= 0) live.splice(i, 1);
+      for (var j = 0; j < nodes.length; j++) {
+        try { nodes[j].disconnect(); } catch (e) {}
+      }
+      src.onended = null;
+    };
+  }
+
+  /* ---------------- 上下文 / 图 ---------------- */
+  function ensureCtx() {
+    if (ctx) return ctx;
+    var AC = null;
+    try { AC = global.AudioContext || global.webkitAudioContext || null; } catch (e) { AC = null; }
+    if (!AC) return null;
+    try {
+      ctx = new AC();
+      sfxBus = ctx.createGain();
+      sfxBus.gain.value = Math.max(0.0001, volume);
+      master = ctx.createGain();
+      master.gain.value = muted ? 0 : 1;
+      comp = ctx.createDynamicsCompressor();
+      try {
+        comp.threshold.value = -14;
+        comp.knee.value = 8;
+        if (comp.ratio) comp.ratio.value = 6;
+        if (comp.attack) comp.attack.value = 0.003;
+        if (comp.release) comp.release.value = 0.2;
+      } catch (e1) {}
+      sfxBus.connect(master);
+      master.connect(comp);
+      comp.connect(ctx.destination);
+      makeNoise();
+      flushOverrides();
+    } catch (e2) {
+      ctx = null;
+      return null;
+    }
+    return ctx;
+  }
+
+  function makeNoise() {
+    try {
+      var len = Math.max(1024, Math.floor(ctx.sampleRate));
+      noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+      var d = noiseBuf.getChannelData(0);
+      for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    } catch (e) { noiseBuf = null; }
+  }
+
+  /* ---------------- 基础 voice ----------------
+   * tone(o)：振荡器。o = {t,type,f,f2,dur,a,peak,ft,fq,fq2,q,trem,tremD}
+   * rate/pitch 由 CURR/CURP 统一缩放（走带式）。 */
+  function tone(o) {
+    if (!ctx) return null;
+    var osc = null, g = null, fl = null, lfo = null, lg = null, started = false;
+    try {
+      var R = CURR, P = CURP;
+      var t0 = (o.t != null ? o.t : ctx.currentTime);
+      var dur = Math.max(0.01, (o.dur || 0.1) / R);
+      osc = ctx.createOscillator();
+      osc.type = o.type || 'sine';
+      var f0 = Math.max(1, (o.f || 440) * R * P);
+      osc.frequency.setValueAtTime(f0, t0);
+      if (o.f2) {
+        osc.frequency.exponentialRampToValueAtTime(
+          Math.max(1, o.f2 * R * P), t0 + dur);
+      }
+      g = ctx.createGain();
+      var pk = Math.max(0.0002, o.peak || 0.1);
+      var atk = Math.min((o.a != null ? o.a : 0.004) / R, dur * 0.6);
+      g.gain.setValueAtTime(0.0002, t0);
+      g.gain.exponentialRampToValueAtTime(pk, t0 + atk);
+      g.gain.exponentialRampToValueAtTime(0.0002, t0 + dur);
+      var nodes = [osc, g];
+      if (o.ft) {
+        fl = ctx.createBiquadFilter();
+        fl.type = o.ft;
+        fl.Q.value = o.q || 0.8;
+        fl.frequency.setValueAtTime(Math.max(10, (o.fq || 1000) * R * P), t0);
+        if (o.fq2) {
+          fl.frequency.exponentialRampToValueAtTime(
+            Math.max(10, o.fq2 * R * P), t0 + dur);
+        }
+        osc.connect(fl); fl.connect(g); nodes.push(fl);
+      } else {
+        osc.connect(g);
+      }
+      if (o.trem) {
+        /* tremolo：LFO 加在 gain 参数上，尾部渐隐避免收尾咔哒 */
+        lfo = ctx.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = Math.max(0.1, o.trem * R);
+        lg = ctx.createGain();
+        var dep = pk * (o.tremD != null ? o.tremD : 0.25);
+        lg.gain.setValueAtTime(dep, t0);
+        lg.gain.setValueAtTime(dep, t0 + dur * 0.6);
+        lg.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+        lfo.connect(lg); lg.connect(g.gain); nodes.push(lfo, lg);
+        lfo.start(t0); lfo.stop(t0 + dur + 0.05);
+      }
+      g.connect(sfxBus);
+      osc.start(t0); started = true;
+      osc.stop(t0 + dur + 0.05);
+      reg(osc, nodes);
+      return osc;
+    } catch (e) {
+      cleanup([osc, fl, g, lfo, lg], started ? osc : null);
+      return null;
+    }
+  }
+
+  /* nz(o)：噪声 voice。o = {t,dur,a,peak,ft,f,f2,q}（ft: bandpass/lowpass/highpass） */
+  function nz(o) {
+    if (!ctx || !noiseBuf) return null;
+    var src = null, g = null, fl = null, started = false;
+    try {
+      var R = CURR, P = CURP;
+      var t0 = (o.t != null ? o.t : ctx.currentTime);
+      var dur = Math.max(0.006, (o.dur || 0.1) / R);
+      src = ctx.createBufferSource();
+      src.buffer = noiseBuf;
+      src.loop = true;
+      fl = ctx.createBiquadFilter();
+      fl.type = o.ft || 'bandpass';
+      fl.Q.value = o.q || 1;
+      fl.frequency.setValueAtTime(Math.max(10, (o.f || 1000) * R * P), t0);
+      if (o.f2) {
+        fl.frequency.exponentialRampToValueAtTime(
+          Math.max(10, o.f2 * R * P), t0 + dur);
+      }
+      g = ctx.createGain();
+      var pk = Math.max(0.0002, o.peak || 0.1);
+      var atk = Math.min((o.a != null ? o.a : 0.004) / R, dur * 0.5);
+      g.gain.setValueAtTime(0.0002, t0);
+      g.gain.exponentialRampToValueAtTime(pk, t0 + atk);
+      g.gain.exponentialRampToValueAtTime(0.0002, t0 + dur);
+      src.connect(fl); fl.connect(g); g.connect(sfxBus);
+      src.start(t0, Math.random() * 0.5); started = true;
+      src.stop(t0 + dur + 0.05);
+      reg(src, [src, fl, g]);
+      return src;
+    } catch (e) {
+      cleanup([src, fl, g], started ? src : null);
+      return null;
+    }
+  }
+
+  /* buffer 覆盖音：playbackRate = rate * pitch */
+  function playBuf(buf, vm) {
+    var src = null, g = null, started = false;
+    try {
+      var t0 = ctx.currentTime;
+      src = ctx.createBufferSource();
+      src.buffer = buf;
+      try { src.playbackRate.value = clamp(CURR * CURP, 0.06, 8); } catch (e0) {}
+      g = ctx.createGain();
+      g.gain.setValueAtTime(clamp(vm, 0, 4), t0);
+      src.connect(g); g.connect(sfxBus);
+      src.start(t0); started = true;
+      reg(src, [src, g]);
+      return src;
+    } catch (e) {
+      cleanup([src, g], started ? src : null);
+      return null;
+    }
+  }
+
+  /* duck：bomb 时压低 sfxBus 让其他音让路，dur 后回到用户音量 */
+  function duck(depth, dur) {
+    if (!sfxBus || !ctx) return;
+    try {
+      var t = ctx.currentTime, p = sfxBus.gain;
+      p.cancelScheduledValues(t);
+      p.setValueAtTime(Math.max(0.0001, volume), t);
+      p.linearRampToValueAtTime(Math.max(0.0001, volume * depth), t + 0.03);
+      p.linearRampToValueAtTime(Math.max(0.0001, volume), t + dur);
+    } catch (e) {}
+  }
+
+  /* ================= 音色表 ================= */
+  var cues = {};
+
+  /* bounce：碰撞 blip，强度定频率/时长/音量 */
+  cues.bounce = function (t, vm, x) {
+    var i = (x && typeof x.i === 'number') ? clamp(x.i, 0, 1) : 0.5;
+    var f = 320 + 500 * i;
+    var dur = 0.12 - 0.06 * i;
+    var pk = 0.05 + 0.22 * i;
+    tone({ t: t, type: 'triangle', f: f, f2: f * 0.55, dur: dur, a: 0.002, peak: pk * vm });
+  };
+
+  /* hit：bumper 命中 = 低频 pluck + 短噪声 click */
+  cues.hit = function (t, vm) {
+    tone({ t: t, type: 'sine', f: 180, f2: 126, dur: 0.09, a: 0.002, peak: 0.3 * vm });
+    nz({ t: t, dur: 0.016, peak: 0.12 * vm, ft: 'highpass', f: 4200, q: 0.7 });
+  };
+
+  /* pop：消除爆 = 噪声扫频 + 下滑方波 */
+  cues.pop = function (t, vm) {
+    nz({ t: t, dur: 0.07, peak: 0.28 * vm, ft: 'bandpass', f: 1800, f2: 420, q: 1 });
+    tone({ t: t, type: 'square', f: 660, f2: 220, dur: 0.08, a: 0.002, peak: 0.16 * vm });
+  };
+
+  /* swallow：漩涡吸入 = 正弦下扫 + tremolo */
+  cues.swallow = function (t, vm) {
+    tone({ t: t, type: 'sine', f: 600, f2: 110, dur: 0.3, a: 0.012,
+      peak: 0.26 * vm, trem: 9, tremD: 0.3 });
+    tone({ t: t, type: 'sine', f: 300, f2: 80, dur: 0.28, a: 0.012, peak: 0.07 * vm });
+  };
+
+  /* collect：收球 = 上行三连音 */
+  cues.collect = function (t, vm) {
+    var fs = [523.25, 659.25, 783.99];
+    for (var k = 0; k < 3; k++) {
+      tone({ t: t + k * 0.06 / CURR, type: 'triangle', f: fs[k], dur: 0.1,
+        a: 0.003, peak: 0.16 * vm });
+    }
+  };
+
+  /* clear：过关 = 上行五音琶音 + 尾音闪光垫 */
+  cues.clear = function (t, vm) {
+    var fs = [261.63, 329.63, 392, 523.25, 659.25];
+    for (var k = 0; k < 5; k++) {
+      tone({ t: t + k * 0.085 / CURR, type: 'triangle', f: fs[k], dur: 0.18,
+        a: 0.003, peak: 0.14 * vm });
+    }
+    tone({ t: t + 0.42 / CURR, type: 'sine', f: 1046.5, dur: 0.5, a: 0.04, peak: 0.05 * vm });
+    tone({ t: t + 0.42 / CURR, type: 'sine', f: 1318.5, dur: 0.5, a: 0.04, peak: 0.04 * vm });
+  };
+
+  /* bomb：低爆 = 低通噪声 + sub thump + duck */
+  cues.bomb = function (t, vm) {
+    nz({ t: t, dur: 0.4, peak: 0.5 * vm, ft: 'lowpass', f: 400, f2: 90, q: 0.6 });
+    tone({ t: t, type: 'sine', f: 60, f2: 38, dur: 0.32, a: 0.004, peak: 0.55 * vm });
+    nz({ t: t, dur: 0.03, peak: 0.14 * vm, ft: 'highpass', f: 3000, q: 0.7 });
+    duck(0.3, 0.45);
+  };
+
+  /* click：UI 点击 1kHz tick */
+  cues.click = function (t, vm) {
+    tone({ t: t, type: 'sine', f: 1000, dur: 0.03, a: 0.001, peak: 0.14 * vm });
+    nz({ t: t, dur: 0.01, peak: 0.05 * vm, ft: 'highpass', f: 5000, q: 0.7 });
+  };
+
+  /* slow：慢动作 whoosh，进入下扫 / 退出上扫（{up:true} 或 slowUp） */
+  cues.slow = function (t, vm, x) {
+    if (x && (x.up || x.reverse || x.exit)) { cues.slowUp(t, vm); return; }
+    nz({ t: t, dur: 0.3, peak: 0.22 * vm, ft: 'bandpass', f: 800, f2: 200, q: 1.2 });
+  };
+  cues.slowUp = function (t, vm) {
+    nz({ t: t, dur: 0.3, peak: 0.22 * vm, ft: 'bandpass', f: 200, f2: 800, q: 1.2 });
+  };
+  cues.slowOff = cues.slowUp;
+  cues.slowReverse = cues.slowUp;
+
+  /* add：加球 = 双音上行 blip */
+  cues.add = function (t, vm) {
+    tone({ t: t, type: 'triangle', f: 523.25, dur: 0.07, a: 0.002, peak: 0.15 * vm });
+    tone({ t: t + 0.07 / CURR, type: 'triangle', f: 783.99, dur: 0.09,
+      a: 0.002, peak: 0.17 * vm });
+  };
+
+  /* coin/float：浮分轻叮 */
+  cues.coin = function (t, vm) {
+    tone({ t: t, type: 'sine', f: 1300, dur: 0.05, a: 0.001, peak: 0.12 * vm });
+    tone({ t: t, type: 'sine', f: 1950, dur: 0.04, a: 0.001, peak: 0.04 * vm });
+  };
+  cues.float = function (t, vm) { cues.coin(t, vm * 0.8); };
+
+  /* generic：兜底轻 tick */
+  cues.generic = function (t, vm) {
+    tone({ t: t, type: 'triangle', f: 900, dur: 0.025, a: 0.001, peak: 0.07 * vm });
+  };
+
+  /* ---------------- 手势解锁 ---------------- */
+  function bindGestures() {
+    if (bound) return;
+    bound = true;
+    try {
+      if (typeof document === 'undefined' || !document.addEventListener) return;
+      var h = function () { unlock(); };
+      var opt = { passive: true, capture: true };
+      document.addEventListener('pointerdown', h, opt);
+      document.addEventListener('touchend', h, opt);
+      document.addEventListener('keydown', h, opt);
+    } catch (e) {}
+  }
+
+  function unlock() {
+    bindGestures();
+    if (!ensureCtx()) return;
+    try {
+      if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
+        var p = ctx.resume();
+        if (p && typeof p.catch === 'function') p.catch(function () {});
+      }
+    } catch (e) {}
+  }
+
+  /* ---------------- 覆盖音（applyOverrides） ---------------- */
+  function decodeOverride(name, data) {
+    if (!ctx) return; /* ctx 未就绪：留在 ovrRaw，init 后 flushOverrides 再解 */
+    var ab = null, p = null;
+    if (typeof ArrayBuffer !== 'undefined' && data instanceof ArrayBuffer) {
+      ab = data;
+    } else if (typeof data === 'string' && data.indexOf('data:') === 0 &&
+               typeof fetch === 'function') {
+      p = fetch(data).then(function (r) { return r.arrayBuffer(); });
+    } else if (typeof data === 'string' && data.indexOf('base64,') >= 0 &&
+               typeof atob === 'function') {
+      try {
+        var b64 = data.slice(data.indexOf('base64,') + 7);
+        var bin = atob(b64), n = bin.length, u8 = new Uint8Array(n);
+        for (var i = 0; i < n; i++) u8[i] = bin.charCodeAt(i);
+        ab = u8.buffer;
+      } catch (e) { return; }
+    } else {
+      return; /* 无法识别的类型：静默保留合成音 */
+    }
+    var doDecode = function (buf) {
+      try {
+        var r = ctx.decodeAudioData(buf, function (ok) { ovrBuf[name] = ok; },
+          function () {});
+        if (r && typeof r.then === 'function') {
+          r.then(function (ok) { ovrBuf[name] = ok; }, function () {});
+        }
+      } catch (e2) {}
+    };
+    if (p) p.then(doDecode, function () {});
+    else doDecode(ab);
+  }
+
+  function flushOverrides() {
+    for (var k in ovrRaw) {
+      if (Object.prototype.hasOwnProperty.call(ovrRaw, k)) decodeOverride(k, ovrRaw[k]);
+    }
+  }
+
+  function applyOverrides(map) {
+    if (!map || typeof map !== 'object') return;
+    for (var k in map) {
+      if (!Object.prototype.hasOwnProperty.call(map, k)) continue;
+      var v = map[k];
+      if (!v) { delete ovrBuf[k]; delete ovrRaw[k]; continue; }
+      ovrRaw[k] = v;
+      decodeOverride(k, v);
+    }
+  }
+
+  /* ---------------- 公开 API ---------------- */
+  function init() { bindGestures(); return !!ensureCtx(); }
+
+  function play(name, opts) {
+    if (!ensureCtx()) return;
+    if (typeof name !== 'string' || !name) name = 'generic';
+    var now = ctx.currentTime;
+    var lt = lastT[name];
+    if (lt != null && now - lt < 0.02) return; /* 同名 20ms 防抖 */
+    lastT[name] = now;
+    opts = opts || {};
+    var vm = clamp(num(opts.vol, 1), 0, 4);
+    CURR = clamp(num(opts.rate, 1), 0.1, 8);
+    CURP = clamp(num(opts.pitch, 1), 0.05, 8);
+    var fn = cues[name] || cues.generic;
+    try {
+      var buf = ovrBuf[name];
+      if (buf) playBuf(buf, vm);
+      else fn(now, vm, opts);
+    } catch (e) {
+      /* 合成出错静默，绝不影响游戏 */
+    } finally {
+      CURR = 1; CURP = 1;
+    }
+  }
+
+  function bounce(intensity) {
+    if (!ensureCtx()) return;
+    var now = ctx.currentTime;
+    var lt = lastT.bounce;
+    if (lt != null && now - lt < 0.02) return;
+    lastT.bounce = now;
+    var i = clamp(num(intensity, 0.5), 0, 1);
+    try { cues.bounce(now, 1, { i: i }); } catch (e) {}
+  }
+
+  function setMuted(m) {
+    muted = !!m;
+    if (ctx && master) {
+      try {
+        master.gain.cancelScheduledValues(ctx.currentTime);
+        master.gain.setValueAtTime(muted ? 0 : 1, ctx.currentTime);
+      } catch (e) {}
+    }
+  }
+
+  function setVolume(v) {
+    volume = clamp(num(v, 0.8), 0, 1);
+    if (ctx && sfxBus) {
+      try {
+        sfxBus.gain.cancelScheduledValues(ctx.currentTime);
+        sfxBus.gain.setValueAtTime(Math.max(0.0001, volume), ctx.currentTime);
+      } catch (e) {}
+    }
+  }
+
+  function stopAll() {
+    var a = live.splice(0, live.length);
+    for (var i = 0; i < a.length; i++) {
+      try { a[i].onended = null; } catch (e1) {}
+      try { a[i].stop(0); } catch (e2) {}
+    }
+    if (ctx && sfxBus) {
+      try {
+        sfxBus.gain.cancelScheduledValues(ctx.currentTime);
+        sfxBus.gain.setValueAtTime(Math.max(0.0001, volume), ctx.currentTime);
+      } catch (e3) {}
+    }
+  }
+
+  var AUDIO = {
+    init: init,
+    unlock: unlock,
+    play: play,
+    bounce: bounce,
+    setMuted: setMuted,
+    setVolume: setVolume,
+    applyOverrides: applyOverrides,
+    stopAll: stopAll
+  };
+  try {
+    Object.defineProperty(AUDIO, 'muted', {
+      get: function () { return muted; }, configurable: true
+    });
+    Object.defineProperty(AUDIO, 'volume', {
+      get: function () { return volume; }, configurable: true
+    });
+  } catch (e) {}
+
+  if (global && typeof global === 'object') {
+    if (!global.GP) global.GP = {};
+    global.GP.AUDIO = AUDIO;
+  }
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = AUDIO;
+  }
+})(typeof window !== 'undefined' ? window
+  : (typeof globalThis !== 'undefined' ? globalThis : this));
+
+
+/* ==== fx.js ==== */
+/* =========================================================================
+ * GP.FX — 《重力弹球王》轻量粒子特效（打击感负责）
+ *   burst(x,y,color,n)      发光火花四散（重力+阻尼+闪烁, lighter）
+ *   floatText(x,y,str,color) 浮动分数（上飘+淡出, 800 字重, 深描边+亮填充, 置顶层）
+ *   swallow(x,y)            漩涡吞噬（内旋碎片 + 收缩环 + 星尘, 灰紫/暖白）
+ *   ring(x,y,color)         扩散冲击环（线宽随寿命变细, lighter）
+ *   shake(mag)              只存震动强度, 偏移由主循环自算（本模块不碰 ctx）
+ *   update(dt)/draw(ctx)/clear()
+ * 纪律: 禁 shadowBlur —— 发光一律「离屏径向渐变精灵(64px 圆盘, 按色缓存)
+ *       + globalCompositeOperation='lighter' 叠色」
+ *       对象池 + 硬上限 320 · 池满优先回收低价值最老粒子 · swap-pop 回收
+ *       update 与 draw 严格分离（draw 不推进）· dt>0.05 钳制 · hidden 不积累
+ *       ctx 已由游戏层变换到场地逻辑坐标(宽 390): 本模块不做 setTransform/清屏/DPR
+ *       无 DOM 环境(node)全部安全 NOOP, require 不炸
+ * ========================================================================= */
+;(function(){
+'use strict';
+
+var HAS_DOC=(typeof document!=='undefined');
+var root=(typeof window!=='undefined')?window:globalThis;
+var GP=root.GP=(root.GP||{});
+var FX=GP.FX=(GP.FX||{});
+
+// ---------- 常量 ----------
+var TAU=Math.PI*2;
+var MAXP=320;                          // 粒子硬上限
+var T_SPARK=0,T_SWIRL=1,T_RING=2,T_TEXT=3;
+var VALUE=[0,0,1,2];                   // 池满回收价值: 数值小者先被回收
+var WARM='255,244,220';                // 暖白（星尘/火花掺色）
+var LILAC='184,168,216';               // 灰紫 #b8a8d8（吞噬专用）
+var MAX_TEXT=12;                       // 浮动文字同屏上限, 超出丢最旧
+var PREWARM=['#b9c93e','#8d78cf','#6fb9e6','#3cb4cc','#6fbe4e','#d99a34',
+             '#d96f98','#9feaf2','#ffffff','#fff4dc','#b8a8d8']; // 关卡色板预烘焙
+
+// ---------- 状态 ----------
+var canvas=null;                       // 只存引用
+var list=[],pool=[];                   // 活动粒子 / 回收池
+var trauma=0;                          // 震动强度（衰减于 update, 偏移主循环自算）
+
+// ---------- 颜色: '#rgb'/'#rrggbb'/'rgb(..)'/'rgba(..)' -> 'r,g,b'（带缓存） ----------
+var _rgbCache={};
+function rgbOf(col,fallback){
+  var key=(col===undefined||col===null)?'':(''+col);
+  var v=_rgbCache[key];
+  if(v!==undefined) return v;
+  var r,g,b,m;
+  if(key.charAt(0)==='#'){
+    var hex=key.length===4?key.slice(1).replace(/./g,'$&$&'):key.slice(1);
+    r=parseInt(hex.slice(0,2),16); g=parseInt(hex.slice(2,4),16); b=parseInt(hex.slice(4,6),16);
+  }else if((m=key.match(/[\d.]+/g))&&m.length>=3){
+    r=+m[0]; g=+m[1]; b=+m[2];
+  }else{ r=g=b=NaN; }
+  if(isNaN(r)||isNaN(g)||isNaN(b)) v=fallback||WARM;
+  else v=(r|0)+','+(g|0)+','+(b|0);
+  _rgbCache[key]=v;
+  return v;
+}
+
+// ---------- 发光精灵: 64px 径向渐变圆盘, 按 'r,g,b' 缓存（无 DOM 返回 null） ----------
+var _sprites={};
+function glow(rgb){
+  var s=_sprites[rgb];
+  if(s!==undefined) return s;
+  if(!HAS_DOC){ _sprites[rgb]=null; return null; }
+  var c=document.createElement('canvas'); c.width=c.height=64;
+  var g=c.getContext('2d');
+  if(g){
+    var gr=g.createRadialGradient(32,32,0,32,32,32);
+    gr.addColorStop(0,'rgba('+rgb+',1)');
+    gr.addColorStop(0.25,'rgba('+rgb+',0.62)');
+    gr.addColorStop(0.6,'rgba('+rgb+',0.17)');
+    gr.addColorStop(1,'rgba('+rgb+',0)');
+    g.fillStyle=gr; g.fillRect(0,0,64,64);
+  }
+  _sprites[rgb]=c;
+  return c;
+}
+
+// ---------- 对象池: 硬上限 MAXP, 满时原地重用「价值最低且最老」的槽位 ----------
+function acquire(){
+  if(list.length<MAXP){ var p=pool.pop()||{}; list.push(p); return p; }
+  var bi=0,bv=99,ba=-1;
+  for(var i=0;i<list.length;i++){
+    var q=list[i],v=VALUE[q.type]||0;
+    if(v>bv) continue;
+    if(v<bv||q.age>ba){ bi=i; bv=v; ba=q.age; }
+  }
+  return list[bi];                     // 原地重用, 调用方覆写全部字段
+}
+function oldestTextIdx(){
+  var bi=-1,ba=-1;
+  for(var i=0;i<list.length;i++){
+    var q=list[i];
+    if(q.type===T_TEXT&&q.age>ba){ ba=q.age; bi=i; }
+  }
+  return bi;
+}
+
+// ---------- 生成器 ----------
+function burst(x,y,color,n){
+  x=+x||0; y=+y||0;
+  var rgb=(color===undefined||color===null||color==='')?WARM:rgbOf(color,WARM);
+  var cnt=n>0?Math.min(n|0,48):(n===0?0:10);
+  for(var i=0;i<cnt;i++){
+    var p=acquire();
+    var a=Math.random()*TAU;
+    var sp=90+Math.random()*230;
+    p.type=T_SPARK;
+    p.x=x+(Math.random()-0.5)*4;
+    p.y=y+(Math.random()-0.5)*4;
+    p.vx=Math.cos(a)*sp;
+    p.vy=Math.sin(a)*sp-46;            // 轻微上抛
+    p.size=1.5+Math.random()*1.9;
+    p.life=0.32+Math.random()*0.34;
+    p.age=0;
+    p.grav=760; p.drag=3.1;
+    p.rgb=(Math.random()<0.72)?rgb:WARM;   // 以传入色为主, 掺少量暖白
+    p.ph=Math.random()*TAU;
+    p.fq=16+Math.random()*24;
+  }
+}
+
+function floatText(x,y,str,color){
+  x=+x||0; y=+y||0;
+  var txt=String(str===undefined||str===null?'':str).slice(0,12);
+  if(!txt) return;
+  var rgb=(color===undefined||color===null||color==='')?'255,255,255':rgbOf(color,'255,255,255');
+  var cnt=0;
+  for(var i=0;i<list.length;i++) if(list[i].type===T_TEXT) cnt++;
+  var p;
+  if(cnt>=MAX_TEXT){                   // 同屏超限: 重用最旧一条
+    var oi=oldestTextIdx();
+    p=(oi>=0)?list[oi]:acquire();
+  }else p=acquire();
+  p.type=T_TEXT; p.x=x; p.y=y;
+  p.txt=txt;
+  p.size=txt.length>6?15:17;           // 长串略缩, 15px 起步
+  p.life=0.9; p.age=0; p.vy=64;        // 上飘初速, update 里减速
+  p.rgb=rgb;
+}
+
+function swallow(x,y){
+  x=+x||0; y=+y||0;
+  var i,p,a;
+  for(i=0;i<11;i++){                   // 内旋碎片: 统一逆时针卷向中心
+    p=acquire();
+    a=Math.random()*TAU;
+    var r0=26+Math.random()*30;
+    p.type=T_SWIRL;
+    p.cx=x; p.cy=y;
+    p.ang=a; p.r=r0; p.r0=r0;
+    p.vr=52+Math.random()*46;          // 径向向内速度
+    p.va=-(4.6+Math.random()*2.6);     // 角速度（统一方向成涡）
+    p.size=1.6+Math.random()*1.6;
+    p.life=(r0/p.vr)*1.05+0.1;
+    p.age=0;
+    p.rgb=(Math.random()<0.8)?LILAC:WARM;
+  }
+  p=acquire();                         // 一圈收缩环
+  p.type=T_RING; p.x=x; p.y=y;
+  p.r0=46; p.r1=5; p.w=3.5; p.life=0.5; p.age=0; p.rgb=LILAC;
+  for(i=0;i<5;i++){                    // 少量暖白雪尘
+    p=acquire();
+    a=Math.random()*TAU;
+    var sp=18+Math.random()*56;
+    p.type=T_SPARK;
+    p.x=x+Math.cos(a)*10; p.y=y+Math.sin(a)*10;
+    p.vx=Math.cos(a)*sp; p.vy=Math.sin(a)*sp-20;
+    p.size=1.1+Math.random()*1.1;
+    p.life=0.4+Math.random()*0.3;
+    p.age=0; p.grav=60; p.drag=2.2;
+    p.rgb=WARM; p.ph=Math.random()*TAU; p.fq=20+Math.random()*18;
+  }
+}
+
+function ring(x,y,color){
+  var p=acquire();
+  p.type=T_RING;
+  p.x=+x||0; p.y=+y||0;
+  p.r0=6; p.r1=84;
+  p.w=4.5; p.life=0.45; p.age=0;
+  p.rgb=(color===undefined||color===null||color==='')?WARM:rgbOf(color,WARM);
+}
+
+function shake(mag){
+  var m=Math.abs(+mag)||0;
+  if(m>trauma) trauma=(m>1?1:m);       // 只存峰值, 主循环读 FX.getShake() 自算偏移
+}
+function getShake(){ return trauma; }
+
+// ---------- API ----------
+function init(cv){
+  if(cv&&typeof cv==='object') canvas=cv;   // 只存引用, 可安全多次调用
+  if(HAS_DOC){                              // 一次性预烘焙关卡色板发光精灵
+    for(var i=0;i<PREWARM.length;i++) glow(rgbOf(PREWARM[i],WARM));
+    glow(WARM); glow(LILAC); glow('255,255,255');
+  }
+  return FX;
+}
+
+function clear(){
+  while(list.length) pool.push(list.pop());
+  trauma=0;
+}
+
+function update(dt){
+  if(HAS_DOC&&document.hidden) return;      // 后台不积累
+  if(!(dt>0)) return;
+  if(dt>0.05) dt=0.05;
+  trauma*=Math.exp(-3*dt); if(trauma<0.003) trauma=0;
+  for(var i=list.length-1;i>=0;i--){
+    var p=list[i];
+    p.age+=dt;
+    var dead=(p.age>=p.life);
+    if(!dead){
+      if(p.type===T_SPARK){                 // 重力 + 指数阻尼
+        var e=Math.exp(-p.drag*dt);
+        p.vx*=e; p.vy=p.vy*e+p.grav*dt;
+        p.x+=p.vx*dt; p.y+=p.vy*dt;
+      }else if(p.type===T_SWIRL){           // 半径收缩 + 角向内旋
+        p.r-=p.vr*dt;
+        p.ang+=p.va*dt;
+        p.x=p.cx+Math.cos(p.ang)*p.r;
+        p.y=p.cy+Math.sin(p.ang)*p.r;
+        if(p.r<=2.5) dead=true;
+      }else if(p.type===T_TEXT){            // 上飘减速
+        p.vy*=Math.exp(-2.4*dt);
+        p.y-=p.vy*dt;
+      }
+      // T_RING: 半径由 age 在 draw 里推导, 无状态可推进
+    }
+    if(dead){                               // swap-pop 回收, 不用 splice
+      pool.push(p);
+      var last=list.pop();
+      if(i<list.length) list[i]=last;
+    }
+  }
+}
+
+function draw(ctx){
+  if(!ctx||typeof ctx.save!=='function'||!list.length) return;
+  ctx.save();
+  var i,p,n=list.length;
+  // pass1: lighter 叠色发光 —— spark / swirl / ring
+  ctx.globalCompositeOperation='lighter';
+  for(i=0;i<n;i++){
+    p=list[i];
+    if(p.type===T_SPARK) dSpark(ctx,p);
+    else if(p.type===T_SWIRL) dSwirl(ctx,p);
+    else if(p.type===T_RING) dRing(ctx,p);
+  }
+  // pass2: 普通合成置顶 —— 浮动分数
+  ctx.globalCompositeOperation='source-over';
+  for(i=0;i<n;i++) if(list[i].type===T_TEXT) dText(ctx,list[i]);
+  ctx.restore();                           // 恢复合成/透明度, 零状态残留
+}
+
+// ---------- 绘制子程 ----------
+function dSpark(ctx,p){                    // 发光点: 色晕精灵 + 暖白亮核, 带闪烁
+  var t=p.age/p.life;
+  var flick=0.72+0.28*Math.sin(p.age*p.fq+p.ph);
+  var a=Math.pow(1-t,0.7)*flick;
+  if(a<=0.01) return;
+  var s=p.size*3.4+2;
+  var sp=glow(p.rgb);
+  ctx.globalAlpha=a*0.85;
+  if(sp) ctx.drawImage(sp,p.x-s,p.y-s,s*2,s*2);
+  else{
+    ctx.fillStyle='rgb('+p.rgb+')';
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,TAU); ctx.fill();
+  }
+  ctx.globalAlpha=a;
+  ctx.fillStyle='rgba('+WARM+',0.95)';
+  ctx.beginPath();
+  ctx.arc(p.x,p.y,Math.max(0.7,p.size*(1-t*0.45)),0,TAU);
+  ctx.fill();
+}
+function dSwirl(ctx,p){                    // 内旋碎片: 色晕 + 切向短线
+  var t=p.age/p.life;
+  var rr=p.r>0?p.r:0;
+  var k=rr/p.r0;                           // 越近中心越小越淡
+  var a=(1-t)*(0.45+0.55*k);
+  if(a<=0.01) return;
+  var s=p.size*2.6+1.5;
+  var sp=glow(p.rgb);
+  ctx.globalAlpha=a*0.7;
+  if(sp) ctx.drawImage(sp,p.x-s,p.y-s,s*2,s*2);
+  var ta=p.ang+(p.va<0?-1:1)*1.5708;       // 运动切向
+  var L=3+6*k;
+  ctx.globalAlpha=a;
+  ctx.strokeStyle='rgba('+p.rgb+',1)';
+  ctx.lineWidth=Math.max(1,p.size*0.9);
+  ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(p.x-Math.cos(ta)*L,p.y-Math.sin(ta)*L);
+  ctx.lineTo(p.x+Math.cos(ta)*L*0.4,p.y+Math.sin(ta)*L*0.4);
+  ctx.stroke();
+}
+function dRing(ctx,p){                     // 冲击环: 双层描边当光晕, 线宽随寿命变细
+  var t=p.age/p.life;
+  var e=1-Math.pow(1-t,3);
+  var r=p.r0+(p.r1-p.r0)*e;                // r1<r0 时即收缩环（吞噬用）
+  var w=Math.max(0.6,p.w*(1-t*0.7));
+  var a=Math.pow(1-t,0.85);
+  if(a<=0.01) return;
+  ctx.strokeStyle='rgba('+p.rgb+',1)';
+  ctx.globalAlpha=a*0.22;
+  ctx.lineWidth=w*2.6;
+  ctx.beginPath(); ctx.arc(p.x,p.y,r,0,TAU); ctx.stroke();
+  ctx.globalAlpha=a;
+  ctx.lineWidth=w;
+  ctx.beginPath(); ctx.arc(p.x,p.y,r,0,TAU); ctx.stroke();
+}
+function dText(ctx,p){                     // 800 字重, 深色描边 + 亮填充, 轻微放大入场
+  var t=p.age/p.life;
+  var a=(t<0.6)?1:1-(t-0.6)/0.4;
+  if(a<=0) return;
+  var sc=0.6+0.4*Math.min(1,p.age/0.08);
+  var sz=p.size;
+  ctx.globalAlpha=a;
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  ctx.scale(sc,sc);
+  ctx.font='800 '+sz+'px -apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.lineJoin='round'; ctx.miterLimit=2;
+  ctx.lineWidth=Math.max(3,sz*0.18);
+  ctx.strokeStyle='rgba(24,19,13,0.9)';
+  ctx.strokeText(p.txt,0,0);
+  ctx.fillStyle='rgb('+p.rgb+')';
+  ctx.fillText(p.txt,0,0);
+  ctx.restore();
+}
+
+// ---------- 挂载 ----------
+FX.init=init;
+FX.burst=burst;
+FX.floatText=floatText;
+FX.swallow=swallow;
+FX.ring=ring;
+FX.shake=shake;
+FX.getShake=getShake;      // 主循环可读当前震动强度自算偏移
+FX.update=update;
+FX.draw=draw;
+FX.clear=clear;
+
+// node 下 require 自测出口（浏览器无 module, 不影响）
+if(typeof module!=='undefined'&&module.exports){ module.exports=FX; }
+})();
+
+
+/* ==== config-panel.js ==== */
+/* ============================================================
+ * gravity-pinball · GP.CFGP 设置面板（手机优先 · 底部抽屉）
+ * ------------------------------------------------------------------------
+ * 数据流红线：
+ *   - 面板永不直接读写 localStorage（唯一例外：「清空游戏进度」按契约
+ *     removeItem 进度档 gp_state_v1 —— 进度存档不属于 CFG 面板数据流）。
+ *   - open() 时 work = 深拷贝(GP.CFG.all())；控件改 work 后立即
+ *     GP.CFG.apply(clone(work))（apply 内部落盘 + 广播完整快照，
+ *     主游戏 GP.GAME 已订阅自动生效）；close() 直接丢弃 work。
+ *   - 导入 JSON 非法时 toast 报错且绝不 apply / 不落盘。
+ *
+ * mods 摆渡（本文件私有约定，读侧 cfg.mods.*）：
+ *   core.js 的 CFG_DEF 没有 mods 顶层键，GP.CFG.apply 的 mergeInto(root)
+ *   会丢弃未知根键。因此面板把新增字段统一放 work.mods = {...}（UI 真相），
+ *   commit 时镜像进 work.sounds.__mods —— sounds 是 CFG_DEF 已知嵌套对象，
+ *   其内部未知键可穿越 mergeInto 且随 gp_cfg_v1 落盘；广播时再把 __mods
+ *   提升回快照 .mods。本模块按加载顺序先于 game.js 执行，抢占 onChange
+ *   首位，故提升先于主游戏回调。导入/导出经 cfg.sounds 完整往返。
+ *   已知 mods 字段：showFps(bool)。今后新增非 schema 字段一律进 mods。
+ *
+ * 兜底：GP.ART / GP.AUDIO 缺失不抛错；无 document（node）下 open/close/
+ *   toggle 全部 NOOP。视觉：深色暖调扁平风（#2b2622 / #35302a / 强调
+ *   #f2586a），无渐变、无玻璃拟态、无大圆角卡片堆叠。
+ * ============================================================ */
+(function () {
+  'use strict';
+
+  var GP = (typeof window !== 'undefined')
+    ? (window.GP = window.GP || {})
+    : ((typeof global !== 'undefined') ? (global.GP = global.GP || {}) : {});
+  var HAS_DOC = typeof document !== 'undefined';
+
+  /* ---------------- 小工具 ---------------- */
+
+  function isObj(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
+  function clone(o) { try { return JSON.parse(JSON.stringify(o)); } catch (e) { return null; } }
+
+  function el(tag, cls, html) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html != null) e.innerHTML = html;
+    return e;
+  }
+  function txt(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function isDataURI(u) { return typeof u === 'string' && u.indexOf('data:image') === 0; }
+
+  /* GP.ART 守卫：按钮小图标 + 皮肤默认图 */
+  function icon(name) {
+    var u = artIcon(name);
+    return u ? '<img class="gpcp-ic" alt="" src="' + u + '">' : '';
+  }
+  function artIcon(name) {
+    try {
+      var u = (GP.ART && typeof GP.ART.icon === 'function') ? GP.ART.icon(name) : null;
+      if (isDataURI(u)) return u;
+    } catch (e) { /* ART 缺失不致命 */ }
+    return '';
+  }
+  var PLACEHOLDER = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+    '<rect x="8" y="8" width="48" height="48" rx="9" fill="none" stroke="#4a423a" stroke-width="2" stroke-dasharray="5 4"/>' +
+    '<circle cx="32" cy="32" r="7" fill="#4a423a"/></svg>');
+
+  /* GP.AUDIO 守卫：音量 / 静音改动即时试听一次 */
+  function sfxPreview() {
+    try {
+      if (work && work.muted) return;
+      var A = GP.AUDIO;
+      if (A && typeof A.play === 'function') A.play('hit');
+    } catch (e) { /* 音频缺失静默 */ }
+  }
+
+  /* ---------------- mods 摆渡 ---------------- */
+
+  /* 广播快照 / 内存 cfg：把 sounds.__mods 提升为 .mods（就地） */
+  function liftMods(o) {
+    if (isObj(o) && !isObj(o.mods) && isObj(o.sounds) && isObj(o.sounds.__mods)) {
+      o.mods = clone(o.sounds.__mods);
+    }
+    return o;
+  }
+  /* 提交快照：把 mods 镜像进嵌套载体（空对象也写入，保证可清空） */
+  function sealMods(snap) {
+    if (!isObj(snap) || !isObj(snap.mods)) return snap;
+    if (!isObj(snap.sounds)) snap.sounds = {};
+    snap.sounds.__mods = clone(snap.mods);
+    return snap;
+  }
+  /* 装载期执行：本模块先于 game.js 加载 ——
+   * 1) 把已落盘的 __mods 提升进当前内存 cfg，游戏启动读 CFG.all() 即见 mods；
+   * 2) 抢先注册 onChange，广播快照先提升 mods 再交给主游戏回调。 */
+  (function initModsBridge() {
+    try {
+      if (GP.CFG && typeof GP.CFG.all === 'function') liftMods(GP.CFG.all());
+    } catch (e) { /* ignore */ }
+    try {
+      if (GP.CFG && typeof GP.CFG.onChange === 'function') {
+        GP.CFG.onChange(function (snap) { liftMods(snap); });
+      }
+    } catch (e) { /* ignore */ }
+  })();
+
+  /* ---------------- CFG 存取（全部经 GP.CFG，不碰 localStorage） -------- */
+
+  function cfgAll() {
+    try {
+      if (GP.CFG && typeof GP.CFG.all === 'function') return GP.CFG.all() || {};
+    } catch (e) { /* ignore */ }
+    return {};
+  }
+  function normalizeWork(w) {
+    if (!isObj(w)) w = {};
+    if (!isObj(w.mods)) w.mods = {};
+    if (!isObj(w.icons)) w.icons = { bomb: '', hourglass: '' };
+    return w;
+  }
+  /* 面板编辑唯一出口：work → apply(clone)（落盘 + 广播） */
+  function commit() {
+    if (!work) return;
+    var C = GP.CFG;
+    if (!C || typeof C.apply !== 'function') return;
+    var snap = sealMods(clone(work));
+    if (!snap) return;
+    try { C.apply(snap); } catch (e) { /* 存储层异常不打断面板 */ }
+  }
+
+  /* mods 路径读写：'muted' 直达根键，'mods.showFps' 走嵌套包 */
+  function getVal(path) {
+    if (!work) return false;
+    if (path.indexOf('mods.') === 0) {
+      return !!(isObj(work.mods) && work.mods[path.slice(5)]);
+    }
+    return !!work[path];
+  }
+  function setVal(path, v) {
+    if (!work) return;
+    if (path.indexOf('mods.') === 0) {
+      if (!isObj(work.mods)) work.mods = {};
+      work.mods[path.slice(5)] = v;
+    } else {
+      work[path] = v;
+    }
+  }
+
+  /* ---------------- 面板状态 ---------------- */
+
+  var panel = null, work = null, els = null;
+  var imgInput = null, dataInput = null, imgTarget = null;
+  var toastTimer = 0, confirmFn = null;
+  var cfTitle = null, cfText = null, cfOk = null;
+
+  function open() {
+    if (!HAS_DOC) return; /* node / 极端环境：NOOP 不抛错 */
+    if (!document.body) { setTimeout(open, 30); return; }
+    if (!panel) build();
+    work = normalizeWork(liftMods(clone(cfgAll())));
+    syncAll();
+    hideConfirm();
+    panel.mask.classList.add('gpcp-show');
+  }
+  function close() {
+    if (!panel) return;
+    panel.mask.classList.remove('gpcp-show');
+    hideConfirm();
+    work = null; /* 丢弃工作副本 */
+  }
+  function toggle() { if (isOpen()) close(); else open(); }
+  function isOpen() { return !!(panel && panel.mask.classList.contains('gpcp-show')); }
+
+  function toast(msg) {
+    if (!panel) return;
+    panel.toast.textContent = msg;
+    panel.toast.classList.add('gpcp-show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      if (panel) panel.toast.classList.remove('gpcp-show');
+    }, 1800);
+  }
+
+  /* ---------------- 确认层（z-index 9100） ---------------- */
+
+  function askConfirm(title, text, okLabel, fn, danger) {
+    if (!panel) return;
+    if (cfTitle) cfTitle.textContent = title;
+    if (cfText) cfText.textContent = text;
+    if (cfOk) {
+      cfOk.textContent = okLabel;
+      cfOk.classList.toggle('gpcp-fill', !!danger);
+    }
+    confirmFn = fn;
+    panel.confirm.classList.add('gpcp-show');
+  }
+  function hideConfirm() {
+    confirmFn = null;
+    if (panel) panel.confirm.classList.remove('gpcp-show');
+  }
+  function doRestoreDefaults() {
+    var C = GP.CFG;
+    if (C && typeof C.apply === 'function') {
+      try { C.apply({}); } catch (e) { toast('恢复默认失败'); return; }
+    }
+    work = normalizeWork(liftMods(clone(cfgAll())));
+    syncAll();
+    toast('已恢复默认配置');
+  }
+  function doClearProgress() {
+    /* 唯一允许直接碰 localStorage 的地方：清进度档并重启 */
+    try {
+      var k = (GP.SAVE && GP.SAVE.KEY) || 'gp_state_v1';
+      localStorage.removeItem(k);
+    } catch (e) { /* ignore */ }
+    location.reload();
+  }
+
+  /* ---------------- 控件行 ---------------- */
+
+  function sec(t) { return el('div', 'gpcp-sec', txt(t)); }
+  function hint(t) { return el('div', 'gpcp-hint', txt(t)); }
+
+  /* 滑杆行：标签 + 数值一行，滑杆整行在下（手机好拖） */
+  function rowNum(label, key, min, max, step, def, dec, suffix, scale) {
+    scale = scale || 1;
+    var r = el('div', 'gpcp-srow');
+    var line = el('div', 'gpcp-sline');
+    line.innerHTML = '<span class="gpcp-lab">' + txt(label) + '</span>';
+    var val = el('span', 'gpcp-val', '');
+    line.appendChild(val);
+    var rng = document.createElement('input');
+    rng.type = 'range';
+    rng.className = 'gpcp-rng';
+    rng.min = String(min);
+    rng.max = String(max);
+    rng.step = String(step);
+    var fmt = function (v) { return Number(v).toFixed(dec) + (suffix || ''); };
+    rng.addEventListener('input', function () {
+      if (!work) return;
+      var v = parseFloat(rng.value);
+      if (isNaN(v)) return;
+      work[key] = v / scale;
+      val.textContent = fmt(v);
+      commit();
+    });
+    rng.addEventListener('change', function () {
+      if (key === 'sfxVolume') sfxPreview();
+    });
+    r.appendChild(line);
+    r.appendChild(rng);
+    if (els) els.nums[key] = { rng: rng, val: val, fmt: fmt, scale: scale, min: min, max: max, def: def };
+    return r;
+  }
+
+  /* 开关行：简洁 slide toggle（纯 CSS） */
+  function rowToggle(label, path, after) {
+    var r = el('div', 'gpcp-row');
+    r.innerHTML = '<span class="gpcp-lab">' + txt(label) + '</span>';
+    var b = el('button', 'gpcp-sw', '<i></i>');
+    b.type = 'button';
+    b.setAttribute('role', 'switch');
+    b.setAttribute('aria-checked', 'false');
+    b.addEventListener('click', function () {
+      if (!work) return;
+      var v = !getVal(path);
+      setVal(path, v);
+      paint(b, v);
+      commit();
+      if (after) after(v);
+    });
+    r.appendChild(b);
+    if (els) els.togs[path] = b;
+    return r;
+  }
+  function paint(b, v) {
+    b.classList.toggle('gpcp-on', !!v);
+    b.setAttribute('aria-checked', v ? 'true' : 'false');
+  }
+
+  /* 动作行：标签 + 说明在左，按钮在右 */
+  function actRow(label, sub, btnText, iconName, fn, danger) {
+    var r = el('div', 'gpcp-row');
+    var lw = el('div', 'gpcp-labwrap');
+    lw.innerHTML = '<span class="gpcp-lab">' + txt(label) + '</span>' +
+      (sub ? '<span class="gpcp-labsub">' + txt(sub) + '</span>' : '');
+    var b = el('button', 'gpcp-btn gpcp-sm' + (danger ? ' gpcp-dgr' : ''),
+      icon(iconName) + '<span>' + txt(btnText) + '</span>');
+    b.type = 'button';
+    b.addEventListener('click', fn);
+    r.appendChild(lw);
+    r.appendChild(b);
+    return r;
+  }
+
+  /* ---------------- 页 1 · 玩法 ---------------- */
+
+  function buildPlayPage() {
+    var p = el('div', 'gpcp-page');
+    p.appendChild(sec('物理与节奏'));
+    p.appendChild(rowNum('重力', 'gravity', 600, 2400, 50, 1500, 0, ''));
+    p.appendChild(rowNum('掉球间隔', 'dropInterval', 300, 900, 10, 550, 0, 'ms'));
+    p.appendChild(rowNum('bumper 弹性', 'restBumper', 0.7, 1, 0.01, 0.88, 2, ''));
+    p.appendChild(sec('声音'));
+    p.appendChild(rowNum('音效音量', 'sfxVolume', 0, 1, 0.05, 0.8, 0, '%', 100));
+    p.appendChild(rowToggle('静音', 'muted', function (on) { if (!on) sfxPreview(); }));
+    p.appendChild(sec('其他'));
+    p.appendChild(rowToggle('自动收球', 'autoCollect'));
+    p.appendChild(rowToggle('显示 FPS', 'mods.showFps'));
+    p.appendChild(hint('所有改动即时生效并自动保存。'));
+    return p;
+  }
+
+  /* ---------------- 页 2 · 皮肤 ---------------- */
+
+  function buildSkinPage() {
+    var p = el('div', 'gpcp-page');
+    p.appendChild(sec('道具图标'));
+    p.appendChild(skinRow('bomb', '炸弹'));
+    p.appendChild(skinRow('hourglass', '沙漏'));
+    p.appendChild(hint('上传图片等比压缩至 256px 长边（优先 WebP，失败落 PNG）后本地保存；「默认」恢复内置图标。'));
+    return p;
+  }
+  function skinRow(key, name) {
+    var row = el('div', 'gpcp-skin');
+    var th = el('div', 'gpcp-thumb');
+    var img = document.createElement('img');
+    img.alt = name + '图标预览';
+    th.appendChild(img);
+    var info = el('div', 'gpcp-skininfo');
+    info.innerHTML = '<div class="gpcp-skinname">' + txt(name) + '</div>';
+    var st = el('div', 'gpcp-skinstate', '默认图标');
+    info.appendChild(st);
+    var act = el('div', 'gpcp-skinact');
+    var bU = el('button', 'gpcp-btn gpcp-sm', icon('upload') + '<span>上传</span>');
+    bU.type = 'button';
+    bU.addEventListener('click', function () {
+      if (!imgInput) return;
+      imgTarget = key;
+      imgInput.click();
+    });
+    var bR = el('button', 'gpcp-btn gpcp-sm', icon('reset') + '<span>默认</span>');
+    bR.type = 'button';
+    bR.addEventListener('click', function () {
+      if (!work) return;
+      if (!isObj(work.icons)) work.icons = {};
+      work.icons[key] = '';
+      commit();
+      syncSkins();
+      toast(name + '图标已恢复默认');
+    });
+    act.appendChild(bU);
+    act.appendChild(bR);
+    row.appendChild(th);
+    row.appendChild(info);
+    row.appendChild(act);
+    if (els) { els.skinImgs[key] = img; els.skinStates[key] = st; }
+    return row;
+  }
+  function syncSkins() {
+    if (!els) return;
+    ['bomb', 'hourglass'].forEach(function (k) {
+      var custom = !!(work && isObj(work.icons) && work.icons[k]);
+      var im = els.skinImgs[k];
+      if (im) im.src = (custom ? work.icons[k] : '') || artIcon(k) || PLACEHOLDER;
+      if (els.skinStates[k]) {
+        els.skinStates[k].textContent = custom ? '已自定义' : '默认图标';
+        els.skinStates[k].classList.toggle('gpcp-on', custom);
+      }
+    });
+  }
+
+  /* ---------------- 图片压缩上传（256px 长边，webp 失败落 png） -------- */
+
+  function shrinkImage(file, ok, fail) {
+    var draw = function (src, w, h) {
+      try {
+        var k = Math.min(1, 256 / Math.max(w || 1, h || 1));
+        var cw = Math.max(1, Math.round((w || 1) * k));
+        var ch = Math.max(1, Math.round((h || 1) * k));
+        var cv = document.createElement('canvas');
+        cv.width = cw;
+        cv.height = ch;
+        cv.getContext('2d').drawImage(src, 0, 0, cw, ch);
+        var url = '';
+        try { url = cv.toDataURL('image/webp', 0.85); } catch (e) { url = ''; }
+        if (typeof url !== 'string' || url.indexOf('data:image/webp') !== 0) {
+          try { url = cv.toDataURL('image/png'); } catch (e2) { if (fail) fail(); return; }
+        }
+        ok(url);
+      } catch (e) { if (fail) fail(); }
+    };
+    var legacy = function () {
+      var im = new Image();
+      im.onload = function () { draw(im, im.naturalWidth || im.width, im.naturalHeight || im.height); };
+      im.onerror = function () { if (fail) fail(); };
+      try { im.src = URL.createObjectURL(file); } catch (e) { if (fail) fail(); }
+    };
+    if (typeof createImageBitmap === 'function') {
+      createImageBitmap(file).then(function (b) { draw(b, b.width, b.height); }, legacy);
+    } else legacy();
+  }
+  function onImgPicked() {
+    var f = imgInput.files && imgInput.files[0];
+    imgInput.value = '';
+    if (!f || !imgTarget) return;
+    var key = imgTarget;
+    imgTarget = null;
+    if (!work) work = normalizeWork(liftMods(clone(cfgAll())));
+    shrinkImage(f, function (url) {
+      if (!isObj(work.icons)) work.icons = {};
+      work.icons[key] = url;
+      commit();
+      syncSkins();
+      toast((key === 'bomb' ? '炸弹' : '沙漏') + '图标已更新');
+    }, function () { toast('图片读取失败'); });
+  }
+
+  /* ---------------- 页 3 · 数据 ---------------- */
+
+  function buildDataPage() {
+    var p = el('div', 'gpcp-page');
+    p.appendChild(sec('配置'));
+    p.appendChild(actRow('导出配置', '下载 .json 文件，含当前全部设置', '导出', 'download', exportData));
+    p.appendChild(actRow('导入配置', '选择此前导出的 .json 文件', '导入', 'upload', function () {
+      if (dataInput) dataInput.click();
+    }));
+    p.appendChild(sec('危险操作'));
+    p.appendChild(actRow('恢复默认配置', '全部选项回到默认值（含自定义图标）', '恢复', 'reset', function () {
+      askConfirm('恢复默认配置', '全部滑杆、开关与自定义图标将回到默认值。', '恢复默认', doRestoreDefaults);
+    }));
+    p.appendChild(actRow('清空游戏进度', '删除关卡 / 分数 / 道具纪录并重新开始', '清空', 'reset', function () {
+      askConfirm('清空游戏进度', '将删除全部进度（关卡、分数、球数、道具与最佳纪录），操作不可恢复。', '确认清空', doClearProgress, true);
+    }, true));
+    p.appendChild(hint('游戏进度独立于配置保存，导出文件仅包含设置。'));
+    return p;
+  }
+
+  function exportData() {
+    try {
+      var C = GP.CFG;
+      var cfgObj = (C && typeof C.exportJSON === 'function')
+        ? JSON.parse(C.exportJSON())
+        : (clone(cfgAll()) || {});
+      var payload = { app: 'gravity-pinball', ver: 1, time: Date.now(), cfg: cfgObj };
+      var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      var href = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = href;
+      a.download = 'gp-cfg-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { try { URL.revokeObjectURL(href); } catch (e) { /* ignore */ } }, 3000);
+      toast('配置已导出');
+    } catch (e) { toast('导出失败'); }
+  }
+  function onDataPicked() {
+    var f = dataInput.files && dataInput.files[0];
+    dataInput.value = '';
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () { importDataText(String(rd.result || '')); };
+    rd.onerror = function () { toast('读取文件失败'); };
+    try { rd.readAsText(f); } catch (e) { toast('读取文件失败'); }
+  }
+  function importDataText(text) {
+    var o = null;
+    try { o = JSON.parse(text); } catch (e) { toast('导入失败：非法 JSON'); return; }
+    if (!isObj(o)) { toast('导入失败：配置必须为 JSON 对象'); return; }
+    var cfgObj = isObj(o.cfg) ? o.cfg : o;
+    var C = GP.CFG;
+    var applied = false;
+    try {
+      if (C && typeof C.importJSON === 'function') { C.importJSON(JSON.stringify(cfgObj)); applied = true; }
+      else if (C && typeof C.apply === 'function') { C.apply(cfgObj); applied = true; }
+    } catch (e) { applied = false; }
+    if (!applied) { toast('导入失败：非法 JSON'); return; }
+    work = normalizeWork(liftMods(clone(cfgAll())));
+    /* 外来文件若带根级 mods（被 mergeInto 丢弃），这里捞回并摆渡落盘 */
+    if (isObj(cfgObj.mods)) {
+      work.mods = clone(cfgObj.mods);
+      commit();
+    }
+    syncAll();
+    toast('配置已导入');
+  }
+
+  /* ---------------- 同步 ---------------- */
+
+  function syncAll() {
+    if (!work || !els) return;
+    Object.keys(els.nums).forEach(function (k) {
+      var n = els.nums[k];
+      var raw = Number(work[k]);
+      if (!isFinite(raw)) raw = n.def;
+      if (raw < n.min) raw = n.min;
+      if (raw > n.max) raw = n.max;
+      var shown = raw * n.scale;
+      n.rng.value = String(shown);
+      n.val.textContent = n.fmt(shown);
+    });
+    Object.keys(els.togs).forEach(function (path) {
+      paint(els.togs[path], getVal(path));
+    });
+    syncSkins();
+  }
+
+  /* ---------------- DOM 构建 ---------------- */
+
+  function onKey(e) {
+    if (!e) return;
+    var k = e.key || '';
+    if (k === 'Escape' || e.keyCode === 27) {
+      if (panel && panel.confirm.classList.contains('gpcp-show')) { hideConfirm(); return; }
+      if (isOpen()) close();
+    }
+  }
+  function showTab(i) {
+    if (!els) return;
+    els.tabs.forEach(function (t, j) { t.classList.toggle('gpcp-on', j === i); });
+    els.pages.forEach(function (p, j) { p.classList.toggle('gpcp-on', j === i); });
+  }
+
+  function build() {
+    var old = document.getElementById('gpcp-root');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+    var oldCf = document.getElementById('gpcp-confirm');
+    if (oldCf && oldCf.parentNode) oldCf.parentNode.removeChild(oldCf);
+    if (!document.getElementById('gpcp-style')) {
+      var st = document.createElement('style');
+      st.id = 'gpcp-style';
+      st.textContent = CSS_TEXT;
+      document.head.appendChild(st);
+    }
+    els = { nums: {}, togs: {}, skinImgs: {}, skinStates: {}, tabs: [], pages: [] };
+
+    /* 隐藏文件选择器 */
+    imgInput = document.createElement('input');
+    imgInput.type = 'file';
+    imgInput.accept = 'image/*';
+    imgInput.style.display = 'none';
+    imgInput.addEventListener('change', onImgPicked);
+    dataInput = document.createElement('input');
+    dataInput.type = 'file';
+    dataInput.accept = 'application/json,.json';
+    dataInput.style.display = 'none';
+    dataInput.addEventListener('change', onDataPicked);
+
+    /* 抽屉 */
+    var mask = el('div', 'gpcp-mask');
+    mask.id = 'gpcp-root';
+    var drawer = el('div', 'gpcp-drawer');
+    drawer.setAttribute('role', 'dialog');
+    drawer.setAttribute('aria-label', '设置');
+
+    var head = el('div', 'gpcp-head');
+    var tw = el('div', 'gpcp-titlewrap');
+    tw.appendChild(el('div', 'gpcp-title', '设置'));
+    tw.appendChild(el('div', 'gpcp-sub', 'GRAVITY PINBALL'));
+    var xb = el('button', 'gpcp-x', icon('close') || '&times;');
+    xb.type = 'button';
+    xb.setAttribute('aria-label', '关闭');
+    xb.addEventListener('click', close);
+    head.appendChild(tw);
+    head.appendChild(xb);
+    drawer.appendChild(head);
+
+    var tabBox = el('div', 'gpcp-tabs');
+    ['玩法', '皮肤', '数据'].forEach(function (t, i) {
+      var b = el('button', 'gpcp-tab' + (i === 0 ? ' gpcp-on' : ''), txt(t));
+      b.type = 'button';
+      b.setAttribute('data-tab', String(i));
+      b.addEventListener('click', function () { showTab(i); });
+      tabBox.appendChild(b);
+      els.tabs.push(b);
+    });
+    drawer.appendChild(tabBox);
+
+    var body = el('div', 'gpcp-body');
+    [buildPlayPage(), buildSkinPage(), buildDataPage()].forEach(function (pg, i) {
+      if (i === 0) pg.classList.add('gpcp-on');
+      body.appendChild(pg);
+      els.pages.push(pg);
+    });
+    drawer.appendChild(body);
+    drawer.appendChild(imgInput);
+    drawer.appendChild(dataInput);
+    var toastEl = el('div', 'gpcp-toast');
+    drawer.appendChild(toastEl);
+
+    mask.appendChild(drawer);
+    mask.addEventListener('click', function (e) { if (e.target === mask) close(); });
+    document.body.appendChild(mask);
+
+    /* 确认层 */
+    var confirm = buildConfirm();
+    document.body.appendChild(confirm);
+    document.addEventListener('keydown', onKey);
+
+    panel = { mask: mask, drawer: drawer, toast: toastEl, confirm: confirm };
+  }
+
+  function buildConfirm() {
+    var cf = el('div', 'gpcp-confirm');
+    cf.id = 'gpcp-confirm';
+    var box = el('div', 'gpcp-cbox');
+    cfTitle = el('div', 'gpcp-cftitle', '');
+    cfText = el('p', 'gpcp-cftext', '');
+    var btns = el('div', 'gpcp-cbtns');
+    var bn = el('button', 'gpcp-btn', '<span>取消</span>');
+    bn.type = 'button';
+    bn.addEventListener('click', hideConfirm);
+    cfOk = el('button', 'gpcp-btn gpcp-acc', '<span>确定</span>');
+    cfOk.type = 'button';
+    cfOk.addEventListener('click', function () {
+      var fn = confirmFn;
+      hideConfirm();
+      if (fn) { try { fn(); } catch (e) { /* ignore */ } }
+    });
+    btns.appendChild(bn);
+    btns.appendChild(cfOk);
+    box.appendChild(cfTitle);
+    box.appendChild(cfText);
+    box.appendChild(btns);
+    cf.appendChild(box);
+    cf.addEventListener('click', function (e) { if (e.target === cf) hideConfirm(); });
+    return cf;
+  }
+
+  /* ---------------- 内联样式（gpcp- 前缀，深色暖调扁平） ---------------- */
+
+  var CSS_TEXT = [
+    '.gpcp-mask{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9000;background:rgba(17,13,10,.62);',
+    'display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s linear;}',
+    '.gpcp-mask.gpcp-show{opacity:1;pointer-events:auto;}',
+    '.gpcp-drawer{position:relative;width:100%;max-width:520px;max-height:82vh;display:flex;flex-direction:column;',
+    'background:#2b2622;border:1px solid rgba(255,255,255,.12);border-bottom:none;border-radius:14px 14px 0 0;',
+    'transform:translateY(32px);transition:transform .2s ease-out;color:#e8e2da;text-align:left;',
+    'font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;',
+    '-webkit-tap-highlight-color:transparent;}',
+    '.gpcp-mask.gpcp-show .gpcp-drawer{transform:translateY(0);}',
+    '.gpcp-head{display:flex;align-items:center;gap:10px;padding:14px 14px 12px 18px;border-bottom:1px solid rgba(255,255,255,.08);flex:0 0 auto;}',
+    '.gpcp-titlewrap{flex:1 1 auto;min-width:0;}',
+    '.gpcp-title{font-size:15px;font-weight:600;letter-spacing:1px;color:#e8e2da;}',
+    '.gpcp-sub{margin-top:2px;font-size:10px;letter-spacing:2px;color:rgba(232,226,218,.38);}',
+    '.gpcp-x{flex:0 0 auto;width:34px;height:34px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;',
+    'padding:0;background:transparent;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e8e2da;font-size:16px;cursor:pointer;}',
+    '.gpcp-x .gpcp-ic{width:14px;height:14px;}',
+    '.gpcp-x:active{border-color:#f2586a;}',
+    '.gpcp-tabs{display:flex;flex:0 0 auto;border-bottom:1px solid rgba(255,255,255,.08);}',
+    '.gpcp-tab{flex:1 1 0;height:44px;box-sizing:border-box;padding:0;background:transparent;border:none;',
+    'border-bottom:2px solid transparent;color:rgba(232,226,218,.5);font-size:14px;font-family:inherit;cursor:pointer;}',
+    '.gpcp-tab.gpcp-on{color:#e8e2da;font-weight:600;border-bottom-color:#f2586a;}',
+    '.gpcp-body{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 18px 12px;',
+    'padding-bottom:calc(12px + env(safe-area-inset-bottom));}',
+    '.gpcp-page{display:none;}',
+    '.gpcp-page.gpcp-on{display:block;}',
+    '.gpcp-sec{display:flex;align-items:center;gap:8px;margin:16px 0 2px;font-size:11px;letter-spacing:2px;color:rgba(232,226,218,.4);}',
+    '.gpcp-page .gpcp-sec:first-child{margin-top:12px;}',
+    '.gpcp-sec::after{content:"";flex:1 1 auto;height:1px;background:rgba(255,255,255,.08);}',
+    '.gpcp-row{min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid rgba(255,255,255,.08);}',
+    '.gpcp-lab{font-size:14px;color:#e8e2da;}',
+    '.gpcp-labwrap{display:flex;flex-direction:column;gap:3px;min-width:0;}',
+    '.gpcp-labsub{font-size:11px;color:rgba(232,226,218,.4);}',
+    '.gpcp-srow{padding:10px 0 12px;border-bottom:1px solid rgba(255,255,255,.08);}',
+    '.gpcp-sline{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;}',
+    '.gpcp-val{font-size:13px;color:rgba(232,226,218,.75);font-variant-numeric:tabular-nums;}',
+    '.gpcp-rng{display:block;width:100%;height:26px;margin:0;background:transparent;accent-color:#f2586a;}',
+    '.gpcp-sw{position:relative;flex:0 0 auto;width:46px;height:26px;box-sizing:border-box;padding:0;background:#35302a;',
+    'border:1px solid rgba(255,255,255,.14);border-radius:13px;cursor:pointer;transition:background .15s linear,border-color .15s linear;}',
+    '.gpcp-sw i{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#8d8478;',
+    'transition:left .15s linear,background .15s linear;}',
+    '.gpcp-sw.gpcp-on{background:#f2586a;border-color:#f2586a;}',
+    '.gpcp-sw.gpcp-on i{left:22px;background:#fff;}',
+    '.gpcp-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;min-height:38px;padding:0 14px;',
+    'background:#35302a;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e8e2da;font-size:14px;font-family:inherit;cursor:pointer;}',
+    '.gpcp-btn .gpcp-ic{width:14px;height:14px;}',
+    '.gpcp-btn:active{border-color:#f2586a;color:#f2586a;}',
+    '.gpcp-btn.gpcp-sm{min-height:32px;padding:0 10px;font-size:12px;}',
+    '.gpcp-btn.gpcp-dgr{border-color:rgba(242,88,106,.55);color:#f2586a;}',
+    '.gpcp-btn.gpcp-acc{border-color:rgba(242,88,106,.6);color:#f2586a;background:transparent;}',
+    '.gpcp-btn.gpcp-fill{background:#f2586a;border-color:#f2586a;color:#fff;}',
+    '.gpcp-btn.gpcp-fill:active{filter:brightness(1.08);color:#fff;}',
+    '.gpcp-skin{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08);}',
+    '.gpcp-thumb{flex:0 0 auto;width:56px;height:56px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;',
+    'background:#35302a;border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;}',
+    '.gpcp-thumb img{max-width:44px;max-height:44px;display:block;}',
+    '.gpcp-skininfo{flex:1 1 auto;min-width:0;}',
+    '.gpcp-skinname{font-size:14px;color:#e8e2da;}',
+    '.gpcp-skinstate{margin-top:3px;font-size:11px;color:rgba(232,226,218,.4);}',
+    '.gpcp-skinstate.gpcp-on{color:#f2586a;}',
+    '.gpcp-skinact{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;}',
+    '.gpcp-skinact .gpcp-btn{width:76px;}',
+    '.gpcp-hint{margin:12px 0 0;font-size:12px;line-height:1.7;color:rgba(232,226,218,.4);}',
+    '.gpcp-toast{position:absolute;top:58px;left:50%;transform:translateX(-50%);max-width:86%;box-sizing:border-box;padding:8px 14px;',
+    'background:#3a332c;border:1px solid rgba(255,255,255,.14);border-radius:8px;color:#e8e2da;font-size:13px;white-space:nowrap;',
+    'opacity:0;transition:opacity .15s linear;pointer-events:none;z-index:5;}',
+    '.gpcp-toast.gpcp-show{opacity:1;}',
+    '.gpcp-confirm{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9100;background:rgba(17,13,10,.72);',
+    'display:none;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;',
+    'font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;}',
+    '.gpcp-confirm.gpcp-show{display:flex;}',
+    '.gpcp-cbox{width:320px;max-width:100%;box-sizing:border-box;background:#2b2622;border:1px solid rgba(255,255,255,.14);',
+    'border-radius:14px;padding:18px 16px 16px;color:#e8e2da;text-align:left;}',
+    '.gpcp-cftitle{font-size:15px;font-weight:600;}',
+    '.gpcp-cftext{margin:10px 0 16px;font-size:13px;line-height:1.7;color:rgba(232,226,218,.6);}',
+    '.gpcp-cbtns{display:flex;gap:10px;}',
+    '.gpcp-cbtns .gpcp-btn{flex:1 1 0;}'
+  ].join('\n');
+
+  /* ---------------- 导出 API ---------------- */
+
+  GP.CFGP = {
+    open: open,
+    close: close,
+    toggle: toggle,
+    isOpen: isOpen
+  };
+
+  /* node 自测入口（浏览器下忽略） */
+  if (typeof module !== 'undefined' && module.exports) { module.exports = GP.CFGP; }
+})();
+
+
+/* ==== physics.js ==== */
+/* physics.js — 纯物理世界：球/线段/圆形bumper/菱形OBB/漩涡吞噬（主线负责，node 可测） */
+(function () {
+  'use strict';
+  var GP;
+  if (typeof window !== 'undefined') GP = window.GP = window.GP || {};
+  else GP = global.GP = global.GP || {};
+
+  var SQRT2 = Math.SQRT2;
+  var MAX_SPEED = 2400;
+
+  function World(opts) {
+    opts = opts || {};
+    this.gravity = opts.gravity != null ? opts.gravity : 1500;
+    this.restWall = opts.restWall != null ? opts.restWall : 0.72;
+    this.restFloor = opts.restFloor != null ? opts.restFloor : 0.55;
+    this.restBumper = opts.restBumper != null ? opts.restBumper : 0.88;
+    this.restBall = opts.restBall != null ? opts.restBall : 0.4;
+    this.bumperKick = opts.bumperKick != null ? opts.bumperKick : 150;
+    this.subH = 1 / 180;
+    this.time = 0;
+    this.segs = [];
+    this.bumpers = [];
+    this.balls = [];
+    this.swallow = null;   /* {x,y,r} 触 core 即吞噬 */
+    this.attract = null;   /* {x,y,yMax,halfW,k} 杯口引力区 */
+    this.onBumperHit = null; /* (bumper, ball, nx, ny, impact) */
+    this.onBomb = null;      /* (ball, kind) 首次碰撞 */
+    this.onSwallow = null;   /* (ball) */
+    this.onBounce = null;    /* (ball, impact, kind) 墙/地碰撞音效用 */
+    this._bid = 0;
+    this._bncT = 0;
+  }
+
+  World.prototype.addBall = function (x, y, vx, vy, r, extra) {
+    var b = {
+      id: ++this._bid, x: x, y: y, vx: vx || 0, vy: vy || 0,
+      r: r || 11, dead: false, bomb: !!(extra && extra.bomb),
+      bombDone: false, settleT: 0, speed: 0, spin: 0
+    };
+    this.balls.push(b);
+    return b;
+  };
+
+  World.prototype.removeBall = function (b) { b.dead = true; };
+
+  World.prototype.setStatics = function (segs) { this.segs = segs; };
+  World.prototype.setBumpers = function (list) { this.bumpers = list; };
+
+  World.prototype.step = function (dt) {
+    if (dt <= 0) return;
+    if (dt > 1 / 20) dt = 1 / 20;
+    var n = Math.max(1, Math.ceil(dt / this.subH));
+    var h = dt / n;
+    for (var i = 0; i < n; i++) this._sub(h);
+    /* 清尸 */
+    for (var j = this.balls.length - 1; j >= 0; j--) {
+      if (this.balls[j].dead) this.balls.splice(j, 1);
+    }
+  };
+
+  World.prototype._sub = function (h) {
+    this.time += h;
+    var i, b, bs = this.balls;
+    /* 移动型 bumper */
+    for (i = 0; i < this.bumpers.length; i++) {
+      b = this.bumpers[i];
+      if (!b.alive) continue;
+      if (b.moveAmp) b.x = b.baseX + Math.sin(this.time * b.moveSpd + b.phase) * b.moveAmp;
+    }
+    /* 引力区 + 积分 */
+    var at = this.attract, g = this.gravity;
+    for (i = 0; i < bs.length; i++) {
+      b = bs[i];
+      if (b.dead) continue;
+      if (at && b.vy < 0 && b.y < at.yMax && Math.abs(b.x - at.x) < at.halfW) {
+        var ddx = at.x - b.x, ddy = at.y - b.y;
+        var dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
+        b.vx += (ddx / dd) * at.k * h;
+        b.vy += (ddy / dd) * at.k * h;
+      }
+      b.vy += g * h;
+      if (b.vx > MAX_SPEED) b.vx = MAX_SPEED; else if (b.vx < -MAX_SPEED) b.vx = -MAX_SPEED;
+      if (b.vy > MAX_SPEED) b.vy = MAX_SPEED; else if (b.vy < -MAX_SPEED) b.vy = -MAX_SPEED;
+      b.x += b.vx * h;
+      b.y += b.vy * h;
+    }
+    /* 球 vs 线段 */
+    for (i = 0; i < bs.length; i++) {
+      b = bs[i];
+      if (!b.dead) this._collideSegs(b);
+    }
+    /* 球 vs bumper */
+    for (i = 0; i < bs.length; i++) {
+      b = bs[i];
+      if (!b.dead) this._collideBumpers(b);
+    }
+    /* 球 vs 球 */
+    var j, b2;
+    for (i = 0; i < bs.length; i++) {
+      b = bs[i];
+      if (b.dead) continue;
+      for (j = i + 1; j < bs.length; j++) {
+        b2 = bs[j];
+        if (b2.dead) continue;
+        this._collideBalls(b, b2);
+      }
+    }
+    /* 吞噬 + 静止统计 */
+    var sw = this.swallow;
+    for (i = 0; i < bs.length; i++) {
+      b = bs[i];
+      if (b.dead) continue;
+      if (sw) {
+        var sx = b.x - sw.x, sy = b.y - sw.y;
+        if (sx * sx + sy * sy < sw.r * sw.r) {
+          b.dead = true;
+          if (this.onSwallow) this.onSwallow(b);
+          continue;
+        }
+      }
+      b.speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+      if (b.speed < 30) b.settleT += h; else b.settleT = 0;
+    }
+  };
+
+  World.prototype._collideSegs = function (b) {
+    for (var i = 0; i < this.segs.length; i++) {
+      var s = this.segs[i];
+      var abx = s.bx - s.ax, aby = s.by - s.ay;
+      var len2 = abx * abx + aby * aby || 1;
+      var t = ((b.x - s.ax) * abx + (b.y - s.ay) * aby) / len2;
+      t = t < 0 ? 0 : (t > 1 ? 1 : t);
+      var cx = s.ax + abx * t, cy = s.ay + aby * t;
+      var dx = b.x - cx, dy = b.y - cy;
+      var d2 = dx * dx + dy * dy;
+      if (d2 >= b.r * b.r) continue;
+      var d = Math.sqrt(d2);
+      var nx, ny;
+      if (d > 0.0001) { nx = dx / d; ny = dy / d; }
+      else { var il = 1 / Math.sqrt(len2); nx = -aby * il; ny = abx * il; }
+      b.x += nx * (b.r - d);
+      b.y += ny * (b.r - d);
+      var vn = b.vx * nx + b.vy * ny;
+      if (vn < 0) {
+        var rest = s.rest != null ? s.rest : this.restWall;
+        var fric = s.fric != null ? s.fric : 1;
+        var tx = -ny, ty = nx;
+        var vt = (b.vx * tx + b.vy * ty) * fric;
+        var vn2 = -vn * rest;
+        b.vx = nx * vn2 + tx * vt;
+        b.vy = ny * vn2 + ty * vt;
+        var imp = -vn;
+        if (imp > 60 && this.onBounce) this.onBounce(b, imp, s.floor ? 'floor' : 'wall');
+        if (b.bomb && !b.bombDone && imp > 60) this._bomb(b, 'wall');
+      }
+    }
+  };
+
+  World.prototype._collideBumpers = function (b) {
+    for (var i = 0; i < this.bumpers.length; i++) {
+      var p = this.bumpers[i];
+      if (!p.alive) continue;
+      if (p.kind === 'diamond') this._hitObb(b, p);
+      else this._hitCircle(b, p);
+    }
+  };
+
+  World.prototype._hitCircle = function (b, p) {
+    var dx = b.x - p.x, dy = b.y - p.y;
+    var rr = b.r + p.r;
+    var d2 = dx * dx + dy * dy;
+    if (d2 >= rr * rr) return;
+    var d = Math.sqrt(d2) || 0.0001;
+    var nx = dx / d, ny = dy / d;
+    b.x += nx * (rr - d);
+    b.y += ny * (rr - d);
+    var vn = b.vx * nx + b.vy * ny;
+    if (vn < this.bumperKick) {
+      var dv = this.bumperKick - vn;
+      b.vx += nx * dv;
+      b.vy += ny * dv;
+    }
+    if (!p.cool) p.cool = {};
+    if (!p.cool[b.id] || this.time - p.cool[b.id] > 0.15) {
+      p.cool[b.id] = this.time;
+      if (this.onBumperHit) this.onBumperHit(p, b, nx, ny, Math.max(0, -vn));
+    }
+    if (b.bomb && !b.bombDone) this._bomb(b, 'bumper');
+  };
+
+  World.prototype._hitObb = function (b, p) {
+    /* 菱形 = 旋转 45° 的正方形，half = 半对角线 */
+    var s = p.half / SQRT2;
+    var c = Math.SQRT1_2, sn = Math.SQRT1_2; /* rot = π/4 */
+    var dx = b.x - p.x, dy = b.y - p.y;
+    var lx = c * dx + sn * dy;
+    var ly = -sn * dx + c * dy;
+    var qx = lx < -s ? -s : (lx > s ? s : lx);
+    var qy = ly < -s ? -s : (ly > s ? s : ly);
+    var nlx, nly, pen;
+    if (qx === lx && qy === ly) {
+      /* 圆心在方形内：沿最浅轴推出 */
+      var px = s - Math.abs(lx), py = s - Math.abs(ly);
+      if (px < py) { nlx = lx >= 0 ? 1 : -1; nly = 0; pen = px + b.r; }
+      else { nlx = 0; nly = ly >= 0 ? 1 : -1; pen = py + b.r; }
+    } else {
+      var ex = lx - qx, ey = ly - qy;
+      var d2 = ex * ex + ey * ey;
+      if (d2 >= b.r * b.r) return;
+      var d = Math.sqrt(d2) || 0.0001;
+      nlx = ex / d; nly = ey / d;
+      pen = b.r - d;
+    }
+    var nx = c * nlx - sn * nly;
+    var ny = sn * nlx + c * nly;
+    b.x += nx * pen;
+    b.y += ny * pen;
+    var vn = b.vx * nx + b.vy * ny;
+    if (vn < this.bumperKick) {
+      var dv = this.bumperKick - vn;
+      b.vx += nx * dv;
+      b.vy += ny * dv;
+    }
+    if (!p.cool) p.cool = {};
+    if (!p.cool[b.id] || this.time - p.cool[b.id] > 0.15) {
+      p.cool[b.id] = this.time;
+      if (this.onBumperHit) this.onBumperHit(p, b, nx, ny, Math.max(0, -vn));
+    }
+    if (b.bomb && !b.bombDone) this._bomb(b, 'bumper');
+  };
+
+  World.prototype._collideBalls = function (a, b) {
+    var dx = b.x - a.x, dy = b.y - a.y;
+    var rr = a.r + b.r;
+    var d2 = dx * dx + dy * dy;
+    if (d2 >= rr * rr || d2 === 0) return;
+    var d = Math.sqrt(d2);
+    var nx = dx / d, ny = dy / d;
+    var pen = (rr - d) / 2;
+    a.x -= nx * pen; a.y -= ny * pen;
+    b.x += nx * pen; b.y += ny * pen;
+    var rvn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+    if (rvn < 0) {
+      var j = -(1 + this.restBall) * rvn / 2;
+      a.vx -= j * nx; a.vy -= j * ny;
+      b.vx += j * nx; b.vy += j * ny;
+      if (-rvn > 120 && this.onBounce) this.onBounce(b, -rvn * 0.6, 'ball');
+      if (a.bomb && !a.bombDone && -rvn > 60) this._bomb(a, 'ball');
+      if (b.bomb && !b.bombDone && -rvn > 60) this._bomb(b, 'ball');
+    }
+  };
+
+  World.prototype._bomb = function (b, kind) {
+    b.bombDone = true;
+    b.dead = true;
+    if (this.onBomb) this.onBomb(b, kind);
+  };
+
+  /* 测试探针：场上是否有球与圆重叠（node 自检用） */
+  World.prototype.anyOverlapCircle = function (x, y, r) {
+    for (var i = 0; i < this.balls.length; i++) {
+      var b = this.balls[i];
+      var dx = b.x - x, dy = b.y - y;
+      if (dx * dx + dy * dy < (r + b.r) * (r + b.r)) return true;
+    }
+    return false;
+  };
+
+  GP.PHY = { World: World };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = GP.PHY;
+})();
+
+
+/* ==== game.js ==== */
+/* game.js — 状态机 + 无限关卡生成 + 渲染 + DOM 接线（主线负责） */
+(function () {
+  'use strict';
+  var GP = window.GP;
+  var PHY = GP.PHY;
+  var CFG = GP.CFG, SAVE = GP.SAVE;
+
+  /* ================= 常量 ================= */
+  var AW = 390;                 /* 场地逻辑宽 */
+  var PALETTE = [
+    { fill: '#dfe666', ring: '#b9c93e' },
+    { fill: '#b3a2e6', ring: '#8d78cf' },
+    { fill: '#a5d9f2', ring: '#6fb9e6' },
+    { fill: '#6fd9e8', ring: '#3cb4cc' },
+    { fill: '#9fe07a', ring: '#6fbe4e' },
+    { fill: '#f2b95e', ring: '#d99a34' },
+    { fill: '#f29ab8', ring: '#d96f98' }
+  ];
+  var BIGC = { fill: '#f6f2ee', ring: '#cfc6bc' };
+  var DIAC = { fill: '#9feaf2', ring: '#5cc8d8' };
+
+  /* ================= 模块状态 ================= */
+  var cv, ctx, dpr = 1, fit = 1;
+  var ax0 = 0, ay0 = 0;         /* 场地在画布上的偏移 */
+  var G = { W: AW, H: 844 };    /* 当前场地几何 */
+  var world = null;
+  var st = null;                /* 进度存档引用 */
+  var cfg = CFG.all();
+  var state = 'boot';           /* play | clear | paused */
+  var dropTimer = 0, spawnScale = {};
+  var slowmoT = 0, bombArmed = false;
+  var shakeMag = 0;
+  var flyers = [];              /* 收球飞回 HUD 的小球 */
+  var lastBounceSnd = 0, lastTickSnd = 0;
+  var lastShock = 0;
+  var staticBack = null, staticFront = null, vortexCv = null;
+  var bumperSprites = {};
+  var ballCv = null, bombCv = null;
+  var clearTimer = 0, bannerLevel = 0;
+  var freeReadyAt = 0, addBtnMode = 'buy';
+  var autoCollectT = 0, saveT = 0, fpsN = 0, fpsT = 0, fpsV = 0;
+  var pointer = null;
+  var isTouch = ('ontouchstart' in window);
+  var toastQ = [], toastT = 0;
+  var hudCache = { score: -1, balls: -1, bombs: -1, glasses: -1 };
+
+  function $(id) { return document.getElementById(id); }
+
+  /* ================= 几何 ================= */
+  function geo(h) {
+    return {
+      W: AW, H: h,
+      menu: { x: 30, y: 34, r: 22 },
+      cup: { x: 195, y: 148, r: 23 },
+      dashY: 148,
+      cornerY: 60,
+      cornerR: 18,
+      railEnd: h - 154,
+      floorEndY: h - 81,
+      floorSagY: h - 49,
+      vortex: { x: 195, y: 58, r: 54 },
+      levelTx: { x: 170, y: 172 }
+    };
+  }
+
+  function buildSegs() {
+    var segs = [];
+    var cupA = 0.28 * Math.PI, cupB = 0.72 * Math.PI;
+    /* V 漏斗斜壁 */
+    segs.push({ ax: 32, ay: G.cornerY, bx: G.cup.x - G.cup.r, by: G.cup.y, rest: cfg.restWall });
+    segs.push({ ax: G.cup.x + G.cup.r, ay: G.cup.y, bx: AW - 32, by: G.cornerY, rest: cfg.restWall });
+    /* 杯弧（底部开口掉球） */
+    var i, a0, a1, N = 7;
+    for (i = 0; i < N; i++) {
+      a0 = Math.PI - (Math.PI - cupB) * (i / N);
+      a1 = Math.PI - (Math.PI - cupB) * ((i + 1) / N);
+      segs.push(arcSeg(G.cup, a0, a1));
+    }
+    for (i = 0; i < N; i++) {
+      a0 = cupA * (1 - i / N);
+      a1 = cupA * (1 - (i + 1) / N);
+      segs.push(arcSeg(G.cup, a0, a1));
+    }
+    /* 侧墙 */
+    segs.push({ ax: 14, ay: 78, bx: 14, by: G.floorEndY, rest: cfg.restWall });
+    segs.push({ ax: AW - 14, ay: 78, bx: AW - 14, by: G.floorEndY, rest: cfg.restWall });
+    /* 弧形地板 */
+    var ctrlY = 2 * G.floorSagY - G.floorEndY;
+    var M = 24;
+    for (i = 0; i < M; i++) {
+      var t0 = i / M, t1 = (i + 1) / M;
+      var p0 = qPoint(14, G.floorEndY, 195, ctrlY, AW - 14, G.floorEndY, t0);
+      var p1 = qPoint(14, G.floorEndY, 195, ctrlY, AW - 14, G.floorEndY, t1);
+      segs.push({ ax: p0.x, ay: p0.y, bx: p1.x, by: p1.y, rest: cfg.restFloor, fric: 0.995, floor: true });
+    }
+    return segs;
+  }
+  function arcSeg(c, a0, a1) {
+    return {
+      ax: c.x + Math.cos(a0) * c.r, ay: c.y + Math.sin(a0) * c.r,
+      bx: c.x + Math.cos(a1) * c.r, by: c.y + Math.sin(a1) * c.r,
+      rest: cfg.restWall
+    };
+  }
+  function qPoint(x0, y0, cx, cy, x1, y1, t) {
+    var u = 1 - t;
+    return {
+      x: u * u * x0 + 2 * u * t * cx + t * t * x1,
+      y: u * u * y0 + 2 * u * t * cy + t * t * y1
+    };
+  }
+
+  /* ================= 关卡生成 ================= */
+  function genLevel(n) {
+    var rand = GP.rng(n * 9301 + 49297);
+    var total = Math.min(5 + Math.floor(n * 0.7), 13);
+    var base = Math.min(4 + n * 2, 60);
+    var maxY = G.H - 190;
+    var minX = 42, maxX = AW - 42, minY = 262;
+    var diaNeed = n >= 2 ? Math.min(1 + Math.floor(n / 4), 3) : 0;
+    var bigNeed = (n % 4 === 0) ? 1 : 0;
+    var pal = PALETTE.slice();
+    for (var s = pal.length - 1; s > 0; s--) {
+      var j = Math.floor(rand() * (s + 1));
+      var tmp = pal[s]; pal[s] = pal[j]; pal[j] = tmp;
+    }
+    var list = [], id = 0;
+    function place(kind) {
+      for (var t = 0; t < 60; t++) {
+        var x = minX + rand() * (maxX - minX);
+        var y = minY + rand() * (maxY - minY);
+        var r = kind === 'big' ? 27 : (kind === 'diamond' ? 22 : 19);
+        var dx = x - 195, dy = y - 175;
+        if (Math.sqrt(dx * dx + dy * dy) < 135) continue;           /* 杯口下方锥区 */
+        if (y > maxY - r) continue;
+        var ok = true;
+        for (var k = 0; k < list.length; k++) {
+          var o = list[k];
+          var or = (o.kind === 'diamond' ? o.half : o.r);
+          var ddx = x - o.x, ddy = y - o.y;
+          var need = or + r + 26;
+          if (ddx * ddx + ddy * ddy < need * need) { ok = false; break; }
+        }
+        if (!ok) continue;
+        var c0, mult = 1;
+        if (kind === 'big') { c0 = base * 3; mult = 3; }
+        else if (kind === 'diamond') { c0 = Math.ceil(base * 0.5); mult = 2; }
+        else { c0 = Math.max(3, Math.round(base * (0.7 + rand() * 0.6))); }
+        var mv = (kind === 'circle' && n >= 5 && rand() < 0.35 && listMoveCount(list) < 3);
+        var amp = 0, spd = 0, bx2 = x;
+        if (mv) {
+          amp = 25 + rand() * 35;
+          var lo = minX + r + amp, hi = maxX - r - amp;
+          if (lo > hi) { amp = 0; } else {
+            x = Math.max(lo, Math.min(hi, x));
+            spd = 0.8 + rand() * 0.9;
+          }
+        }
+        list.push({
+          id: ++id, kind: kind, x: x, baseX: x, baseY: y, y: y,
+          r: kind === 'diamond' ? 0 : r, half: kind === 'diamond' ? 22 : 0,
+          color: kind === 'big' ? BIGC : (kind === 'diamond' ? DIAC : pal[id % pal.length]),
+          count: c0, count0: c0, mult: mult,
+          alive: true, flash: 0, pop: -1, cool: {},
+          moveAmp: amp, moveSpd: spd, phase: rand() * GP.TAU
+        });
+        return true;
+      }
+      return false;
+    }
+    /* 先放特殊，再放普通 */
+    for (var d = 0; d < diaNeed; d++) place('diamond');
+    if (bigNeed) place('big');
+    var guard = 0;
+    while (list.length < total && guard++ < 50) {
+      if (!place('circle')) break;
+    }
+    world.setBumpers(list);
+  }
+  function listMoveCount(list) {
+    var c = 0;
+    for (var i = 0; i < list.length; i++) if (list[i].moveAmp) c++;
+    return c;
+  }
+
+  /* ================= 音效/特效软调用 ================= */
+  function snd(name, opts) { var A = GP.AUDIO; if (A && A.play) { try { A.play(name, opts); } catch (e) {} } }
+  function sndBounce(i) {
+    var now = Date.now();
+    if (now - lastBounceSnd < 70) return;
+    lastBounceSnd = now;
+    var A = GP.AUDIO; if (A && A.bounce) { try { A.bounce(i); } catch (e) {} }
+  }
+  function fxBurst(x, y, color, n) { var F = GP.FX; if (F && F.burst) { try { F.burst(x, y, color, n); } catch (e) {} } }
+  function fxText(x, y, s, color) { var F = GP.FX; if (F && F.floatText) { try { F.floatText(x, y, s, color); } catch (e) {} } }
+  function fxSwallow(x, y) { var F = GP.FX; if (F && F.swallow) { try { F.swallow(x, y); } catch (e) {} } }
+  function fxRing(x, y, color) { var F = GP.FX; if (F && F.ring) { try { F.ring(x, y, color); } catch (e) {} } }
+
+  function toast(msg) {
+    toastQ.push(msg);
+    if (toastQ.length > 3) toastQ.shift();
+  }
+  function shake(m) { shakeMag = Math.min(14, shakeMag + m); }
+
+  /* ================= 掉球 / 回收 / 经济 ================= */
+  function dropOne() {
+    if (state !== 'play' && state !== 'clear') return;
+    if (st.balls <= 0 || world.balls.length >= cfg.maxBalls) return;
+    st.balls--;
+    var b = world.addBall(195 + (Math.random() - 0.5) * 9, 168, (Math.random() - 0.5) * 40, 130, cfg.ballR,
+      { bomb: bombArmed });
+    b.spawnT = 0;
+    if (bombArmed) {
+      bombArmed = false;
+      updateSlots();
+    }
+    hudDirty();
+  }
+
+  function collectBalls() {
+    var n = 0;
+    var bs = world.balls;
+    for (var i = bs.length - 1; i >= 0; i--) {
+      var b = bs[i];
+      if (b.bomb || b.bombDone) continue;
+      if (b.speed < 60) {
+        n++;
+        flyers.push({ x: b.x, y: b.y, t: 0, delay: n * 0.05 });
+        world.removeBall(b);
+      }
+    }
+    if (n > 0) snd('collect');
+    return n;
+  }
+
+  function addBallPrice() {
+    return cfg.addBallBaseCost + cfg.addBallCostStep * st.addBallUses;
+  }
+
+  function onAddBtn() {
+    snd('click');
+    if (addBtnMode === 'buy') {
+      var cost = addBallPrice();
+      if (st.score >= cost) {
+        st.score -= cost;
+        st.balls += cfg.addBallAmount;
+        st.addBallUses++;
+        snd('add');
+        toast('+' + cfg.addBallAmount + ' 球');
+      } else {
+        freeReadyAt = Date.now() + cfg.freeCooldown * 1000;
+        addBtnMode = 'free';
+        toast('分数不足，稍后可免费领取');
+      }
+    } else {
+      if (Date.now() < freeReadyAt) return;
+      st.balls += cfg.addBallFreeAmount;
+      freeReadyAt = Date.now() + cfg.freeCooldown * 1000;
+      snd('add');
+      toast('+' + cfg.addBallFreeAmount + ' 球');
+    }
+    hudDirty();
+    SAVE.save();
+  }
+
+  function onBombSlot() {
+    snd('click');
+    if (bombArmed) { bombArmed = false; st.bombs++; }
+    else if (st.bombs > 0) { bombArmed = true; st.bombs--; toast('下一颗球是炸弹'); }
+    updateSlots();
+    SAVE.save();
+  }
+
+  function onGlassSlot() {
+    snd('click');
+    if (slowmoT > 0) return;
+    if (st.glasses > 0) {
+      st.glasses--;
+      slowmoT = cfg.glassDuration;
+      snd('slow');
+      updateSlots();
+      SAVE.save();
+    }
+  }
+
+  function explodeBomb(b) {
+    var R = cfg.bombRadius;
+    fxBurst(b.x, b.y, '#ffb64e', 40);
+    fxRing(b.x, b.y, '#ffcf7a');
+    shake(10);
+    snd('bomb');
+    var list = world.bumpers;
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (!p.alive) continue;
+      var dx = p.x - b.x, dy = p.y - b.y;
+      if (dx * dx + dy * dy < (R + 20) * (R + 20)) {
+        damageBumper(p, cfg.bombPower, false);
+      }
+    }
+    for (var j = world.balls.length - 1; j >= 0; j--) {
+      var o = world.balls[j];
+      if (o === b || o.dead) continue;
+      var ox = o.x - b.x, oy = o.y - b.y;
+      var d = Math.sqrt(ox * ox + oy * oy) || 1;
+      if (d < R) {
+        var f = (1 - d / R) * 700;
+        o.vx += (ox / d) * f;
+        o.vy += (oy / d) * f - 120;
+      }
+    }
+    hudDirty();
+  }
+
+  function damageBumper(p, hits, byBall) {
+    p.count -= hits;
+    p.flash = 1;
+    if (p.count <= 0) {
+      p.count = 0;
+      p.alive = false;
+      p.pop = 0;
+      var gain = p.count0 * 5 * p.mult;
+      st.score += gain;
+      st.pops++;
+      fxBurst(p.x, p.y, p.color.ring, p.kind === 'big' ? 44 : 28);
+      fxText(p.x, p.y - 20, '+' + gain, p.kind === 'circle' ? '#ffffff' : '#ffe9a0');
+      shake(p.kind === 'big' ? 7 : 3);
+      snd('pop');
+      checkClear();
+    } else if (byBall) {
+      var gain2 = 1 * p.mult;
+      st.score += gain2;
+      fxBurst(p.x, p.y, p.color.fill, 4);
+    }
+  }
+
+  function checkClear() {
+    if (state !== 'play') return;
+    var list = world.bumpers;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].alive) return;
+    }
+    if (!list.length) return;
+    state = 'clear';
+    clearTimer = 0;
+    var bonus = 30 + 10 * st.level;
+    bannerLevel = st.level;
+    st.score += bonus;
+    st.bombs = Math.min(st.bombs + 1, 5);
+    if (st.level % 3 === 0) st.glasses = Math.min(st.glasses + 1, 3);
+    st.best = Math.max(st.best, st.score);
+    snd('clear');
+    var bn = $('banner');
+    bn.innerHTML = '<div class="bt">第 ' + st.level + ' 关 完成</div><div class="bs">+' + bonus + ' 分</div>';
+    bn.classList.add('show');
+    SAVE.save();
+    hudDirty();
+  }
+
+  function nextLevel() {
+    st.level++;
+    st.addBallUses = 0;
+    addBtnMode = 'buy';
+    genLevel(st.level);
+    $('banner').classList.remove('show');
+    state = 'play';
+    SAVE.save();
+    hudDirty();
+  }
+
+  function restartAll() {
+    st.level = 1; st.score = 0; st.balls = cfg.startBalls;
+    st.bombs = 2; st.glasses = 1; st.addBallUses = 0;
+    bombArmed = false; slowmoT = 0;
+    addBtnMode = 'buy';
+    flyers.length = 0;
+    world.balls.length = 0;
+    genLevel(1);
+    $('banner').classList.remove('show');
+    state = 'play';
+    SAVE.save();
+    hudDirty();
+    updateSlots();
+    toast('重新开始');
+  }
+
+  /* ================= 物理事件 ================= */
+  function onBumperHit(p, b, nx, ny, impact) {
+    if (state !== 'play' && state !== 'clear') return;
+    damageBumper(p, 1, true);
+    snd('hit', { pitch: 1 + Math.min(p.count, 40) * 0.006 });
+  }
+  function onSwallow(b) {
+    st.balls += 3;
+    st.score += 15;
+    st.swallows++;
+    fxSwallow(G.vortex.x, G.vortex.y);
+    fxText(G.vortex.x, G.vortex.y + 60, '+3球', '#ffe9a0');
+    snd('swallow');
+    hudDirty();
+    SAVE.save();
+  }
+  function onBombBall(b, kind) {
+    explodeBomb(b);
+  }
+  function onBounce(b, imp, kind) {
+    if (imp > 90) sndBounce(Math.min(1, imp / 1400));
+  }
+
+  /* ================= 精灵预渲染 ================= */
+  function makeCanvas(w, h) {
+    var c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    return c;
+  }
+
+  function buildVortexSprite() {
+    var S = 200, c = makeCanvas(S, S), g = c.getContext('2d');
+    var cx = S / 2, cy = S / 2;
+    /* 盘面：贴近背景的灰棕尘雾，低对比 */
+    var grd = g.createRadialGradient(cx, cy, 8, cx, cy, S / 2);
+    grd.addColorStop(0, 'rgba(168,155,144,0.85)');
+    grd.addColorStop(0.25, 'rgba(120,108,98,0.62)');
+    grd.addColorStop(0.5, 'rgba(84,74,66,0.4)');
+    grd.addColorStop(0.72, 'rgba(74,65,58,0.2)');
+    grd.addColorStop(1, 'rgba(74,65,58,0)');
+    g.fillStyle = grd;
+    g.beginPath();
+    g.arc(cx, cy, S / 2, 0, GP.TAU);
+    g.fill();
+    /* 柔和暗臂（宽淡底 + 中间调），避免硬边 */
+    g.lineCap = 'round';
+    for (var arm = 0; arm < 3; arm++) {
+      var a0 = arm * (GP.TAU / 3);
+      for (var pass = 0; pass < 3; pass++) {
+        g.beginPath();
+        var steps = 30;
+        for (var i = 0; i <= steps; i++) {
+          var t = i / steps;
+          var r = 84 - t * 66;
+          var a = a0 + t * 4.0;
+          var x = cx + Math.cos(a) * r;
+          var y = cy + Math.sin(a) * r * 0.94;
+          if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+        }
+        if (pass === 0) {
+          g.strokeStyle = 'rgba(58,50,44,0.16)';
+          g.lineWidth = 26 - arm * 3;
+        } else if (pass === 1) {
+          g.strokeStyle = 'rgba(52,44,38,0.3)';
+          g.lineWidth = 14 - arm;
+        } else {
+          g.strokeStyle = 'rgba(46,39,34,0.42)';
+          g.lineWidth = 7 - arm * 0.5;
+        }
+        g.stroke();
+      }
+    }
+    /* 臂间微亮纹 */
+    for (var arm2 = 0; arm2 < 3; arm2++) {
+      g.beginPath();
+      var a02 = arm2 * (GP.TAU / 3) + 1.1;
+      for (var j = 0; j <= 24; j++) {
+        var t2 = j / 24;
+        var r2 = 76 - t2 * 60;
+        var a2 = a02 + t2 * 4.0;
+        var x2 = cx + Math.cos(a2) * r2;
+        var y2 = cy + Math.sin(a2) * r2 * 0.94;
+        if (j === 0) g.moveTo(x2, y2); else g.lineTo(x2, y2);
+      }
+      g.strokeStyle = 'rgba(186,172,158,0.22)';
+      g.lineWidth = 6;
+      g.stroke();
+    }
+    /* 微亮芯（克制的雾状） */
+    var core = g.createRadialGradient(cx, cy, 0, cx, cy, 42);
+    core.addColorStop(0, 'rgba(212,200,189,0.7)');
+    core.addColorStop(0.4, 'rgba(170,156,144,0.35)');
+    core.addColorStop(1, 'rgba(170,156,144,0)');
+    g.fillStyle = core;
+    g.beginPath();
+    g.arc(cx, cy, 42, 0, GP.TAU);
+    g.fill();
+    /* 尘雾噪点 */
+    var rr = GP.rng(7);
+    for (var n = 0; n < 130; n++) {
+      var ang = rr() * GP.TAU, rad = 14 + rr() * 82;
+      var light = rr() > 0.45;
+      g.fillStyle = light ? 'rgba(206,195,184,' + (0.03 + rr() * 0.07).toFixed(3) + ')'
+        : 'rgba(52,44,38,' + (0.03 + rr() * 0.08).toFixed(3) + ')';
+      var sz = 2 + rr() * 3;
+      g.beginPath();
+      g.arc(cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad * 0.94, sz, 0, GP.TAU);
+      g.fill();
+    }
+    vortexCv = c;
+  }
+
+  function bumperSprite(p) {
+    var isDia = p.kind === 'diamond';
+    var R = isDia ? p.half : p.r;
+    var M = 16;
+    var S = (R + M) * 2;
+    var key = p.kind + '_' + p.color.fill + '_' + R;
+    if (bumperSprites[key]) return bumperSprites[key];
+    var c = makeCanvas(S, S), g = c.getContext('2d');
+    var cx = S / 2, cy = S / 2;
+    /* halo */
+    var halo = g.createRadialGradient(cx, cy, R * 0.8, cx, cy, R + M - 2);
+    halo.addColorStop(0, 'rgba(255,255,255,0)');
+    halo.addColorStop(0.55, 'rgba(255,255,255,0.14)');
+    halo.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = halo;
+    g.fillRect(0, 0, S, S);
+    g.translate(cx, cy);
+    if (isDia) g.rotate(Math.PI / 4);
+    /* 主体 */
+    g.beginPath();
+    if (isDia) {
+      var s = R / Math.SQRT2 + 3;
+      roundRectPath(g, -s, -s, s * 2, s * 2, 5);
+    } else {
+      g.arc(0, 0, R, 0, GP.TAU);
+    }
+    var fill = g.createRadialGradient(-R * 0.35, -R * 0.4, R * 0.1, 0, 0, R * 1.15);
+    fill.addColorStop(0, lighten(p.color.fill, 18));
+    fill.addColorStop(0.6, p.color.fill);
+    fill.addColorStop(1, darken(p.color.fill, 10));
+    g.fillStyle = fill;
+    g.fill();
+    g.lineWidth = isDia ? 3 : 3.5;
+    g.strokeStyle = isDia ? '#d8f8fc' : p.color.ring;
+    g.stroke();
+    if (isDia) {
+      g.beginPath();
+      var s2 = R / Math.SQRT2 - 2;
+      roundRectPath(g, -s2, -s2, s2 * 2, s2 * 2, 4);
+      g.strokeStyle = 'rgba(92,200,216,0.8)';
+      g.lineWidth = 2.5;
+      g.stroke();
+    } else {
+      /* 内圈暗环 + 高光 */
+      g.beginPath();
+      g.arc(0, 0, R - 3.5, 0, GP.TAU);
+      g.strokeStyle = shadeA(p.color.ring, 0.55);
+      g.lineWidth = 2;
+      g.stroke();
+      g.beginPath();
+      g.arc(0, 0, R - 5.5, -Math.PI * 0.85, -Math.PI * 0.35);
+      g.strokeStyle = 'rgba(255,255,255,0.22)';
+      g.lineWidth = 3;
+      g.lineCap = 'round';
+      g.stroke();
+    }
+    if (p.kind === 'big') {
+      g.beginPath();
+      g.arc(-R * 0.3, -R * 0.35, R * 0.42, 0, GP.TAU);
+      var gl = g.createRadialGradient(-R * 0.38, -R * 0.45, 1, -R * 0.3, -R * 0.35, R * 0.42);
+      gl.addColorStop(0, 'rgba(255,255,255,0.9)');
+      gl.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = gl;
+      g.fill();
+    }
+    bumperSprites[key] = c;
+    return c;
+  }
+
+  function roundRectPath(g, x, y, w, h, r) {
+    g.moveTo(x + r, y);
+    g.arcTo(x + w, y, x + w, y + h, r);
+    g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r);
+    g.arcTo(x, y, x + w, y, r);
+    g.closePath();
+  }
+  function hex2rgb(h) {
+    h = h.replace('#', '');
+    return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
+  }
+  function lighten(h, p) {
+    var c = hex2rgb(h);
+    return 'rgb(' + c.map(function (v) { return Math.min(255, v + Math.round(255 * p / 100)); }).join(',') + ')';
+  }
+  function darken(h, p) {
+    var c = hex2rgb(h);
+    return 'rgb(' + c.map(function (v) { return Math.max(0, v - Math.round(255 * p / 100)); }).join(',') + ')';
+  }
+  function shadeA(h, a) {
+    var c = hex2rgb(h);
+    return 'rgba(' + c.join(',') + ',' + a + ')';
+  }
+
+  function buildBallSprite() {
+    var S = 40, c = makeCanvas(S, S), g = c.getContext('2d');
+    var grd = g.createRadialGradient(S * 0.38, S * 0.35, 2, S / 2, S / 2, S / 2 - 1);
+    grd.addColorStop(0, '#ffffff');
+    grd.addColorStop(0.65, '#f4f1ec');
+    grd.addColorStop(1, '#ddd8d0');
+    g.fillStyle = grd;
+    g.beginPath();
+    g.arc(S / 2, S / 2, S / 2 - 2, 0, GP.TAU);
+    g.fill();
+    g.strokeStyle = 'rgba(0,0,0,0.14)';
+    g.lineWidth = 1.5;
+    g.stroke();
+    ballCv = c;
+    /* 炸弹球 */
+    var c2 = makeCanvas(S, S), g2 = c2.getContext('2d');
+    var grd2 = g2.createRadialGradient(S * 0.38, S * 0.35, 2, S / 2, S / 2, S / 2 - 1);
+    grd2.addColorStop(0, '#5a5a5e');
+    grd2.addColorStop(0.6, '#2c2c30');
+    grd2.addColorStop(1, '#141416');
+    g2.fillStyle = grd2;
+    g2.beginPath();
+    g2.arc(S / 2, S / 2 + 2, S / 2 - 6, 0, GP.TAU);
+    g2.fill();
+    g2.strokeStyle = 'rgba(255,255,255,0.16)';
+    g2.lineWidth = 1.5;
+    g2.stroke();
+    /* 引线 */
+    g2.strokeStyle = '#c9a06a';
+    g2.lineWidth = 2.5;
+    g2.beginPath();
+    g2.moveTo(S / 2 + 4, S / 2 - 12);
+    g2.quadraticCurveTo(S / 2 + 10, S / 2 - 20, S / 2 + 6, S / 2 - 22);
+    g2.stroke();
+    bombCv = c2;
+  }
+
+  /* ================= 静态层（后景 / 前景墙线） ================= */
+  function buildStatic() {
+    staticBack = makeCanvas(Math.max(2, Math.round(G.W * fit)), Math.max(2, Math.round(G.H * fit)));
+    staticFront = makeCanvas(staticBack.width, staticBack.height);
+    var g = staticBack.getContext('2d');
+    g.scale(fit, fit);
+    /* 场地背景 */
+    g.fillStyle = '#463d35';
+    g.fillRect(0, 0, G.W, G.H);
+    var spot = g.createRadialGradient(195, G.H * 0.48, 40, 195, G.H * 0.48, 430);
+    spot.addColorStop(0, 'rgba(100,88,76,0.55)');
+    spot.addColorStop(1, 'rgba(100,88,76,0)');
+    g.fillStyle = spot;
+    g.fillRect(0, 0, G.W, G.H);
+    /* 远山（圆缓两座，中间谷） */
+    g.fillStyle = '#372f28';
+    g.beginPath();
+    g.moveTo(0, G.H - 96);
+    g.quadraticCurveTo(52, G.H - 300, 96, G.H - 316);
+    g.quadraticCurveTo(140, G.H - 300, 178, G.H - 178);
+    g.quadraticCurveTo(196, G.H - 140, 214, G.H - 150);
+    g.quadraticCurveTo(262, G.H - 240, 296, G.H - 328);
+    g.quadraticCurveTo(314, G.H - 368, 334, G.H - 334);
+    g.quadraticCurveTo(360, G.H - 262, G.W, G.H - 70);
+    g.lineTo(G.W, G.H);
+    g.lineTo(0, G.H);
+    g.closePath();
+    g.fill();
+    /* 近景暗脊 */
+    g.fillStyle = 'rgba(43,37,31,0.9)';
+    g.beginPath();
+    g.moveTo(0, G.H - 150);
+    g.quadraticCurveTo(60, G.H - 226, 120, G.H - 168);
+    g.quadraticCurveTo(170, G.H - 120, 230, G.H - 130);
+    g.quadraticCurveTo(300, G.H - 142, G.W, G.H - 110);
+    g.lineTo(G.W, G.H);
+    g.lineTo(0, G.H);
+    g.closePath();
+    g.fill();
+    /* 底部色带（上缘 = 弧形地板） */
+    var ctrlY = 2 * G.floorSagY - G.floorEndY;
+    g.fillStyle = '#3a4450';
+    g.beginPath();
+    g.moveTo(0, G.floorEndY);
+    g.quadraticCurveTo(195, ctrlY, G.W, G.floorEndY);
+    g.lineTo(G.W, G.H);
+    g.lineTo(0, G.H);
+    g.closePath();
+    g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.08)';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(0, G.floorEndY);
+    g.quadraticCurveTo(195, ctrlY, G.W, G.floorEndY);
+    g.stroke();
+    /* ---- 前景：墙线（压在漩涡上） ---- */
+    var f = staticFront.getContext('2d');
+    f.scale(fit, fit);
+    f.strokeStyle = 'rgba(244,219,212,0.85)';
+    f.lineWidth = 4;
+    f.lineCap = 'round';
+    f.setLineDash([14, 10]);
+    f.beginPath();
+    f.moveTo(22, G.dashY);
+    f.lineTo(168, G.dashY);
+    f.moveTo(222, G.dashY);
+    f.lineTo(G.W - 22, G.dashY);
+    f.stroke();
+    f.setLineDash([]);
+    f.strokeStyle = '#bdb0a6';
+    f.lineWidth = 4.5;
+    f.lineJoin = 'round';
+    f.lineCap = 'round';
+    f.beginPath();
+    f.moveTo(14, G.railEnd);
+    f.lineTo(14, G.cornerY + G.cornerR);
+    f.arcTo(14, G.cornerY, 14 + G.cornerR, G.cornerY, G.cornerR);
+    f.lineTo(G.cup.x - G.cup.r, G.cup.y);
+    f.stroke();
+    f.beginPath();
+    f.arc(G.cup.x, G.cup.y, G.cup.r, Math.PI, 0, true);
+    f.stroke();
+    f.beginPath();
+    f.moveTo(G.cup.x + G.cup.r, G.cup.y);
+    f.lineTo(AW - 14 - G.cornerR, G.cornerY);
+    f.arcTo(AW - 14, G.cornerY, AW - 14, G.cornerY + G.cornerR, G.cornerR);
+    f.lineTo(AW - 14, G.railEnd);
+    f.stroke();
+    /* T 形帽 */
+    f.strokeStyle = '#a89f97';
+    f.lineWidth = 4.5;
+    f.beginPath();
+    f.moveTo(4, G.railEnd + 7);
+    f.lineTo(24, G.railEnd + 7);
+    f.moveTo(AW - 24, G.railEnd + 7);
+    f.lineTo(AW - 4, G.railEnd + 7);
+    f.stroke();
+  }
+
+  /* ================= DOM 布局 ================= */
+  function setDomLayout() {
+    var k = GP.clamp(fit, 0.66, 1);   /* 窄视口下控件等比缩小，避免叠压 */
+    var px = function (x, y) {
+      return { l: (ax0 + x) * fit, t: (ay0 + y) * fit };
+    };
+    function place(el, x, y, w, h) {
+      var p = px(x, y);
+      el.style.left = Math.round(p.l - w / 2) + 'px';
+      el.style.top = Math.round(p.t - h / 2) + 'px';
+    }
+    var el;
+    var mb = $('menuBtn');
+    place(mb, G.menu.x, G.menu.y, 44 * k, 44 * k);
+    mb.style.width = Math.round(44 * k) + 'px';
+    mb.style.height = Math.round(44 * k) + 'px';
+    $('menuImg').style.width = Math.round(26 * k) + 'px';
+    $('menuImg').style.height = Math.round(26 * k) + 'px';
+    el = $('scoreTx');
+    el.style.fontSize = Math.round(27 * k) + 'px';
+    var p1 = px(28, 82);
+    el.style.left = Math.round(p1.l) + 'px';
+    el.style.top = Math.round(p1.t - 18 * k) + 'px';
+    var p2 = px(362, 82);
+    el = $('ballTx');
+    el.style.fontSize = Math.round(27 * k) + 'px';
+    el.style.left = Math.round(p2.l - 120 * k) + 'px';
+    el.style.top = Math.round(p2.t - 18 * k) + 'px';
+    el.style.width = Math.round(120 * k) + 'px';
+    var bc = $('btnCollect');
+    place(bc, 195, G.floorSagY - 42, 100 * k, 42 * k);
+    bc.style.padding = Math.round(8 * k) + 'px ' + Math.round(20 * k) + 'px';
+    bc.style.fontSize = Math.round(20 * k) + 'px';
+    var ba = $('btnAdd');
+    place(ba, 195, G.H - 36, 200 * k, 52 * k);
+    ba.style.width = Math.round(200 * k) + 'px';
+    ba.style.height = Math.round(52 * k) + 'px';
+    ba.style.fontSize = Math.round(25 * k) + 'px';
+    $('addPlusImg').style.width = Math.round(30 * k) + 'px';
+    $('addPlusImg').style.height = Math.round(30 * k) + 'px';
+    var slots = [['slotBomb', 40], ['slotGlass', AW - 40]];
+    for (var i = 0; i < slots.length; i++) {
+      var s = $(slots[i][0]);
+      place(s, slots[i][1], G.H - 34, 62 * k, 64 * k);
+      s.style.width = Math.round(58 * k) + 'px';
+      s.style.height = Math.round(62 * k) + 'px';
+      s.style.borderRadius = Math.round(29 * k) + 'px ' + Math.round(29 * k) + 'px ' + Math.round(10 * k) + 'px ' + Math.round(10 * k) + 'px';
+      var img = s.querySelector('img');
+      if (img) { img.style.width = Math.round(40 * k) + 'px'; img.style.height = Math.round(40 * k) + 'px'; }
+      var bd = s.querySelector('.badge');
+      if (bd) { bd.style.minWidth = Math.round(21 * k) + 'px'; bd.style.height = Math.round(21 * k) + 'px'; bd.style.fontSize = Math.round(13 * k) + 'px'; }
+    }
+  }
+
+  function updateSlots() {
+    $('bombBadge').textContent = st.bombs;
+    $('glassBadge').textContent = st.glasses;
+    $('slotBomb').classList.toggle('empty', st.bombs <= 0 && !bombArmed);
+    $('slotBomb').classList.toggle('armed', bombArmed);
+    $('slotGlass').classList.toggle('empty', st.glasses <= 0);
+    $('slotGlass').classList.toggle('armed', slowmoT > 0);
+  }
+
+  function hudDirty() { hudCache.score = -1; }
+
+  function updateHud() {
+    if (hudCache.score !== st.score) {
+      hudCache.score = st.score;
+      $('scoreTx').textContent = st.score + '分';
+    }
+    if (hudCache.balls !== st.balls) {
+      hudCache.balls = st.balls;
+      $('ballTx').textContent = st.balls + '球';
+    }
+    if (hudCache.bombs !== st.bombs || hudCache.glasses !== st.glasses) {
+      hudCache.bombs = st.bombs;
+      hudCache.glasses = st.glasses;
+      updateSlots();
+    }
+  }
+
+  var addBtnCache = '';
+  function updateAddBtn() {
+    var label;
+    if (addBtnMode === 'buy') {
+      $('btnAdd').classList.remove('free');
+      label = '加球';
+    } else {
+      var left = Math.ceil((freeReadyAt - Date.now()) / 1000);
+      $('btnAdd').classList.add('free');
+      label = left > 0 ? left + 's 后领 +5' : '领取 +5';
+    }
+    if (label !== addBtnCache) {
+      addBtnCache = label;
+      $('addTx').textContent = label;
+    }
+  }
+
+  /* ================= 菜单弹层 ================= */
+  function openMenu() {
+    snd('click');
+    state = 'paused';
+    $('bestTx').textContent = '最佳 ' + st.best + ' 分 · 第 ' + st.level + ' 关';
+    $('menuModal').classList.add('show');
+    $('helpSec').classList.remove('show');
+  }
+  function closeMenu() {
+    $('menuModal').classList.remove('show');
+    if (state === 'paused') state = 'play';
+  }
+  function bindDom() {
+    $('menuBtn').addEventListener('click', function (e) { e.stopPropagation(); openMenu(); });
+    $('mResume').addEventListener('click', function () { snd('click'); closeMenu(); });
+    $('mHelp').addEventListener('click', function () {
+      snd('click');
+      $('helpSec').classList.toggle('show');
+    });
+    $('mCfg').addEventListener('click', function () {
+      snd('click');
+      closeMenu();
+      var C = GP.CFGP;
+      if (C && C.open) { try { C.open(); } catch (e) {} }
+      else toast('设置面板未就绪');
+    });
+    var armed = false;
+    $('mRestart').addEventListener('click', function () {
+      snd('click');
+      if (!armed) {
+        armed = true;
+        this.textContent = '再点一次确认重开';
+        var self = this;
+        setTimeout(function () { armed = false; self.textContent = '重新开始'; }, 2000);
+      } else {
+        armed = false;
+        this.textContent = '重新开始';
+        closeMenu();
+        restartAll();
+      }
+    });
+    $('btnCollect').addEventListener('click', function (e) {
+      e.stopPropagation();
+      snd('click');
+      collectBalls();
+    });
+    $('btnAdd').addEventListener('click', function (e) { e.stopPropagation(); onAddBtn(); });
+    $('slotBomb').addEventListener('click', function (e) { e.stopPropagation(); onBombSlot(); });
+    $('slotGlass').addEventListener('click', function (e) { e.stopPropagation(); onGlassSlot(); });
+    $('menuModal').addEventListener('click', function (e) {
+      if (e.target === this) closeMenu();
+    });
+    /* 场地点按 = 冲击波 */
+    cv.addEventListener('pointerdown', function (e) {
+      GP.AUDIO && GP.AUDIO.unlock && GP.AUDIO.unlock();
+      var x = (e.clientX - ax0 * fit) / fit;
+      var y = (e.clientY - ay0 * fit) / fit;
+      pointer = { x: x, y: y, t: Date.now() };
+    });
+    cv.addEventListener('pointerup', function (e) {
+      if (!pointer) return;
+      var x = (e.clientX - ax0 * fit) / fit;
+      var y = (e.clientY - ay0 * fit) / fit;
+      pointer = null;
+      shockwave(x, y);
+    });
+  }
+
+  function shockwave(x, y) {
+    var now = Date.now();
+    if (now - lastShock < 250) return;
+    if (x < 0 || x > G.W || y < 0 || y > G.H) return;
+    lastShock = now;
+    var R = 92;
+    var any = false;
+    var bs = world.balls;
+    for (var i = 0; i < bs.length; i++) {
+      var b = bs[i];
+      var dx = b.x - x, dy = b.y - y;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if (d < R) {
+        var f = (1 - d / R) * 480 + 90;
+        var nx = d > 1 ? dx / d : 0, ny = d > 1 ? dy / d : -1;
+        b.vx += nx * f;
+        b.vy += ny * f - 60;
+        any = true;
+      }
+    }
+    fxRing(x, y, any ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.35)');
+    snd('click', { vol: 0.4 });
+  }
+
+  /* ================= 主循环 ================= */
+  var lastNow = 0;
+  function update(now) {
+    if (!lastNow) lastNow = now;
+    var dt = (now - lastNow) / 1000;
+    lastNow = now;
+    if (dt <= 0) return;
+    if (dt > 0.05) dt = 0.05;
+    if (state === 'paused') return;
+    var ts = slowmoT > 0 ? cfg.glassTimeScale : 1;
+    if (slowmoT > 0) {
+      slowmoT -= dt;
+      if (slowmoT <= 0) { slowmoT = 0; snd('slow', { up: true }); updateSlots(); }
+    }
+    var sdt = dt * ts;
+    world.step(sdt);
+    var F = GP.FX;
+    if (F && F.update) { try { F.update(sdt); } catch (e) {} }
+    /* 掉球节拍 */
+    dropTimer += sdt * 1000;
+    if (st.balls > 0 && world.balls.length < cfg.maxBalls && dropTimer >= cfg.dropInterval) {
+      dropTimer = 0;
+      dropOne();
+    }
+    /* bumper 动画衰减 */
+    var list = world.bumpers;
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (p.flash > 0) p.flash = Math.max(0, p.flash - dt * 4);
+      if (p.pop >= 0) {
+        p.pop += dt * 4;
+        if (p.pop > 1) p.pop = 1;
+      }
+    }
+    /* 收球飞行 */
+    for (var f = flyers.length - 1; f >= 0; f--) {
+      var fl = flyers[f];
+      if (fl.delay > 0) { fl.delay -= dt; continue; }
+      fl.t += dt * 1.8;
+      if (fl.t >= 1) {
+        flyers.splice(f, 1);
+        st.balls++;
+        hudDirty();
+        var nowMs = Date.now();
+        if (nowMs - lastTickSnd > 60) { lastTickSnd = nowMs; snd('coin'); }
+      }
+    }
+    /* 自动收球 */
+    if (cfg.autoCollect && state === 'play') {
+      autoCollectT += dt;
+      if (autoCollectT > 2) { autoCollectT = 0; collectBalls(); }
+    }
+    /* 过关过渡 */
+    if (state === 'clear') {
+      clearTimer += dt;
+      if (clearTimer > 1.7) nextLevel();
+    }
+    /* 震屏衰减 */
+    shakeMag *= Math.exp(-6 * dt);
+    /* 定时落盘 */
+    saveT += dt;
+    if (saveT > 8) { saveT = 0; SAVE.save(); }
+    /* 加球按钮态 */
+    updateAddBtn();
+    /* toast */
+    updateToast(dt);
+    /* 教程 */
+    if (!st.tutDone) {
+      st.tutDone = true;
+      setTimeout(function () { toast('点按屏幕可以弹开小球'); }, 1200);
+      setTimeout(function () { toast('把球点进顶部漩涡 = +3 球'); }, 5200);
+      SAVE.save();
+    }
+    updateHud();
+  }
+
+  function updateToast(dt) {
+    toastT -= dt;
+    var el = $('toast');
+    if (toastT <= 0) {
+      if (toastQ.length) {
+        el.textContent = toastQ.shift();
+        el.classList.add('show');
+        toastT = 1.9;
+      } else {
+        el.classList.remove('show');
+      }
+    }
+  }
+
+  function render() {
+    var w = cv.width, h = cv.height;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    var sx = shakeMag > 0.1 ? (Math.random() - 0.5) * shakeMag : 0;
+    var sy = shakeMag > 0.1 ? (Math.random() - 0.5) * shakeMag : 0;
+    ctx.setTransform(dpr * fit, 0, 0, dpr * fit, (ax0 * fit + sx) * dpr, (ay0 * fit + sy) * dpr);
+    /* 静态层：后景 → 漩涡 → 前景墙线（均锚定世界原点，随 ax0/ay0 平移） */
+    if (staticBack) ctx.drawImage(staticBack, 0, 0, G.W, G.H);
+    var t = performance.now() / 1000;
+    if (vortexCv) {
+      ctx.save();
+      ctx.translate(G.vortex.x, G.vortex.y);
+      ctx.rotate(t * 0.5);
+      var vs = G.vortex.r * 2 / 200 * (1 + 0.035 * Math.sin(t * 2.1));
+      ctx.drawImage(vortexCv, -100 * vs, -100 * vs, 200 * vs, 200 * vs);
+      ctx.restore();
+    }
+    if (staticFront) ctx.drawImage(staticFront, 0, 0, G.W, G.H);
+    /* 关卡数字 */
+    ctx.font = '700 15px -apple-system,PingFang SC,sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(String(st.level), G.levelTx.x, G.levelTx.y);
+    /* bumpers */
+    var list = world.bumpers;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (!p.alive && p.pop >= 1) continue;
+      var spr = bumperSprite(p);
+      var R = p.kind === 'diamond' ? p.half : p.r;
+      var sc = 1, al = 1;
+      if (!p.alive) {
+        sc = 1 + p.pop * 0.55;
+        al = 1 - p.pop;
+      } else if (p.flash > 0) {
+        sc = 1 + p.flash * 0.1;
+      }
+      var half = (R + 16) * sc;
+      ctx.save();
+      ctx.globalAlpha = al;
+      ctx.translate(p.x, p.y);
+      ctx.scale(sc, sc);
+      ctx.drawImage(spr, -(R + 16), -(R + 16), (R + 16) * 2, (R + 16) * 2);
+      if (p.flash > 0.02) {
+        ctx.globalAlpha = al * p.flash * 0.38;
+        ctx.beginPath();
+        if (p.kind === 'diamond') {
+          ctx.arc(0, 0, p.half / Math.SQRT2 + 4, 0, GP.TAU);
+        } else {
+          ctx.arc(0, 0, p.r - 1, 0, GP.TAU);
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.globalAlpha = al;
+      }
+      if (p.alive) {
+        var fs = (p.kind === 'big' ? R * 0.62 : R * 0.82);
+        if (p.count >= 100) fs *= 0.74;
+        else if (p.count >= 10) fs *= 0.9;
+        ctx.font = '800 ' + fs.toFixed(1) + 'px -apple-system,PingFang SC,sans-serif';
+        ctx.fillStyle = '#38332e';
+        ctx.fillText(String(p.count), 0, 1);
+      }
+      ctx.restore();
+    }
+    /* 球 */
+    var bs = world.balls;
+    for (var k = 0; k < bs.length; k++) {
+      var b = bs[k];
+      var r = b.r;
+      var grow = b.spawnT != null && b.spawnT < 1 ? (0.4 + 0.6 * b.spawnT) : 1;
+      if (b.spawnT != null && b.spawnT < 1) b.spawnT = Math.min(1, b.spawnT + 0.1);
+      var img = b.bomb && !b.bombDone ? bombCv : ballCv;
+      if (img) {
+        ctx.drawImage(img, b.x - r * grow * 1.15, b.y - r * grow * 1.15, r * grow * 2.3, r * grow * 2.3);
+        if (b.bomb && !b.bombDone) {
+          ctx.fillStyle = (Math.floor(t * 20) % 2) ? '#ffd76a' : '#ff9c3e';
+          ctx.beginPath();
+          ctx.arc(b.x + 3, b.y - r - 4, 2.4, 0, GP.TAU);
+          ctx.fill();
+        }
+      } else {
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, r * grow, 0, GP.TAU);
+        ctx.fill();
+      }
+    }
+    /* 收球飞行点 */
+    for (var f2 = 0; f2 < flyers.length; f2++) {
+      var fl2 = flyers[f2];
+      if (fl2.delay > 0) continue;
+      var tt = fl2.t;
+      var mx = (fl2.x + 362) / 2;
+      var my = Math.min(fl2.y, 82) - 90;
+      var u = 1 - tt;
+      var fx = u * u * fl2.x + 2 * u * tt * mx + tt * tt * 362;
+      var fy = u * u * fl2.y + 2 * u * tt * my + tt * tt * 82;
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.beginPath();
+      ctx.arc(fx, fy, 6, 0, GP.TAU);
+      ctx.fill();
+    }
+    /* FX 粒子 */
+    var F = GP.FX;
+    if (F && F.draw) { try { F.draw(ctx); } catch (e) {} }
+    /* 慢动作罩 */
+    if (slowmoT > 0) {
+      ctx.fillStyle = 'rgba(110,150,210,0.10)';
+      ctx.fillRect(-ax0, -ay0, w / (dpr * fit), h / (dpr * fit));
+      ctx.font = '700 13px -apple-system,PingFang SC,sans-serif';
+      ctx.fillStyle = 'rgba(210,228,255,0.9)';
+      ctx.textAlign = 'center';
+      ctx.fillText('慢动作 ' + slowmoT.toFixed(1) + 's', 195, 205);
+    }
+    if (cfg.mods && cfg.mods.showFps) {
+      ctx.font = '600 11px monospace';
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.textAlign = 'left';
+      ctx.fillText(fpsV + 'fps ' + world.balls.length + 'b', 8, G.H - 100);
+    }
+  }
+
+  function loop(now) {
+    try {
+      update(now);
+      render();
+      fpsN++;
+      if (now - fpsT > 500) {
+        fpsV = Math.round(fpsN * 1000 / (now - fpsT));
+        fpsN = 0; fpsT = now;
+      }
+    } catch (e) { /* 帧循环不中断 */ }
+    requestAnimationFrame(loop);
+  }
+
+  /* ================= 尺寸 ================= */
+  function resize() {
+    var iw = window.innerWidth, ih = window.innerHeight;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var arenaH = GP.clamp(ih, 640, 880);
+    if (ih >= 640 && ih <= 880) arenaH = ih;
+    G = geo(arenaH);
+    fit = Math.min(iw / G.W, ih / G.H);
+    if (ih / G.H > fit) { /* 高度富余 → 垂直居中 */ }
+    ax0 = (iw / fit - G.W) / 2;
+    ay0 = (ih / fit - G.H) / 2;
+    cv.width = Math.round(iw * dpr);
+    cv.height = Math.round(ih * dpr);
+    cv.style.width = iw + 'px';
+    cv.style.height = ih + 'px';
+    buildStatic();
+    setDomLayout();
+    /* bumper 位置夹回新边界 */
+    var list = world ? world.bumpers : [];
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      var r = p.kind === 'diamond' ? p.half : p.r;
+      p.y = GP.clamp(p.y, 262, G.H - 190 - r);
+      p.baseX = GP.clamp(p.baseX, 42 + r, AW - 42 - r);
+      p.x = p.baseX;
+    }
+  }
+
+  /* ================= 配置变更 ================= */
+  function applyConfig(c) {
+    cfg = c;
+    if (world) {
+      world.gravity = cfg.gravity;
+      world.restWall = cfg.restWall;
+      world.restBumper = cfg.restBumper;
+      world.restFloor = cfg.restFloor;
+      world.restBall = cfg.restBall;
+      world.bumperKick = cfg.bumperKick;
+      for (var i = 0; i < world.segs.length; i++) {
+        world.segs[i].rest = world.segs[i].floor ? cfg.restFloor : cfg.restWall;
+      }
+    }
+    var A = GP.AUDIO;
+    if (A) {
+      try {
+        A.setVolume(cfg.sfxVolume);
+        A.setMuted(cfg.muted);
+        if (A.applyOverrides && cfg.sounds) A.applyOverrides(cfg.sounds);
+      } catch (e) {}
+    }
+    if (cfg.icons) {
+      if (cfg.icons.bomb) $('bombImg').src = cfg.icons.bomb;
+      if (cfg.icons.hourglass) $('glassImg').src = cfg.icons.hourglass;
+    }
+  }
+
+  /* ================= 启动 ================= */
+  function boot() {
+    cv = $('c');
+    ctx = cv.getContext('2d');
+    st = SAVE.load();
+    if (Q0.balls !== undefined) { /* 已在 SAVE.load 处理 */ }
+    world = new PHY.World({
+      gravity: cfg.gravity,
+      restWall: cfg.restWall, restBumper: cfg.restBumper,
+      restFloor: cfg.restFloor, restBall: cfg.restBall,
+      bumperKick: cfg.bumperKick
+    });
+    world.onBumperHit = onBumperHit;
+    world.onSwallow = onSwallow;
+    world.onBomb = onBombBall;
+    world.onBounce = onBounce;
+    world.swallow = { x: 195, y: 40, r: 26 };
+    world.attract = { x: 195, y: 30, yMax: 200, halfW: 34, k: 5200 };
+    resize();
+    world.setStatics(buildSegs());
+    genLevel(st.level);
+    buildVortexSprite();
+    buildBallSprite();
+    /* 图标注入 */
+    try {
+      var AR = GP.ART;
+      if (AR && AR.icon) {
+        $('menuImg').src = AR.icon('menu');
+        $('bombImg').src = cfg.icons.bomb || AR.icon('bomb');
+        $('glassImg').src = cfg.icons.hourglass || AR.icon('hourglass');
+        $('addPlusImg').src = AR.icon('plus');
+      }
+    } catch (e) {}
+    bindDom();
+    var A = GP.AUDIO;
+    if (A && A.init) { try { A.init(); } catch (e) {} }
+    var F = GP.FX;
+    if (F && F.init) { try { F.init(cv); } catch (e) {} }
+    applyConfig(cfg);
+    CFG.onChange(applyConfig);
+    window.addEventListener('resize', function () {
+      resize();
+      world.setStatics(buildSegs());
+    });
+    window.addEventListener('orientationchange', function () {
+      setTimeout(function () {
+        resize();
+        world.setStatics(buildSegs());
+      }, 300);
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) SAVE.save();
+    });
+    window.addEventListener('pagehide', function () { SAVE.save(); });
+    /* rAF + 看门狗双驱动（遮挡窗口 rAF 冻结时物理继续） */
+    requestAnimationFrame(loop);
+    setInterval(function () {
+      if (document.hidden) update(performance.now());
+    }, 200);
+    updateSlots();
+    updateAddBtn();
+    state = 'play';
+    hudDirty();
+  }
+
+  var Q0 = GP.Q;
+
+  /* ================= 测试钩子 ================= */
+  window.__gp = {
+    v: '1.0',
+    get state() { return state; },
+    get st() { return st; },
+    get cfg() { return cfg; },
+    get WORLD() { return world; },
+    get stats() {
+      return {
+        level: st.level, score: st.score, balls: st.balls,
+        inPlay: world ? world.balls.length : 0,
+        bumps: world ? world.bumpers.filter(function (p) { return p.alive; }).length : 0,
+        swallows: st.swallows, pops: st.pops, fps: fpsV, slow: slowmoT, bombArmed: bombArmed
+      };
+    },
+    dropOne: function () { dropOne(); },
+    collect: function () { return collectBalls(); },
+    addBalls: function (n) { st.balls += n; hudDirty(); },
+    useBomb: function () { onBombSlot(); },
+    useGlass: function () { onGlassSlot(); },
+    shock: function (x, y) { shockwave(x, y); },
+    clearLevel: function () {
+      var list = world.bumpers;
+      for (var i = 0; i < list.length; i++) if (list[i].alive) damageBumper(list[i], list[i].count, false);
+    },
+    jumpLevel: function (n) {
+      st.level = n; st.addBallUses = 0; genLevel(n); SAVE.save(); hudDirty();
+    },
+    restart: restartAll,
+    genLevel: genLevel
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();
+
+</script>
+</body>
+</html>

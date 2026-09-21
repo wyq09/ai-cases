@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#463d35">
+<title>重力弹球王</title>
+<style>
+/*STYLE_INLINE*/
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c"></canvas>
+  <div id="menuBtn"><img id="menuImg" alt="菜单"></div>
+  <div id="scoreTx">0分</div>
+  <div id="ballTx">0球</div>
+  <div id="btnCollect">收球</div>
+  <div id="btnAdd"><img id="addPlusImg" alt=""><span id="addTx">加球</span></div>
+  <div id="slotBomb" class="slot"><img id="bombImg" alt="炸弹"><b id="bombBadge" class="badge">0</b></div>
+  <div id="slotGlass" class="slot"><img id="glassImg" alt="沙漏"><b id="glassBadge" class="badge">0</b></div>
+  <div id="banner"></div>
+  <div id="menuModal">
+    <div class="panel">
+      <h2>重力弹球王</h2>
+      <div id="bestTx">最佳 0 分 · 第 1 关</div>
+      <button id="mResume">继续游戏</button>
+      <button id="mHelp">玩法说明</button>
+      <div id="helpSec">
+        <p>· 球自动从顶部漩涡落入，撞到数字球让数字 −1，减到 0 爆炸得分</p>
+        <p>· 消除得分 = 初始数字 ×5；菱形 ×2 倍、大白球 ×3 倍</p>
+        <p>· 点按屏幕：冲击波把附近小球弹开</p>
+        <p>· 把球点进顶部漩涡：+15 分并回收 +3 球</p>
+        <p>· 收球：把场上静止的球收回球数；加球：花分数买球，分不够可免费领</p>
+        <p>· 炸弹：下一颗球落地即爆，范围内数字 −6</p>
+        <p>· 沙漏：7 秒慢动作，配合点按精准狙击</p>
+        <p>· 清空全部数字球进入下一关，关卡无限</p>
+      </div>
+      <button id="mCfg">设置</button>
+      <button id="mRestart" class="danger">重新开始</button>
+    </div>
+  </div>
+  <div id="toast"></div>
+</div>
+<script>/*RESET_INLINE*/</script>
+<script>
+/*MODULE_SCRIPTS*/
+</script>
+</body>
+</html>

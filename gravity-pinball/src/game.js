@@ -1,0 +1,1309 @@
+/* game.js — 状态机 + 无限关卡生成 + 渲染 + DOM 接线（主线负责） */
+(function () {
+  'use strict';
+  var GP = window.GP;
+  var PHY = GP.PHY;
+  var CFG = GP.CFG, SAVE = GP.SAVE;
+
+  /* ================= 常量 ================= */
+  var AW = 390;                 /* 场地逻辑宽 */
+  var PALETTE = [
+    { fill: '#dfe666', ring: '#b9c93e' },
+    { fill: '#b3a2e6', ring: '#8d78cf' },
+    { fill: '#a5d9f2', ring: '#6fb9e6' },
+    { fill: '#6fd9e8', ring: '#3cb4cc' },
+    { fill: '#9fe07a', ring: '#6fbe4e' },
+    { fill: '#f2b95e', ring: '#d99a34' },
+    { fill: '#f29ab8', ring: '#d96f98' }
+  ];
+  var BIGC = { fill: '#f6f2ee', ring: '#cfc6bc' };
+  var DIAC = { fill: '#9feaf2', ring: '#5cc8d8' };
+
+  /* ================= 模块状态 ================= */
+  var cv, ctx, dpr = 1, fit = 1;
+  var ax0 = 0, ay0 = 0;         /* 场地在画布上的偏移 */
+  var G = { W: AW, H: 844 };    /* 当前场地几何 */
+  var world = null;
+  var st = null;                /* 进度存档引用 */
+  var cfg = CFG.all();
+  var state = 'boot';           /* play | clear | paused */
+  var dropTimer = 0, spawnScale = {};
+  var slowmoT = 0, bombArmed = false;
+  var shakeMag = 0;
+  var flyers = [];              /* 收球飞回 HUD 的小球 */
+  var lastBounceSnd = 0, lastTickSnd = 0;
+  var lastShock = 0;
+  var staticBack = null, staticFront = null, vortexCv = null;
+  var bumperSprites = {};
+  var ballCv = null, bombCv = null;
+  var clearTimer = 0, bannerLevel = 0;
+  var freeReadyAt = 0, addBtnMode = 'buy';
+  var autoCollectT = 0, saveT = 0, fpsN = 0, fpsT = 0, fpsV = 0;
+  var pointer = null;
+  var isTouch = ('ontouchstart' in window);
+  var toastQ = [], toastT = 0;
+  var hudCache = { score: -1, balls: -1, bombs: -1, glasses: -1 };
+
+  function $(id) { return document.getElementById(id); }
+
+  /* ================= 几何 ================= */
+  function geo(h) {
+    return {
+      W: AW, H: h,
+      menu: { x: 30, y: 34, r: 22 },
+      cup: { x: 195, y: 148, r: 23 },
+      dashY: 148,
+      cornerY: 60,
+      cornerR: 18,
+      railEnd: h - 154,
+      floorEndY: h - 81,
+      floorSagY: h - 49,
+      vortex: { x: 195, y: 58, r: 54 },
+      levelTx: { x: 170, y: 172 }
+    };
+  }
+
+  function buildSegs() {
+    var segs = [];
+    var cupA = 0.28 * Math.PI, cupB = 0.72 * Math.PI;
+    /* V 漏斗斜壁 */
+    segs.push({ ax: 32, ay: G.cornerY, bx: G.cup.x - G.cup.r, by: G.cup.y, rest: cfg.restWall });
+    segs.push({ ax: G.cup.x + G.cup.r, ay: G.cup.y, bx: AW - 32, by: G.cornerY, rest: cfg.restWall });
+    /* 杯弧（底部开口掉球） */
+    var i, a0, a1, N = 7;
+    for (i = 0; i < N; i++) {
+      a0 = Math.PI - (Math.PI - cupB) * (i / N);
+      a1 = Math.PI - (Math.PI - cupB) * ((i + 1) / N);
+      segs.push(arcSeg(G.cup, a0, a1));
+    }
+    for (i = 0; i < N; i++) {
+      a0 = cupA * (1 - i / N);
+      a1 = cupA * (1 - (i + 1) / N);
+      segs.push(arcSeg(G.cup, a0, a1));
+    }
+    /* 侧墙 */
+    segs.push({ ax: 14, ay: 78, bx: 14, by: G.floorEndY, rest: cfg.restWall });
+    segs.push({ ax: AW - 14, ay: 78, bx: AW - 14, by: G.floorEndY, rest: cfg.restWall });
+    /* 弧形地板 */
+    var ctrlY = 2 * G.floorSagY - G.floorEndY;
+    var M = 24;
+    for (i = 0; i < M; i++) {
+      var t0 = i / M, t1 = (i + 1) / M;
+      var p0 = qPoint(14, G.floorEndY, 195, ctrlY, AW - 14, G.floorEndY, t0);
+      var p1 = qPoint(14, G.floorEndY, 195, ctrlY, AW - 14, G.floorEndY, t1);
+      segs.push({ ax: p0.x, ay: p0.y, bx: p1.x, by: p1.y, rest: cfg.restFloor, fric: 0.995, floor: true });
+    }
+    return segs;
+  }
+  function arcSeg(c, a0, a1) {
+    return {
+      ax: c.x + Math.cos(a0) * c.r, ay: c.y + Math.sin(a0) * c.r,
+      bx: c.x + Math.cos(a1) * c.r, by: c.y + Math.sin(a1) * c.r,
+      rest: cfg.restWall
+    };
+  }
+  function qPoint(x0, y0, cx, cy, x1, y1, t) {
+    var u = 1 - t;
+    return {
+      x: u * u * x0 + 2 * u * t * cx + t * t * x1,
+      y: u * u * y0 + 2 * u * t * cy + t * t * y1
+    };
+  }
+
+  /* ================= 关卡生成 ================= */
+  function genLevel(n) {
+    var rand = GP.rng(n * 9301 + 49297);
+    var total = Math.min(5 + Math.floor(n * 0.7), 13);
+    var base = Math.min(4 + n * 2, 60);
+    var maxY = G.H - 190;
+    var minX = 42, maxX = AW - 42, minY = 262;
+    var diaNeed = n >= 2 ? Math.min(1 + Math.floor(n / 4), 3) : 0;
+    var bigNeed = (n % 4 === 0) ? 1 : 0;
+    var pal = PALETTE.slice();
+    for (var s = pal.length - 1; s > 0; s--) {
+      var j = Math.floor(rand() * (s + 1));
+      var tmp = pal[s]; pal[s] = pal[j]; pal[j] = tmp;
+    }
+    var list = [], id = 0;
+    function place(kind) {
+      for (var t = 0; t < 60; t++) {
+        var x = minX + rand() * (maxX - minX);
+        var y = minY + rand() * (maxY - minY);
+        var r = kind === 'big' ? 27 : (kind === 'diamond' ? 22 : 19);
+        var dx = x - 195, dy = y - 175;
+        if (Math.sqrt(dx * dx + dy * dy) < 135) continue;           /* 杯口下方锥区 */
+        if (y > maxY - r) continue;
+        var ok = true;
+        for (var k = 0; k < list.length; k++) {
+          var o = list[k];
+          var or = (o.kind === 'diamond' ? o.half : o.r);
+          var ddx = x - o.x, ddy = y - o.y;
+          var need = or + r + 26;
+          if (ddx * ddx + ddy * ddy < need * need) { ok = false; break; }
+        }
+        if (!ok) continue;
+        var c0, mult = 1;
+        if (kind === 'big') { c0 = base * 3; mult = 3; }
+        else if (kind === 'diamond') { c0 = Math.ceil(base * 0.5); mult = 2; }
+        else { c0 = Math.max(3, Math.round(base * (0.7 + rand() * 0.6))); }
+        var mv = (kind === 'circle' && n >= 5 && rand() < 0.35 && listMoveCount(list) < 3);
+        var amp = 0, spd = 0, bx2 = x;
+        if (mv) {
+          amp = 25 + rand() * 35;
+          var lo = minX + r + amp, hi = maxX - r - amp;
+          if (lo > hi) { amp = 0; } else {
+            x = Math.max(lo, Math.min(hi, x));
+            spd = 0.8 + rand() * 0.9;
+          }
+        }
+        list.push({
+          id: ++id, kind: kind, x: x, baseX: x, baseY: y, y: y,
+          r: kind === 'diamond' ? 0 : r, half: kind === 'diamond' ? 22 : 0,
+          color: kind === 'big' ? BIGC : (kind === 'diamond' ? DIAC : pal[id % pal.length]),
+          count: c0, count0: c0, mult: mult,
+          alive: true, flash: 0, pop: -1, cool: {},
+          moveAmp: amp, moveSpd: spd, phase: rand() * GP.TAU
+        });
+        return true;
+      }
+      return false;
+    }
+    /* 先放特殊，再放普通 */
+    for (var d = 0; d < diaNeed; d++) place('diamond');
+    if (bigNeed) place('big');
+    var guard = 0;
+    while (list.length < total && guard++ < 50) {
+      if (!place('circle')) break;
+    }
+    world.setBumpers(list);
+  }
+  function listMoveCount(list) {
+    var c = 0;
+    for (var i = 0; i < list.length; i++) if (list[i].moveAmp) c++;
+    return c;
+  }
+
+  /* ================= 音效/特效软调用 ================= */
+  function snd(name, opts) { var A = GP.AUDIO; if (A && A.play) { try { A.play(name, opts); } catch (e) {} } }
+  function sndBounce(i) {
+    var now = Date.now();
+    if (now - lastBounceSnd < 70) return;
+    lastBounceSnd = now;
+    var A = GP.AUDIO; if (A && A.bounce) { try { A.bounce(i); } catch (e) {} }
+  }
+  function fxBurst(x, y, color, n) { var F = GP.FX; if (F && F.burst) { try { F.burst(x, y, color, n); } catch (e) {} } }
+  function fxText(x, y, s, color) { var F = GP.FX; if (F && F.floatText) { try { F.floatText(x, y, s, color); } catch (e) {} } }
+  function fxSwallow(x, y) { var F = GP.FX; if (F && F.swallow) { try { F.swallow(x, y); } catch (e) {} } }
+  function fxRing(x, y, color) { var F = GP.FX; if (F && F.ring) { try { F.ring(x, y, color); } catch (e) {} } }
+
+  function toast(msg) {
+    toastQ.push(msg);
+    if (toastQ.length > 3) toastQ.shift();
+  }
+  function shake(m) { shakeMag = Math.min(14, shakeMag + m); }
+
+  /* ================= 掉球 / 回收 / 经济 ================= */
+  function dropOne() {
+    if (state !== 'play' && state !== 'clear') return;
+    if (st.balls <= 0 || world.balls.length >= cfg.maxBalls) return;
+    st.balls--;
+    var b = world.addBall(195 + (Math.random() - 0.5) * 9, 168, (Math.random() - 0.5) * 40, 130, cfg.ballR,
+      { bomb: bombArmed });
+    b.spawnT = 0;
+    if (bombArmed) {
+      bombArmed = false;
+      updateSlots();
+    }
+    hudDirty();
+  }
+
+  function collectBalls() {
+    var n = 0;
+    var bs = world.balls;
+    for (var i = bs.length - 1; i >= 0; i--) {
+      var b = bs[i];
+      if (b.bomb || b.bombDone) continue;
+      if (b.speed < 60) {
+        n++;
+        flyers.push({ x: b.x, y: b.y, t: 0, delay: n * 0.05 });
+        world.removeBall(b);
+      }
+    }
+    if (n > 0) snd('collect');
+    return n;
+  }
+
+  function addBallPrice() {
+    return cfg.addBallBaseCost + cfg.addBallCostStep * st.addBallUses;
+  }
+
+  function onAddBtn() {
+    snd('click');
+    if (addBtnMode === 'buy') {
+      var cost = addBallPrice();
+      if (st.score >= cost) {
+        st.score -= cost;
+        st.balls += cfg.addBallAmount;
+        st.addBallUses++;
+        snd('add');
+        toast('+' + cfg.addBallAmount + ' 球');
+      } else {
+        freeReadyAt = Date.now() + cfg.freeCooldown * 1000;
+        addBtnMode = 'free';
+        toast('分数不足，稍后可免费领取');
+      }
+    } else {
+      if (Date.now() < freeReadyAt) return;
+      st.balls += cfg.addBallFreeAmount;
+      freeReadyAt = Date.now() + cfg.freeCooldown * 1000;
+      snd('add');
+      toast('+' + cfg.addBallFreeAmount + ' 球');
+    }
+    hudDirty();
+    SAVE.save();
+  }
+
+  function onBombSlot() {
+    snd('click');
+    if (bombArmed) { bombArmed = false; st.bombs++; }
+    else if (st.bombs > 0) { bombArmed = true; st.bombs--; toast('下一颗球是炸弹'); }
+    updateSlots();
+    SAVE.save();
+  }
+
+  function onGlassSlot() {
+    snd('click');
+    if (slowmoT > 0) return;
+    if (st.glasses > 0) {
+      st.glasses--;
+      slowmoT = cfg.glassDuration;
+      snd('slow');
+      updateSlots();
+      SAVE.save();
+    }
+  }
+
+  function explodeBomb(b) {
+    var R = cfg.bombRadius;
+    fxBurst(b.x, b.y, '#ffb64e', 40);
+    fxRing(b.x, b.y, '#ffcf7a');
+    shake(10);
+    snd('bomb');
+    var list = world.bumpers;
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (!p.alive) continue;
+      var dx = p.x - b.x, dy = p.y - b.y;
+      if (dx * dx + dy * dy < (R + 20) * (R + 20)) {
+        damageBumper(p, cfg.bombPower, false);
+      }
+    }
+    for (var j = world.balls.length - 1; j >= 0; j--) {
+      var o = world.balls[j];
+      if (o === b || o.dead) continue;
+      var ox = o.x - b.x, oy = o.y - b.y;
+      var d = Math.sqrt(ox * ox + oy * oy) || 1;
+      if (d < R) {
+        var f = (1 - d / R) * 700;
+        o.vx += (ox / d) * f;
+        o.vy += (oy / d) * f - 120;
+      }
+    }
+    hudDirty();
+  }
+
+  function damageBumper(p, hits, byBall) {
+    p.count -= hits;
+    p.flash = 1;
+    if (p.count <= 0) {
+      p.count = 0;
+      p.alive = false;
+      p.pop = 0;
+      var gain = p.count0 * 5 * p.mult;
+      st.score += gain;
+      st.pops++;
+      fxBurst(p.x, p.y, p.color.ring, p.kind === 'big' ? 44 : 28);
+      fxText(p.x, p.y - 20, '+' + gain, p.kind === 'circle' ? '#ffffff' : '#ffe9a0');
+      shake(p.kind === 'big' ? 7 : 3);
+      snd('pop');
+      checkClear();
+    } else if (byBall) {
+      var gain2 = 1 * p.mult;
+      st.score += gain2;
+      fxBurst(p.x, p.y, p.color.fill, 4);
+    }
+  }
+
+  function checkClear() {
+    if (state !== 'play') return;
+    var list = world.bumpers;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].alive) return;
+    }
+    if (!list.length) return;
+    state = 'clear';
+    clearTimer = 0;
+    var bonus = 30 + 10 * st.level;
+    bannerLevel = st.level;
+    st.score += bonus;
+    st.bombs = Math.min(st.bombs + 1, 5);
+    if (st.level % 3 === 0) st.glasses = Math.min(st.glasses + 1, 3);
+    st.best = Math.max(st.best, st.score);
+    snd('clear');
+    var bn = $('banner');
+    bn.innerHTML = '<div class="bt">第 ' + st.level + ' 关 完成</div><div class="bs">+' + bonus + ' 分</div>';
+    bn.classList.add('show');
+    SAVE.save();
+    hudDirty();
+  }
+
+  function nextLevel() {
+    st.level++;
+    st.addBallUses = 0;
+    addBtnMode = 'buy';
+    genLevel(st.level);
+    $('banner').classList.remove('show');
+    state = 'play';
+    SAVE.save();
+    hudDirty();
+  }
+
+  function restartAll() {
+    st.level = 1; st.score = 0; st.balls = cfg.startBalls;
+    st.bombs = 2; st.glasses = 1; st.addBallUses = 0;
+    bombArmed = false; slowmoT = 0;
+    addBtnMode = 'buy';
+    flyers.length = 0;
+    world.balls.length = 0;
+    genLevel(1);
+    $('banner').classList.remove('show');
+    state = 'play';
+    SAVE.save();
+    hudDirty();
+    updateSlots();
+    toast('重新开始');
+  }
+
+  /* ================= 物理事件 ================= */
+  function onBumperHit(p, b, nx, ny, impact) {
+    if (state !== 'play' && state !== 'clear') return;
+    damageBumper(p, 1, true);
+    snd('hit', { pitch: 1 + Math.min(p.count, 40) * 0.006 });
+  }
+  function onSwallow(b) {
+    st.balls += 3;
+    st.score += 15;
+    st.swallows++;
+    fxSwallow(G.vortex.x, G.vortex.y);
+    fxText(G.vortex.x, G.vortex.y + 60, '+3球', '#ffe9a0');
+    snd('swallow');
+    hudDirty();
+    SAVE.save();
+  }
+  function onBombBall(b, kind) {
+    explodeBomb(b);
+  }
+  function onBounce(b, imp, kind) {
+    if (imp > 90) sndBounce(Math.min(1, imp / 1400));
+  }
+
+  /* ================= 精灵预渲染 ================= */
+  function makeCanvas(w, h) {
+    var c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    return c;
+  }
+
+  function buildVortexSprite() {
+    var S = 200, c = makeCanvas(S, S), g = c.getContext('2d');
+    var cx = S / 2, cy = S / 2;
+    /* 盘面：贴近背景的灰棕尘雾，低对比 */
+    var grd = g.createRadialGradient(cx, cy, 8, cx, cy, S / 2);
+    grd.addColorStop(0, 'rgba(168,155,144,0.85)');
+    grd.addColorStop(0.25, 'rgba(120,108,98,0.62)');
+    grd.addColorStop(0.5, 'rgba(84,74,66,0.4)');
+    grd.addColorStop(0.72, 'rgba(74,65,58,0.2)');
+    grd.addColorStop(1, 'rgba(74,65,58,0)');
+    g.fillStyle = grd;
+    g.beginPath();
+    g.arc(cx, cy, S / 2, 0, GP.TAU);
+    g.fill();
+    /* 柔和暗臂（宽淡底 + 中间调），避免硬边 */
+    g.lineCap = 'round';
+    for (var arm = 0; arm < 3; arm++) {
+      var a0 = arm * (GP.TAU / 3);
+      for (var pass = 0; pass < 3; pass++) {
+        g.beginPath();
+        var steps = 30;
+        for (var i = 0; i <= steps; i++) {
+          var t = i / steps;
+          var r = 84 - t * 66;
+          var a = a0 + t * 4.0;
+          var x = cx + Math.cos(a) * r;
+          var y = cy + Math.sin(a) * r * 0.94;
+          if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+        }
+        if (pass === 0) {
+          g.strokeStyle = 'rgba(58,50,44,0.16)';
+          g.lineWidth = 26 - arm * 3;
+        } else if (pass === 1) {
+          g.strokeStyle = 'rgba(52,44,38,0.3)';
+          g.lineWidth = 14 - arm;
+        } else {
+          g.strokeStyle = 'rgba(46,39,34,0.42)';
+          g.lineWidth = 7 - arm * 0.5;
+        }
+        g.stroke();
+      }
+    }
+    /* 臂间微亮纹 */
+    for (var arm2 = 0; arm2 < 3; arm2++) {
+      g.beginPath();
+      var a02 = arm2 * (GP.TAU / 3) + 1.1;
+      for (var j = 0; j <= 24; j++) {
+        var t2 = j / 24;
+        var r2 = 76 - t2 * 60;
+        var a2 = a02 + t2 * 4.0;
+        var x2 = cx + Math.cos(a2) * r2;
+        var y2 = cy + Math.sin(a2) * r2 * 0.94;
+        if (j === 0) g.moveTo(x2, y2); else g.lineTo(x2, y2);
+      }
+      g.strokeStyle = 'rgba(186,172,158,0.22)';
+      g.lineWidth = 6;
+      g.stroke();
+    }
+    /* 微亮芯（克制的雾状） */
+    var core = g.createRadialGradient(cx, cy, 0, cx, cy, 42);
+    core.addColorStop(0, 'rgba(212,200,189,0.7)');
+    core.addColorStop(0.4, 'rgba(170,156,144,0.35)');
+    core.addColorStop(1, 'rgba(170,156,144,0)');
+    g.fillStyle = core;
+    g.beginPath();
+    g.arc(cx, cy, 42, 0, GP.TAU);
+    g.fill();
+    /* 尘雾噪点 */
+    var rr = GP.rng(7);
+    for (var n = 0; n < 130; n++) {
+      var ang = rr() * GP.TAU, rad = 14 + rr() * 82;
+      var light = rr() > 0.45;
+      g.fillStyle = light ? 'rgba(206,195,184,' + (0.03 + rr() * 0.07).toFixed(3) + ')'
+        : 'rgba(52,44,38,' + (0.03 + rr() * 0.08).toFixed(3) + ')';
+      var sz = 2 + rr() * 3;
+      g.beginPath();
+      g.arc(cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad * 0.94, sz, 0, GP.TAU);
+      g.fill();
+    }
+    vortexCv = c;
+  }
+
+  function bumperSprite(p) {
+    var isDia = p.kind === 'diamond';
+    var R = isDia ? p.half : p.r;
+    var M = 16;
+    var S = (R + M) * 2;
+    var key = p.kind + '_' + p.color.fill + '_' + R;
+    if (bumperSprites[key]) return bumperSprites[key];
+    var c = makeCanvas(S, S), g = c.getContext('2d');
+    var cx = S / 2, cy = S / 2;
+    /* halo */
+    var halo = g.createRadialGradient(cx, cy, R * 0.8, cx, cy, R + M - 2);
+    halo.addColorStop(0, 'rgba(255,255,255,0)');
+    halo.addColorStop(0.55, 'rgba(255,255,255,0.14)');
+    halo.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = halo;
+    g.fillRect(0, 0, S, S);
+    g.translate(cx, cy);
+    if (isDia) g.rotate(Math.PI / 4);
+    /* 主体 */
+    g.beginPath();
+    if (isDia) {
+      var s = R / Math.SQRT2 + 3;
+      roundRectPath(g, -s, -s, s * 2, s * 2, 5);
+    } else {
+      g.arc(0, 0, R, 0, GP.TAU);
+    }
+    var fill = g.createRadialGradient(-R * 0.35, -R * 0.4, R * 0.1, 0, 0, R * 1.15);
+    fill.addColorStop(0, lighten(p.color.fill, 18));
+    fill.addColorStop(0.6, p.color.fill);
+    fill.addColorStop(1, darken(p.color.fill, 10));
+    g.fillStyle = fill;
+    g.fill();
+    g.lineWidth = isDia ? 3 : 3.5;
+    g.strokeStyle = isDia ? '#d8f8fc' : p.color.ring;
+    g.stroke();
+    if (isDia) {
+      g.beginPath();
+      var s2 = R / Math.SQRT2 - 2;
+      roundRectPath(g, -s2, -s2, s2 * 2, s2 * 2, 4);
+      g.strokeStyle = 'rgba(92,200,216,0.8)';
+      g.lineWidth = 2.5;
+      g.stroke();
+    } else {
+      /* 内圈暗环 + 高光 */
+      g.beginPath();
+      g.arc(0, 0, R - 3.5, 0, GP.TAU);
+      g.strokeStyle = shadeA(p.color.ring, 0.55);
+      g.lineWidth = 2;
+      g.stroke();
+      g.beginPath();
+      g.arc(0, 0, R - 5.5, -Math.PI * 0.85, -Math.PI * 0.35);
+      g.strokeStyle = 'rgba(255,255,255,0.22)';
+      g.lineWidth = 3;
+      g.lineCap = 'round';
+      g.stroke();
+    }
+    if (p.kind === 'big') {
+      g.beginPath();
+      g.arc(-R * 0.3, -R * 0.35, R * 0.42, 0, GP.TAU);
+      var gl = g.createRadialGradient(-R * 0.38, -R * 0.45, 1, -R * 0.3, -R * 0.35, R * 0.42);
+      gl.addColorStop(0, 'rgba(255,255,255,0.9)');
+      gl.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = gl;
+      g.fill();
+    }
+    bumperSprites[key] = c;
+    return c;
+  }
+
+  function roundRectPath(g, x, y, w, h, r) {
+    g.moveTo(x + r, y);
+    g.arcTo(x + w, y, x + w, y + h, r);
+    g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r);
+    g.arcTo(x, y, x + w, y, r);
+    g.closePath();
+  }
+  function hex2rgb(h) {
+    h = h.replace('#', '');
+    return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
+  }
+  function lighten(h, p) {
+    var c = hex2rgb(h);
+    return 'rgb(' + c.map(function (v) { return Math.min(255, v + Math.round(255 * p / 100)); }).join(',') + ')';
+  }
+  function darken(h, p) {
+    var c = hex2rgb(h);
+    return 'rgb(' + c.map(function (v) { return Math.max(0, v - Math.round(255 * p / 100)); }).join(',') + ')';
+  }
+  function shadeA(h, a) {
+    var c = hex2rgb(h);
+    return 'rgba(' + c.join(',') + ',' + a + ')';
+  }
+
+  function buildBallSprite() {
+    var S = 40, c = makeCanvas(S, S), g = c.getContext('2d');
+    var grd = g.createRadialGradient(S * 0.38, S * 0.35, 2, S / 2, S / 2, S / 2 - 1);
+    grd.addColorStop(0, '#ffffff');
+    grd.addColorStop(0.65, '#f4f1ec');
+    grd.addColorStop(1, '#ddd8d0');
+    g.fillStyle = grd;
+    g.beginPath();
+    g.arc(S / 2, S / 2, S / 2 - 2, 0, GP.TAU);
+    g.fill();
+    g.strokeStyle = 'rgba(0,0,0,0.14)';
+    g.lineWidth = 1.5;
+    g.stroke();
+    ballCv = c;
+    /* 炸弹球 */
+    var c2 = makeCanvas(S, S), g2 = c2.getContext('2d');
+    var grd2 = g2.createRadialGradient(S * 0.38, S * 0.35, 2, S / 2, S / 2, S / 2 - 1);
+    grd2.addColorStop(0, '#5a5a5e');
+    grd2.addColorStop(0.6, '#2c2c30');
+    grd2.addColorStop(1, '#141416');
+    g2.fillStyle = grd2;
+    g2.beginPath();
+    g2.arc(S / 2, S / 2 + 2, S / 2 - 6, 0, GP.TAU);
+    g2.fill();
+    g2.strokeStyle = 'rgba(255,255,255,0.16)';
+    g2.lineWidth = 1.5;
+    g2.stroke();
+    /* 引线 */
+    g2.strokeStyle = '#c9a06a';
+    g2.lineWidth = 2.5;
+    g2.beginPath();
+    g2.moveTo(S / 2 + 4, S / 2 - 12);
+    g2.quadraticCurveTo(S / 2 + 10, S / 2 - 20, S / 2 + 6, S / 2 - 22);
+    g2.stroke();
+    bombCv = c2;
+  }
+
+  /* ================= 静态层（后景 / 前景墙线） ================= */
+  function buildStatic() {
+    staticBack = makeCanvas(Math.max(2, Math.round(G.W * fit)), Math.max(2, Math.round(G.H * fit)));
+    staticFront = makeCanvas(staticBack.width, staticBack.height);
+    var g = staticBack.getContext('2d');
+    g.scale(fit, fit);
+    /* 场地背景 */
+    g.fillStyle = '#463d35';
+    g.fillRect(0, 0, G.W, G.H);
+    var spot = g.createRadialGradient(195, G.H * 0.48, 40, 195, G.H * 0.48, 430);
+    spot.addColorStop(0, 'rgba(100,88,76,0.55)');
+    spot.addColorStop(1, 'rgba(100,88,76,0)');
+    g.fillStyle = spot;
+    g.fillRect(0, 0, G.W, G.H);
+    /* 远山（圆缓两座，中间谷） */
+    g.fillStyle = '#372f28';
+    g.beginPath();
+    g.moveTo(0, G.H - 96);
+    g.quadraticCurveTo(52, G.H - 300, 96, G.H - 316);
+    g.quadraticCurveTo(140, G.H - 300, 178, G.H - 178);
+    g.quadraticCurveTo(196, G.H - 140, 214, G.H - 150);
+    g.quadraticCurveTo(262, G.H - 240, 296, G.H - 328);
+    g.quadraticCurveTo(314, G.H - 368, 334, G.H - 334);
+    g.quadraticCurveTo(360, G.H - 262, G.W, G.H - 70);
+    g.lineTo(G.W, G.H);
+    g.lineTo(0, G.H);
+    g.closePath();
+    g.fill();
+    /* 近景暗脊 */
+    g.fillStyle = 'rgba(43,37,31,0.9)';
+    g.beginPath();
+    g.moveTo(0, G.H - 150);
+    g.quadraticCurveTo(60, G.H - 226, 120, G.H - 168);
+    g.quadraticCurveTo(170, G.H - 120, 230, G.H - 130);
+    g.quadraticCurveTo(300, G.H - 142, G.W, G.H - 110);
+    g.lineTo(G.W, G.H);
+    g.lineTo(0, G.H);
+    g.closePath();
+    g.fill();
+    /* 底部色带（上缘 = 弧形地板） */
+    var ctrlY = 2 * G.floorSagY - G.floorEndY;
+    g.fillStyle = '#3a4450';
+    g.beginPath();
+    g.moveTo(0, G.floorEndY);
+    g.quadraticCurveTo(195, ctrlY, G.W, G.floorEndY);
+    g.lineTo(G.W, G.H);
+    g.lineTo(0, G.H);
+    g.closePath();
+    g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.08)';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(0, G.floorEndY);
+    g.quadraticCurveTo(195, ctrlY, G.W, G.floorEndY);
+    g.stroke();
+    /* ---- 前景：墙线（压在漩涡上） ---- */
+    var f = staticFront.getContext('2d');
+    f.scale(fit, fit);
+    f.strokeStyle = 'rgba(244,219,212,0.85)';
+    f.lineWidth = 4;
+    f.lineCap = 'round';
+    f.setLineDash([14, 10]);
+    f.beginPath();
+    f.moveTo(22, G.dashY);
+    f.lineTo(168, G.dashY);
+    f.moveTo(222, G.dashY);
+    f.lineTo(G.W - 22, G.dashY);
+    f.stroke();
+    f.setLineDash([]);
+    f.strokeStyle = '#bdb0a6';
+    f.lineWidth = 4.5;
+    f.lineJoin = 'round';
+    f.lineCap = 'round';
+    f.beginPath();
+    f.moveTo(14, G.railEnd);
+    f.lineTo(14, G.cornerY + G.cornerR);
+    f.arcTo(14, G.cornerY, 14 + G.cornerR, G.cornerY, G.cornerR);
+    f.lineTo(G.cup.x - G.cup.r, G.cup.y);
+    f.stroke();
+    f.beginPath();
+    f.arc(G.cup.x, G.cup.y, G.cup.r, Math.PI, 0, true);
+    f.stroke();
+    f.beginPath();
+    f.moveTo(G.cup.x + G.cup.r, G.cup.y);
+    f.lineTo(AW - 14 - G.cornerR, G.cornerY);
+    f.arcTo(AW - 14, G.cornerY, AW - 14, G.cornerY + G.cornerR, G.cornerR);
+    f.lineTo(AW - 14, G.railEnd);
+    f.stroke();
+    /* T 形帽 */
+    f.strokeStyle = '#a89f97';
+    f.lineWidth = 4.5;
+    f.beginPath();
+    f.moveTo(4, G.railEnd + 7);
+    f.lineTo(24, G.railEnd + 7);
+    f.moveTo(AW - 24, G.railEnd + 7);
+    f.lineTo(AW - 4, G.railEnd + 7);
+    f.stroke();
+  }
+
+  /* ================= DOM 布局 ================= */
+  function setDomLayout() {
+    var k = GP.clamp(fit, 0.66, 1);   /* 窄视口下控件等比缩小，避免叠压 */
+    var px = function (x, y) {
+      return { l: (ax0 + x) * fit, t: (ay0 + y) * fit };
+    };
+    function place(el, x, y, w, h) {
+      var p = px(x, y);
+      el.style.left = Math.round(p.l - w / 2) + 'px';
+      el.style.top = Math.round(p.t - h / 2) + 'px';
+    }
+    var el;
+    var mb = $('menuBtn');
+    place(mb, G.menu.x, G.menu.y, 44 * k, 44 * k);
+    mb.style.width = Math.round(44 * k) + 'px';
+    mb.style.height = Math.round(44 * k) + 'px';
+    $('menuImg').style.width = Math.round(26 * k) + 'px';
+    $('menuImg').style.height = Math.round(26 * k) + 'px';
+    el = $('scoreTx');
+    el.style.fontSize = Math.round(27 * k) + 'px';
+    var p1 = px(28, 82);
+    el.style.left = Math.round(p1.l) + 'px';
+    el.style.top = Math.round(p1.t - 18 * k) + 'px';
+    var p2 = px(362, 82);
+    el = $('ballTx');
+    el.style.fontSize = Math.round(27 * k) + 'px';
+    el.style.left = Math.round(p2.l - 120 * k) + 'px';
+    el.style.top = Math.round(p2.t - 18 * k) + 'px';
+    el.style.width = Math.round(120 * k) + 'px';
+    var bc = $('btnCollect');
+    place(bc, 195, G.floorSagY - 42, 100 * k, 42 * k);
+    bc.style.padding = Math.round(8 * k) + 'px ' + Math.round(20 * k) + 'px';
+    bc.style.fontSize = Math.round(20 * k) + 'px';
+    var ba = $('btnAdd');
+    place(ba, 195, G.H - 36, 200 * k, 52 * k);
+    ba.style.width = Math.round(200 * k) + 'px';
+    ba.style.height = Math.round(52 * k) + 'px';
+    ba.style.fontSize = Math.round(25 * k) + 'px';
+    $('addPlusImg').style.width = Math.round(30 * k) + 'px';
+    $('addPlusImg').style.height = Math.round(30 * k) + 'px';
+    var slots = [['slotBomb', 40], ['slotGlass', AW - 40]];
+    for (var i = 0; i < slots.length; i++) {
+      var s = $(slots[i][0]);
+      place(s, slots[i][1], G.H - 34, 62 * k, 64 * k);
+      s.style.width = Math.round(58 * k) + 'px';
+      s.style.height = Math.round(62 * k) + 'px';
+      s.style.borderRadius = Math.round(29 * k) + 'px ' + Math.round(29 * k) + 'px ' + Math.round(10 * k) + 'px ' + Math.round(10 * k) + 'px';
+      var img = s.querySelector('img');
+      if (img) { img.style.width = Math.round(40 * k) + 'px'; img.style.height = Math.round(40 * k) + 'px'; }
+      var bd = s.querySelector('.badge');
+      if (bd) { bd.style.minWidth = Math.round(21 * k) + 'px'; bd.style.height = Math.round(21 * k) + 'px'; bd.style.fontSize = Math.round(13 * k) + 'px'; }
+    }
+  }
+
+  function updateSlots() {
+    $('bombBadge').textContent = st.bombs;
+    $('glassBadge').textContent = st.glasses;
+    $('slotBomb').classList.toggle('empty', st.bombs <= 0 && !bombArmed);
+    $('slotBomb').classList.toggle('armed', bombArmed);
+    $('slotGlass').classList.toggle('empty', st.glasses <= 0);
+    $('slotGlass').classList.toggle('armed', slowmoT > 0);
+  }
+
+  function hudDirty() { hudCache.score = -1; }
+
+  function updateHud() {
+    if (hudCache.score !== st.score) {
+      hudCache.score = st.score;
+      $('scoreTx').textContent = st.score + '分';
+    }
+    if (hudCache.balls !== st.balls) {
+      hudCache.balls = st.balls;
+      $('ballTx').textContent = st.balls + '球';
+    }
+    if (hudCache.bombs !== st.bombs || hudCache.glasses !== st.glasses) {
+      hudCache.bombs = st.bombs;
+      hudCache.glasses = st.glasses;
+      updateSlots();
+    }
+  }
+
+  var addBtnCache = '';
+  function updateAddBtn() {
+    var label;
+    if (addBtnMode === 'buy') {
+      $('btnAdd').classList.remove('free');
+      label = '加球';
+    } else {
+      var left = Math.ceil((freeReadyAt - Date.now()) / 1000);
+      $('btnAdd').classList.add('free');
+      label = left > 0 ? left + 's 后领 +5' : '领取 +5';
+    }
+    if (label !== addBtnCache) {
+      addBtnCache = label;
+      $('addTx').textContent = label;
+    }
+  }
+
+  /* ================= 菜单弹层 ================= */
+  function openMenu() {
+    snd('click');
+    state = 'paused';
+    $('bestTx').textContent = '最佳 ' + st.best + ' 分 · 第 ' + st.level + ' 关';
+    $('menuModal').classList.add('show');
+    $('helpSec').classList.remove('show');
+  }
+  function closeMenu() {
+    $('menuModal').classList.remove('show');
+    if (state === 'paused') state = 'play';
+  }
+  function bindDom() {
+    $('menuBtn').addEventListener('click', function (e) { e.stopPropagation(); openMenu(); });
+    $('mResume').addEventListener('click', function () { snd('click'); closeMenu(); });
+    $('mHelp').addEventListener('click', function () {
+      snd('click');
+      $('helpSec').classList.toggle('show');
+    });
+    $('mCfg').addEventListener('click', function () {
+      snd('click');
+      closeMenu();
+      var C = GP.CFGP;
+      if (C && C.open) { try { C.open(); } catch (e) {} }
+      else toast('设置面板未就绪');
+    });
+    var armed = false;
+    $('mRestart').addEventListener('click', function () {
+      snd('click');
+      if (!armed) {
+        armed = true;
+        this.textContent = '再点一次确认重开';
+        var self = this;
+        setTimeout(function () { armed = false; self.textContent = '重新开始'; }, 2000);
+      } else {
+        armed = false;
+        this.textContent = '重新开始';
+        closeMenu();
+        restartAll();
+      }
+    });
+    $('btnCollect').addEventListener('click', function (e) {
+      e.stopPropagation();
+      snd('click');
+      collectBalls();
+    });
+    $('btnAdd').addEventListener('click', function (e) { e.stopPropagation(); onAddBtn(); });
+    $('slotBomb').addEventListener('click', function (e) { e.stopPropagation(); onBombSlot(); });
+    $('slotGlass').addEventListener('click', function (e) { e.stopPropagation(); onGlassSlot(); });
+    $('menuModal').addEventListener('click', function (e) {
+      if (e.target === this) closeMenu();
+    });
+    /* 场地点按 = 冲击波 */
+    cv.addEventListener('pointerdown', function (e) {
+      GP.AUDIO && GP.AUDIO.unlock && GP.AUDIO.unlock();
+      var x = (e.clientX - ax0 * fit) / fit;
+      var y = (e.clientY - ay0 * fit) / fit;
+      pointer = { x: x, y: y, t: Date.now() };
+    });
+    cv.addEventListener('pointerup', function (e) {
+      if (!pointer) return;
+      var x = (e.clientX - ax0 * fit) / fit;
+      var y = (e.clientY - ay0 * fit) / fit;
+      pointer = null;
+      shockwave(x, y);
+    });
+  }
+
+  function shockwave(x, y) {
+    var now = Date.now();
+    if (now - lastShock < 250) return;
+    if (x < 0 || x > G.W || y < 0 || y > G.H) return;
+    lastShock = now;
+    var R = 92;
+    var any = false;
+    var bs = world.balls;
+    for (var i = 0; i < bs.length; i++) {
+      var b = bs[i];
+      var dx = b.x - x, dy = b.y - y;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if (d < R) {
+        var f = (1 - d / R) * 480 + 90;
+        var nx = d > 1 ? dx / d : 0, ny = d > 1 ? dy / d : -1;
+        b.vx += nx * f;
+        b.vy += ny * f - 60;
+        any = true;
+      }
+    }
+    fxRing(x, y, any ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.35)');
+    snd('click', { vol: 0.4 });
+  }
+
+  /* ================= 主循环 ================= */
+  var lastNow = 0;
+  function update(now) {
+    if (!lastNow) lastNow = now;
+    var dt = (now - lastNow) / 1000;
+    lastNow = now;
+    if (dt <= 0) return;
+    if (dt > 0.05) dt = 0.05;
+    if (state === 'paused') return;
+    var ts = slowmoT > 0 ? cfg.glassTimeScale : 1;
+    if (slowmoT > 0) {
+      slowmoT -= dt;
+      if (slowmoT <= 0) { slowmoT = 0; snd('slow', { up: true }); updateSlots(); }
+    }
+    var sdt = dt * ts;
+    world.step(sdt);
+    var F = GP.FX;
+    if (F && F.update) { try { F.update(sdt); } catch (e) {} }
+    /* 掉球节拍 */
+    dropTimer += sdt * 1000;
+    if (st.balls > 0 && world.balls.length < cfg.maxBalls && dropTimer >= cfg.dropInterval) {
+      dropTimer = 0;
+      dropOne();
+    }
+    /* bumper 动画衰减 */
+    var list = world.bumpers;
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (p.flash > 0) p.flash = Math.max(0, p.flash - dt * 4);
+      if (p.pop >= 0) {
+        p.pop += dt * 4;
+        if (p.pop > 1) p.pop = 1;
+      }
+    }
+    /* 收球飞行 */
+    for (var f = flyers.length - 1; f >= 0; f--) {
+      var fl = flyers[f];
+      if (fl.delay > 0) { fl.delay -= dt; continue; }
+      fl.t += dt * 1.8;
+      if (fl.t >= 1) {
+        flyers.splice(f, 1);
+        st.balls++;
+        hudDirty();
+        var nowMs = Date.now();
+        if (nowMs - lastTickSnd > 60) { lastTickSnd = nowMs; snd('coin'); }
+      }
+    }
+    /* 自动收球 */
+    if (cfg.autoCollect && state === 'play') {
+      autoCollectT += dt;
+      if (autoCollectT > 2) { autoCollectT = 0; collectBalls(); }
+    }
+    /* 过关过渡 */
+    if (state === 'clear') {
+      clearTimer += dt;
+      if (clearTimer > 1.7) nextLevel();
+    }
+    /* 震屏衰减 */
+    shakeMag *= Math.exp(-6 * dt);
+    /* 定时落盘 */
+    saveT += dt;
+    if (saveT > 8) { saveT = 0; SAVE.save(); }
+    /* 加球按钮态 */
+    updateAddBtn();
+    /* toast */
+    updateToast(dt);
+    /* 教程 */
+    if (!st.tutDone) {
+      st.tutDone = true;
+      setTimeout(function () { toast('点按屏幕可以弹开小球'); }, 1200);
+      setTimeout(function () { toast('把球点进顶部漩涡 = +3 球'); }, 5200);
+      SAVE.save();
+    }
+    updateHud();
+  }
+
+  function updateToast(dt) {
+    toastT -= dt;
+    var el = $('toast');
+    if (toastT <= 0) {
+      if (toastQ.length) {
+        el.textContent = toastQ.shift();
+        el.classList.add('show');
+        toastT = 1.9;
+      } else {
+        el.classList.remove('show');
+      }
+    }
+  }
+
+  function render() {
+    var w = cv.width, h = cv.height;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    var sx = shakeMag > 0.1 ? (Math.random() - 0.5) * shakeMag : 0;
+    var sy = shakeMag > 0.1 ? (Math.random() - 0.5) * shakeMag : 0;
+    ctx.setTransform(dpr * fit, 0, 0, dpr * fit, (ax0 * fit + sx) * dpr, (ay0 * fit + sy) * dpr);
+    /* 静态层：后景 → 漩涡 → 前景墙线（均锚定世界原点，随 ax0/ay0 平移） */
+    if (staticBack) ctx.drawImage(staticBack, 0, 0, G.W, G.H);
+    var t = performance.now() / 1000;
+    if (vortexCv) {
+      ctx.save();
+      ctx.translate(G.vortex.x, G.vortex.y);
+      ctx.rotate(t * 0.5);
+      var vs = G.vortex.r * 2 / 200 * (1 + 0.035 * Math.sin(t * 2.1));
+      ctx.drawImage(vortexCv, -100 * vs, -100 * vs, 200 * vs, 200 * vs);
+      ctx.restore();
+    }
+    if (staticFront) ctx.drawImage(staticFront, 0, 0, G.W, G.H);
+    /* 关卡数字 */
+    ctx.font = '700 15px -apple-system,PingFang SC,sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(String(st.level), G.levelTx.x, G.levelTx.y);
+    /* bumpers */
+    var list = world.bumpers;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (!p.alive && p.pop >= 1) continue;
+      var spr = bumperSprite(p);
+      var R = p.kind === 'diamond' ? p.half : p.r;
+      var sc = 1, al = 1;
+      if (!p.alive) {
+        sc = 1 + p.pop * 0.55;
+        al = 1 - p.pop;
+      } else if (p.flash > 0) {
+        sc = 1 + p.flash * 0.1;
+      }
+      var half = (R + 16) * sc;
+      ctx.save();
+      ctx.globalAlpha = al;
+      ctx.translate(p.x, p.y);
+      ctx.scale(sc, sc);
+      ctx.drawImage(spr, -(R + 16), -(R + 16), (R + 16) * 2, (R + 16) * 2);
+      if (p.flash > 0.02) {
+        ctx.globalAlpha = al * p.flash * 0.38;
+        ctx.beginPath();
+        if (p.kind === 'diamond') {
+          ctx.arc(0, 0, p.half / Math.SQRT2 + 4, 0, GP.TAU);
+        } else {
+          ctx.arc(0, 0, p.r - 1, 0, GP.TAU);
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.globalAlpha = al;
+      }
+      if (p.alive) {
+        var fs = (p.kind === 'big' ? R * 0.62 : R * 0.82);
+        if (p.count >= 100) fs *= 0.74;
+        else if (p.count >= 10) fs *= 0.9;
+        ctx.font = '800 ' + fs.toFixed(1) + 'px -apple-system,PingFang SC,sans-serif';
+        ctx.fillStyle = '#38332e';
+        ctx.fillText(String(p.count), 0, 1);
+      }
+      ctx.restore();
+    }
+    /* 球 */
+    var bs = world.balls;
+    for (var k = 0; k < bs.length; k++) {
+      var b = bs[k];
+      var r = b.r;
+      var grow = b.spawnT != null && b.spawnT < 1 ? (0.4 + 0.6 * b.spawnT) : 1;
+      if (b.spawnT != null && b.spawnT < 1) b.spawnT = Math.min(1, b.spawnT + 0.1);
+      var img = b.bomb && !b.bombDone ? bombCv : ballCv;
+      if (img) {
+        ctx.drawImage(img, b.x - r * grow * 1.15, b.y - r * grow * 1.15, r * grow * 2.3, r * grow * 2.3);
+        if (b.bomb && !b.bombDone) {
+          ctx.fillStyle = (Math.floor(t * 20) % 2) ? '#ffd76a' : '#ff9c3e';
+          ctx.beginPath();
+          ctx.arc(b.x + 3, b.y - r - 4, 2.4, 0, GP.TAU);
+          ctx.fill();
+        }
+      } else {
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, r * grow, 0, GP.TAU);
+        ctx.fill();
+      }
+    }
+    /* 收球飞行点 */
+    for (var f2 = 0; f2 < flyers.length; f2++) {
+      var fl2 = flyers[f2];
+      if (fl2.delay > 0) continue;
+      var tt = fl2.t;
+      var mx = (fl2.x + 362) / 2;
+      var my = Math.min(fl2.y, 82) - 90;
+      var u = 1 - tt;
+      var fx = u * u * fl2.x + 2 * u * tt * mx + tt * tt * 362;
+      var fy = u * u * fl2.y + 2 * u * tt * my + tt * tt * 82;
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.beginPath();
+      ctx.arc(fx, fy, 6, 0, GP.TAU);
+      ctx.fill();
+    }
+    /* FX 粒子 */
+    var F = GP.FX;
+    if (F && F.draw) { try { F.draw(ctx); } catch (e) {} }
+    /* 慢动作罩 */
+    if (slowmoT > 0) {
+      ctx.fillStyle = 'rgba(110,150,210,0.10)';
+      ctx.fillRect(-ax0, -ay0, w / (dpr * fit), h / (dpr * fit));
+      ctx.font = '700 13px -apple-system,PingFang SC,sans-serif';
+      ctx.fillStyle = 'rgba(210,228,255,0.9)';
+      ctx.textAlign = 'center';
+      ctx.fillText('慢动作 ' + slowmoT.toFixed(1) + 's', 195, 205);
+    }
+    if (cfg.mods && cfg.mods.showFps) {
+      ctx.font = '600 11px monospace';
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.textAlign = 'left';
+      ctx.fillText(fpsV + 'fps ' + world.balls.length + 'b', 8, G.H - 100);
+    }
+  }
+
+  function loop(now) {
+    try {
+      update(now);
+      render();
+      fpsN++;
+      if (now - fpsT > 500) {
+        fpsV = Math.round(fpsN * 1000 / (now - fpsT));
+        fpsN = 0; fpsT = now;
+      }
+    } catch (e) { /* 帧循环不中断 */ }
+    requestAnimationFrame(loop);
+  }
+
+  /* ================= 尺寸 ================= */
+  function resize() {
+    var iw = window.innerWidth, ih = window.innerHeight;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var arenaH = GP.clamp(ih, 640, 880);
+    if (ih >= 640 && ih <= 880) arenaH = ih;
+    G = geo(arenaH);
+    fit = Math.min(iw / G.W, ih / G.H);
+    if (ih / G.H > fit) { /* 高度富余 → 垂直居中 */ }
+    ax0 = (iw / fit - G.W) / 2;
+    ay0 = (ih / fit - G.H) / 2;
+    cv.width = Math.round(iw * dpr);
+    cv.height = Math.round(ih * dpr);
+    cv.style.width = iw + 'px';
+    cv.style.height = ih + 'px';
+    buildStatic();
+    setDomLayout();
+    /* bumper 位置夹回新边界 */
+    var list = world ? world.bumpers : [];
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      var r = p.kind === 'diamond' ? p.half : p.r;
+      p.y = GP.clamp(p.y, 262, G.H - 190 - r);
+      p.baseX = GP.clamp(p.baseX, 42 + r, AW - 42 - r);
+      p.x = p.baseX;
+    }
+  }
+
+  /* ================= 配置变更 ================= */
+  function applyConfig(c) {
+    cfg = c;
+    if (world) {
+      world.gravity = cfg.gravity;
+      world.restWall = cfg.restWall;
+      world.restBumper = cfg.restBumper;
+      world.restFloor = cfg.restFloor;
+      world.restBall = cfg.restBall;
+      world.bumperKick = cfg.bumperKick;
+      for (var i = 0; i < world.segs.length; i++) {
+        world.segs[i].rest = world.segs[i].floor ? cfg.restFloor : cfg.restWall;
+      }
+    }
+    var A = GP.AUDIO;
+    if (A) {
+      try {
+        A.setVolume(cfg.sfxVolume);
+        A.setMuted(cfg.muted);
+        if (A.applyOverrides && cfg.sounds) A.applyOverrides(cfg.sounds);
+      } catch (e) {}
+    }
+    if (cfg.icons) {
+      if (cfg.icons.bomb) $('bombImg').src = cfg.icons.bomb;
+      if (cfg.icons.hourglass) $('glassImg').src = cfg.icons.hourglass;
+    }
+  }
+
+  /* ================= 启动 ================= */
+  function boot() {
+    cv = $('c');
+    ctx = cv.getContext('2d');
+    st = SAVE.load();
+    if (Q0.balls !== undefined) { /* 已在 SAVE.load 处理 */ }
+    world = new PHY.World({
+      gravity: cfg.gravity,
+      restWall: cfg.restWall, restBumper: cfg.restBumper,
+      restFloor: cfg.restFloor, restBall: cfg.restBall,
+      bumperKick: cfg.bumperKick
+    });
+    world.onBumperHit = onBumperHit;
+    world.onSwallow = onSwallow;
+    world.onBomb = onBombBall;
+    world.onBounce = onBounce;
+    world.swallow = { x: 195, y: 40, r: 26 };
+    world.attract = { x: 195, y: 30, yMax: 200, halfW: 34, k: 5200 };
+    resize();
+    world.setStatics(buildSegs());
+    genLevel(st.level);
+    buildVortexSprite();
+    buildBallSprite();
+    /* 图标注入 */
+    try {
+      var AR = GP.ART;
+      if (AR && AR.icon) {
+        $('menuImg').src = AR.icon('menu');
+        $('bombImg').src = cfg.icons.bomb || AR.icon('bomb');
+        $('glassImg').src = cfg.icons.hourglass || AR.icon('hourglass');
+        $('addPlusImg').src = AR.icon('plus');
+      }
+    } catch (e) {}
+    bindDom();
+    var A = GP.AUDIO;
+    if (A && A.init) { try { A.init(); } catch (e) {} }
+    var F = GP.FX;
+    if (F && F.init) { try { F.init(cv); } catch (e) {} }
+    applyConfig(cfg);
+    CFG.onChange(applyConfig);
+    window.addEventListener('resize', function () {
+      resize();
+      world.setStatics(buildSegs());
+    });
+    window.addEventListener('orientationchange', function () {
+      setTimeout(function () {
+        resize();
+        world.setStatics(buildSegs());
+      }, 300);
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) SAVE.save();
+    });
+    window.addEventListener('pagehide', function () { SAVE.save(); });
+    /* rAF + 看门狗双驱动（遮挡窗口 rAF 冻结时物理继续） */
+    requestAnimationFrame(loop);
+    setInterval(function () {
+      if (document.hidden) update(performance.now());
+    }, 200);
+    updateSlots();
+    updateAddBtn();
+    state = 'play';
+    hudDirty();
+  }
+
+  var Q0 = GP.Q;
+
+  /* ================= 测试钩子 ================= */
+  window.__gp = {
+    v: '1.0',
+    get state() { return state; },
+    get st() { return st; },
+    get cfg() { return cfg; },
+    get WORLD() { return world; },
+    get stats() {
+      return {
+        level: st.level, score: st.score, balls: st.balls,
+        inPlay: world ? world.balls.length : 0,
+        bumps: world ? world.bumpers.filter(function (p) { return p.alive; }).length : 0,
+        swallows: st.swallows, pops: st.pops, fps: fpsV, slow: slowmoT, bombArmed: bombArmed
+      };
+    },
+    dropOne: function () { dropOne(); },
+    collect: function () { return collectBalls(); },
+    addBalls: function (n) { st.balls += n; hudDirty(); },
+    useBomb: function () { onBombSlot(); },
+    useGlass: function () { onGlassSlot(); },
+    shock: function (x, y) { shockwave(x, y); },
+    clearLevel: function () {
+      var list = world.bumpers;
+      for (var i = 0; i < list.length; i++) if (list[i].alive) damageBumper(list[i], list[i].count, false);
+    },
+    jumpLevel: function (n) {
+      st.level = n; st.addBallUses = 0; genLevel(n); SAVE.save(); hudDirty();
+    },
+    restart: restartAll,
+    genLevel: genLevel
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();

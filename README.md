@@ -6,6 +6,8 @@ AI 辅助产出的案例集合 —— 方案 · 演示 · 视觉作品。
 
 ## Cases
 
+- [gravity-pinball](./gravity-pinball/) — 重力弹球王 · 微信小游戏 1:1 复刻：球从顶部漩涡漏斗落入封闭球场、撞数字 bumper 递减归零爆炸得分、清场过关无限关卡、点按冲击波弹球、球点进漩涡 +3 球回收、收球/加球经济、炸弹与沙漏道具、菱形 ×2 大白球 ×3 倍率、自研 2D 物理（线段/圆/菱形 OBB/弧形地板/180Hz 子步）、关卡种子生成、WebAudio 程序化音效、图标上传与玩法参数配置面板、进度持久化，单文件零外部资源（[在线游玩](https://case.youyongai.com/gravity-pinball/)）
+
 - [tomato-timer](./tomato-timer/) — 番茄时钟 · 专注：番茄工作法倒计时复刻，专注/休息循环、跳过重置、时长切换、当日番茄统计，四种 WebAudio 合成铃声 + 本地音频上传自定义（IndexedDB 存储），后台计时校准，手机竖屏/横屏/桌面自适应，单文件零外部资源（[在线体验](https://case.youyongai.com/tomato-timer/)）
 
 - [thunder-fighter](./thunder-fighter/) — 雷霆战机 · 银河防线 · 经典竖版飞行射击复刻：6 级战机升星与僚机挂架、无限关卡递进、6 大 Boss 三阶段弹幕、火力/炸弹/护盾道具、血条生命与币复活、连击擦弹计分与本地排行、hitstop/震屏/慢动作打击感、WebAudio 24 音效 + 3 轨 BGM、AI 演示可挂机，单文件零外部资源（[在线游玩](https://case.youyongai.com/thunder-fighter/)）
