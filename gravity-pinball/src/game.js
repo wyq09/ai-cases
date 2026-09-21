@@ -27,10 +27,11 @@
   var st = null;                /* 进度存档引用 */
   var cfg = CFG.all();
   var state = 'boot';           /* play | clear | paused */
-  var dropTimer = 0, spawnScale = {};
+  var volleyQueue = 0, volleyAngle = Math.PI / 2, volleySpd = 900, volleyT = 0;
+  var aim = null;               /* {id, sx, sy, cx, cy} 场地坐标 */
   var slowmoT = 0, bombArmed = false;
   var shakeMag = 0;
-  var flyers = [];              /* 收球飞回 HUD 的小球 */
+  var flyers = [];              /* 回收飞回杯口的小球 */
   var lastBounceSnd = 0, lastTickSnd = 0;
   var lastShock = 0;
   var staticBack = null, staticFront = null, vortexCv = null;
@@ -202,13 +203,40 @@
   }
   function shake(m) { shakeMag = Math.min(14, shakeMag + m); }
 
-  /* ================= 掉球 / 回收 / 经济 ================= */
-  function dropOne() {
-    if (state !== 'play' && state !== 'clear') return;
-    if (st.balls <= 0 || world.balls.length >= cfg.maxBalls) return;
+  /* ================= 瞄准发射 / 回收 ================= */
+  function canAim() {
+    return (state === 'play' || state === 'clear') && st.balls > 0 && volleyQueue <= 0;
+  }
+
+  function aimParams() {
+    /* 从拖动向量算发射角与力度：只允许向下锥形，拖得越长越快 */
+    var dx = aim.cx - aim.sx, dy = aim.cy - aim.sy;
+    var len = Math.sqrt(dx * dx + dy * dy);
+    var dy2 = Math.max(dy, len * 0.2);                 /* 上拖也钳成下向 */
+    var ang = Math.atan2(dy2, dx);
+    var lo = 0.34, hi = Math.PI - 0.34;                /* ≈±20° 水平锥 */
+    if (ang < lo) ang = lo;
+    if (ang > hi) ang = hi;
+    var t = GP.clamp((len - 24) / 220, 0, 1);
+    return { angle: ang, speed: 760 + t * 1120, t: t, len: len };
+  }
+
+  function fireVolley(p) {
+    volleyQueue = st.balls;
+    volleyAngle = p.angle;
+    volleySpd = p.speed;
+    volleyT = cfg.dropInterval;                        /* 首球立即出 */
+    snd('add');
+    SAVE.save();
+  }
+
+  function spawnLaunchBall() {
+    if (st.balls <= 0) { volleyQueue = 0; return; }
     st.balls--;
-    var b = world.addBall(195 + (Math.random() - 0.5) * 9, 168, (Math.random() - 0.5) * 40, 130, cfg.ballR,
-      { bomb: bombArmed });
+    var a = volleyAngle + (Math.random() - 0.5) * 0.05;
+    var s = volleySpd * (0.92 + Math.random() * 0.16);
+    var b = world.addBall(195, 156, Math.cos(a) * s, Math.sin(a) * s, cfg.ballR, { bomb: bombArmed });
+    b.born = world.time;
     b.spawnT = 0;
     if (bombArmed) {
       bombArmed = false;
@@ -217,20 +245,110 @@
     hudDirty();
   }
 
-  function collectBalls() {
+  /* 单发（测试/兜底） */
+  function dropOne() {
+    if (state !== 'play' && state !== 'clear') return;
+    if (st.balls <= 0 || world.balls.length >= cfg.maxBalls) return;
+    st.balls--;
+    var b = world.addBall(195, 156, (Math.random() - 0.5) * 40, 130, cfg.ballR, { bomb: bombArmed });
+    b.born = world.time;
+    b.spawnT = 0;
+    if (bombArmed) {
+      bombArmed = false;
+      updateSlots();
+    }
+    hudDirty();
+  }
+
+  /* 弹道预测：幽灵球沿墙/bumper 反弹（不含球间碰撞与事件） */
+  function simTrajectory(angle, speed) {
+    var dots = [];
+    var gx = 195, gy = 156;
+    var vx = Math.cos(angle) * speed, vy = Math.sin(angle) * speed;
+    var h = 1 / 60, g = cfg.gravity;
+    var list = world.bumpers;
+    for (var i = 0; i < 108; i++) {
+      vy += g * h;
+      gx += vx * h;
+      gy += vy * h;
+      for (var s = 0; s < world.segs.length; s++) {
+        var seg = world.segs[s];
+        var abx = seg.bx - seg.ax, aby = seg.by - seg.ay;
+        var len2 = abx * abx + aby * aby || 1;
+        var t = ((gx - seg.ax) * abx + (gy - seg.ay) * aby) / len2;
+        t = t < 0 ? 0 : (t > 1 ? 1 : t);
+        var cx2 = seg.ax + abx * t, cy2 = seg.ay + aby * t;
+        var dx = gx - cx2, dy = gy - cy2;
+        var d2 = dx * dx + dy * dy;
+        if (d2 < cfg.ballR * cfg.ballR && d2 > 0.0001) {
+          var d = Math.sqrt(d2);
+          var nx = dx / d, ny = dy / d;
+          gx += nx * (cfg.ballR - d);
+          gy += ny * (cfg.ballR - d);
+          var vn = vx * nx + vy * ny;
+          if (vn < 0) {
+            var rest = seg.floor ? cfg.restFloor : cfg.restWall;
+            vx -= (1 + rest) * vn * nx;
+            vy -= (1 + rest) * vn * ny;
+          }
+        }
+      }
+      for (var k = 0; k < list.length; k++) {
+        var p = list[k];
+        if (!p.alive) continue;
+        var br = p.kind === 'diamond' ? p.half * 0.72 : p.r;
+        var bx = gx - p.x, by = gy - p.y;
+        var rr = br + cfg.ballR;
+        var dd = bx * bx + by * by;
+        if (dd < rr * rr && dd > 0.0001) {
+          var dl = Math.sqrt(dd);
+          var nx2 = bx / dl, ny2 = by / dl;
+          gx += nx2 * (rr - dl);
+          gy += ny2 * (rr - dl);
+          var vn2 = vx * nx2 + vy * ny2;
+          if (vn2 < 0) {
+            vx -= (1 + cfg.restBumper) * vn2 * nx2;
+            vy -= (1 + cfg.restBumper) * vn2 * ny2;
+          }
+        }
+      }
+      if (i % 3 === 0) dots.push({ x: gx, y: gy });
+      if (gy > G.floorEndY + 6) break;
+    }
+    return dots;
+  }
+
+  function pushFlyer(b, n) {
+    flyers.push({ x: b.x, y: b.y, t: 0, delay: Math.min(n * 0.05, 0.5) });
+    world.removeBall(b);
+  }
+
+  /* 收球按钮：立刻收回场上全部球 */
+  function recallAll() {
     var n = 0;
     var bs = world.balls;
     for (var i = bs.length - 1; i >= 0; i--) {
       var b = bs[i];
       if (b.bomb || b.bombDone) continue;
-      if (b.speed < 60) {
-        n++;
-        flyers.push({ x: b.x, y: b.y, t: 0, delay: n * 0.05 });
-        world.removeBall(b);
-      }
+      n++;
+      pushFlyer(b, n);
     }
     if (n > 0) snd('collect');
     return n;
+  }
+
+  /* 自动回收：停在场上超过 1s / 滞场超 25s 的球飞回顶部 */
+  function autoRecall() {
+    var n = 0;
+    var bs = world.balls;
+    for (var i = bs.length - 1; i >= 0; i--) {
+      var b = bs[i];
+      if (b.settleT > 1.0 || (world.time - (b.born || 0)) > 25) {
+        n++;
+        pushFlyer(b, n);
+      }
+    }
+    if (n > 0) snd('collect');
   }
 
   function addBallPrice() {
@@ -868,7 +986,7 @@
     $('btnCollect').addEventListener('click', function (e) {
       e.stopPropagation();
       snd('click');
-      collectBalls();
+      recallAll();
     });
     $('btnAdd').addEventListener('click', function (e) { e.stopPropagation(); onAddBtn(); });
     $('slotBomb').addEventListener('click', function (e) { e.stopPropagation(); onBombSlot(); });
@@ -876,20 +994,44 @@
     $('menuModal').addEventListener('click', function (e) {
       if (e.target === this) closeMenu();
     });
-    /* 场地点按 = 冲击波 */
+    /* 场地点按 = 冲击波；按住拖动 = 瞄准发射 */
     cv.addEventListener('pointerdown', function (e) {
       GP.AUDIO && GP.AUDIO.unlock && GP.AUDIO.unlock();
       var x = (e.clientX - ax0 * fit) / fit;
       var y = (e.clientY - ay0 * fit) / fit;
+      if (canAim() && !aim) {
+        aim = { id: e.pointerId, sx: x, sy: y, cx: x, cy: y };
+      } else {
+        aim = null;
+      }
       pointer = { x: x, y: y, t: Date.now() };
     });
+    cv.addEventListener('pointermove', function (e) {
+      if (!aim || e.pointerId !== aim.id) return;
+      aim.cx = (e.clientX - ax0 * fit) / fit;
+      aim.cy = (e.clientY - ay0 * fit) / fit;
+    });
     cv.addEventListener('pointerup', function (e) {
+      if (aim && e.pointerId === aim.id) {
+        var params = aimParams();
+        var len = params.len;
+        var ax = aim.cx, ay = aim.cy;
+        aim = null;
+        pointer = null;
+        if (len >= 24) {
+          fireVolley(params);
+        } else {
+          shockwave(ax, ay);   /* 轻点仍是弹开小球 */
+        }
+        return;
+      }
       if (!pointer) return;
       var x = (e.clientX - ax0 * fit) / fit;
       var y = (e.clientY - ay0 * fit) / fit;
       pointer = null;
       shockwave(x, y);
     });
+    cv.addEventListener('pointercancel', function () { aim = null; pointer = null; });
   }
 
   function shockwave(x, y) {
@@ -924,7 +1066,11 @@
     lastNow = now;
     if (dt <= 0) return;
     if (dt > 0.05) dt = 0.05;
-    if (state === 'paused') return;
+    stepGame(dt);
+  }
+
+  function stepGame(dt) {
+    if (dt <= 0 || state === 'paused') return;
     var ts = slowmoT > 0 ? cfg.glassTimeScale : 1;
     if (slowmoT > 0) {
       slowmoT -= dt;
@@ -934,11 +1080,29 @@
     world.step(sdt);
     var F = GP.FX;
     if (F && F.update) { try { F.update(sdt); } catch (e) {} }
-    /* 掉球节拍 */
-    dropTimer += sdt * 1000;
-    if (st.balls > 0 && world.balls.length < cfg.maxBalls && dropTimer >= cfg.dropInterval) {
-      dropTimer = 0;
-      dropOne();
+    /* 发射队列：按间隔把库存球成串射出 */
+    if (volleyQueue > 0) {
+      volleyT += sdt * 1000;
+      while (volleyT >= cfg.dropInterval && volleyQueue > 0) {
+        volleyT -= cfg.dropInterval;
+        volleyQueue--;
+        spawnLaunchBall();
+      }
+      if (volleyQueue > 0 && st.balls <= 0) volleyQueue = 0;
+    }
+    /* 自动回收：静止/滞场过久的球飞回顶部 */
+    autoRecall();
+    if (cfg.autoCollect) {
+      autoCollectT += dt;
+      if (autoCollectT > 1.2) {
+        autoCollectT = 0;
+        var bs0 = world.balls;
+        var n0 = 0;
+        for (var z = bs0.length - 1; z >= 0; z--) {
+          var b0 = bs0[z];
+          if (!b0.bomb && b0.speed < 40) { n0++; pushFlyer(b0, n0); }
+        }
+      }
     }
     /* bumper 动画衰减 */
     var list = world.bumpers;
@@ -963,11 +1127,6 @@
         if (nowMs - lastTickSnd > 60) { lastTickSnd = nowMs; snd('coin'); }
       }
     }
-    /* 自动收球 */
-    if (cfg.autoCollect && state === 'play') {
-      autoCollectT += dt;
-      if (autoCollectT > 2) { autoCollectT = 0; collectBalls(); }
-    }
     /* 过关过渡 */
     if (state === 'clear') {
       clearTimer += dt;
@@ -985,8 +1144,8 @@
     /* 教程 */
     if (!st.tutDone) {
       st.tutDone = true;
-      setTimeout(function () { toast('点按屏幕可以弹开小球'); }, 1200);
-      setTimeout(function () { toast('把球点进顶部漩涡 = +3 球'); }, 5200);
+      setTimeout(function () { toast('按住拖动瞄准，松手发射球'); }, 1200);
+      setTimeout(function () { toast('球停下会自动收回顶部 · 点按可弹开小球'); }, 5600);
       SAVE.save();
     }
     updateHud();
@@ -1031,6 +1190,57 @@
     ctx.textAlign = 'right';
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(String(st.level), G.levelTx.x, G.levelTx.y);
+    /* 待发射球（杯口）+ 瞄准 UI */
+    var idle = st.balls > 0 && volleyQueue <= 0;
+    if (idle && ballCv && !aim) {
+      var bob = Math.sin(t * 3) * 2;
+      ctx.drawImage(ballCv, 195 - 13, 148 - 13 + bob, 26, 26);
+    }
+    if (idle && !aim && world.balls.length === 0 && state === 'play') {
+      ctx.font = '600 14px -apple-system,PingFang SC,sans-serif';
+      ctx.fillStyle = 'rgba(244,219,212,' + (0.45 + 0.3 * Math.sin(t * 2.4)).toFixed(2) + ')';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('按住拖动瞄准 · 松手发射', 195, 216);
+    }
+    if (aim) {
+      var ap = aimParams();
+      /* 箭头 */
+      var axx = Math.cos(ap.angle), ayy = Math.sin(ap.angle);
+      var arrLen = 40 + ap.t * 64;
+      ctx.strokeStyle = 'rgba(255,244,230,0.9)';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(195 + axx * 24, 152 + ayy * 24);
+      ctx.lineTo(195 + axx * (24 + arrLen), 152 + ayy * (24 + arrLen));
+      ctx.stroke();
+      var hx = 195 + axx * (24 + arrLen), hy = 152 + ayy * (24 + arrLen);
+      var px2 = -ayy, py2 = axx;
+      ctx.fillStyle = 'rgba(255,244,230,0.9)';
+      ctx.beginPath();
+      ctx.moveTo(hx + axx * 12, hy + ayy * 12);
+      ctx.lineTo(hx + px2 * 7, hy + py2 * 7);
+      ctx.lineTo(hx - px2 * 7, hy - py2 * 7);
+      ctx.closePath();
+      ctx.fill();
+      /* 力度弧 */
+      ctx.strokeStyle = 'rgba(255,238,224,0.8)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(195, 148, 34, -Math.PI / 2, -Math.PI / 2 + ap.t * GP.TAU);
+      ctx.stroke();
+      /* 弹道预测点 */
+      var dots = simTrajectory(ap.angle, ap.speed);
+      for (var di = 0; di < dots.length; di++) {
+        var al = 0.8 - di * 0.022;
+        if (al <= 0.06) break;
+        ctx.fillStyle = 'rgba(255,250,242,' + al.toFixed(2) + ')';
+        ctx.beginPath();
+        ctx.arc(dots[di].x, dots[di].y, 3.2 - di * 0.05, 0, GP.TAU);
+        ctx.fill();
+      }
+    }
     /* bumpers */
     var list = world.bumpers;
     ctx.textAlign = 'center';
@@ -1103,11 +1313,11 @@
       var fl2 = flyers[f2];
       if (fl2.delay > 0) continue;
       var tt = fl2.t;
-      var mx = (fl2.x + 362) / 2;
-      var my = Math.min(fl2.y, 82) - 90;
+      var mx = (fl2.x + 195) / 2;
+      var my = Math.min(fl2.y, 146) - 110;
       var u = 1 - tt;
-      var fx = u * u * fl2.x + 2 * u * tt * mx + tt * tt * 362;
-      var fy = u * u * fl2.y + 2 * u * tt * my + tt * tt * 82;
+      var fx = u * u * fl2.x + 2 * u * tt * mx + tt * tt * 195;
+      var fy = u * u * fl2.y + 2 * u * tt * my + tt * tt * 146;
       ctx.fillStyle = 'rgba(255,255,255,0.95)';
       ctx.beginPath();
       ctx.arc(fx, fy, 6, 0, GP.TAU);
@@ -1207,6 +1417,9 @@
     cv = $('c');
     ctx = cv.getContext('2d');
     st = SAVE.load();
+    cfg = CFG.all();
+    /* 旧档 dropInterval（自动落球时代 300~900ms）迁移为发射间隔 */
+    if (cfg.dropInterval > 240 || cfg.dropInterval < 40) cfg = CFG.apply({ dropInterval: 90 });
     if (Q0.balls !== undefined) { /* 已在 SAVE.load 处理 */ }
     world = new PHY.World({
       gravity: cfg.gravity,
@@ -1285,7 +1498,17 @@
       };
     },
     dropOne: function () { dropOne(); },
-    collect: function () { return collectBalls(); },
+    collect: function () { return recallAll(); },
+    step: function (d) { stepGame(d); },
+    launch: function (angleDeg, speed, count) {
+      if (state !== 'play' && state !== 'clear') return;
+      var n = Math.min(count == null ? st.balls : count, st.balls);
+      if (n <= 0) return;
+      volleyQueue = n;
+      volleyAngle = (angleDeg == null ? 90 : angleDeg) * Math.PI / 180;
+      volleySpd = speed || 1000;
+      volleyT = cfg.dropInterval;
+    },
     addBalls: function (n) { st.balls += n; hudDirty(); },
     useBomb: function () { onBombSlot(); },
     useGlass: function () { onGlassSlot(); },

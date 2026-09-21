@@ -175,10 +175,19 @@
     b.x += nx * (rr - d);
     b.y += ny * (rr - d);
     var vn = b.vx * nx + b.vy * ny;
-    if (vn < this.bumperKick) {
-      var dv = this.bumperKick - vn;
-      b.vx += nx * dv;
-      b.vy += ny * dv;
+    if (vn < 0) {
+      var rest = this.restBumper;
+      b.vx -= (1 + rest) * vn * nx;
+      b.vy -= (1 + rest) * vn * ny;
+      /* 撞击加力＝弹速下限：快撞有 pachinko 活力，轻触逐级衰减可沉降 */
+      if (vn < -60) {
+        var kick = this.bumperKick * (0.35 + 0.65 * Math.min(1, -vn / 700));
+        var cvn = b.vx * nx + b.vy * ny;
+        if (cvn < kick) {
+          b.vx += nx * (kick - cvn);
+          b.vy += ny * (kick - cvn);
+        }
+      }
     }
     if (!p.cool) p.cool = {};
     if (!p.cool[b.id] || this.time - p.cool[b.id] > 0.15) {
@@ -216,10 +225,18 @@
     b.x += nx * pen;
     b.y += ny * pen;
     var vn = b.vx * nx + b.vy * ny;
-    if (vn < this.bumperKick) {
-      var dv = this.bumperKick - vn;
-      b.vx += nx * dv;
-      b.vy += ny * dv;
+    if (vn < 0) {
+      var rest = this.restBumper;
+      b.vx -= (1 + rest) * vn * nx;
+      b.vy -= (1 + rest) * vn * ny;
+      if (vn < -60) {
+        var kick = this.bumperKick * (0.35 + 0.65 * Math.min(1, -vn / 700));
+        var cvn = b.vx * nx + b.vy * ny;
+        if (cvn < kick) {
+          b.vx += nx * (kick - cvn);
+          b.vy += ny * (kick - cvn);
+        }
+      }
     }
     if (!p.cool) p.cool = {};
     if (!p.cool[b.id] || this.time - p.cool[b.id] > 0.15) {

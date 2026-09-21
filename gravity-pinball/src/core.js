@@ -57,7 +57,7 @@
   var CFG_KEY = 'gp_cfg_v1';
   var CFG_DEF = {
     gravity: 1500,
-    dropInterval: 550,
+    dropInterval: 90,          /* 发射球串间隔 ms */
     ballR: 11,
     startBalls: 20,
     maxBalls: 80,

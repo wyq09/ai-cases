@@ -299,7 +299,7 @@
     var p = el('div', 'gpcp-page');
     p.appendChild(sec('物理与节奏'));
     p.appendChild(rowNum('重力', 'gravity', 600, 2400, 50, 1500, 0, ''));
-    p.appendChild(rowNum('掉球间隔', 'dropInterval', 300, 900, 10, 550, 0, 'ms'));
+    p.appendChild(rowNum('发射间隔', 'dropInterval', 60, 240, 5, 90, 0, 'ms'));
     p.appendChild(rowNum('bumper 弹性', 'restBumper', 0.7, 1, 0.01, 0.88, 2, ''));
     p.appendChild(sec('声音'));
     p.appendChild(rowNum('音效音量', 'sfxVolume', 0, 1, 0.05, 0.8, 0, '%', 100));
