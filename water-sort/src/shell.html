@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>倒水挑战</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #2A211B;
+    display: flex; justify-content: center;
+  }
+  #app {
+    position: relative; width: 100%; max-width: 100%; height: 100%;
+    height: 100dvh;
+    overflow: hidden; user-select: none; -webkit-user-select: none;
+    touch-action: manipulation;
+    background: #F7A83B;
+  }
+  @media (min-width: 700px) {
+    #app { max-width: 440px; box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 14px 44px rgba(0,0,0,.45); }
+  }
+  .snap *, .snap *::before, .snap *::after { transition: none !important; animation: none !important; }
+
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #gameCanvas { z-index: 1; }
+  #fxCanvas { z-index: 2; pointer-events: none; }
+
+  /* ---------- 启动页 ---------- */
+  #splash {
+    position: absolute; inset: 0; z-index: 60;
+    display: flex; flex-direction: column; align-items: center;
+    background:
+      radial-gradient(ellipse 5px 8px at 88px 82px, #D8821F 98%, transparent 100%),
+      radial-gradient(ellipse 5px 8px at 112px 82px, #D8821F 98%, transparent 100%),
+      radial-gradient(ellipse 30px 24px at 100px 82px, rgba(232,149,44,.85) 97%, transparent 100%),
+      radial-gradient(ellipse 5px 8px at 186px 168px, #D8821F 98%, transparent 100%),
+      radial-gradient(ellipse 5px 8px at 210px 168px, #D8821F 98%, transparent 100%),
+      radial-gradient(ellipse 30px 24px at 198px 168px, rgba(232,149,44,.85) 97%, transparent 100%),
+      radial-gradient(ellipse 5px 8px at 26px 190px, #D8821F 98%, transparent 100%),
+      radial-gradient(ellipse 5px 8px at 50px 190px, #D8821F 98%, transparent 100%),
+      radial-gradient(ellipse 30px 24px at 38px 190px, rgba(232,149,44,.85) 97%, transparent 100%),
+      linear-gradient(180deg, #F8AC41, #F29A28);
+    background-size: 236px 236px, 236px 236px, 236px 236px, 236px 236px, 236px 236px, 236px 236px, 236px 236px, 236px 236px, 236px 236px, 100% 100%;
+    transition: opacity .45s ease, visibility .45s;
+  }
+  #splash.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+  #splashLogo { width: 72%; max-width: 340px; margin-top: 9%; filter: drop-shadow(0 6px 0 rgba(140,70,10,.25)); }
+  #splashPig { width: 62%; max-width: 300px; margin-top: 4%; animation: rideBob 2.2s ease-in-out infinite; }
+  @keyframes rideBob {
+    0%, 100% { transform: translateY(0) rotate(-1deg); }
+    50% { transform: translateY(-7px) rotate(1.2deg); }
+  }
+  #splashBar {
+    width: 70%; max-width: 320px; height: 22px; border-radius: 999px;
+    background: #D8821F; border: 2px solid #C06F14;
+    margin-top: auto; overflow: hidden; position: relative;
+  }
+  #splashFill {
+    position: absolute; inset: 2px; width: 0%; border-radius: 999px;
+    background: #4FA8E0; transition: width 1.15s cubic-bezier(.3,.6,.4,1);
+  }
+  #splashFill::after {
+    content: ""; position: absolute; left: 6px; right: 6px; top: 3px; height: 5px;
+    border-radius: 999px; background: rgba(255,255,255,.45);
+  }
+  #splashStart {
+    margin-top: 14px; display: none;
+    font: 800 20px/1 inherit; letter-spacing: 6px; text-indent: 6px; color: #fff;
+    background: #4FA8E0; border: 0; border-bottom: 4px solid #2F7FB8;
+    padding: 13px 52px; border-radius: 999px; cursor: pointer; font-family: inherit;
+  }
+  #splashStart:active { transform: translateY(2px); border-bottom-width: 2px; }
+  #splash.ready #splashStart { display: block; animation: popIn .3s ease; }
+  @keyframes popIn { from { transform: scale(.6); opacity: 0; } }
+  #splashFoot {
+    margin: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+    font-size: 11px; color: rgba(122,62,10,.75); letter-spacing: 1px;
+  }
+  #splash.ready #splashBar { display: none; }
+
+  /* ---------- HUD ---------- */
+  #hud {
+    position: absolute; z-index: 10; left: 0; right: 0;
+    top: env(safe-area-inset-top, 0px);
+    padding: 10px 10px 0; display: flex; align-items: center; gap: 8px;
+    pointer-events: none;
+  }
+  #hud > * { pointer-events: auto; }
+  .hbtn {
+    width: 44px; height: 44px; border-radius: 50%; flex: 0 0 auto;
+    background: #F5B93C; border: 0; border-bottom: 4px solid #D89A28;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .hbtn:active { transform: translateY(2px); border-bottom-width: 2px; }
+  .hbtn img { width: 22px; height: 22px; }
+  #levelPill, #pctPill {
+    background: #FFF7E8; color: #7A4A1E; border-radius: 999px;
+    font-weight: 800; font-size: 16px; line-height: 1;
+    padding: 9px 16px; box-shadow: 0 2px 0 rgba(90,50,10,.18);
+  }
+  #levelPill { margin-left: 4px; }
+  #pctPill { margin-left: auto; min-width: 56px; text-align: center; font-variant-numeric: tabular-nums; }
+
+  /* ---------- 底部工具条 ---------- */
+  #toolbar {
+    position: absolute; z-index: 10; left: 0; right: 0;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    display: flex; justify-content: center; gap: 10px; padding: 0 12px;
+  }
+  .tbtn {
+    flex: 1; max-width: 86px;
+    background: #FFF3DC; border: 2px solid #E8CFA5; border-bottom-width: 4px;
+    border-radius: 14px; padding: 7px 2px 6px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    color: #8A5A2A; font: 700 11px/1 inherit; font-family: inherit;
+    position: relative;
+  }
+  .tbtn:active { transform: translateY(2px); border-bottom-width: 2px; }
+  .tbtn img { width: 22px; height: 22px; }
+  .tbtn[disabled] { opacity: .45; pointer-events: none; }
+  .tbtn .bdg {
+    position: absolute; top: -7px; right: -4px;
+    background: #E2483D; color: #fff; border-radius: 999px;
+    font: 800 10px/1 inherit; padding: 3px 6px; border: 2px solid #FFF3DC;
+  }
+
+  /* ---------- 新手气泡 ---------- */
+  #bubble {
+    position: absolute; z-index: 9; left: 14px; right: 14px;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    display: flex; align-items: center; gap: 0;
+    transition: opacity .4s, transform .4s;
+  }
+  #bubble.hide { opacity: 0; transform: translateY(8px); pointer-events: none; }
+  #bubbleFace {
+    width: 56px; height: 56px; border-radius: 50%; flex: 0 0 auto;
+    background: #BFE3F0; border: 3px solid #FFF7E8; overflow: hidden;
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  #bubbleFace img { width: 150%; display: block; }
+  #bubbleText {
+    position: relative; margin-left: -6px;
+    background: #FFF7E8; color: #7A4A1E; font-weight: 700; font-size: 15px;
+    border-radius: 14px; padding: 12px 16px; box-shadow: 0 2px 0 rgba(90,50,10,.15);
+  }
+  #bubbleText::before {
+    content: ""; position: absolute; left: -7px; top: 50%; margin-top: -7px;
+    border: 7px solid transparent; border-right-color: #FFF7E8; border-left: 0;
+  }
+
+  /* ---------- 覆盖层通用 ---------- */
+  .overlay {
+    position: absolute; inset: 0; z-index: 30;
+    background: rgba(43, 24, 8, .5);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 1; transition: opacity .25s; padding: 24px;
+  }
+  .overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .card {
+    width: 100%; max-width: 300px; background: #FFF7E8;
+    border-radius: 20px; padding: 22px 20px 18px; text-align: center;
+    box-shadow: 0 10px 30px rgba(40,20,0,.35);
+    transform: translateY(0); transition: transform .25s;
+  }
+  .overlay.hidden .card { transform: translateY(14px); }
+  .card h2 { color: #7A4A1E; font-size: 24px; margin-bottom: 4px; }
+  .card .sub { color: #A5794A; font-size: 13px; margin-bottom: 14px; }
+  .card .stars { font-size: 0; margin: 2px 0 10px; display: flex; justify-content: center; gap: 6px; }
+  .card .stars img { width: 38px; height: 38px; }
+  .card .stars img.dim { opacity: .22; filter: grayscale(1); }
+  .mbtn {
+    display: block; width: 100%; margin-top: 10px;
+    font: 800 17px/1 inherit; font-family: inherit; border-radius: 999px;
+    padding: 13px 0; cursor: pointer;
+    background: #FFF7E8; color: #8A5A2A; border: 2px solid #E0C194;
+  }
+  .mbtn:active { transform: scale(.98); }
+  .mbtn.primary { background: #4FA8E0; border: 0; border-bottom: 4px solid #2F7FB8; color: #fff; font-size: 18px; padding: 14px 0; }
+  .mbtn.primary:active { transform: translateY(2px); border-bottom-width: 2px; }
+
+  /* ---------- toast ---------- */
+  #toast {
+    position: absolute; z-index: 40; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%) translateY(6px);
+    background: rgba(60,34,10,.88); color: #FFEFD6;
+    font-size: 14px; font-weight: 600; padding: 10px 18px; border-radius: 999px;
+    opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none;
+    max-width: 82%; text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  #panelHost { position: absolute; inset: 0; z-index: 35; pointer-events: none; }
+  #panelHost > * { pointer-events: auto; }
+
+  /* ---------- 横屏矮窗 ---------- */
+  @media (max-height: 540px) {
+    #splashLogo { width: 46%; margin-top: 3%; }
+    #splashPig { width: 34%; margin-top: 1%; }
+    #splashBar { margin-top: 10px; width: 46%; }
+    #hud { padding-top: 6px; }
+    .hbtn { width: 38px; height: 38px; border-bottom-width: 3px; }
+    #levelPill, #pctPill { font-size: 14px; padding: 7px 13px; }
+    #toolbar { bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
+    .tbtn { flex-direction: row; padding: 8px 10px; max-width: none; gap: 6px; }
+    #bubble { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="gameCanvas"></canvas>
+    <canvas id="fxCanvas"></canvas>
+
+    <div id="hud">
+      <button id="pauseBtn" class="hbtn" aria-label="暂停"><img alt=""></button>
+      <div id="levelPill">第 1 关</div>
+      <div id="pctPill">0%</div>
+    </div>
+
+    <div id="toolbar">
+      <button class="tbtn" id="undoBtn"><img alt=""><span>撤销</span></button>
+      <button class="tbtn" id="hintBtn"><img alt=""><span>提示</span></button>
+      <button class="tbtn" id="addBtn"><img alt=""><span>加瓶</span><b class="bdg">1</b></button>
+      <button class="tbtn" id="restartBtn"><img alt=""><span>重开</span></button>
+    </div>
+
+    <div id="bubble">
+      <div id="bubbleFace"><img alt=""></div>
+      <div id="bubbleText">把同色的水倒入一个瓶子里</div>
+    </div>
+
+    <div id="pauseMenu" class="overlay hidden">
+      <div class="card">
+        <h2>游戏暂停</h2>
+        <div class="sub" id="pauseSub">第 1 关</div>
+        <button class="mbtn primary" id="pmResume">继续游戏</button>
+        <button class="mbtn" id="pmRestart">重玩本关</button>
+        <button class="mbtn" id="pmSkip">跳过此关</button>
+        <button class="mbtn" id="pmSettings">设 置</button>
+        <button class="mbtn" id="pmHome">回到封面</button>
+      </div>
+    </div>
+
+    <div id="winPanel" class="overlay hidden">
+      <div class="card">
+        <h2>过关！</h2>
+        <div class="stars" id="winStars"></div>
+        <div class="sub" id="winSub">用了 0 步</div>
+        <button class="mbtn primary" id="winNext">下一关</button>
+        <button class="mbtn" id="winReplay">再玩一次</button>
+      </div>
+    </div>
+
+    <div id="panelHost"></div>
+    <div id="toast"></div>
+  </div>
+
+  <div id="splash">
+    <img id="splashLogo" alt="倒水挑战">
+    <img id="splashPig" alt="">
+    <div id="splashBar"><div id="splashFill"></div></div>
+    <button id="splashStart">开始游戏</button>
+    <div id="splashFoot">倒水挑战 · 同人复刻演示 · 无限关卡</div>
+  </div>
+</div>
+<!-- MODULE_SCRIPTS -->
+</body>
+</html>
