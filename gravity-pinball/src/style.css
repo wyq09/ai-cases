@@ -26,7 +26,7 @@ html, body {
   position: absolute; z-index: 10;
   font-size: 27px; font-weight: 900; color: #fff;
   letter-spacing: 1px;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.45);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.45), 0 0 16px rgba(255,238,225,0.2);
   pointer-events: none;
   font-variant-numeric: tabular-nums;
 }
@@ -36,23 +36,25 @@ html, body {
 #btnCollect {
   position: absolute; z-index: 10;
   padding: 8px 20px;
-  background: rgba(255,255,255,0.12);
-  border: 1.5px solid rgba(255,255,255,0.24);
+  background: rgba(24,18,14,0.5);
+  border: 1.5px solid rgba(255,255,255,0.26);
   border-radius: 10px;
-  color: #ddd; font-size: 20px; font-weight: 700; letter-spacing: 3px;
+  color: #f0eae2; font-size: 20px; font-weight: 700; letter-spacing: 3px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
   cursor: pointer;
 }
-#btnCollect:active { transform: scale(0.95); background: rgba(255,255,255,0.2); }
+#btnCollect:active { transform: scale(0.95); background: rgba(24,18,14,0.68); }
 
 #btnAdd {
   position: absolute; z-index: 10;
   width: 200px; height: 52px;
   border-radius: 999px;
-  background: linear-gradient(#ff7078, #e84a5e);
-  box-shadow: inset 0 -3px 0 rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.3);
+  background: linear-gradient(#ff7d84, #ef5563 55%, #e03e50);
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,0.18), inset 0 2px 0 rgba(255,255,255,0.38), 0 4px 12px rgba(0,0,0,0.3);
   color: #fff; font-size: 25px; font-weight: 900; letter-spacing: 6px;
   display: flex; align-items: center; justify-content: center; gap: 9px;
   cursor: pointer;
+  text-shadow: 0 1px 2px rgba(120,20,35,0.45);
 }
 #btnAdd img { width: 30px; height: 30px; pointer-events: none; }
 #btnAdd:active { transform: scale(0.96); }
@@ -64,10 +66,11 @@ html, body {
 .slot {
   position: absolute; z-index: 10;
   width: 58px; height: 62px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255,255,255,0.45);
   border-radius: 29px 29px 10px 10px;
   background:
-    radial-gradient(circle at 35% 22%, rgba(255,255,255,0.26), rgba(255,255,255,0.05) 62%);
+    linear-gradient(118deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.02) 62%, rgba(255,255,255,0.16) 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 6px rgba(0,0,0,0.22);
   display: grid; place-items: center;
   cursor: pointer;
 }

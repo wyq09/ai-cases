@@ -24,13 +24,13 @@ var FX=GP.FX=(GP.FX||{});
 // ---------- 常量 ----------
 var TAU=Math.PI*2;
 var MAXP=320;                          // 粒子硬上限
-var T_SPARK=0,T_SWIRL=1,T_RING=2,T_TEXT=3;
-var VALUE=[0,0,1,2];                   // 池满回收价值: 数值小者先被回收
+var T_SPARK=0,T_SWIRL=1,T_RING=2,T_TEXT=3,T_CHIP=4;
+var VALUE=[0,0,1,2,0];                 // 池满回收价值: 数值小者先被回收
 var WARM='255,244,220';                // 暖白（星尘/火花掺色）
 var LILAC='184,168,216';               // 灰紫 #b8a8d8（吞噬专用）
 var MAX_TEXT=12;                       // 浮动文字同屏上限, 超出丢最旧
 var PREWARM=['#b9c93e','#8d78cf','#6fb9e6','#3cb4cc','#6fbe4e','#d99a34',
-             '#d96f98','#9feaf2','#ffffff','#fff4dc','#b8a8d8']; // 关卡色板预烘焙
+             '#d96f98','#9feaf2','#ffffff','#fff4dc','#b8a8d8','#ffd76a']; // 关卡色板预烘焙
 
 // ---------- 状态 ----------
 var canvas=null;                       // 只存引用
@@ -173,13 +173,41 @@ function swallow(x,y){
   }
 }
 
-function ring(x,y,color){
+function ring(x,y,color,r1,life){
   var p=acquire();
   p.type=T_RING;
   p.x=+x||0; p.y=+y||0;
-  p.r0=6; p.r1=84;
-  p.w=4.5; p.life=0.45; p.age=0;
+  p.r0=6; p.r1=(r1>0)?r1:84;
+  p.w=4.5; p.life=(life>0)?life:0.45; p.age=0;
   p.rgb=(color===undefined||color===null||color==='')?WARM:rgbOf(color,WARM);
+}
+
+// 爆炸方块碎屑: 黄色小方片 + 暖白掺色 + 几圈小白尘环（对齐原版爆破观感）
+function pop(x,y,color){
+  x=+x||0; y=+y||0;
+  var rgb=(color===undefined||color===null||color==='')?WARM:rgbOf(color,WARM);
+  var i,p,a,sp;
+  for(i=0;i<12;i++){
+    p=acquire();
+    a=Math.random()*TAU; sp=110+Math.random()*250;
+    p.type=T_CHIP;
+    p.x=x+(Math.random()-0.5)*6; p.y=y+(Math.random()-0.5)*6;
+    p.vx=Math.cos(a)*sp; p.vy=Math.sin(a)*sp-70;
+    p.size=1.8+Math.random()*2.4;
+    p.life=0.4+Math.random()*0.35;
+    p.age=0;
+    p.grav=820; p.drag=2.6;
+    p.rot=Math.random()*TAU; p.vr=(Math.random()-0.5)*16;
+    p.rgb=(i%3===0)?'255,215,106':((i%3===1)?rgb:WARM);
+  }
+  for(i=0;i<3;i++){                      // 小白尘环
+    p=acquire();
+    a=Math.random()*TAU;
+    p.type=T_RING;
+    p.x=x+Math.cos(a)*8; p.y=y+Math.sin(a)*8;
+    p.r0=2; p.r1=8+Math.random()*7;
+    p.w=2; p.life=0.45; p.age=0; p.rgb='235,230,222';
+  }
 }
 
 function shake(mag){
@@ -217,6 +245,11 @@ function update(dt){
         var e=Math.exp(-p.drag*dt);
         p.vx*=e; p.vy=p.vy*e+p.grav*dt;
         p.x+=p.vx*dt; p.y+=p.vy*dt;
+      }else if(p.type===T_CHIP){            // 方片: 抛体 + 自旋
+        var e2=Math.exp(-p.drag*dt);
+        p.vx*=e2; p.vy=p.vy*e2+p.grav*dt;
+        p.x+=p.vx*dt; p.y+=p.vy*dt;
+        p.rot+=p.vr*dt;
       }else if(p.type===T_SWIRL){           // 半径收缩 + 角向内旋
         p.r-=p.vr*dt;
         p.ang+=p.va*dt;
@@ -249,6 +282,9 @@ function draw(ctx){
     else if(p.type===T_SWIRL) dSwirl(ctx,p);
     else if(p.type===T_RING) dRing(ctx,p);
   }
+  // pass1b: source-over 方片碎屑（实色小方块，不叠亮）
+  ctx.globalCompositeOperation='source-over';
+  for(i=0;i<n;i++) if(list[i].type===T_CHIP) dChip(ctx,list[i]);
   // pass2: 普通合成置顶 —— 浮动分数
   ctx.globalCompositeOperation='source-over';
   for(i=0;i<n;i++) if(list[i].type===T_TEXT) dText(ctx,list[i]);
@@ -274,6 +310,19 @@ function dSpark(ctx,p){                    // 发光点: 色晕精灵 + 暖白�
   ctx.beginPath();
   ctx.arc(p.x,p.y,Math.max(0.7,p.size*(1-t*0.45)),0,TAU);
   ctx.fill();
+}
+function dChip(ctx,p){                     // 爆炸方片: 旋转实色小方块
+  var t=p.age/p.life;
+  var a=Math.pow(1-t,0.8);
+  if(a<=0.01) return;
+  var s=p.size*(1-t*0.35);
+  ctx.globalAlpha=a;
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  ctx.rotate(p.rot);
+  ctx.fillStyle='rgba('+p.rgb+',1)';
+  ctx.fillRect(-s,-s,s*2,s*2);
+  ctx.restore();
 }
 function dSwirl(ctx,p){                    // 内旋碎片: 色晕 + 切向短线
   var t=p.age/p.life;
@@ -338,6 +387,7 @@ FX.burst=burst;
 FX.floatText=floatText;
 FX.swallow=swallow;
 FX.ring=ring;
+FX.pop=pop;
 FX.shake=shake;
 FX.getShake=getShake;      // 主循环可读当前震动强度自算偏移
 FX.update=update;

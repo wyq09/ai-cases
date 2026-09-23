@@ -160,7 +160,7 @@
     for (var i = 0; i < this.bumpers.length; i++) {
       var p = this.bumpers[i];
       if (!p.alive) continue;
-      if (p.kind === 'diamond') this._hitObb(b, p);
+      if (p.kind === 'diamond' || p.kind === 'square') this._hitObb(b, p);
       else this._hitCircle(b, p);
     }
   };
@@ -198,9 +198,11 @@
   };
 
   World.prototype._hitObb = function (b, p) {
-    /* 菱形 = 旋转 45° 的正方形，half = 半对角线 */
-    var s = p.half / SQRT2;
-    var c = Math.SQRT1_2, sn = Math.SQRT1_2; /* rot = π/4 */
+    /* 菱形 = 旋转 45° 的正方形（half = 半对角线）；方块 = 旋转 ~11.5° 的正方形（half = 半边长） */
+    var isSq = p.kind === 'square';
+    var s = isSq ? p.half : p.half / SQRT2;
+    var rot = p.rot ? p.rot : Math.PI / 4;
+    var c = Math.cos(rot), sn = Math.sin(rot);
     var dx = b.x - p.x, dy = b.y - p.y;
     var lx = c * dx + sn * dy;
     var ly = -sn * dx + c * dy;
