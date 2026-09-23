@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>羊了个羊 · 三消羊圈</title>
+<style>
+  :root {
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --paper: #F7F1E3;
+    --wood: #8A6B45;
+    --wood-dark: #6B5236;
+    --ink: #4A3B2A;
+    --grass: #7FA95C;
+    --accent: #D96C4F;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body { display: flex; justify-content: center; background: #2B231A; font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  #app {
+    position: relative; width: 100%; max-width: 100%; height: 100%;
+    height: 100dvh; overflow: hidden; user-select: none; -webkit-user-select: none;
+    touch-action: manipulation; background: #EFE6CE;
+  }
+  @media (min-width: 700px) {
+    #app { max-width: 440px; box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 18px 50px rgba(0,0,0,.5); }
+  }
+  canvas#cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* ---- HUD 顶栏 ---- */
+  #hud {
+    position: absolute; left: 0; right: 0; top: 0;
+    padding: calc(8px + var(--safe-t)) 14px 6px;
+    display: flex; align-items: center; gap: 10px; pointer-events: none;
+  }
+  #hudLv {
+    font-weight: 800; font-size: 17px; color: #FFF9EA;
+    text-shadow: 0 1px 0 rgba(74,59,42,.85), 0 2px 6px rgba(58,42,20,.5);
+    white-space: nowrap;
+  }
+  #hudLeft {
+    flex: 1; text-align: center; font-size: 13px; font-weight: 600; color: #F3E9D2;
+    text-shadow: 0 1px 0 rgba(74,59,42,.8), 0 2px 5px rgba(58,42,20,.45);
+    letter-spacing: .5px;
+  }
+  #btnMenu {
+    pointer-events: auto; width: 38px; height: 38px; border: none; border-radius: 12px;
+    background: rgba(58,44,26,.5); backdrop-filter: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #btnMenu:active { transform: scale(.93); }
+  #btnMenu svg { display: block; }
+
+  /* ---- 底部道具条 ---- */
+  #propBar {
+    position: absolute; left: 0; right: 0;
+    bottom: calc(10px + var(--safe-b));
+    display: flex; justify-content: center; gap: 22px;
+  }
+  .prop {
+    position: relative; width: 60px; height: 60px; border-radius: 18px;
+    border: 2px solid var(--wood-dark);
+    background: linear-gradient(180deg, #A8825A, #8A6B45);
+    box-shadow: 0 4px 0 #57402a, 0 6px 12px rgba(40,26,10,.35);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .prop:active { transform: translateY(2px); box-shadow: 0 2px 0 #57402a; }
+  .prop[disabled] { filter: grayscale(.75) brightness(.8); pointer-events: none; }
+  .prop .cnt {
+    position: absolute; top: -7px; right: -7px; min-width: 22px; height: 22px;
+    border-radius: 11px; background: var(--accent); color: #FFF6EA;
+    font-size: 13px; font-weight: 800; line-height: 22px; text-align: center;
+    border: 2px solid #FFF3DF; padding: 0 4px;
+  }
+  .prop svg { display: block; }
+
+  /* ---- 弹窗 ---- */
+  #overlay {
+    position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(34,25,13,.58); z-index: 30; padding: 24px;
+  }
+  #overlay.show { display: flex; }
+  .dlg {
+    width: 100%; max-width: 330px; background: var(--paper);
+    border: 3px solid var(--wood); border-radius: 20px;
+    padding: 26px 22px 22px; text-align: center;
+    box-shadow: 0 10px 0 rgba(74,56,32,.35), 0 22px 44px rgba(20,12,4,.45);
+    animation: pop .28s cubic-bezier(.34,1.4,.64,1);
+  }
+  @keyframes pop { from { transform: scale(.82); opacity: 0; } }
+  .dlg h1 { font-size: 30px; font-weight: 900; color: var(--ink); letter-spacing: 2px; }
+  .dlg h2 { font-size: 22px; font-weight: 800; color: var(--ink); }
+  .dlg .sub { font-size: 13px; color: #8A775D; margin-top: 6px; line-height: 1.6; }
+  .dlg .logo-sheep { margin: 4px auto 2px; display: block; }
+  .btns { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+  .mbtn {
+    height: 48px; border-radius: 14px; border: 2px solid var(--wood-dark);
+    background: linear-gradient(180deg, #F2E7CD, #E7D8B4);
+    color: var(--ink); font-size: 16px; font-weight: 800; cursor: pointer;
+    box-shadow: 0 3px 0 #C9B890;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .mbtn:active { transform: translateY(2px); box-shadow: 0 1px 0 #C9B890; }
+  .mbtn.primary { background: linear-gradient(180deg, #94BE6E, #7FA95C); border-color: #5C7F3E; color: #FFFDF4; box-shadow: 0 3px 0 #5C7F3E; }
+  .mbtn.primary:active { box-shadow: 0 1px 0 #5C7F3E; }
+  .mbtn.warn { background: linear-gradient(180deg, #E08A6C, #D96C4F); border-color: #A84A30; color: #FFF6EA; box-shadow: 0 3px 0 #A84A30; }
+
+  /* ---- toast ---- */
+  #toast {
+    position: absolute; left: 50%; bottom: 108px; transform: translateX(-50%) translateY(14px);
+    background: rgba(58,44,26,.92); color: #FFF6E4; font-size: 14px; font-weight: 600;
+    padding: 9px 18px; border-radius: 20px; opacity: 0; transition: all .22s;
+    pointer-events: none; z-index: 40; white-space: nowrap; max-width: 86%;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---- 配置面板宿主 ---- */
+  #panelHost { position: absolute; inset: 0; z-index: 50; pointer-events: none; }
+  #panelHost > * { pointer-events: auto; }
+
+  /* ---- 横屏矮窗 ---- */
+  @media (max-height: 540px) {
+    #hud { padding-top: calc(4px + var(--safe-t)); }
+    #hudLv { font-size: 14px; }
+    .prop { width: 48px; height: 48px; border-radius: 14px; }
+    #propBar { bottom: calc(6px + var(--safe-b)); gap: 16px; }
+    .dlg { padding: 14px 16px 14px; }
+    .dlg h1 { font-size: 22px; }
+    .mbtn { height: 40px; font-size: 14px; }
+    #toast { bottom: 72px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="cv"></canvas>
+
+  <div id="hud">
+    <div id="hudLv">第 1 关</div>
+    <div id="hudLeft"></div>
+    <button id="btnMenu" aria-label="菜单">
+      <svg width="20" height="20" viewBox="0 0 20 20"><g stroke="#FFF3DC" stroke-width="2.4" stroke-linecap="round"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></g></svg>
+    </button>
+  </div>
+
+  <div id="propBar">
+    <button class="prop" id="btnOut" aria-label="移出">
+      <svg width="28" height="28" viewBox="0 0 28 28"><rect x="6" y="7" width="16" height="14" rx="3" fill="none" stroke="#FFF3DC" stroke-width="2.2"/><path d="M14 17v-6M11.4 13.2 14 10.6l2.6 2.6" stroke="#FFF3DC" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="cnt">1</span>
+    </button>
+    <button class="prop" id="btnUndo" aria-label="撤销">
+      <svg width="28" height="28" viewBox="0 0 28 28"><path d="M8 13h9a5 5 0 1 1 0 10h-4" fill="none" stroke="#FFF3DC" stroke-width="2.4" stroke-linecap="round"/><path d="M11.6 8.6 7 13l4.6 4.4" fill="none" stroke="#FFF3DC" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="cnt">1</span>
+    </button>
+    <button class="prop" id="btnShuffle" aria-label="洗牌">
+      <svg width="28" height="28" viewBox="0 0 28 28"><path d="M5 9h4l9 10h5M23 19l-3-3m3 3-3 3M5 19h4l2.6-2.9M14.5 12l3.5-3h5M23 9l-3-3m3 3-3 3" fill="none" stroke="#FFF3DC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="cnt">1</span>
+    </button>
+  </div>
+
+  <div id="overlay"></div>
+  <div id="panelHost"></div>
+  <div id="toast"></div>
+</div>
+<!-- MODULE_SCRIPTS -->
+</body>
+</html>
