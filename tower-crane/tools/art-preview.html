@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>TC.ART preview</title>
+<style>
+  body{font:13px/1.4 system-ui,sans-serif;margin:0;background:#eef3f7;color:#223}
+  section{padding:14px 18px;border-bottom:1px solid #d5dee6}
+  h2{margin:2px 0 10px;font-size:14px}
+  .row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+  .cell{text-align:center}
+  .cell img{display:block}
+  .lbl{font-size:11px;opacity:.65;margin-top:3px}
+  .dark{background:#1c3454;padding:12px;border-radius:8px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;background:rgba(28,52,84,.85)}
+  .btn2{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;background:#ef6a5e}
+  canvas{display:block;border:1px solid #9db4c4;border-radius:4px}
+</style>
+</head>
+<body>
+<section><h2>房间块 room(0..3) — 240px 与 60px 高（游戏内实际尺寸）</h2><div class="row" id="rooms"></div></section>
+<section><h2>吊钩 / 云（浅色天空底 + 深色底各一份）</h2><div class="row" id="misc"></div></section>
+<section><h2>图标 — 深蓝按钮上</h2><div class="row" id="icons"></div></section>
+<section><h2>图标 — 彩色按钮上</h2><div class="row" id="icons2"></div></section>
+<section><h2>paintSky 390×620</h2><canvas id="sky" width="390" height="620"></canvas></section>
+<section><h2>sky + city 远层 + 近层（清晰版 800×500 / 缩小放大模糊版模拟游戏效果）</h2>
+  <div class="row">
+    <canvas id="city" width="800" height="500"></canvas>
+    <canvas id="blur" width="400" height="250"></canvas>
+  </div>
+</section>
+<section><h2>paintCity 近层 宽幅 1400×360（铺满无断缝检查）</h2><canvas id="city2" width="1400" height="360"></canvas></section>
+
+<script src="../src/art.js"></script>
+<script>
+(function(){
+  var A = window.TC.ART;
+  var R = document.getElementById('rooms'), htm = '';
+  for (var i = 0; i < 4; i++) {
+    htm += '<div class="cell"><img width="240" src="'+A.room(i)+'"><div class="lbl">room('+i+')</div></div>';
+    htm += '<div class="cell"><img height="60" src="'+A.room(i)+'"><div class="lbl">60px高</div></div>';
+  }
+  R.innerHTML = htm;
+
+  var M = document.getElementById('misc'); htm = '';
+  htm += '<div class="cell"><img width="120" src="'+A.hook()+'"><div class="lbl">hook</div></div>';
+  htm += '<div class="cell dark"><img width="120" src="'+A.hook()+'"><div class="lbl">hook 深底</div></div>';
+  for (var c = 0; c < 3; c++) htm += '<div class="cell"><img width="170" src="'+A.cloud(c)+'"><div class="lbl">cloud('+c+')</div></div>';
+  for (var d = 0; d < 3; d++) htm += '<div class="cell dark"><img width="150" src="'+A.cloud(d)+'"><div class="lbl">cloud('+d+') 深底</div></div>';
+  M.innerHTML = htm;
+
+  var names = ['menu','close','heart','play','pause','upload','download','reset','check','info','volumeOn','volumeOff','trophy','home'];
+  htm = '';
+  for (var n = 0; n < names.length; n++) htm += '<div class="cell"><span class="btn"><img width="26" src="'+A.icon(names[n])+'"></span><div class="lbl">'+names[n]+'</div></div>';
+  document.getElementById('icons').innerHTML = htm;
+  htm = '';
+  for (var m = 0; m < names.length; m++) htm += '<div class="cell"><span class="btn2"><img width="26" src="'+A.icon(names[m])+'"></span><div class="lbl">'+names[m]+'</div></div>';
+  document.getElementById('icons2').innerHTML = htm;
+
+  var s1 = document.getElementById('sky').getContext('2d');
+  A.paintSky(s1, 390, 620);
+
+  var c1 = document.getElementById('city').getContext('2d');
+  A.paintSky(c1, 800, 500);
+  A.paintCity(c1, 800, 500, 0);
+  A.paintCity(c1, 800, 500, 1);
+
+  /* 游戏实际观感：先画到 1/4 小画布再放大（缩小放大法模糊） */
+  var off = document.createElement('canvas'); off.width = 200; off.height = 125;
+  var oc = off.getContext('2d');
+  A.paintSky(oc, 200, 125);
+  A.paintCity(oc, 200, 125, 0);
+  A.paintCity(oc, 200, 125, 1);
+  var b1 = document.getElementById('blur').getContext('2d');
+  b1.imageSmoothingEnabled = true; b1.imageSmoothingQuality = 'high';
+  b1.drawImage(off, 0, 0, 400, 250);
+
+  var c2 = document.getElementById('city2').getContext('2d');
+  A.paintSky(c2, 1400, 360);
+  A.paintCity(c2, 1400, 360, 0);
+  A.paintCity(c2, 1400, 360, 1);
+})();
+</script>
+</body>
+</html>

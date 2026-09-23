@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>TC.FX 预览</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#6fc0ee;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;-webkit-tap-highlight-color:transparent}
+  #c{position:fixed;inset:0;width:100%;height:100%;display:block}
+  #bar{position:fixed;left:0;right:0;bottom:0;display:flex;flex-wrap:wrap;gap:7px;
+    padding:9px 10px calc(9px + env(safe-area-inset-bottom));background:rgba(28,52,84,.88);z-index:10}
+  #bar button{flex:1 1 auto;padding:9px 10px;font-size:13px;font-weight:700;color:#fff;
+    background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.5);border-radius:10px}
+  #bar button:active{background:rgba(255,255,255,.3)}
+  #err{position:fixed;top:6px;left:6px;right:6px;display:none;z-index:99;
+    color:#fff;background:#c0392b;font:12px/1.5 Menlo,monospace;padding:5px 8px;
+    border-radius:6px;white-space:pre-wrap;word-break:break-all}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="err"></div>
+<div id="dbg" style="position:fixed;top:6px;left:6px;z-index:98;color:#fff;
+  background:rgba(28,52,84,.85);font:11px Menlo,monospace;padding:3px 6px;
+  border-radius:5px;display:none"></div>
+<div id="bar">
+  <button data-fx="dust">尘土</button>
+  <button data-fx="confetti">彩纸</button>
+  <button data-fx="float">浮字</button>
+  <button data-fx="ring">圆环</button>
+  <button data-fx="shake">震屏</button>
+  <button data-fx="big">完美大字</button>
+  <button data-fx="bigsub">连击大字</button>
+  <button data-fx="miss">失手大字</button>
+  <button data-fx="perfect">完美全套</button>
+  <button data-fx="stop">清空</button>
+</div>
+<script src="../src/fx.js"></script>
+<script>
+(function () {
+  'use strict';
+  var errBox = document.getElementById('err');
+  function showErr(m) { errBox.style.display = 'block'; errBox.textContent += m + '\n'; }
+  window.onerror = function (msg, src, line) { showErr('ERR: ' + msg + ' @L' + line); return false; };
+  window.addEventListener('unhandledrejection', function (ev) { showErr('REJ: ' + ev.reason); });
+
+  var FX = window.TC.FX;
+  var cv = document.getElementById('c');
+  var W = window.innerWidth, H = window.innerHeight;
+  var DPR = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  var ctx = cv.getContext('2d');
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  FX.init(cv);
+  FX.resize(W, H, DPR);
+
+  /* ---- 场景几何（缩放跟随窗口，禁止硬编码 390/844）---- */
+  var BW = 120, BH = 76;
+  var S = Math.min(1.15, Math.max(0.6, W / 480));
+  BW = Math.round(120 * S); BH = Math.round(76 * S);
+  var cx = Math.round(W / 2);
+  var barH = 66;
+  var groundY = H - barH - Math.round(24 * S);
+  var towerTop = groundY - 4 * BH;
+  var hookY = Math.round(Math.max(46, H * 0.11));
+  var COLS = ['#ef6a5e', '#7cdcb4', '#f5a733', '#5fb7ef'];
+
+  function rr(c, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  function drawScene(c) {
+    var g = c.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#2e8fe0'); g.addColorStop(0.55, '#6fc0ee'); g.addColorStop(1, '#c9ecfa');
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    /* ?debug=1: 特效锚点十字标记 */
+    if (/\bdebug=1\b/.test(window.location.search)) {
+      document.getElementById('dbg').style.display = 'block';
+      c.strokeStyle = '#ff00ff'; c.lineWidth = 1;
+      [[cx, towerTop], [cx, towerTop - 46], [cx - 53, towerTop - 85]].forEach(function (pt) {
+        c.beginPath(); c.moveTo(pt[0] - 14, pt[1]); c.lineTo(pt[0] + 14, pt[1]);
+        c.moveTo(pt[0], pt[1] - 14); c.lineTo(pt[0], pt[1] + 14); c.stroke();
+      });
+      document.getElementById('dbg').textContent =
+        'simT=' + Math.round(simT) + ' big=' + document.getElementsByClassName('tc-fx-big').length +
+        ' towerTop=' + towerTop;
+    }
+    /* 地面基座 */
+    c.fillStyle = '#d7dee6'; c.fillRect(0, groundY, W, H - groundY);
+    c.fillStyle = '#b9c2cc'; c.fillRect(0, groundY, W, Math.round(12 * S));
+    c.save(); c.beginPath(); c.rect(0, groundY + 12 * S, W, 10 * S); c.clip();
+    c.fillStyle = '#f2c231'; c.fillRect(0, groundY, W, 30 * S);
+    c.fillStyle = '#2e3440';
+    for (var x = -30; x < W + 30; x += 26 * S) {
+      c.beginPath();
+      c.moveTo(x, groundY + 22 * S); c.lineTo(x + 12 * S, groundY + 12 * S);
+      c.lineTo(x + 21 * S, groundY + 12 * S); c.lineTo(x + 9 * S, groundY + 22 * S);
+      c.closePath(); c.fill();
+    }
+    c.restore();
+    /* 四层塔 */
+    for (var i = 0; i < 4; i++) {
+      var by = groundY - (i + 1) * BH;
+      c.fillStyle = COLS[i % 4];
+      rr(c, cx - BW / 2, by, BW, BH, 8 * S); c.fill();
+      c.fillStyle = 'rgba(0,0,0,0.15)'; c.fillRect(cx - BW / 2 + 2, by + BH - 6 * S, BW - 4, 6 * S);
+      c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(cx - BW / 2 + 6 * S, by + 4 * S, BW - 12 * S, 4 * S);
+      c.fillStyle = 'rgba(61,90,128,0.85)';
+      c.fillRect(cx - BW / 2 + BW * 0.58, by + BH * 0.28, BW * 0.3, BH * 0.34);
+    }
+    /* 缆绳 + 吊钩 + 悬挂块 */
+    c.strokeStyle = '#5a6470'; c.lineWidth = 3;
+    c.beginPath(); c.moveTo(cx, 0); c.lineTo(cx, hookY); c.stroke();
+    c.fillStyle = '#f2b53d'; rr(c, cx - 16 * S, hookY - 6 * S, 32 * S, 22 * S, 6 * S); c.fill();
+    c.fillStyle = '#8a93a0'; rr(c, cx - 10 * S, hookY + 16 * S, 20 * S, 9 * S, 4 * S); c.fill();
+    c.fillStyle = COLS[0];
+    rr(c, cx - BW / 2, hookY + 25 * S, BW, BH, 8 * S); c.fill();
+    c.fillStyle = 'rgba(0,0,0,0.15)'; c.fillRect(cx - BW / 2 + 2, hookY + 25 * S + BH - 6 * S, BW - 4, 6 * S);
+  }
+
+  /* ---- 演出编排 ---- */
+  function perfectScene() {
+    FX.dust(cx, towerTop, 18);
+    FX.ring(cx, towerTop, '#ffd34d');
+    FX.floatText(cx, towerTop - 40 * S, '+60', { color: '#ffd34d', size: 30 });
+    FX.floatText(cx - 46 * S, towerTop - 74 * S, '×3', { color: '#ffffff', size: 20 });
+    FX.confetti(Math.round(46 + W * 0.04));
+    FX.bigText('完美!', { sub: '+60 ×3连击', color: '#ffd34d' });
+    FX.shake(3);
+  }
+  function missScene() {
+    FX.bigText('差一点!', { color: '#9fb2c8' });
+    FX.shake(8);
+    FX.floatText(cx, towerTop - 30 * S, '-1', { color: '#c94b41', size: 26 });
+  }
+  var acts = {
+    dust: function () { FX.dust(cx, towerTop, 20); },
+    confetti: function () { FX.confetti(90); },
+    float: function () { FX.floatText(cx, towerTop - 40 * S, '+25', { color: '#ffffff', size: 26 }); },
+    ring: function () { FX.ring(cx, towerTop, '#ffd34d'); },
+    shake: function () { FX.shake(9); },
+    big: function () { FX.bigText('完美!', { color: '#ffd34d' }); },
+    bigsub: function () { FX.bigText('+60', { sub: '×3 连击', color: '#ffd34d' }); },
+    miss: missScene,
+    perfect: perfectScene,
+    stop: function () { FX.stopAll(); }
+  };
+  var bar = document.getElementById('bar');
+  bar.addEventListener('click', function (ev) {
+    var t = ev.target;
+    if (t && t.dataset && acts[t.dataset.fx]) acts[t.dataset.fx]();
+  });
+
+  /* ---- 自动演示：供 headless 截图。700ms 触发首轮，之后每 1.6s 一轮 + 尘土小爆 ----
+     ?scene=miss → 演失手脚本（灰蓝大字+小抖），否则演完美全套 */
+  var autoFn = /scene=miss/.test(window.location.search) ? missScene : perfectScene;
+  /* headless virtual-time 只推进 timer 不泵 rAF → 用 setTimeout 固定步长驱动 */
+  var STEP = 1000 / 60, simT = 0, nextScene = 700, nextDust = 450;
+  function step() {
+    simT += STEP;
+    if (simT >= nextScene) { autoFn(); nextScene += 1600; }
+    if (simT >= nextDust) { FX.dust(cx - BW / 2, towerTop, 6); FX.dust(cx + BW / 2, towerTop, 6); nextDust += 450; }
+    FX.update(STEP / 1000);
+    var off = FX.shakeOffset();
+    drawScene(ctx);
+    ctx.save();
+    ctx.translate(off.x, off.y);
+    FX.draw(ctx);
+    ctx.restore();
+    setTimeout(step, STEP);
+  }
+  step();
+})();
+</script>
+</body>
+</html>

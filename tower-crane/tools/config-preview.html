@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CFGP 预览 · tower-crane</title>
+<style>
+  html,body{margin:0;padding:0;}
+  body{height:100vh;background:linear-gradient(#2e8fe0,#6fc0ee 55%,#c9ecfa);overflow:hidden;}
+  .stage{padding:16px;font:700 15px/1.6 -apple-system,"PingFang SC",sans-serif;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.15);}
+  .stage small{display:block;font-weight:500;opacity:.85;margin-top:4px;}
+  .notrans *{transition:none!important;}
+</style>
+<script>
+/* 最小 stub：core / AUDIO / cfg（无 ART，验证兜底） */
+(function () {
+  function defaultCfg() {
+    return {
+      targetFloors: 40, startLives: 3, maxLives: 5,
+      blockW: 120, blockH: 76, cableLen: 150,
+      swingAmp: 110, swingPeriod: 2600, ampPerFloor: 1.1, ampMax: 165,
+      periodPerFloor: -24, periodMin: 1400,
+      gravity: 2400, carryVelocity: false,
+      perfectPct: 0.09, greatPct: 0.28, goodPct: 0.55,
+      scoreFloor: 10, scoreGreat: 25, scorePerfect: 60, comboStep: 15,
+      milestoneEvery: 10, milestoneBonus: 100, milestoneLife: 1,
+      camLerp: 0.12, dropSpawnDelay: 350,
+      demo: false, muted: false, bgmVolume: 0.35, sfxVolume: 0.9,
+      roomColors: [
+        { body: '#ef6a5e', dark: '#c94b41', light: '#ff9285' },
+        { body: '#7cdcb4', dark: '#54b78e', light: '#aaf0d2' },
+        { body: '#f5a733', dark: '#d1821a', light: '#ffc76e' },
+        { body: '#5fb7ef', dark: '#3d8fc9', light: '#96d5fb' },
+      ],
+      icons: { room: '', bg: '', hook: '' },
+      sounds: {},
+    };
+  }
+  window.TC = window.TC || {};
+  TC.core = { defaultCfg: defaultCfg };
+  TC.AUDIO = {
+    names: ['click', 'release', 'perfect', 'great', 'good', 'miss', 'over', 'win', 'milestone', 'combo', 'bgm'],
+    play: function (n) { (window.__plays = window.__plays || []).push(n); },
+  };
+  TC.cfg = defaultCfg();
+})();
+</script>
+<script src="../src/config-panel.js"></script>
+</head>
+<body>
+<div class="stage">
+  游戏画面占位（配置面板应悬浮于此）
+  <small>?tab=0|1|2|3 直接打开对应标签页；?snap=1 关闭过渡动画（截图用）</small>
+</div>
+<script>
+  var q = new URLSearchParams(location.search);
+  if (q.get('snap') === '1') document.documentElement.classList.add('notrans');
+  TC.CFGP.open(parseInt(q.get('tab') || '0', 10));
+  if (q.get('dbg') === '1') {
+    var d = document.querySelector('.tcxp-drawer'), b = document.querySelector('.tcxp-body');
+    var pre = document.createElement('pre');
+    pre.textContent = 'DBG ' + JSON.stringify({
+      vw: innerWidth,
+      mask: document.getElementById('tcxp-root').getBoundingClientRect().width,
+      drawer: d.getBoundingClientRect().width,
+      body: b.getBoundingClientRect().width,
+      bodyScrollW: b.scrollWidth,
+      widest: [].map.call(b.querySelectorAll('.tcxp-page.tcxp-on, .tcxp-page.tcxp-on *'), function (n) {
+        return { c: n.className && String(n.className).slice(0, 24), w: Math.round(n.getBoundingClientRect().width) };
+      }).filter(function (o) { return o.w > 380; }).slice(0, 12),
+    });
+    document.body.appendChild(pre);
+  }
+</script>
+</body>
+</html>

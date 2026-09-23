@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>盖楼达人</title>
+<style>
+:root {
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --hud-blue: rgba(125,185,240,.42);
+  --ink: #1c3454;
+  --amber: #ffb43a;
+  --amber-deep: #d1821a;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; overflow: hidden; position: fixed; inset: 0; background: #2e8fe0; }
+body {
+  font-family: -apple-system, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+  user-select: none; -webkit-user-select: none; touch-action: none; overscroll-behavior: none;
+  color: #fff; font-weight: 700;
+}
+#c { position: fixed; inset: 0; display: block; }
+
+/* ===== HUD ===== */
+#hud { position: fixed; left: 0; right: 0; top: 0; padding-top: calc(var(--safe-t) + 10px); pointer-events: none; z-index: 10; }
+#panel {
+  margin: 0 auto; width: max-content; max-width: 72vw; text-align: center;
+  background: var(--hud-blue); border: 1.5px solid rgba(255,255,255,.65); border-radius: 22px;
+  padding: 8px 26px 9px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  line-height: 1.35; text-shadow: 0 1px 2px rgba(30,80,140,.35);
+}
+#panel .row { font-size: 15px; letter-spacing: 1px; white-space: nowrap; }
+#panel .row b { font-size: 21px; font-weight: 900; padding: 0 3px; }
+#panel .row .cur { color: #ffd34d; }
+#scoreChip {
+  position: absolute; left: 12px; top: calc(var(--safe-t) + 12px);
+  background: var(--hud-blue); border: 1.5px solid rgba(255,255,255,.55); border-radius: 14px;
+  padding: 5px 12px; font-size: 14px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+#scoreChip b { font-size: 18px; }
+#livesBox {
+  position: absolute; right: 18px; top: calc(var(--safe-t) + 52px);
+  display: flex; gap: 4px; align-items: center;
+}
+#livesBox img { width: 20px; height: 20px; filter: drop-shadow(0 1px 1px rgba(30,80,140,.4)); }
+#menuBtn {
+  position: absolute; right: 12px; top: calc(var(--safe-t) + 10px);
+  pointer-events: auto; width: 44px; height: 34px; border: 0; border-radius: 10px;
+  background: rgba(28,52,84,.85); display: flex; align-items: center; justify-content: center;
+}
+#menuBtn img { width: 20px; height: 20px; }
+
+/* ===== 弹层通用 ===== */
+.overlay {
+  position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center;
+  background: rgba(20,50,90,.35); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  padding: 20px; padding-bottom: calc(var(--safe-b) + 20px);
+}
+.overlay.show { display: flex; }
+.card {
+  background: linear-gradient(#fdfbf5, #f3ead6); color: #4a3b28; border-radius: 24px;
+  padding: 26px 28px calc(24px + var(--safe-b)); width: min(340px, 88vw); text-align: center;
+  box-shadow: 0 18px 50px rgba(10,40,80,.35); border: 3px solid #fff;
+}
+.card h1 { font-size: 40px; font-weight: 900; color: #f5a733; letter-spacing: 2px;
+  text-shadow: 0 2px 0 #fff, 0 4px 0 rgba(160,100,20,.25); }
+.card h2 { font-size: 26px; font-weight: 900; color: #4a3b28; }
+.card .sub { font-size: 13px; color: #8a7a5e; margin-top: 4px; font-weight: 600; }
+.card .stats { margin: 14px 0 4px; font-size: 15px; line-height: 1.9; font-weight: 700; }
+.card .stats b { color: #e2574c; font-size: 18px; }
+.btn {
+  display: block; width: 100%; border: 0; cursor: pointer; border-radius: 16px;
+  font: inherit; font-weight: 900; font-size: 18px; color: #fff; letter-spacing: 2px;
+  padding: 13px 0; margin-top: 12px;
+  background: var(--amber); box-shadow: 0 4px 0 var(--amber-deep);
+  text-shadow: 0 1px 2px rgba(120,70,0,.35);
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--amber-deep); }
+.btn.blue { background: #5fb7ef; box-shadow: 0 4px 0 #3d8fc9; }
+.btn.blue:active { box-shadow: 0 1px 0 #3d8fc9; }
+.btn.ghost { background: #e8dfc8; color: #7a6a4c; box-shadow: 0 4px 0 #c9bd9e; font-size: 15px; }
+.btn.ghost:active { box-shadow: 0 1px 0 #c9bd9e; }
+.btnRow { display: flex; gap: 10px; }
+.btnRow .btn { margin-top: 12px; }
+
+#logoStack { width: 150px; margin: 2px auto 8px; display: flex; flex-direction: column; align-items: center; }
+#logoStack img { width: 118px; height: 74px; margin-top: -22px; filter: drop-shadow(0 4px 6px rgba(60,40,10,.25)); }
+#logoStack img:nth-child(1) { transform: rotate(-4deg); }
+#logoStack img:nth-child(2) { transform: rotate(3deg); }
+#logoStack img:nth-child(3) { transform: rotate(-2deg); }
+
+#helpModal .card { text-align: left; }
+#helpModal p { font-size: 14px; line-height: 1.8; margin: 6px 0; font-weight: 600; }
+#helpModal b { color: #e2574c; }
+
+#toast {
+  position: fixed; left: 50%; bottom: calc(var(--safe-b) + 96px); transform: translateX(-50%) translateY(20px);
+  background: rgba(28,52,84,.92); color: #fff; font-size: 14px; padding: 10px 18px; border-radius: 12px;
+  opacity: 0; transition: all .25s; z-index: 60; pointer-events: none; max-width: 80vw; text-align: center;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div id="panel">
+    <div class="row">目标 <b id="tgtNum">40</b> 层</div>
+    <div class="row">当前 <b class="cur" id="curNum">0</b> 层</div>
+  </div>
+  <div id="scoreChip">分数 <b id="scoreNum">0</b></div>
+  <div id="livesBox"></div>
+  <button id="menuBtn" aria-label="菜单"></button>
+</div>
+
+<div id="startOverlay" class="overlay show">
+  <div class="card">
+    <div id="logoStack"></div>
+    <h1>盖楼达人</h1>
+    <div class="sub" id="bestLine">最高纪录 0 分 · 0 层</div>
+    <button class="btn" id="btnStart">开始盖楼</button>
+    <button class="btn blue" id="btnResume" style="display:none">继续上楼</button>
+    <div class="btnRow">
+      <button class="btn ghost" id="btnHelp">玩法说明</button>
+      <button class="btn ghost" id="btnSettings">设置</button>
+    </div>
+  </div>
+</div>
+
+<div id="helpModal" class="overlay">
+  <div class="card">
+    <h2>玩法说明</h2>
+    <p>吊机吊着房间左右摆动，<b>点按屏幕</b>松钩，房间落下与楼下对齐。</p>
+    <p>对齐越准分越高：<b>完美</b>吸附居中并累积连击，偏得太多房间会坠落，<b>损一命</b>。</p>
+    <p>每 10 层里程碑 <b>+1 命 +100 分</b>，叠到目标层数即达标，可继续无尽挑战。</p>
+    <button class="btn" id="btnHelpClose">知道了</button>
+  </div>
+</div>
+
+<div id="overOverlay" class="overlay">
+  <div class="card">
+    <h2>楼塌了…</h2>
+    <div class="stats" id="overStats"></div>
+    <button class="btn" id="btnRetry">再来一次</button>
+    <button class="btn ghost" id="btnOverHome">回首页</button>
+  </div>
+</div>
+
+<div id="winOverlay" class="overlay">
+  <div class="card">
+    <h2 style="color:#e2574c">达标！</h2>
+    <div class="stats" id="winStats"></div>
+    <button class="btn" id="btnEndless">继续无尽挑战</button>
+    <button class="btn ghost" id="btnWinRetry">重新开始</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- MODULE_SCRIPTS -->
+</body>
+</html>

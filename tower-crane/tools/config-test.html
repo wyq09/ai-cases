@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>CFGP 行为测试</title>
+<script>
+/* 与 config-preview.html 相同的 stub + onChange 收集器 */
+(function () {
+  function defaultCfg() {
+    return {
+      targetFloors: 40, startLives: 3, maxLives: 5,
+      blockW: 120, blockH: 76, cableLen: 150,
+      swingAmp: 110, swingPeriod: 2600, ampPerFloor: 1.1, ampMax: 165,
+      periodPerFloor: -24, periodMin: 1400,
+      gravity: 2400, carryVelocity: false,
+      perfectPct: 0.09, greatPct: 0.28, goodPct: 0.55,
+      scoreFloor: 10, scoreGreat: 25, scorePerfect: 60, comboStep: 15,
+      milestoneEvery: 10, milestoneBonus: 100, milestoneLife: 1,
+      camLerp: 0.12, dropSpawnDelay: 350,
+      demo: false, muted: false, bgmVolume: 0.35, sfxVolume: 0.9,
+      roomColors: [
+        { body: '#ef6a5e', dark: '#c94b41', light: '#ff9285' },
+        { body: '#7cdcb4', dark: '#54b78e', light: '#aaf0d2' },
+        { body: '#f5a733', dark: '#d1821a', light: '#ffc76e' },
+        { body: '#5fb7ef', dark: '#3d8fc9', light: '#96d5fb' },
+      ],
+      icons: { room: '', bg: '', hook: '' },
+      sounds: {},
+    };
+  }
+  window.TC = window.TC || {};
+  TC.core = { defaultCfg: defaultCfg };
+  TC.AUDIO = {
+    names: ['click', 'release', 'perfect', 'great', 'good', 'miss', 'over', 'win', 'milestone', 'combo', 'bgm'],
+    play: function (n) { (window.__plays = window.__plays || []).push(n); },
+  };
+  TC.cfg = defaultCfg();
+  window.__snaps = [];
+})();
+</script>
+<script src="../src/config-panel.js"></script>
+</head>
+<body>
+<script>
+(function () {
+  var R = [];
+  function ok(name, cond) { R.push((cond ? 'PASS' : 'FAIL') + ':' + name); }
+  function last() { return window.__snaps[window.__snaps.length - 1]; }
+  function fire(inp, val) { inp.value = val; inp.dispatchEvent(new Event('input', { bubbles: true })); }
+
+  TC.CFGP.onChange(function (s) { window.__snaps.push(s); });
+
+  try {
+    /* --- open / API 形状 --- */
+    ok('api keys', ['open', 'close', 'toggle', 'isOpen', 'onChange'].every(function (k) { return typeof TC.CFGP[k] === 'function'; }));
+    TC.CFGP.open(2);
+    ok('open', TC.CFGP.isOpen());
+
+    var playPage = document.querySelectorAll('.tcxp-page')[2];
+
+    /* --- 滑杆 → onChange 完整快照 --- */
+    var tf = playPage.querySelector('input[data-key="targetFloors"]');
+    fire(tf, String(tf.max));
+    var s0 = last();
+    ok('slider onChange fired', window.__snaps.length > 0 && !!s0);
+    ok('slider value applied', s0 && s0.targetFloors === 200);
+    ok('snapshot is deep copy', s0 && s0 !== TC.cfg && s0.roomColors !== TC.cfg.roomColors && s0.icons !== TC.cfg.icons);
+    ok('snapshot has schema keys', s0 && 'swingPeriod' in s0 && 'roomColors' in s0 && 'icons' in s0 && 'sounds' in s0);
+
+    /* --- perfectPct 百分比滑杆（scale 100） --- */
+    var pp = playPage.querySelector('input[data-key="perfectPct"]');
+    fire(pp, '9');
+    ok('pct slider stores fraction', Math.abs(last().perfectPct - 0.09) < 1e-9);
+
+    /* --- 开关：惯性落块 / demo --- */
+    var sws = playPage.querySelectorAll('.tcxp-sw');
+    sws[0].click();
+    ok('carryVelocity toggle', last().carryVelocity === true);
+    sws[sws.length - 1].click();
+    ok('demo toggle', last().demo === true);
+
+    /* --- 皮肤页：加一色 / 删一色 / 最少 3 色 / 改色 --- */
+    TC.CFGP.open(0);
+    var n0 = last().roomColors.length;
+    var addBtn = document.querySelectorAll('.tcxp-cops .tcxp-btn')[0];
+    addBtn.click();
+    ok('add color', last().roomColors.length === n0 + 1);
+    var ci = document.querySelector('.tcxp-page.tcxp-on input[type="color"]');
+    fire(ci, '#123456');
+    ok('color edit applied', last().roomColors[0].body === '#123456');
+    var delSel = '.tcxp-page.tcxp-on .tcxp-delc';
+    document.querySelectorAll(delSel)[document.querySelectorAll(delSel).length - 1].click();
+    ok('del color', last().roomColors.length === n0);
+    var guard = 0;
+    while (last().roomColors.length > 3 && guard++ < 8) {
+      var ds = document.querySelectorAll(delSel);
+      ds[ds.length - 1].click();
+    }
+    ok('min 3 colors enforced', last().roomColors.length === 3);
+    var delsNow = document.querySelectorAll(delSel);
+    ok('del disabled at 3', [].every.call(delsNow, function (d) { return d.disabled; }));
+    var resetC = document.querySelectorAll('.tcxp-cops .tcxp-btn')[1];
+    resetC.click();
+    ok('reset roomColors', last().roomColors.length === 4 && last().roomColors[0].body === '#ef6a5e');
+
+    /* --- 音效页：bgmVolume 滑杆 / 静音 / 试听守卫 --- */
+    TC.CFGP.open(1);
+    var sndPage = document.querySelectorAll('.tcxp-page')[1];
+    var bv = sndPage.querySelector('input[data-key="bgmVolume"]');
+    fire(bv, '50'); /* 滑杆单位为 %，step=5 */
+    ok('bgmVolume applied', Math.abs(last().bgmVolume - 0.5) < 1e-9);
+    ok('cue rows count', sndPage.querySelectorAll('.tcxp-cue').length === 11);
+    ok('cue buttons', sndPage.querySelectorAll('.tcxp-cue').length * 3 === sndPage.querySelectorAll('.tcxp-cue .tcxp-btn').length);
+    var listenBtns = sndPage.querySelectorAll('.tcxp-cue .tcxp-btn');
+    listenBtns[1].click(); /* 第一个 cue 的试听 */
+    ok('audition routed to AUDIO.play', window.__plays && window.__plays.indexOf('click') >= 0);
+    var muteSw = sndPage.querySelector('.tcxp-sw');
+    muteSw.click();
+    ok('muted toggle', last().muted === true);
+
+    /* --- 数据页：导入导出按钮存在 / 恢复默认二次确认 --- */
+    TC.CFGP.open(3);
+    var dPage = document.querySelectorAll('.tcxp-page')[3];
+    var dTxt = dPage.textContent;
+    ok('export btn exists', dTxt.indexOf('导出配置') >= 0);
+    ok('import btn exists', dTxt.indexOf('导入配置') >= 0);
+    ok('clear state btn exists', dTxt.indexOf('清除进度存档') >= 0);
+    ok('json file input exists', !!document.querySelector('input[type="file"][accept="application/json,.json"]'));
+    var rBtns = [].filter.call(dPage.querySelectorAll('button'), function (b) { return b.textContent.indexOf('恢复默认') >= 0; });
+    rBtns[0].click();
+    var cf = document.getElementById('tcxp-confirm');
+    ok('confirm shown', cf.classList.contains('tcxp-show'));
+    var cfBtns = cf.querySelectorAll('button');
+    cfBtns[cfBtns.length - 1].click(); /* 确认恢复 */
+    var d = last();
+    ok('restore defaults applied', d.targetFloors === 40 && d.roomColors.length === 4 && d.carryVelocity === false && d.muted === false && Math.abs(d.bgmVolume - 0.35) < 1e-9);
+    ok('confirm hidden after ok', !cf.classList.contains('tcxp-show'));
+
+    /* --- 关闭丢弃 work --- */
+    TC.CFGP.close();
+    ok('close', !TC.CFGP.isOpen());
+    var sn = window.__snaps.length;
+    fire(pp, '20'); /* 面板已关，不应再触发 */
+    ok('no commit after close', window.__snaps.length === sn);
+
+    /* --- open(tab 字符串) / toggle --- */
+    TC.CFGP.open('sound');
+    ok('open by name shows tab1', document.querySelectorAll('.tcxp-page')[1].classList.contains('tcxp-on'));
+    TC.CFGP.toggle();
+    ok('toggle closes', !TC.CFGP.isOpen());
+    TC.CFGP.toggle();
+    ok('toggle reopens', TC.CFGP.isOpen());
+  } catch (e) {
+    R.push('ERR:' + (e && e.message ? e.message : String(e)));
+  }
+
+  var pre = document.createElement('pre');
+  pre.id = 'results';
+  pre.textContent = 'CFGP-TEST-BEGIN\n' + R.join('\n') + '\nCFGP-TEST-END';
+  document.body.appendChild(pre);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>CFGP 截图壳（390px iframe 内真实布局）</title>
+<style>
+  html,body{margin:0;padding:0;background:#888;}
+  #frame{border:0;display:block;margin:0 auto;}
+  #dbg{position:fixed;top:2px;left:2px;z-index:99;background:#fff;color:#c00;font:12px monospace;padding:2px 6px;margin:0;}
+</style>
+</head>
+<body>
+<iframe id="frame" width="390" height="844"></iframe>
+<pre id="dbg">measuring...</pre>
+<script>
+  var q = new URLSearchParams(location.search);
+  var tab = q.get('tab') || '0';
+  var f = document.getElementById('frame');
+  f.src = 'config-preview.html?tab=' + tab + '&snap=1&dbg=1';
+  f.onload = function () {
+    setTimeout(function () {
+      try {
+        var d = f.contentDocument;
+        var inner = d.defaultView.innerWidth;
+        var drawer = d.querySelector('.tcxp-drawer');
+        var body = d.querySelector('.tcxp-body');
+        var overflows = [].filter.call(d.querySelectorAll('.tcxp-page.tcxp-on, .tcxp-page.tcxp-on *'), function (n) {
+          var r = n.getBoundingClientRect();
+          return r.right > inner + 0.5 || r.left < -0.5;
+        }).map(function (n) { return String(n.className).slice(0, 30); });
+        document.getElementById('dbg').textContent =
+          'DBG390 inner=' + inner +
+          ' drawer=' + Math.round(drawer.getBoundingClientRect().width) +
+          ' bodyScroll=' + body.scrollWidth + '/' + body.clientWidth +
+          ' overflowEls=' + (overflows.length ? overflows.join('|') : 'none');
+      } catch (e) {
+        document.getElementById('dbg').textContent = 'DBG390 ERR ' + e.message;
+      }
+    }, 400);
+  };
+</script>
+</body>
+</html>
