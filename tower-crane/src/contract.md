@@ -15,11 +15,12 @@
 - **判定**（offset = 落点块中心x − 楼顶块中心x，W=块宽）：
   - |o| ≤ 9%W → **perfect**：块 x 吸附到楼顶块中心，连击 combo+1
   - |o| ≤ 28%W → **great**：原地落
-  - |o| ≤ 55%W → **good**：原地落（肉眼半悬空，惊险感）
-  - |o| > 55%W → **miss**：块翻转坠落出屏，损 1 命
+  - |o| ≤ 50%W → **good**：原地落（肉眼半悬空，惊险感；>50% 落地的块自身重心出界会立刻翻倒，故默认 50%）
+  - |o| > 50%W → **miss**：块翻转坠落出屏，损 1 命
   - 首层（地面基座）同样判定，基座中心=世界 x=0（锚点正下）
-- **计分**：perfect +60 + (combo−1)×15；great +25；good +5；每次成功落块额外 +10 基础分；每 10 层里程碑 +100 分且 +1 命（上限 cfg.maxLives=5）
-- **难度曲线**：每 +1 层，T −24ms（下限 1400）、A +1.1px（上限 165），cfg 可调（曲线已用模拟器平衡：好手±50ms 可上百层、普通 ±90ms 约 56 层过 40 层线、手残 ±130ms 卡线）
+- **重心物理**（cfg.topple，默认开）：每个层间接口（块 j 与块 j+1 的接触支撑面=两块重叠区间），上方整段的重心必须落在支撑面内；失稳从最靠顶接口起整截翻倒坠落（碎块翻转坠屏 + 损 1 命 + 掉 N 层），余塔复检直至稳定。失衡度 usage=重心距支撑面中心/半宽 的最大值：>0.8 时预警「重心不稳」，塔顶按 usage 摇摆 ≤cfg.swayMax px（纯视觉，落点判定用静态 x）
+- **计分**：perfect +60 + (combo−1)×15；great +25；good +5；每次成功落块额外 +10 基础分；每 8 层里程碑 +100 分且 +1 命（上限 cfg.maxLives=6）
+- **难度曲线**：每 +1 层，T −17ms（下限 1500）、A +0.9px（上限 155），cfg 可调（曲线已用模拟器平衡，模拟器玩家模型含回中偏置 0.3：好手±30ms 中位 110 层、认真±50ms 中位 56 层全过、普通±90ms 中位 41 层搏线、手残±130ms 中位 28 层）
 - **目标/胜负**：叠到 cfg.targetFloors（默认 40）→ 达标庆祝弹窗（可「继续无尽」或「重新开始」）；命数 0 → 游戏结束弹窗（分数/层数/最佳）
 - **镜头**：楼顶（堆叠顶面）始终锚在 worldH×0.66 处，落块成功后镜头平滑下移一个块高（lerp 0.12/帧）；背景城市视差 0.4×、云 0.15×+缓慢自漂
 - **托管 demo**：cfg.demo 或 URL ?demo=1 → AI 在 |块x−楼顶x|<perfect 判定带内自动松钩（测试与演示两用）；菜单里也有「托管」开关
@@ -112,13 +113,13 @@ TC.LOGIC.simulate(cfg,skillErr,ndrops,seed) -> {floors,reached,score,perfects,mi
 
 ### 配置 schema（TC.core.defaultCfg，锁字段名）
 ```js
-{ targetFloors:40, startLives:3, maxLives:5,
+{ targetFloors:40, startLives:4, maxLives:6,
   blockW:120, blockH:76, cableLen:150,
-  swingAmp:110, swingPeriod:2600, ampPerFloor:1.1, ampMax:165, periodPerFloor:-24, periodMin:1400,
+  swingAmp:110, swingPeriod:2600, ampPerFloor:0.9, ampMax:155, periodPerFloor:-17, periodMin:1500,
   gravity:2400, carryVelocity:false,
-  perfectPct:0.09, greatPct:0.28, goodPct:0.55,
+  perfectPct:0.09, greatPct:0.28, goodPct:0.5, topple:true, swayMax:7,
   scoreFloor:10, scoreGreat:25, scorePerfect:60, comboStep:15,
-  milestoneEvery:10, milestoneBonus:100, milestoneLife:1,
+  milestoneEvery:8, milestoneBonus:100, milestoneLife:1,
   camLerp:0.12, dropSpawnDelay:350,
   demo:false, muted:false, bgmVolume:0.35, sfxVolume:0.9,
   roomColors:[{body,dark,light}×4],   // 数量可 3~6，面板可改色/增删

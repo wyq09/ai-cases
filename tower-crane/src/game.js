@@ -31,6 +31,8 @@ TC.GAME = (() => {
     rig: Q.rig || null,     // 'perfect' | 'miss' 强制下一次
     stats: { perfects: 0, greats: 0, goods: 0, misses: 0 },
     pendingOver: false,
+    usage: 0, warned: false, noRespawn: false,
+    debris: [],
     targetOv: Q.target ? +Q.target : null,
     livesOv: Q.lives ? +Q.lives : null,
   };
@@ -204,6 +206,7 @@ TC.GAME = (() => {
     S.target = S.targetOv || (run && run.target) || cfg.targetFloors;
     S.stats = { perfects: 0, greats: 0, goods: 0, misses: 0 };
     S.pendingOver = false;
+    S.debris = []; S.usage = 0; S.warned = false; S.noRespawn = false;
     S.rig = Q.rig || null;
     S.mode = 'play';
     S.phase = 'swing'; S.phaseT = 0; S.hanging = true;
@@ -282,6 +285,39 @@ TC.GAME = (() => {
     AUm('play', 'release');
   }
 
+  /* ---------- 重心倒塌 ---------- */
+  function topplingFX(st) {
+    const dir = Math.sign(
+      st.remain.length ? S.tower[S.tower.length - 1].x - S.tower[st.remain.length - 1].x : 1
+    ) || 1;
+    const now = performance.now();
+    const n0 = S.tower.length;
+    for (let i = st.remain.length; i < n0; i++) {
+      const b = S.tower[i];
+      S.debris.push({
+        x: cx + b.x, y: cam.screen - (i + 0.5) * cfg.blockH,
+        vx: dir * (60 + Math.random() * 140), vy: -(30 + Math.random() * 90),
+        rot: 0, rotV: dir * (1.6 + Math.random() * 3), c: b.c,
+      });
+    }
+    const lost = n0 - st.remain.length;
+    S.tower.length = st.remain.length;
+    S.floors = S.tower.length;
+    S.combo = 0;
+    S.lives--;
+    FXm('shake', 14);
+    FXm('dust', cx, cam.screen - S.floors * cfg.blockH, 14, '#cfc8b8');
+    FXm('bigText', '楼塌了一截！', { sub: `掉落 ${lost} 层 · 剩 ${Math.max(0, S.lives)} 命`, color: '#e2574c' });
+    AUm('play', 'miss', { pitch: 0.55 });
+    AUm('duck', 900);
+    S.warned = false;
+    if (S.endlessPending && S.floors < S.target) S.endlessPending = false;
+    if (S.lives <= 0) {
+      S.noRespawn = true;
+      setTimeout(() => { if (S.mode === 'play') gameOver(); }, 1100);
+    }
+  }
+
   function resolveLanding() {
     const d = S.drop;
     d.y = stackTopScreen() - cfg.blockH / 2;
@@ -323,15 +359,29 @@ TC.GAME = (() => {
       AUm('play', 'good');
     }
     S.maxCombo = Math.max(S.maxCombo || 1, S.combo);
-    if (!S.endless && S.floors % cfg.milestoneEvery === 0) {
-      S.score += cfg.milestoneBonus;
-      S.lives = Math.min(S.lives + cfg.milestoneLife, cfg.maxLives);
-      FXm('bigText', `第 ${S.floors} 层！`, { sub: `+${cfg.milestoneBonus} 分${cfg.milestoneLife ? ' · +1 命' : ''}`, color: '#7cdcb4' });
-      AUm('play', 'milestone');
+    // 重心物理：任一接口上方重心越出支撑面 → 上面整截翻倒坠落
+    let toppled = false;
+    if (cfg.topple) {
+      const st = LOGIC.stability(cfg, S.tower.map(b => b.x));
+      S.usage = st.usage;
+      if (!st.stable) { topplingFX(st); toppled = true; }
+    }
+    if (!toppled) {
+      if (S.usage > 0.8 && !S.warned) {
+        S.warned = true;
+        FXm('bigText', '重心不稳…', { sub: '再偏就要塌了', color: '#f2b53d' });
+      }
+      if (S.usage < 0.6) S.warned = false;
+      if (!S.endless && S.floors % cfg.milestoneEvery === 0) {
+        S.score += cfg.milestoneBonus;
+        S.lives = Math.min(S.lives + cfg.milestoneLife, cfg.maxLives);
+        FXm('bigText', `第 ${S.floors} 层！`, { sub: `+${cfg.milestoneBonus} 分${cfg.milestoneLife ? ' · +1 命' : ''}`, color: '#7cdcb4' });
+        AUm('play', 'milestone');
+      }
     }
     S.phase = 'settle'; S.phaseT = 0;
     updateHUD(); saveRun();
-    if (!S.endless && S.floors >= S.target) {
+    if (!toppled && !S.endless && S.floors >= S.target) {
       S.endlessPending = true;
       setTimeout(() => { if (S.mode === 'play') winReached(); }, 800);
     }
@@ -340,6 +390,15 @@ TC.GAME = (() => {
   /* ---------- 步进 ---------- */
   function step(dt) {
     S.phaseT += dt;
+    // 坠落碎块（全模式都更新，楼塌演出在 game over 后继续落完）
+    for (let i = S.debris.length - 1; i >= 0; i--) {
+      const db = S.debris[i];
+      db.vy += cfg.gravity * dt / 1000;
+      db.x += db.vx * dt / 1000;
+      db.y += db.vy * dt / 1000;
+      db.rot += db.rotV * dt / 1000;
+      if (db.y - cfg.blockH > vh + 160) S.debris.splice(i, 1);
+    }
     // 云漂移
     for (const c of clouds) {
       c.x += c.sp * dt / 1000;
@@ -372,13 +431,14 @@ TC.GAME = (() => {
       }
     }
     // settle → 回摆
-    if (S.phase === 'settle' && S.phaseT >= cfg.dropSpawnDelay && !S.endlessPending) {
+    if (S.phase === 'settle' && S.phaseT >= cfg.dropSpawnDelay && !S.endlessPending && !S.noRespawn) {
       S.phase = 'swing'; S.phaseT = 0; S.hanging = true; S.drop = null;
     }
-    // 托管 AI
+    // 托管 AI（带 0.3 回中习惯，防随机游走把塔摆到振幅边缘够不着）
     if (cfg.demo && S.phase === 'swing' && S.phaseT > 300) {
       const sw = LOGIC.swingX(cfg, S.floors, S.swingT);
-      if (Math.abs(sw.x - topXRel()) <= cfg.perfectPct * cfg.blockW * 0.95) release();
+      const aim = topXRel() * 0.7;
+      if (Math.abs(sw.x - aim) <= cfg.perfectPct * cfg.blockW * 0.95) release();
     }
     FXm('update', dt / 1000);
   }
@@ -451,14 +511,23 @@ TC.GAME = (() => {
       ctx.closePath(); ctx.fill();
     }
     ctx.restore();
-    // 5 塔块
+    // 5 塔块（重心失衡时整塔绕基座小幅摇摆，顶部摆幅≈swayMax px）
     const now = performance.now();
+    const swayPx = cfg.topple ? Math.min(1, S.usage) * (cfg.swayMax || 0) : 0;
+    const swayA = S.floors ? Math.sin(now * 0.0028) * swayPx / (S.floors * cfg.blockH) : 0;
+    const cosA = Math.cos(swayA), sinA = Math.sin(swayA);
     for (let i = 0; i < S.tower.length; i++) {
       const b = S.tower[i];
-      const bcy = cam.screen - (i + 0.5) * cfg.blockH;
+      const rx = b.x, ry = -(i + 0.5) * cfg.blockH;
+      const bx = cx + rx * cosA - ry * sinA;
+      const bcy = cam.screen + rx * sinA + ry * cosA;
       if (bcy < -cfg.blockH * 2 || bcy > vh + cfg.blockH * 2) continue;
       const sq = b.born ? (now - b.born) / 190 : 2;
-      drawBlockSprite(roomSprite(b.c), cx + b.x, bcy, cfg.blockW, cfg.blockH, 0, sq);
+      drawBlockSprite(roomSprite(b.c), bx, bcy, cfg.blockW, cfg.blockH, swayA, sq);
+    }
+    // 5b 坠落碎块
+    for (const db of S.debris) {
+      drawBlockSprite(roomSprite(db.c), db.x, db.y, cfg.blockW, cfg.blockH, db.rot);
     }
     // 6 下落/坠塔块
     if (S.drop && (S.phase === 'fall' || S.phase === 'miss')) {
@@ -599,10 +668,14 @@ TC.GAME = (() => {
     get phase() { return S.phase; },
     get busy() { return S.mode === 'play' && (S.phase === 'fall' || S.phase === 'miss'); },
     drop: () => release(),
-    setFloors(n) {
+    setFloors(n, xs) {
+      const arr = Array.isArray(xs) && xs.length ? xs : null;
+      const count = arr ? arr.length : n;
       S.tower = [];
-      for (let i = 0; i < n; i++) S.tower.push({ x: 0, c: i, born: 0 });
-      S.floors = n; cam.screen = camTarget(); updateHUD();
+      for (let i = 0; i < count; i++) S.tower.push({ x: arr ? arr[i] : 0, c: i, born: 0 });
+      S.floors = count;
+      S.usage = cfg.topple && count >= 2 ? LOGIC.stability(cfg, S.tower.map(b => b.x)).usage : 0;
+      cam.screen = camTarget(); updateHUD();
     },
     rig(g) { S.rig = g; },
     demo(on) { cfg.demo = !!on; },

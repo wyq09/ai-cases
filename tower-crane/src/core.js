@@ -25,14 +25,14 @@ TC.core = (() => {
 
   function defaultCfg() {
     return {
-      targetFloors: 40, startLives: 3, maxLives: 5,
+      targetFloors: 40, startLives: 4, maxLives: 6,
       blockW: 120, blockH: 76, cableLen: 150,
-      swingAmp: 110, swingPeriod: 2600, ampPerFloor: 1.1, ampMax: 165,
-      periodPerFloor: -24, periodMin: 1400,
+      swingAmp: 110, swingPeriod: 2600, ampPerFloor: 0.9, ampMax: 155,
+      periodPerFloor: -17, periodMin: 1500,
       gravity: 2400, carryVelocity: false,
-      perfectPct: 0.09, greatPct: 0.28, goodPct: 0.55,
+      perfectPct: 0.09, greatPct: 0.28, goodPct: 0.5, topple: true, swayMax: 7,
       scoreFloor: 10, scoreGreat: 25, scorePerfect: 60, comboStep: 15,
-      milestoneEvery: 10, milestoneBonus: 100, milestoneLife: 1,
+      milestoneEvery: 8, milestoneBonus: 100, milestoneLife: 1,
       camLerp: 0.12, dropSpawnDelay: 350,
       demo: false, muted: false, bgmVolume: 0.35, sfxVolume: 0.9,
       roomColors: defaultRoomColors(),

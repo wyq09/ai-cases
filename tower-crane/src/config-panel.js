@@ -24,14 +24,14 @@
 
   function BUILTIN_DEFAULTS() {
     return {
-      targetFloors: 40, startLives: 3, maxLives: 5,
+      targetFloors: 40, startLives: 4, maxLives: 6,
       blockW: 120, blockH: 76, cableLen: 150,
-      swingAmp: 110, swingPeriod: 2600, ampPerFloor: 1.1, ampMax: 165,
-      periodPerFloor: -24, periodMin: 1400,
+      swingAmp: 110, swingPeriod: 2600, ampPerFloor: 0.9, ampMax: 155,
+      periodPerFloor: -17, periodMin: 1500,
       gravity: 2400, carryVelocity: false,
-      perfectPct: 0.09, greatPct: 0.28, goodPct: 0.55,
+      perfectPct: 0.09, greatPct: 0.28, goodPct: 0.5, topple: true, swayMax: 7,
       scoreFloor: 10, scoreGreat: 25, scorePerfect: 60, comboStep: 15,
-      milestoneEvery: 10, milestoneBonus: 100, milestoneLife: 1,
+      milestoneEvery: 8, milestoneBonus: 100, milestoneLife: 1,
       camLerp: 0.12, dropSpawnDelay: 350,
       demo: false, muted: false, bgmVolume: 0.35, sfxVolume: 0.9,
       roomColors: [
@@ -506,7 +506,12 @@
     p.appendChild(slider('良好得分', 'scoreGreat', { min: 0, max: 200, step: 5, unit: '分' }));
     p.appendChild(slider('落块基础分', 'scoreFloor', { min: 0, max: 200, step: 5, unit: '分' }));
     p.appendChild(slider('连击加成', 'comboStep', { min: 0, max: 200, step: 5, unit: '分' }));
-    p.appendChild(hint('判定带按块宽的百分比计算，建议保持 完美 < 良好 < 及格。'));
+    p.appendChild(hint('判定带按块宽的百分比计算，建议保持 完美 < 良好 < 及格（及格建议 ≤50%，落地的块自身才站得稳）。'));
+
+    p.appendChild(sec('重心物理'));
+    p.appendChild(toggleRow('重心倒塌', 'topple', '重心越出支撑面时，上面整截翻倒坠落并损一命'));
+    p.appendChild(slider('塔顶摇摆', 'swayMax', { min: 0, max: 20, step: 1, unit: 'px' }));
+    p.appendChild(hint('塔身失衡时顶部会摇摆提示险情；设为 0 关闭摇摆动画（倒塌判定不受影响）。'));
 
     p.appendChild(sec('其他'));
     p.appendChild(toggleRow('AI 托管', 'demo', '自动在完美带内松钩（演示用）'));
