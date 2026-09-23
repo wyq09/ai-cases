@@ -171,6 +171,7 @@
     var attack = o.attack == null ? 0.004 : o.attack;
     var dur = Math.max(o.dur, attack + 0.012);
     var t = o.t;
+    if (!isFinite(t) || !isFinite(o.freq) || !isFinite(o.vol)) return null; // 坏参数防御：不允许污染音频线程
     var osc = ctx.createOscillator();
     var g = ctx.createGain();
     var f = null, tail;
@@ -315,7 +316,7 @@
 
   var BPM = 100, BEAT = 60 / BPM, LOOP_BEATS = 16, LOOP_LEN = LOOP_BEATS * BEAT; /* 9.6s */
   var NOTE = {
-    F2: 87.31, G2: 98.00, A2: 110.00, C3: 130.81, F3: 174.61, G3: 196.00,
+    F2: 87.31, G2: 98.00, A2: 110.00, C3: 130.81, E3: 164.81, F3: 174.61, G3: 196.00,
     A3: 220.00, C4: 261.63, D4: 293.66, E4: 329.63, G4: 392.00, A4: 440.00,
     C5: 523.25, D5: 587.33, E5: 659.26
   };
