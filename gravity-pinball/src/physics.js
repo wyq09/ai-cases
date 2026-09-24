@@ -35,7 +35,8 @@
     var b = {
       id: ++this._bid, x: x, y: y, vx: vx || 0, vy: vy || 0,
       r: r || 11, dead: false, bomb: !!(extra && extra.bomb),
-      bombDone: false, settleT: 0, speed: 0, spin: 0
+      bombDone: false, settleT: 0, speed: 0, spin: 0,
+      guide: (extra && extra.guide) || 0   /* 出膛制导：>0 期间免重力，沿直线跟踪瞄准线 */
     };
     this.balls.push(b);
     return b;
@@ -72,13 +73,19 @@
     for (i = 0; i < bs.length; i++) {
       b = bs[i];
       if (b.dead) continue;
-      if (at && b.vy < 0 && b.y < at.yMax && Math.abs(b.x - at.x) < at.halfW) {
-        var ddx = at.x - b.x, ddy = at.y - b.y;
-        var dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
-        b.vx += (ddx / dd) * at.k * h;
-        b.vy += (ddy / dd) * at.k * h;
+      if (b.guide > 0) {
+        /* 出膛制导：沿瞄准线直线飞行，免重力/免杯口引力，首次碰撞交还正常物理 */
+        b.guide -= h;
+        if (b.guide < 0) b.guide = 0;
+      } else {
+        if (at && b.vy < 0 && b.y < at.yMax && Math.abs(b.x - at.x) < at.halfW) {
+          var ddx = at.x - b.x, ddy = at.y - b.y;
+          var dd = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
+          b.vx += (ddx / dd) * at.k * h;
+          b.vy += (ddy / dd) * at.k * h;
+        }
+        b.vy += g * h;
       }
-      b.vy += g * h;
       if (b.vx > MAX_SPEED) b.vx = MAX_SPEED; else if (b.vx < -MAX_SPEED) b.vx = -MAX_SPEED;
       if (b.vy > MAX_SPEED) b.vy = MAX_SPEED; else if (b.vy < -MAX_SPEED) b.vy = -MAX_SPEED;
       b.x += b.vx * h;
@@ -142,6 +149,7 @@
       b.y += ny * (b.r - d);
       var vn = b.vx * nx + b.vy * ny;
       if (vn < 0) {
+        b.guide = 0;
         var rest = s.rest != null ? s.rest : this.restWall;
         var fric = s.fric != null ? s.fric : 1;
         var tx = -ny, ty = nx;
@@ -176,6 +184,7 @@
     b.y += ny * (rr - d);
     var vn = b.vx * nx + b.vy * ny;
     if (vn < 0) {
+      b.guide = 0;
       var rest = this.restBumper;
       b.vx -= (1 + rest) * vn * nx;
       b.vy -= (1 + rest) * vn * ny;
@@ -228,6 +237,7 @@
     b.y += ny * pen;
     var vn = b.vx * nx + b.vy * ny;
     if (vn < 0) {
+      b.guide = 0;
       var rest = this.restBumper;
       b.vx -= (1 + rest) * vn * nx;
       b.vy -= (1 + rest) * vn * ny;
