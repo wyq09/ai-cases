@@ -133,6 +133,7 @@
   World.prototype._collideSegs = function (b) {
     for (var i = 0; i < this.segs.length; i++) {
       var s = this.segs[i];
+      if (s.rim && b.guide > 0) continue;   /* 杯口碗沿：制导中的出膛球直接穿过，防浅角发射打沿弹跳 */
       var abx = s.bx - s.ax, aby = s.by - s.ay;
       var len2 = abx * abx + aby * aby || 1;
       var t = ((b.x - s.ax) * abx + (b.y - s.ay) * aby) / len2;
@@ -259,6 +260,7 @@
   };
 
   World.prototype._collideBalls = function (a, b) {
+    if (a.guide > 0 || b.guide > 0) return;   /* 制导中的球在轨直飞：与任何球互不干扰，防发射串被回弹球拍偏乱跳 */
     var dx = b.x - a.x, dy = b.y - a.y;
     var rr = a.r + b.r;
     var d2 = dx * dx + dy * dy;

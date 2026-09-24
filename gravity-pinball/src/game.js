@@ -30,7 +30,7 @@
   var st = null;                /* 进度存档引用 */
   var cfg = CFG.all();
   var state = 'boot';           /* play | clear | paused */
-  var volleyQueue = 0, volleyAngle = Math.PI / 2, volleySpd = 900, volleyT = 0;
+  var volleyQueue = 0, volleyAngle = Math.PI / 2, volleySpd = 900, volleyT = 0, volleyGuide = 0.26;
   var aim = null;               /* {id, sx, sy, cx, cy} 场地坐标 */
   var slowmoT = 0, bombArmed = false;
   var shakeMag = 0;
@@ -46,6 +46,7 @@
   var autoCollectT = 0, saveT = 0, fpsN = 0, fpsT = 0, fpsV = 0;
   var roundArmed = false;       /* 已发射过一轮，等待回收完 → 升格 */
   var risePend = 0;             /* 回合结束停顿倒计时 */
+  var allDownT = 0;             /* 全部落底确认计时 */
   var riseOff = 0, riseAnimT = 0;
   var RISE_STEP = 38;           /* 每回合障碍物上升一格 */
   var pointer = null;
@@ -78,17 +79,17 @@
     /* V 漏斗斜壁 */
     segs.push({ ax: 32, ay: G.cornerY, bx: G.cup.x - G.cup.r, by: G.cup.y, rest: cfg.restWall });
     segs.push({ ax: G.cup.x + G.cup.r, ay: G.cup.y, bx: AW - 32, by: G.cornerY, rest: cfg.restWall });
-    /* 杯弧（底部开口掉球） */
+    /* 杯弧（底部开口掉球；rim 标记＝碗沿，制导中的出膛球可穿过，防浅角发射打沿弹跳） */
     var i, a0, a1, N = 7;
     for (i = 0; i < N; i++) {
       a0 = Math.PI - (Math.PI - cupB) * (i / N);
       a1 = Math.PI - (Math.PI - cupB) * ((i + 1) / N);
-      segs.push(arcSeg(G.cup, a0, a1));
+      segs.push(arcSeg(G.cup, a0, a1, true));
     }
     for (i = 0; i < N; i++) {
       a0 = cupA * (1 - i / N);
       a1 = cupA * (1 - (i + 1) / N);
-      segs.push(arcSeg(G.cup, a0, a1));
+      segs.push(arcSeg(G.cup, a0, a1, true));
     }
     /* 侧墙 */
     segs.push({ ax: 14, ay: 78, bx: 14, by: G.floorEndY, rest: cfg.restWall });
@@ -104,11 +105,11 @@
     }
     return segs;
   }
-  function arcSeg(c, a0, a1) {
+  function arcSeg(c, a0, a1, rim) {
     return {
       ax: c.x + Math.cos(a0) * c.r, ay: c.y + Math.sin(a0) * c.r,
       bx: c.x + Math.cos(a1) * c.r, by: c.y + Math.sin(a1) * c.r,
-      rest: cfg.restWall
+      rest: cfg.restWall, rim: !!rim
     };
   }
   function qPoint(x0, y0, cx, cy, x1, y1, t) {
@@ -276,6 +277,8 @@
     volleyQueue = st.balls;
     volleyAngle = p.angle;
     volleySpd = p.speed;
+    /* 直线制导到指尖：球沿羽箭线飞满瞄准距离才交还物理，指哪飞哪 */
+    volleyGuide = GP.clamp(p.dist / p.speed, 0.1, 0.6);
     volleyT = cfg.dropInterval;                        /* 首球立即出 */
     roundArmed = true;
     snd('add');
@@ -285,9 +288,10 @@
   function spawnLaunchBall() {
     if (st.balls <= 0) { volleyQueue = 0; return; }
     /* 发射不消耗库存：球飞回即归位，HUD 球数全程恒定（对齐原版） */
-    var a = volleyAngle + (Math.random() - 0.5) * 0.05;
-    var s = volleySpd * (0.92 + Math.random() * 0.16);
-    var b = world.addBall(195, 156, Math.cos(a) * s, Math.sin(a) * s, cfg.ballR, { bomb: bombArmed, guide: 0.26 });
+    /* 整串球同角同速零散布，严格沿瞄准线飞行，首次碰撞才交还正常物理 */
+    var b = world.addBall(195, 156,
+      Math.cos(volleyAngle) * volleySpd, Math.sin(volleyAngle) * volleySpd,
+      cfg.ballR, { bomb: bombArmed, guide: volleyGuide });
     b.born = world.time;
     b.spawnT = 0;
     if (bombArmed) {
@@ -309,20 +313,20 @@
     }
   }
 
-  function pushFlyer(b, n) {
-    flyers.push({ x: b.x, y: b.y, t: 0, delay: Math.min(n * 0.05, 0.5) });
+  function pushFlyer(b, n, instant) {
+    flyers.push({ x: b.x, y: b.y, t: 0, delay: instant ? 0 : Math.min(n * 0.05, 0.5) });
     world.removeBall(b);
   }
 
-  /* 收球按钮：立刻收回场上全部球 */
-  function recallAll() {
+  /* 收球按钮：立刻收回场上全部球（手动=小幅错峰扫回；自动全落底=instant 齐飞） */
+  function recallAll(instant) {
     var n = 0;
     var bs = world.balls;
     for (var i = bs.length - 1; i >= 0; i--) {
       var b = bs[i];
       if (b.bomb || b.bombDone) continue;
       n++;
-      pushFlyer(b, n);
+      pushFlyer(b, n, instant);
     }
     if (n > 0) snd('collect');
     return n;
@@ -411,7 +415,7 @@
     }
     for (var j = world.balls.length - 1; j >= 0; j--) {
       var o = world.balls[j];
-      if (o === b || o.dead) continue;
+      if (o === b || o.dead || o.guide > 0) continue;    /* 制导中的球不被爆炸气流拍偏 */
       var ox = o.x - b.x, oy = o.y - b.y;
       var d = Math.sqrt(ox * ox + oy * oy) || 1;
       if (d < R) {
@@ -501,7 +505,7 @@
     addBtnMode = 'buy';
     flyers.length = 0;
     world.balls.length = 0;
-    roundArmed = false; risePend = 0; riseOff = 0; riseAnimT = 0;
+    roundArmed = false; risePend = 0; riseOff = 0; riseAnimT = 0; allDownT = 0;
     genLevel(1);
     $('banner').classList.remove('show');
     state = 'play';
@@ -1136,6 +1140,7 @@
     var bs = world.balls;
     for (var i = 0; i < bs.length; i++) {
       var b = bs[i];
+      if (b.guide > 0) continue;                         /* 制导中的球在轨直飞，不被冲击波拍偏 */
       var dx = b.x - x, dy = b.y - y;
       var d = Math.sqrt(dx * dx + dy * dy);
       if (d < R) {
@@ -1184,8 +1189,21 @@
       }
       if (volleyQueue > 0 && st.balls <= 0) volleyQueue = 0;
     }
-    /* 自动回收：静止/滞场过久的球飞回顶部 */
+    /* 自动回收：静止/滞场过久的球飞回顶部（卡在障碍物上的兜底） */
     autoRecall();
+    /* 全部落底：场上每颗球都落到地板且减速 → 短确认后一次性全部收回（齐飞零错峰） */
+    var bsD = world.balls;
+    if (volleyQueue <= 0 && bsD.length > 0 && (state === 'play' || state === 'clear')) {
+      var allDown = true;
+      for (var q2 = 0; q2 < bsD.length; q2++) {
+        var bD = bsD[q2];
+        if (bD.speed >= 50 || bD.y < G.floorEndY - 46) { allDown = false; break; }
+      }
+      allDownT = allDown ? allDownT + dt : 0;
+      if (allDownT >= 0.2) { allDownT = 0; recallAll(true); }
+    } else {
+      allDownT = 0;
+    }
     /* + 号拾取球：碰球 +2 球 */
     if (pickups.length) {
       var pbs = world.balls;
@@ -1284,7 +1302,7 @@
     if (!st.tutDone) {
       st.tutDone = true;
       setTimeout(function () { toast('按住拖动瞄准，松手发射球'); }, 1200);
-      setTimeout(function () { toast('球停下会自动收回顶部 · 点按可弹开小球'); }, 5600);
+      setTimeout(function () { toast('球全部落底会一次性自动收回 · 点按可弹开小球'); }, 5600);
       SAVE.save();
     }
     updateHud();
@@ -1662,14 +1680,16 @@
     dropOne: function () { dropOne(); },
     collect: function () { return recallAll(); },
     step: function (d) { stepGame(d); },
-    launch: function (angleDeg, speed, count) {
+    launch: function (angleDeg, speed, count, guide) {
       if (state !== 'play' && state !== 'clear') return;
       var n = Math.min(count == null ? st.balls : count, st.balls);
       if (n <= 0) return;
       volleyQueue = n;
       volleyAngle = (angleDeg == null ? 90 : angleDeg) * Math.PI / 180;
       volleySpd = speed || 1000;
+      volleyGuide = guide != null ? guide : GP.clamp(420 / volleySpd, 0.1, 0.6);
       volleyT = cfg.dropInterval;
+      roundArmed = true;
     },
     addBalls: function (n) { st.balls += n; hudDirty(); },
     useBomb: function () { onBombSlot(); },
