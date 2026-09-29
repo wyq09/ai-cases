@@ -1,0 +1,57 @@
+</style>
+</head>
+<body>
+<!-- Modal SVG blob clip-path (exact animal-island-ui path) + gooey filter (rare-ui flavour) -->
+<svg style="position:absolute;width:0;height:0" aria-hidden="true">
+    <defs>
+        <clipPath id="animal-modal-clip" clipPathUnits="objectBoundingBox">
+            <path d="M0.501,0.005 L0.501,0.005 L0.523,0.005 L0.549,0.006
+        C0.704,0.01,0.796,0.017,0.825,0.027
+        L0.827,0.028
+        C0.872,0.045,0.939,0.044,0.978,0.17
+        C1,0.254,1,0.365,0.99,0.505
+        L0.988,0.513
+        C0.979,0.558,0.971,0.598,0.965,0.633
+        C0.956,0.689,0.979,0.77,0.964,0.865
+        C0.953,0.928,0.921,0.966,0.869,0.979
+        C0.821,0.986,0.773,0.992,0.726,0.995
+        L0.712,0.996 L0.694,0.997
+        C0.648,1,0.586,1,0.507,1
+        L0.501,1 L0.464,1
+        C0.385,1,0.325,0.998,0.283,0.995
+        C0.234,0.992,0.184,0.987,0.133,0.979
+        C0.081,0.966,0.05,0.928,0.039,0.865
+        C0.023,0.77,0.047,0.689,0.037,0.633
+        C0.031,0.595,0.023,0.552,0.013,0.505
+        C-0.006,0.365,-0.002,0.254,0.024,0.17
+        C0.064,0.045,0.13,0.045,0.174,0.028
+        L0.175,0.028
+        C0.204,0.017,0.303,0.009,0.474,0.005
+        L0.501,0.005" />
+        </clipPath>
+        <filter id="gooey-filter">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9" result="goo" />
+            <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+        </filter>
+    </defs>
+</svg>
+<div id="root">
+    <!-- 静态首屏占位：React/Babel 就绪后被自动替换 -->
+    <div style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#f8f8f0;z-index:9999">
+        <span class="orb-fallback" style="width:72px;height:72px;border-radius:50%;display:block"></span>
+        <span style="font-family:Nunito,'Noto Sans SC',sans-serif;font-weight:900;font-size:20px;color:#794f27;letter-spacing:0.08em">公园雷达</span>
+        <span style="display:flex;gap:6px">
+            <i style="width:7px;height:7px;border-radius:50%;background:#f7cd67;animation:dot-bounce 0.9s ease-in-out infinite"></i>
+            <i style="width:7px;height:7px;border-radius:50%;background:#82d5bb;animation:dot-bounce 0.9s ease-in-out 0.15s infinite"></i>
+            <i style="width:7px;height:7px;border-radius:50%;background:#f8a6b2;animation:dot-bounce 0.9s ease-in-out 0.3s infinite"></i>
+        </span>
+    </div>
+</div>
+<div id="fx-layer"></div>
+<div class="toast-layer" id="toast-layer"></div>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel" data-presets="react">

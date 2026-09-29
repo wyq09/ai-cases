@@ -1,0 +1,100 @@
+/* ============ Keyframes ============ */
+@keyframes animal-zoom-in { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes animal-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ac-fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes card-enter { from { opacity: 0; transform: translateY(18px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes msg-in { from { opacity: 0; transform: translateY(14px) scale(0.94); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-18px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes toast-out { to { opacity: 0; transform: translateY(-12px) scale(0.94); } }
+@keyframes skeleton-shimmer { 0% { transform: translateX(-100%); } 60%, 100% { transform: translateX(100%); } }
+
+/* page transitions */
+@keyframes page-in-right { from { transform: translateX(100%); opacity: 0.6; } to { transform: translateX(0); opacity: 1; } }
+@keyframes page-out-right { from { transform: translateX(0); } to { transform: translateX(100%); } }
+@keyframes page-in-up { from { transform: translateY(6%) scale(0.98); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+@keyframes page-out-down { from { transform: translateY(0); opacity: 1; } to { transform: translateY(8%); opacity: 0; } }
+@media (min-width: 560px) {
+    @keyframes page-in-right { from { transform: translate(-50%, -50%) scale(0.94); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+    @keyframes page-out-right-d { from { transform: translate(-50%, -50%); opacity: 1; } to { transform: translate(-50%, -50%) scale(0.94); opacity: 0; } }
+}
+
+/* radar */
+@keyframes radar-spin { to { transform: rotate(360deg); } }
+@keyframes blip-pulse {
+    0%, 55% { box-shadow: 0 0 0 0 rgba(245, 195, 28, 0); opacity: 0.45; }
+    62% { box-shadow: 0 0 0 0 rgba(245, 195, 28, 0.8); opacity: 1; }
+    85% { box-shadow: 0 0 0 7px rgba(245, 195, 28, 0); opacity: 0.8; }
+    100% { box-shadow: 0 0 0 0 rgba(245, 195, 28, 0); opacity: 0.45; }
+}
+
+/* scene life */
+@keyframes sun-breathe { 0%, 100% { transform: scale(1); opacity: 0.95; } 50% { transform: scale(1.08); opacity: 1; } }
+@keyframes cloud-drift { from { transform: translateX(-40px); } to { transform: translateX(calc(100% + 380px)); } }
+@keyframes water-shimmer { 0%, 100% { transform: translateX(-6%) scaleX(0.92); opacity: 0.5; } 50% { transform: translateX(6%) scaleX(1.05); opacity: 0.9; } }
+@keyframes flower-sway { 0%, 100% { transform: translateX(0) rotate(-4deg); } 50% { transform: translateX(2px) rotate(5deg); } }
+@keyframes petal-fall {
+    0% { transform: translate(0, -12px) rotate(0deg); opacity: 0; }
+    12% { opacity: 1; }
+    100% { transform: translate(26px, 150px) rotate(240deg); opacity: 0; }
+}
+@keyframes star-twinkle { 0%, 100% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.15); } }
+@keyframes bird-fly {
+    0% { transform: translate(-20px, 8px) scaleX(1); opacity: 0; }
+    10% { opacity: 1; }
+    48% { transform: translate(140px, -12px) scaleX(1); }
+    52% { transform: translate(150px, -12px) scaleX(1); }
+    90% { opacity: 1; }
+    100% { transform: translate(320px, 6px) scaleX(1); opacity: 0; }
+}
+@keyframes boat-rock { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-3px) rotate(3.5deg); } }
+@keyframes reed-sway { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(6deg); } }
+@keyframes ferris-spin { to { transform: rotate(360deg); } }
+
+/* interactions */
+@keyframes chip-pop { 0% { transform: scale(0.86); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
+@keyframes heart-pop { 0% { transform: scale(0.4); } 45% { transform: scale(1.4); } 70% { transform: scale(0.92); } 100% { transform: scale(1); } }
+@keyframes bell-ring {
+    0%, 100% { transform: rotate(0); }
+    15% { transform: rotate(14deg); }
+    30% { transform: rotate(-12deg); }
+    45% { transform: rotate(8deg); }
+    60% { transform: rotate(-6deg); }
+    75% { transform: rotate(3deg); }
+}
+@keyframes halo-pulse {
+    0% { transform: scale(0.92); opacity: 0.9; }
+    70% { transform: scale(1.22); opacity: 0; }
+    100% { transform: scale(1.22); opacity: 0; }
+}
+@keyframes bar-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes dot-bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+@keyframes caret-blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+@keyframes status-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes send-ready { 0%, 100% { transform: rotate(0deg); } 8% { transform: rotate(-14deg) scale(1.08); } 16% { transform: rotate(0deg); } }
+@keyframes empty-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@keyframes badge-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(247, 205, 103, 0); }
+    50% { box-shadow: 0 0 14px 2px rgba(247, 205, 103, 0.55); }
+}
+@keyframes orb-breathe { 0%, 100% { transform: scale(1); filter: hue-rotate(0deg); } 50% { transform: scale(1.05); filter: hue-rotate(8deg); } }
+@keyframes leaf-wiggle { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
+@keyframes hint-bubble {
+    0% { transform: translateY(6px) scale(0.8); opacity: 0; }
+    12% { transform: translateY(0) scale(1); opacity: 1; }
+    88% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-4px) scale(0.9); opacity: 0; }
+}
+.orb-hint {
+    position: absolute;
+    bottom: calc(100% + 10px); right: -6px;
+    padding: 7px 13px;
+    background: var(--animal-bg-content);
+    border: 2px solid #e0d5ba;
+    border-radius: 14px 14px 4px 14px;
+    font-size: 12px; font-weight: 700; color: var(--animal-text-body);
+    box-shadow: var(--animal-shadow-base);
+    white-space: nowrap;
+    animation: hint-bubble 4.5s var(--animal-ease) 1.2s forwards;
+    opacity: 0;
+    pointer-events: none;
+}
