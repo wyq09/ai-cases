@@ -85,6 +85,59 @@ console.log('== 2. 真实 UI 填字：对/错/里程碑/自动选中 ==');
   ok(last === 'correct' || last === 'milestone', '音效已触发', String(last));
 }
 
+console.log('== 2.5 选中流转：同成语顺延 → 填完后交叉流转 ==');
+{
+  /* 测试内独立实现期望规则（与应用语义一致）：
+     当前词=粘滞词(若含该格且有空位)否则空位最多的未完成词；
+     同词内从填入位环找“其他三格”中的空位；本词无空则交叉流转到相邻未完成词首空 */
+  const expectSel = (key, sticky) => page.evaluate(({ key, sticky }) => {
+    const pz = window.__cy.puzzle(), fills = window.__cy.state.progress.fills;
+    /* 应用是“填完后”才决定流转，预测时把刚填的 key 视作已填 */
+    const wc = (wi) => { const w = pz.words[wi], a = []; for (let i = 0; i < 4; i++) a.push((w.r + (w.dir === 'V' ? i : 0)) + ',' + (w.c + (w.dir === 'H' ? i : 0))); return a; };
+    const empt = (wi) => wc(wi).filter(k => k !== key && !pz.cells[k].given && !fills[k]);
+    const wordsOf = (k) => pz.cells[k].words.map(x => x.wi);
+    let wi = null;
+    if (sticky != null && wordsOf(key).indexOf(sticky) >= 0 && empt(sticky).length) wi = sticky;
+    if (wi === null) wordsOf(key).forEach(w => { const n = empt(w).length; if (n > 0 && (wi === null || n > empt(wi).length)) wi = w; });
+    if (wi !== null) {
+      const ks = wc(wi), pos = ks.indexOf(key);
+      for (let d = 1; d < 4; d++) {
+        const k = ks[(pos + d) % 4];
+        if (!pz.cells[k].given && !fills[k]) return { key: k, completed: false };
+      }
+    }
+    const starts = wi !== null ? [wi] : wordsOf(key);
+    const seen = {};
+    for (const w0 of starts) for (const ck of wc(w0)) for (const wj of wordsOf(ck)) {
+      if (seen[wj]) continue; seen[wj] = 1;
+      const emp = empt(wj);
+      if (emp.length) return { key: emp[0], completed: true };
+    }
+    return { key: null, completed: true };
+  }, { key, sticky });
+
+  let inWordChecks = 0, jumpChecks = 0;
+  for (let guard = 0; guard < 30; guard++) {
+    const remaining = await page.evaluate(() => {
+      const pz = window.__cy.puzzle();
+      return Object.keys(pz.cells).filter(k => !pz.cells[k].given && !window.__cy.state.progress.fills[k]).length;
+    });
+    if (remaining <= 2) break; /* 留两格，避免提前触发过关弹窗 */
+    const t = await uiFillFirstEmpty();
+    await tapCell(t.k);
+    const sticky = await page.evaluate(() => window.__cy.selWord);
+    const exp = await expectSel(t.k, sticky);
+    await tapTile(t.idx);
+    await page.waitForTimeout(130);
+    const sel = await page.evaluate(() => { const el = document.querySelector('#grid .cell.sel'); return el ? el.dataset.key : null; });
+    if (!exp.key) continue;
+    if (exp.completed) { jumpChecks++; ok(sel === exp.key, '成语填完后流转到交叉成语的空位', `${t.k} → sel=${sel} 期望=${exp.key}`); }
+    else { inWordChecks++; ok(sel === exp.key, '同成语内顺延到下一空位', `${t.k} → sel=${sel} 期望=${exp.key}`); }
+  }
+  ok(inWordChecks >= 1, '发生过同成语顺延', inWordChecks + ' 次');
+  ok(jumpChecks >= 1, '发生过完成→交叉流转', jumpChecks + ' 次');
+}
+
 console.log('== 3. 整关通关 → 过关弹窗 → 下一关 ==');
 {
   for (let guard = 0; guard < 40; guard++) {

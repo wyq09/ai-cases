@@ -40,6 +40,7 @@
   /* ---------- 状态 ---------- */
   var state = loadState();
   var selKey = null;
+  var selWord = null; /* 当前作答的成语（选中流转的锚点） */
   var lastReport = null;
   var fallbackToasted = false;
 
@@ -99,6 +100,7 @@
     state.progress = { fills: {}, used: [], attempts: cfg.level.attempts };
     state.levelGains = 0;
     selKey = null;
+    selWord = null;
     saveState();
   }
   function gotoLevel(n) {
@@ -235,6 +237,66 @@
   }
 
   /* ---------- 玩法逻辑 ---------- */
+  function wordCells(wi) {
+    var w = state.puzzle.words[wi], ks = [];
+    for (var i = 0; i < w.w.length; i++) {
+      ks.push((w.r + (w.dir === 'V' ? i : 0)) + ',' + (w.c + (w.dir === 'H' ? i : 0)));
+    }
+    return ks;
+  }
+  function isEmptyKey(k) {
+    return !state.puzzle.cells[k].given && !state.progress.fills[k];
+  }
+  function wordEmpties(wi) {
+    return wordCells(wi).filter(isEmptyKey);
+  }
+  /* key 所属的“当前成语”：优先沿用上一个，否则取空位更多的那个未完成词 */
+  function pickWordFor(key) {
+    var pz = state.puzzle;
+    var words = pz.cells[key].words.map(function (x) { return x.wi; });
+    if (selWord != null && words.indexOf(selWord) >= 0 && wordEmpties(selWord).length) return selWord;
+    var best = null;
+    words.forEach(function (wj) {
+      var n = wordEmpties(wj).length;
+      if (n > 0 && (best === null || n > wordEmpties(best).length)) best = wj;
+    });
+    return best;
+  }
+  /* 填对 key 后的下一格：同成语顺延（回绕）→ 本成语完成后沿交叉流转到相邻成语 → 全局阅读序兜底 */
+  function nextKeyAfter(key) {
+    var pz = state.puzzle;
+    var wi = pickWordFor(key);
+    if (wi != null) {
+      var ks = wordCells(wi);
+      var pos = ks.indexOf(key);
+      for (var d = 1; d <= ks.length; d++) {
+        var k = ks[(pos + d) % ks.length];
+        if (isEmptyKey(k)) return { key: k, wi: wi };
+      }
+    }
+    var starts = wi != null ? [wi] : pz.cells[key].words.map(function (x) { return x.wi; });
+    var seen = {};
+    for (var s = 0; s < starts.length; s++) {
+      var cells0 = wordCells(starts[s]);
+      for (var c = 0; c < cells0.length; c++) {
+        var cws = pz.cells[cells0[c]].words.map(function (x) { return x.wi; });
+        for (var q = 0; q < cws.length; q++) {
+          var wj = cws[q];
+          if (seen[wj]) continue;
+          seen[wj] = 1;
+          var emp = wordEmpties(wj);
+          if (emp.length) return { key: emp[0], wi: wj };
+        }
+      }
+    }
+    var fk = firstEmptyKey();
+    return { key: fk, wi: fk ? pickWordFor(fk) : null };
+  }
+  function selectEmptyKey(k) {
+    if (!k) return;
+    selWord = pickWordFor(k);
+    selectKey(k);
+  }
   function firstEmptyKey() {
     var pz = state.puzzle, fills = state.progress.fills;
     var keys = Object.keys(pz.cells).filter(function (k) { return !pz.cells[k].given && !fills[k]; });
@@ -296,10 +358,13 @@
     var el = $('grid').querySelector('[data-key="' + key + '"]');
     if (el) el.classList.add('pop');
     wordDoneFlash(key);
-    /* 全部填完 → 过关 */
+    /* 全部填完 → 过关；否则光标顺延到当前成语的下一个空位 */
     var allDone = Object.keys(pz.cells).every(function (k) { return pz.cells[k].given || state.progress.fills[k]; });
     if (allDone) setTimeout(winLevel, 450);
-    else selectKey(firstEmptyKey());
+    else {
+      var nx = nextKeyAfter(key);
+      selectEmptyKey(nx.key);
+    }
   }
   function tapTile(idx) {
     var pz = state.puzzle;
@@ -362,9 +427,10 @@
   function restartLevel() {
     state.progress = { fills: {}, used: [], attempts: cfg.level.attempts };
     selKey = null;
+    selWord = null;
     saveState();
     render();
-    selectKey(firstEmptyKey());
+    selectEmptyKey(firstEmptyKey());
   }
   function showFail() {
     sfx('fail');
@@ -380,7 +446,7 @@
             saveState();
             closeModal();
             render();
-            selectKey(firstEmptyKey());
+            selectEmptyKey(firstEmptyKey());
           }
         },
         { label: '重新开始本关', cb: function () { restartLevel(); closeModal(); } },
@@ -576,6 +642,7 @@
       var cell = state.puzzle.cells[k];
       if (cell.given || state.progress.fills[k]) return;
       sfx('tap');
+      selWord = pickWordFor(k);
       selectKey(k);
     });
     $('rack').addEventListener('click', function (e) {
@@ -636,7 +703,7 @@
     ensurePuzzle(false);
     bind();
     render();
-    selectKey(firstEmptyKey());
+    selectEmptyKey(firstEmptyKey());
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', start);
@@ -647,6 +714,7 @@
   /* ---------- 调试钩子 ---------- */
   root.__cy = {
     get state() { return state; },
+    get selWord() { return selWord; },
     cfg: function () { return window.CY.config.get(); },
     fill: function (r, c, ch) {
       var k = r + ',' + c;
