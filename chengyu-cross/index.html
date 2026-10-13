@@ -1,0 +1,3008 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#3c0d55">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%236d1157'/%3E%3Crect x='14' y='14' width='36' height='36' rx='8' fill='%23f2e7cf'/%3E%3Ctext x='32' y='42' font-size='26' text-anchor='middle' fill='%23453526' font-family='serif' font-weight='bold'%3E成%3C/text%3E%3C/svg%3E">
+<title>填成语 · 十字填字</title>
+<style>
+:root{
+  --bg1:#3c0d55; --bg2:#6d1157; --bg3:#a3165f;
+  --cream:#f2e7cf; --cream-dim:rgba(242,231,207,.82);
+  --cream-edge:#d9c8a6; --ink:#453526;
+  --green:#2fa75e; --green-edge:#1f7d43;
+  --empty-a:rgba(226,166,244,.26); --empty-b:rgba(178,108,204,.22);
+  --accent:#ffb43a; --gold:#ffd94a;
+  --bar:#e9dcb4; --bar-dim:rgba(196,160,183,.45);
+  --font-cn:"Songti SC","STSong","Noto Serif SC","Noto Serif CJK SC","SimSun",serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  background:#24052e;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  overflow:hidden;
+}
+button{font-family:inherit;cursor:pointer;}
+#app{height:100dvh;display:flex;justify-content:center;}
+#stage{
+  position:relative;width:100%;max-width:480px;height:100%;
+  display:flex;flex-direction:column;
+  background:linear-gradient(178deg,var(--bg1) 0%,var(--bg2) 46%,var(--bg3) 100%);
+  overflow:hidden;
+}
+@media (min-width:520px){
+  #stage{box-shadow:0 0 60px rgba(0,0,0,.55);}
+}
+
+/* ---------- 顶栏 ---------- */
+#topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:calc(env(safe-area-inset-top) + 12px) 12px 6px;
+}
+.tb-btn{
+  width:44px;height:40px;border:0;border-radius:10px;
+  background:rgba(28,5,44,.5);color:var(--cream);
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+}
+.tb-btn:active{background:rgba(28,5,44,.75);}
+#title{
+  font-family:var(--font-cn);font-size:23px;letter-spacing:6px;text-indent:6px;
+  color:var(--cream);font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.3);
+}
+#tb-right{display:flex;align-items:center;gap:8px;}
+#coin-chip{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(28,5,44,.5);border-radius:20px;padding:5px 11px 5px 7px;
+  color:var(--gold);font-weight:700;font-size:15px;
+}
+#coin-chip svg{width:16px;height:16px;}
+#menu-dots{letter-spacing:2px;font-weight:700;}
+
+/* ---------- 统计行 ---------- */
+#statbar{
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px;
+  padding:8px 14px 2px;
+}
+#statbar .lbl{font-size:14px;color:var(--cream-dim);margin-bottom:2px;}
+#stat-words{font-size:34px;font-weight:800;color:#fff;line-height:1;}
+.stat-right{text-align:right;}
+.att{line-height:1;}
+#stat-attempts{font-size:42px;font-weight:800;color:var(--gold);}
+.att i{font-style:normal;font-size:15px;color:var(--cream-dim);margin-left:2px;}
+
+/* ---------- 里程碑链 ---------- */
+#chain{display:flex;align-items:flex-start;justify-content:center;padding:0 2px;min-width:0;}
+.chain-node{display:flex;flex-direction:column;align-items:center;flex:0 0 auto;}
+.chain-label{font-size:11px;color:var(--cream-dim);margin-bottom:4px;white-space:nowrap;}
+.badge{position:relative;width:clamp(44px,12.5vw,56px);height:clamp(44px,12.5vw,56px);}
+.badge svg{width:100%;height:100%;display:block;}
+.badge path{fill:#f6d87e;}
+.badge-in{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;line-height:1.05;
+}
+.badge .zg{font-size:9px;color:#b06a3a;transform:translateY(1px);}
+.badge .amt{font-size:clamp(12px,3.4vw,15px);font-weight:800;color:#d5482f;}
+.chain-node.done .badge{filter:drop-shadow(0 0 10px rgba(250,220,130,.85));}
+.chain-node.next .badge{animation:bpulse 2.4s ease-in-out infinite alternate;}
+.chain-node.lock .badge path{fill:#cfc0c4;}
+.chain-node.lock .zg{color:#a5969c;}
+.chain-node.lock .amt{color:#c26a5c;}
+.chain-bar{
+  flex:1 1 12px;height:9px;border-radius:5px;margin-top:calc(clamp(44px,12.5vw,56px)*.45);
+  min-width:10px;max-width:56px;background:var(--bar-dim);
+}
+.chain-bar.lit{background:var(--bar);}
+@keyframes bpulse{
+  from{filter:drop-shadow(0 0 3px rgba(250,220,130,.35));}
+  to{filter:drop-shadow(0 0 11px rgba(250,220,130,.8));}
+}
+
+/* ---------- 关卡横幅 ---------- */
+#banner{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  padding:12px 0 6px;
+}
+#banner-text{
+  font-family:var(--font-cn);font-size:23px;letter-spacing:3px;
+  color:#ecd5a8;font-weight:700;
+}
+.orn{position:relative;width:min(96px,20vw);height:1px;flex:0 0 auto;}
+.orn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(202,160,106,.9));}
+.orn::after{
+  content:'';position:absolute;top:-3.5px;width:7px;height:7px;
+  border:1px solid rgba(202,160,106,.9);transform:rotate(45deg);
+}
+.orn.l::after{right:0;}
+.orn.r{transform:scaleX(-1);}
+
+/* ---------- 棋盘区（棋盘+候选字） ---------- */
+#main-row{flex:1;min-height:0;display:flex;flex-direction:column;}
+#board{flex:1;min-height:0;position:relative;}
+#grid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);}
+.cell{
+  position:absolute;width:var(--cell);height:var(--cell);
+  border-radius:18%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-cn);font-weight:700;font-size:calc(var(--cell)*.56);
+  user-select:none;
+}
+.cell.given{
+  background:linear-gradient(180deg,#f7eed9,#efe2c5);color:var(--ink);
+  box-shadow:inset 0 -3px 0 rgba(160,138,96,.5),0 1px 3px rgba(0,0,0,.28);
+}
+.cell.filled{
+  background:linear-gradient(180deg,#38b164,#2c9c55);color:#fff;
+  box-shadow:inset 0 -3px 0 var(--green-edge),0 1px 3px rgba(0,0,0,.28);
+}
+.cell.empty{
+  background:linear-gradient(180deg,rgba(214,160,235,.17),rgba(172,102,198,.13));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.045),inset 0 -2px 0 rgba(255,255,255,.04);
+}
+.cell.sel{
+  outline:3px solid var(--accent);outline-offset:1px;
+  box-shadow:0 0 16px rgba(255,180,58,.55);
+}
+.cell.pop{animation:pop .32s ease-out;}
+@keyframes pop{0%{transform:scale(.55);}70%{transform:scale(1.07);}100%{transform:scale(1);}}
+.cell.wrong{animation:shake .38s ease-in-out;}
+@keyframes shake{
+  0%,100%{transform:translateX(0);}
+  20%{transform:translateX(-5px);}40%{transform:translateX(5px);}
+  60%{transform:translateX(-4px);}80%{transform:translateX(3px);}
+}
+.cell.wdone{animation:wdone .6s ease-out;}
+@keyframes wdone{0%{filter:brightness(1.75);}100%{filter:brightness(1);}}
+
+/* ---------- 候选字 ---------- */
+#rack{
+  border-top:1px solid rgba(255,255,255,.16);
+  margin:2px 14px 0;
+  padding:16px 2px calc(env(safe-area-inset-bottom) + 16px);
+  display:flex;flex-wrap:wrap;justify-content:center;align-items:center;
+  gap:12px;min-height:132px;
+}
+.tile{
+  width:min(64px,15.5vw);aspect-ratio:1;border:0;border-radius:14px;
+  background:linear-gradient(180deg,#f7eed9,#efe2c5);color:var(--ink);
+  font-family:var(--font-cn);font-weight:700;font-size:min(34px,8.2vw);
+  box-shadow:inset 0 -3px 0 rgba(160,138,96,.5),0 2px 4px rgba(0,0,0,.3);
+  transition:opacity .28s,transform .28s;
+}
+.tile:active{transform:scale(.93)!important;}
+.tile.gone{opacity:0;transform:scale(.5)!important;pointer-events:none;}
+.tile.wrong{animation:shake .38s ease-in-out;}
+
+/* ---------- 菜单 ---------- */
+#menu-pop{
+  position:absolute;top:calc(env(safe-area-inset-top) + 58px);right:12px;
+  background:#360f3f;border:1px solid rgba(255,255,255,.14);border-radius:12px;
+  padding:6px;min-width:158px;display:none;z-index:30;
+  box-shadow:0 10px 26px rgba(0,0,0,.45);
+}
+#menu-pop.on{display:block;}
+.mi{
+  display:block;width:100%;text-align:left;padding:11px 14px;
+  color:var(--cream);background:none;border:0;font-size:15px;border-radius:8px;
+}
+.mi:active{background:rgba(255,255,255,.09);}
+
+/* ---------- 弹窗 ---------- */
+#modal-root .mask{
+  position:fixed;inset:0;background:rgba(14,2,21,.66);
+  display:flex;align-items:center;justify-content:center;z-index:45;
+  animation:fadein .18s ease-out;
+}
+@keyframes fadein{from{opacity:0;}to{opacity:1;}}
+.modal{
+  width:min(360px,88vw);max-height:82dvh;overflow:auto;
+  background:linear-gradient(180deg,#4e1354,#42104a);
+  border:1px solid rgba(255,255,255,.14);border-radius:16px;
+  padding:22px 18px 16px;color:var(--cream);text-align:center;
+  box-shadow:0 16px 44px rgba(0,0,0,.5);
+}
+.modal.wide{width:min(500px,94vw);text-align:left;}
+.modal h3{font-family:var(--font-cn);font-size:22px;letter-spacing:4px;margin-bottom:8px;}
+.win-sub{font-size:14px;color:var(--cream-dim);margin-bottom:12px;}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:6px;}
+.chip{
+  font-family:var(--font-cn);font-size:15px;letter-spacing:2px;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);
+  border-radius:8px;padding:5px 10px;
+}
+.btns{display:flex;flex-direction:column;gap:9px;margin-top:14px;}
+.btn{
+  border:0;border-radius:11px;padding:12px;font-size:16px;font-weight:600;
+  background:rgba(255,255,255,.1);color:var(--cream);
+}
+.btn.primary{background:linear-gradient(180deg,#f9e096,#f2c95c);color:#5a2f16;box-shadow:inset 0 -2px 0 rgba(140,90,20,.35);}
+.btn.primary:disabled{opacity:.45;}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,.22);}
+.num-in{
+  width:100%;margin-top:4px;padding:11px;border-radius:10px;border:1px solid rgba(255,255,255,.2);
+  background:rgba(0,0,0,.28);color:var(--cream);font-size:18px;text-align:center;
+}
+
+/* ---------- 导入分析 ---------- */
+.imp-tip{font-size:13px;color:var(--cream-dim);line-height:1.6;margin-bottom:10px;}
+#imp-text{
+  width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.2);
+  background:rgba(0,0,0,.28);color:var(--cream);font-size:15px;line-height:1.7;resize:vertical;
+  font-family:var(--font-cn);
+}
+.imp-ops{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px;}
+.imp-ops .btn{padding:9px 13px;font-size:14px;border-radius:9px;}
+#imp-report{margin-top:6px;}
+.imp-loading{padding:14px;text-align:center;color:var(--cream-dim);font-size:14px;}
+.imp-sec{font-size:13.5px;line-height:1.7;padding:7px 2px;color:var(--cream-dim);}
+.imp-sec b{color:var(--cream);}
+.imp-sec.good{color:#9fe0b4;}
+.imp-sec.warn{color:#f3c98a;}
+.imp-sec.bad{color:#f09c8c;}
+.imp-sec.verdict.full{color:#9fe0b4;font-weight:700;}
+.imp-sec.verdict.partial{color:#f3c98a;font-weight:700;}
+.imp-sec.verdict.none{color:#f09c8c;font-weight:700;}
+.pv-wrap{display:flex;justify-content:center;padding:10px 0 4px;}
+.pv-grid{display:grid;gap:2px;}
+.pv-cell{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;aspect-ratio:1;border-radius:4px;
+  background:#efe2c5;color:var(--ink);
+  font-family:var(--font-cn);font-weight:700;font-size:13px;
+}
+
+/* ---------- Toast / 抽屉 ---------- */
+#toast{
+  position:fixed;left:50%;bottom:24dvh;transform:translateX(-50%) translateY(8px);
+  background:rgba(18,3,27,.88);color:var(--cream);
+  padding:10px 18px;border-radius:22px;font-size:14px;
+  opacity:0;pointer-events:none;transition:opacity .22s,transform .22s;z-index:60;
+  max-width:86vw;text-align:center;
+}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+#drawer{z-index:40;}
+body.reduced *{animation:none!important;transition:none!important;}
+
+/* ---------- 横屏矮视口：棋盘居左、候选字居右列 ---------- */
+@media (orientation:landscape) and (max-height:520px){
+  #topbar{padding-top:calc(env(safe-area-inset-top) + 6px);}
+  .tb-btn{width:38px;height:34px;}
+  #title{font-size:19px;}
+  #statbar{padding:4px 14px 0;}
+  #stat-words{font-size:24px;}
+  #stat-attempts{font-size:30px;}
+  .chain-label{font-size:10px;margin-bottom:2px;}
+  .badge{width:40px;height:40px;}
+  .badge .amt{font-size:11px;}
+  .badge .zg{font-size:8px;}
+  .chain-bar{margin-top:16px;height:7px;}
+  #banner{padding:6px 0 2px;}
+  #banner-text{font-size:18px;}
+  .orn{width:60px;}
+  #main-row{flex-direction:row;align-items:stretch;}
+  #rack{
+    flex:0 0 auto;width:min(26vw,200px);border-top:0;
+    border-left:1px solid rgba(255,255,255,.16);margin:0;
+    padding:12px 10px calc(env(safe-area-inset-bottom) + 12px);
+    flex-flow:column wrap;align-content:flex-start;gap:9px;min-height:0;
+  }
+  .tile{width:46px;font-size:24px;border-radius:10px;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <header id="topbar">
+      <button class="tb-btn" id="btn-back" aria-label="重新开始">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg>
+      </button>
+      <div id="title">填成语</div>
+      <div id="tb-right">
+        <div id="coin-chip" title="金币">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f2c95c"/><circle cx="12" cy="12" r="7" fill="none" stroke="#c98f2e" stroke-width="1.6"/><path d="M12 8v8M9.5 9.8h5M9.5 14.2h5" stroke="#8a5a1c" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <span id="coin-num">0</span>
+        </div>
+        <button class="tb-btn" id="btn-menu" aria-label="菜单"><span id="menu-dots">•••</span></button>
+      </div>
+    </header>
+    <section id="statbar">
+      <div class="stat-left"><div class="lbl">成语</div><div id="stat-words">0</div></div>
+      <div id="chain"></div>
+      <div class="stat-right"><div class="lbl">剩余次数</div><div class="att"><span id="stat-attempts">5</span><i>次</i></div></div>
+    </section>
+    <div id="banner"><i class="orn l"></i><span id="banner-text">第一关</span><i class="orn r"></i></div>
+    <main id="main-row">
+      <div id="board"><div id="grid"></div></div>
+      <footer id="rack"></footer>
+    </main>
+    <div id="menu-pop">
+      <button class="mi" id="menu-hint">提示（花金币填一格）</button>
+      <button class="mi" id="menu-restart">重新开始本关</button>
+      <button class="mi" id="menu-jump">跳关</button>
+      <button class="mi" id="menu-import">自定义词库导入</button>
+      <button class="mi" id="menu-cfg">设置</button>
+    </div>
+  </div>
+  <aside id="drawer"></aside>
+  <div id="modal-root"></div>
+  <div id="toast"></div>
+</div>
+<script>
+(function(){
+  window.__errs=[];
+  window.addEventListener('error',function(e){window.__errs.push(String(e.message||e));});
+  window.addEventListener('unhandledrejection',function(e){window.__errs.push('rej:'+(e.reason&&e.reason.message||e.reason));});
+})();
+</script>
+<script>
+/* ==== config.js ==== */
+/* 填成语 — 配置与存档（?key 必须在本模块最先处理，先于任何 localStorage 读取） */
+(function () {
+  'use strict';
+  var KEYS = { cfg: 'cy_cfg_v2', state: 'cy_state_v2', custom: 'cy_custom_v2' };
+  try {
+    if (typeof location !== 'undefined' && location.search.indexOf('reset=1') >= 0) {
+      Object.keys(KEYS).forEach(function (k) { localStorage.removeItem(KEYS[k]); });
+      if (history && history.replaceState) {
+        history.replaceState(null, '', location.pathname + location.hash);
+      }
+    }
+  } catch (e) { /* 隐私模式等 */ }
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function isObj(o) { return o && typeof o === 'object' && !Array.isArray(o); }
+  function deepMerge(base, extra) {
+    var out = clone(base);
+    if (!isObj(extra)) return out;
+    Object.keys(extra).forEach(function (k) {
+      if (isObj(extra[k]) && isObj(out[k])) out[k] = deepMerge(out[k], extra[k]);
+      else if (extra[k] !== undefined) out[k] = clone(extra[k]);
+    });
+    return out;
+  }
+  function deepEqual(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+  function clamp(v, lo, hi, dft) {
+    v = Number(v);
+    if (!isFinite(v)) return dft;
+    return Math.min(hi, Math.max(lo, v));
+  }
+
+  var DEFAULTS = {
+    level: { startWords: 4, growthEvery: 2, maxWords: 14, givenRatio: 0.30, givenDecay: 0.008, attempts: 5, maxSpan: 9 },
+    rewards: { milestones: [1, 3, 14], amounts: [120, 120, 240], completeCoins: 0 },
+    props: { hintCost: 80, reviveCost: 150, reviveAttempts: 3 },
+    audio: { master: 0.9, sfx: 0.8, bgm: 0.25, muted: false },
+    motion: { reduced: false },
+    bank: { source: 'builtin' }
+  };
+
+  /* 校验+钳制：非法数组整体回退默认；数值钳制进合法区间 */
+  function sanitize(raw) {
+    var c = deepMerge(DEFAULTS, raw);
+    c.level.startWords = Math.round(clamp(c.level.startWords, 3, 8, 4));
+    c.level.growthEvery = Math.round(clamp(c.level.growthEvery, 1, 5, 2));
+    c.level.maxWords = Math.round(clamp(c.level.maxWords, 4, 16, 14));
+    if (c.level.maxWords < c.level.startWords) c.level.maxWords = c.level.startWords;
+    c.level.givenRatio = clamp(c.level.givenRatio, 0, 0.6, 0.3);
+    c.level.givenDecay = clamp(c.level.givenDecay, 0, 0.03, 0.008);
+    c.level.attempts = Math.round(clamp(c.level.attempts, 1, 20, 5));
+    c.level.maxSpan = Math.round(clamp(c.level.maxSpan, 6, 12, 9));
+    c.rewards.completeCoins = Math.round(clamp(c.rewards.completeCoins, 0, 999, 0));
+    c.props.hintCost = Math.round(clamp(c.props.hintCost, 0, 9999, 80));
+    c.props.reviveCost = Math.round(clamp(c.props.reviveCost, 0, 9999, 150));
+    c.props.reviveAttempts = Math.round(clamp(c.props.reviveAttempts, 1, 20, 3));
+    ['master', 'sfx', 'bgm'].forEach(function (k) {
+      c.audio[k] = clamp(c.audio[k], 0, 1, DEFAULTS.audio[k]);
+    });
+    c.audio.muted = !!c.audio.muted;
+    c.motion.reduced = !!c.motion.reduced;
+    function fixList(arr, dft) {
+      if (!Array.isArray(arr) || !arr.length) return dft;
+      var out = [];
+      for (var i = 0; i < arr.length; i++) {
+        var v = Number(arr[i]);
+        if (!isFinite(v) || v <= 0) return dft;
+        out.push(Math.round(v));
+      }
+      for (var j = 1; j < out.length; j++) if (out[j] <= out[j - 1]) return dft;
+      if (out[out.length - 1] > 999) return dft;
+      return out;
+    }
+    var ms = fixList(c.rewards.milestones, DEFAULTS.rewards.milestones);
+    var am = fixList(c.rewards.amounts, DEFAULTS.rewards.amounts);
+    if (ms.length !== am.length) { ms = DEFAULTS.rewards.milestones; am = DEFAULTS.rewards.amounts; }
+    am = am.map(function (v) { return Math.round(clamp(v, 0, 9999, 0)); });
+    c.rewards.milestones = ms; c.rewards.amounts = am;
+    if (typeof c.bank.source !== 'string' || !c.bank.source) c.bank.source = 'builtin';
+    return c;
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEYS.cfg);
+      return raw ? sanitize(JSON.parse(raw)) : clone(DEFAULTS);
+    } catch (e) { return clone(DEFAULTS); }
+  }
+
+  var listeners = [];
+  var cfg = load();
+  var root = typeof window !== 'undefined' ? window : globalThis;
+  root.CY = root.CY || {};
+
+  function save() {
+    try { localStorage.setItem(KEYS.cfg, JSON.stringify(cfg)); } catch (e) { }
+  }
+  function notify() {
+    var snapshot = clone(cfg);
+    listeners.forEach(function (cb) {
+      try { cb(snapshot); } catch (e) { console.error(e); }
+    });
+  }
+
+  root.CY.config = {
+    KEYS: KEYS,
+    defaults: function () { return clone(DEFAULTS); },
+    get: function () { return clone(cfg); },
+    set: function (patch) {
+      var next = sanitize(deepMerge(cfg, patch));
+      var changed = !deepEqual(next, cfg);
+      cfg = next;
+      if (changed) { save(); notify(); }
+      return clone(cfg);
+    },
+    onChange: function (cb) {
+      listeners.push(cb);
+      return function () {
+        var i = listeners.indexOf(cb);
+        if (i >= 0) listeners.splice(i, 1);
+      };
+    },
+    export: function () {
+      var st = null, cu = [];
+      try { st = JSON.parse(localStorage.getItem(KEYS.state) || 'null'); } catch (e) { }
+      try { cu = JSON.parse(localStorage.getItem(KEYS.custom) || '[]'); } catch (e) { }
+      return JSON.stringify({ v: 2, cfg: cfg, state: st, custom: cu });
+    },
+    importJson: function (str) {
+      try {
+        var data = JSON.parse(str);
+        if (!isObj(data)) return false;
+        if (isObj(data.cfg)) { cfg = sanitize(deepMerge(DEFAULTS, data.cfg)); save(); }
+        try {
+          if (isObj(data.state)) localStorage.setItem(KEYS.state, JSON.stringify(data.state));
+          if (Array.isArray(data.custom)) localStorage.setItem(KEYS.custom, JSON.stringify(data.custom));
+        } catch (e) { }
+        notify();
+        return true;
+      } catch (e) { return false; }
+    },
+    resetAll: function () {
+      Object.keys(KEYS).forEach(function (k) {
+        try { localStorage.removeItem(KEYS[k]); } catch (e) { }
+      });
+      if (typeof location !== 'undefined') location.reload();
+    }
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.CY.config;
+})();
+
+
+/* ==== idioms.js ==== */
+/* 填成语 · 十字填字 —— 内置词库（代理A）
+ * window.CY_BANK.list          常用四字成语，大致按常用度从高到低排列
+ * window.CY_BANK.COMMON_CHARS  常用单字表（在 list 中出现≥2次），按出现频次降序
+ * 选词原则：小学/初中常考 + 日常生活常用；高频锚字（一/心/天/大/千/万/人/水/山…）
+ * 覆盖尽量多的成语，保证十字填字的交叉出题率。
+ */
+(function () {
+  'use strict';
+
+  var list = [
+    /* —— 一 —— */
+    '一心一意', '一帆风顺', '一鸣惊人', '一举两得', '一举成名', '一箭双雕', '一石二鸟', '一马当先',
+    '一诺千金', '一字千金', '一言九鼎', '一目十行', '一目了然', '一见钟情', '一见如故', '一见倾心',
+    '一往无前', '一往情深', '一飞冲天', '一鼓作气', '一针见血', '一丝不苟', '一丝一毫', '一窍不通',
+    '一知半解', '一刀两断', '一本正经', '一表人才', '一板一眼', '一败涂地', '一蹶不振', '一厢情愿',
+    '一意孤行', '一模一样', '一生一世', '一朝一夕', '一五一十', '一了百了', '一无所有', '一无所知',
+    '一无所获', '一无是处', '一草一木', '一呼百应', '一拥而上', '一哄而散', '一团和气', '一团漆黑',
+    '一清二楚', '一清二白', '一干二净', '一穷二白', '一分为二', '一反常态', '一成不变', '一唱一和',
+    '一路平安', '一路顺风', '一如既往', '一年四季', '一日三秋', '一日千里', '一日三餐', '一手遮天',
+    '一泻千里', '一落千丈', '一掷千金', '一毛不拔', '一曝十寒', '一网打尽', '一扫而空', '一饮而尽',
+    '一挥而就', '一望无际', '一览无余', '一鳞半爪', '一息尚存', '一命呜呼', '一塌糊涂', '一概而论',
+    '一笔勾销', '一笔带过', '一言为定', '一言不发', '一言难尽', '一声不吭', '一动不动', '一文不值',
+    '一事无成', '一口咬定', '一夫当关', '一叶知秋', '一叶障目', '一丘之貉', '一柱擎天', '一臂之力',
+    '一孔之见', '一举一动', '一言一行', '一派胡言', '一片冰心', '一贫如洗', '一视同仁', '一统天下',
+    '一以贯之', '一语中的', '一语道破', '一针一线', '一纸空文', '一走了之', '一笑置之', '一马平川',
+    '一尘不染', '一枝独秀',
+    /* —— 三/四/五/六/七/八/九/十/百/千/万 —— */
+    '三心二意', '三言两语', '三番五次', '三三两两', '三五成群', '三令五申', '三长两短', '三头六臂',
+    '三思而行', '三生有幸', '三更半夜', '三年五载', '三足鼎立', '三缄其口', '三从四德', '三教九流',
+    '三十而立', '丢三落四', '说三道四', '不三不四', '朝三暮四', '颠三倒四', '低三下四', '推三阻四',
+    '挑三拣四', '张三李四', '再三再四', '四面八方', '四面楚歌', '四平八稳', '四海为家', '四通八达',
+    '四分五裂', '四大皆空', '四书五经', '五花八门', '五颜六色', '五光十色', '五湖四海', '五体投地',
+    '五谷丰登', '五彩缤纷', '五脏六腑', '五雷轰顶', '五毒俱全', '六神无主', '六亲不认', '七上八下',
+    '七嘴八舌', '七零八落', '七拼八凑', '七手八脚', '七情六欲', '七窍生烟', '七颠八倒', '七老八十',
+    '八仙过海', '八面玲珑', '八面威风', '八拜之交', '八方呼应', '八斗之才', '横七竖八', '杂七杂八',
+    '乱七八糟', '半斤八两', '九牛一毛', '九死一生', '九霄云外', '九九归一', '九泉之下', '九牛二虎',
+    '十全十美', '十拿九稳', '十恶不赦', '十万火急', '十指连心', '十有八九', '十面埋伏', '十年寒窗',
+    '十室九空', '以一当十', '闻一知十', '杀一儆百', '百发百中', '百战百胜', '百依百顺', '百里挑一',
+    '百年好合', '百年树人', '百家争鸣', '百花齐放', '百折不挠', '百废待兴', '百感交集', '百思不解',
+    '百无禁忌', '百无聊赖', '百般刁难', '百川归海', '百口莫辩', '百步穿杨', '百战不殆', '百听不厌',
+    '百废俱兴', '百尺竿头', '百年大计', '成千上万', '成百上千', '千军万马', '千言万语', '千辛万苦',
+    '千方百计', '千山万水', '千变万化', '千秋万代', '千真万确', '千钧一发', '千载难逢', '千里迢迢',
+    '千奇百怪', '千姿百态', '千头万绪', '千丝万缕', '千疮百孔', '千呼万唤', '千叮万嘱', '千恩万谢',
+    '千篇一律', '千差万别', '千古绝唱', '千门万户', '千家万户', '千刀万剐', '千夫所指', '千锤百炼',
+    '千娇百媚', '千载一时', '千千万万', '千虑一得', '千秋大业', '万水千山', '万紫千红', '万无一失',
+    '万众一心', '万马奔腾', '万马齐喑', '万事大吉', '万事如意', '万事俱备', '万象更新', '万丈深渊',
+    '万寿无疆', '万古长青', '万古流芳', '万念俱灰', '万劫不复', '万不得已', '万夫莫开', '万家灯火',
+    '万事亨通',
+    /* —— 天 地 —— */
+    '天长地久', '天经地义', '天翻地覆', '天旋地转', '天南地北', '天荒地老', '地老天荒', '天崩地裂',
+    '天造地设', '天下无双', '天下无敌', '天下第一', '天下为公', '天下太平', '天下大乱', '天罗地网',
+    '天壤之别', '天高地厚', '天高云淡', '天各一方', '天涯海角', '天衣无缝', '天花乱坠', '天作之合',
+    '天之骄子', '天伦之乐', '天遂人愿', '天昏地暗', '天诛地灭', '天打雷劈', '天马行空', '天网恢恢',
+    '天方夜谭', '天道酬勤', '天生丽质', '天灾人祸', '天寒地冻', '天长日久', '天上人间', '天外有天',
+    '天怒人怨', '天赐良机', '天理难容', '天公作美', '地大物博', '地广人稀', '地动山摇', '地利人和',
+    '地久天长', '铺天盖地', '冰天雪地', '顶天立地', '谢天谢地', '惊天动地', '翻天覆地', '改天换地',
+    '开天辟地', '昏天黑地', '谈天说地', '欢天喜地', '怨天尤人', '听天由命', '别有天地', '别有洞天',
+    '热火朝天', '四脚朝天', '一步登天', '无法无天', '叫苦连天', '胆大包天', '坐井观天', '杞人忧天',
+    '海阔天空',
+    /* —— 日 月 星 —— */
+    '日新月异', '日积月累', '日日夜夜', '日理万机', '日以继夜', '夜以继日', '日复一日', '日上三竿',
+    '日久天长', '日久生情', '日落西山', '日思夜想', '日行千里', '日暮途穷', '日薄西山', '日月如梭',
+    '日夜兼程', '日进斗金', '月黑风高', '月明星稀', '月下老人', '月落乌啼', '月满则亏', '月白风清',
+    '光阴似箭', '光阴荏苒', '峥嵘岁月', '蹉跎岁月', '长年累月', '猴年马月', '年复一年', '寒来暑往',
+    '星罗棋布', '星火燎原', '披星戴月', '众星捧月',
+    /* —— 风 雨 雷 电 云 雪 冰 霜 —— */
+    '风和日丽', '风调雨顺', '风平浪静', '风起云涌', '风云变幻', '风云突变', '风云人物', '风尘仆仆',
+    '风餐露宿', '风雨同舟', '风雨无阻', '风雨交加', '风雨飘摇', '风言风语', '风花雪月', '风度翩翩',
+    '风华正茂', '风卷残云', '风口浪尖', '风声鹤唳', '风驰电掣', '风流倜傥', '风烛残年', '风土人情',
+    '风韵犹存', '风流人物', '风靡一时', '风轻云淡', '和风细雨', '春风化雨', '春风得意', '春风满面',
+    '满面春风', '狂风暴雨', '暴风骤雨', '呼风唤雨', '枪林弹雨', '血雨腥风', '翻云覆雨', '倾盆大雨',
+    '雨过天晴', '雨后春笋', '泪如雨下', '挥汗如雨', '未雨绸缪', '雷厉风行', '雷霆万钧', '电闪雷鸣',
+    '大发雷霆', '欢声雷动', '雷打不动', '电光石火', '云开雾散', '腾云驾雾', '云山雾罩', '拨云见日',
+    '白云苍狗', '叱咤风云', '壮志凌云', '平步青云', '过眼云烟', '烟消云散', '烟波浩渺', '荒无人烟',
+    '狼烟四起', '灰飞烟灭', '雪中送炭', '雪上加霜', '鹅毛大雪', '程门立雪', '阳春白雪', '冰清玉洁',
+    '冷若冰霜', '如履薄冰', '滴水成冰', '寒风刺骨',
+    /* —— 花 草 树 木 瓜 果 竹 —— */
+    '花好月圆', '花前月下', '花团锦簇', '花枝招展', '花言巧语', '花红柳绿', '花花世界', '花花公子',
+    '花天酒地', '花容月貌', '花里胡哨', '花拳绣腿', '锦上添花', '妙笔生花', '昙花一现', '镜花水月',
+    '火树银花', '雾里看花', '走马观花', '人面桃花', '桃红柳绿', '柳暗花明', '落花流水', '落英缤纷',
+    '移花接木', '借花献佛', '出水芙蓉', '心花怒放', '春暖花开', '草木皆兵', '斩草除根', '寸草不生',
+    '风吹草动', '草长莺飞', '打草惊蛇', '草菅人命', '枝繁叶茂', '枯木逢春', '木已成舟', '入木三分',
+    '缘木求鱼', '根深蒂固', '叶落归根', '节外生枝', '添油加醋', '添砖加瓦', '开花结果', '自食其果',
+    '前因后果', '硕果累累', '瓜熟蒂落', '顺藤摸瓜', '滚瓜烂熟', '胸有成竹', '势如破竹', '青梅竹马',
+    '罄竹难书', '望梅止渴',
+    /* —— 鸟 兽 虫 鱼 —— */
+    '鸟语花香', '鸟尽弓藏', '惊弓之鸟', '笨鸟先飞', '小鸟依人', '百鸟朝凤', '凤毛麟角', '龙飞凤舞',
+    '攀龙附凤', '鱼跃龙门', '鱼目混珠', '鱼龙混杂', '鱼米之乡', '如鱼得水', '浑水摸鱼', '漏网之鱼',
+    '临渊羡鱼', '殃及池鱼', '鱼死网破', '沉鱼落雁', '雁过拔毛', '莺歌燕舞', '鹏程万里', '鹤立鸡群',
+    '鹤发童颜', '闲云野鹤', '鸦雀无声', '门可罗雀', '欢呼雀跃', '黄雀在后', '螳螂捕蝉', '金蝉脱壳',
+    '蜻蜓点水', '飞蛾扑火', '蚍蜉撼树', '作茧自缚', '蜂拥而至', '蜂拥而上', '蛛丝马迹', '指鹿为马',
+    '马到成功', '马不停蹄', '马马虎虎', '马首是瞻', '马革裹尸', '马失前蹄', '龙马精神', '快马加鞭',
+    '汗马功劳', '单枪匹马', '招兵买马', '厉兵秣马', '声色犬马', '心猿意马', '车水马龙', '塞翁失马',
+    '老马识途', '盲人瞎马', '兵荒马乱', '人困马乏', '人仰马翻', '牛刀小试', '牛头马面', '牛鬼蛇神',
+    '牛毛细雨', '汗牛充栋', '对牛弹琴', '泥牛入海', '庖丁解牛', '气冲斗牛', '气壮如牛', '目无全牛',
+    '虎背熊腰', '虎头蛇尾', '虎视眈眈', '虎口余生', '虎口拔牙', '虎落平阳', '狐假虎威', '为虎作伥',
+    '如虎添翼', '调虎离山', '骑虎难下', '狼吞虎咽', '藏龙卧虎', '生龙活虎', '龙腾虎跃', '龙争虎斗',
+    '龙潭虎穴', '龙盘虎踞', '狼心狗肺', '狼狈为奸', '狼狈不堪', '狼子野心', '鬼哭狼嚎', '引狼入室',
+    '狐朋狗友', '狗急跳墙', '狗仗人势', '狗尾续貂', '狗血喷头', '狗拿耗子', '鸡飞狗跳', '鸡犬不宁',
+    '鸡犬升天', '鸡飞蛋打', '鸡毛蒜皮', '鸡零狗碎', '鸡鸣狗盗', '闻鸡起舞', '杀鸡取卵', '杀鸡儆猴',
+    '呆若木鸡', '小肚鸡肠', '偷鸡摸狗', '尖嘴猴腮', '猪狗不如', '蛇蝎心肠', '画蛇添足', '杯弓蛇影',
+    '蛇鼠一窝', '画龙点睛', '叶公好龙', '群龙无首', '来龙去脉', '望子成龙', '老态龙钟', '直捣黄龙',
+    '龙凤呈祥', '鼠目寸光', '胆小如鼠', '投鼠忌器', '抱头鼠窜', '兔死狐悲', '守株待兔', '兔死狗烹',
+    '狡兔三窟', '鹬蚌相争', '螳臂当车', '瓮中捉鳖', '盲人摸象', '河东狮吼', '亡羊补牢', '羊肠小道',
+    '顺手牵羊', '井底之蛙', '鸠占鹊巢',
+    /* —— 山 水 海 石 金 玉 —— */
+    '山清水秀', '山穷水尽', '山高水长', '山重水复', '山珍海味', '山雨欲来', '山回路转', '湖光山色',
+    '依山傍水', '崇山峻岭', '高山流水', '名山大川', '青山绿水', '千山万壑', '开门见山', '东山再起',
+    '跋山涉水', '半壁江山', '江山如画', '锦绣河山', '大好河山', '翻山越岭', '排山倒海', '石破天惊',
+    '水到渠成', '水涨船高', '水落石出', '水乳交融', '水中捞月', '水深火热', '水泄不通', '水滴石穿',
+    '滴水穿石', '滴水不漏', '饮水思源', '顺水推舟', '覆水难收', '萍水相逢', '望穿秋水', '拖泥带水',
+    '行云流水', '海枯石烂', '海誓山盟', '海纳百川', '海市蜃楼', '大海捞针', '沧海一粟', '沧海桑田',
+    '石沉大海', '血海深仇', '名扬四海', '情深似海', '福如东海', '望洋兴叹', '点石成金', '铁石心肠',
+    '铁证如山', '铁面无私', '铁树开花', '铁杵磨针', '铜墙铁壁', '金玉良言', '金玉满堂', '金枝玉叶',
+    '金碧辉煌', '金榜题名', '金科玉律', '金口玉言', '金童玉女', '金戈铁马', '挥金如土', '惜墨如金',
+    '固若金汤', '众口铄金', '玉树临风', '珠光宝气', '珠联璧合', '掌上明珠', '有眼无珠', '字字珠玑',
+    '珠圆玉润', '人老珠黄', '亭台楼阁', '琼楼玉宇', '买椟还珠',
+    /* —— 火 光 颜 色 —— */
+    '火冒三丈', '火烧火燎', '火眼金睛', '火中取栗', '火上浇油', '火烧眉毛', '薪火相传', '灯火辉煌',
+    '灯红酒绿', '张灯结彩', '炉火纯青', '隔岸观火', '赴汤蹈火', '心急火燎', '刀山火海', '光明磊落',
+    '光明正大', '光彩夺目', '光彩照人', '光宗耀祖', '光芒万丈', '光天化日', '刀光剑影', '色厉内荏',
+    '喜形于色', '不动声色', '黑白分明', '颠倒黑白', '起早贪黑', '混淆黑白', '黑灯瞎火', '灰心丧气',
+    '死灰复燃', '白手起家', '白头偕老', '白日做梦', '白雪皑皑', '白发苍苍', '白璧无瑕', '白纸黑字',
+    '青黄不接', '青红皂白', '黄粱美梦', '黄道吉日', '飞黄腾达', '姹紫嫣红',
+    '红颜薄命', '红红火火', '红杏出墙', '灰头土脸',
+    /* —— 头 面 眼 耳 口 手 足 心 肝 骨 血 身 —— */
+    '头头是道', '头晕目眩', '头重脚轻', '头昏脑涨', '头昏眼花', '崭露头角', '出人头地', '齐头并进',
+    '迎头赶上', '街头巷尾', '彻头彻尾', '蓬头垢面', '有头有尾', '垂头丧气', '交头接耳', '探头探脑',
+    '摇头晃脑', '摇头摆尾', '晕头转向', '独占鳌头', '蝇头小利', '浪子回头', '回头是岸', '改头换面',
+    '面目全非', '面红耳赤', '面面俱到', '面面相觑', '独当一面', '网开一面', '别开生面', '人面兽心',
+    '红光满面', '汗流浃背', '眼高手低', '眼疾手快', '眼花缭乱', '眉清目秀', '眉飞色舞', '眉开眼笑',
+    '挤眉弄眼', '愁眉苦脸', '愁眉不展', '举案齐眉', '迫在眉睫', '燃眉之急', '刮目相看', '举世瞩目',
+    '瞠目结舌', '有目共睹', '耳目一新', '众目睽睽', '掩人耳目', '赏心悦目', '触目惊心', '耳聪目明',
+    '目不转睛', '目不识丁', '目中无人', '目瞪口呆', '目光如炬', '目光短浅', '明察秋毫', '秋毫无犯',
+    '耳闻目睹', '耳濡目染', '耳熟能详', '掩耳盗铃', '洗耳恭听', '充耳不闻', '震耳欲聋', '抓耳挠腮',
+    '隔墙有耳', '耳听八方', '忠言逆耳', '口是心非', '口若悬河', '口蜜腹剑', '口口声声', '口出狂言',
+    '脱口而出', '有口皆碑', '有口无心', '苦口婆心', '心直口快', '血口喷人', '病从口入', '赞不绝口',
+    '朗朗上口', '守口如瓶', '张口结舌', '哑口无言', '交口称赞', '信口开河', '信口雌黄', '出口成章',
+    '脍炙人口', '良药苦口', '手忙脚乱', '手足无措', '手舞足蹈', '手不释卷', '手到擒来', '手无寸铁',
+    '心灵手巧', '情同手足', '妙手回春', '大打出手', '爱不释手', '措手不及', '束手无策', '束手就擒',
+    '袖手旁观', '唾手可得', '得心应手', '心狠手辣', '毛手毛脚', '指手画脚', '缩手缩脚', '大手大脚',
+    '轻手轻脚', '蹑手蹑脚', '拳打脚踢', '脚踏实地', '心慈手软', '举手投足', '举手之劳', '举足轻重',
+    '捷足先登', '知足常乐', '微不足道', '不足为奇', '不足挂齿', '美中不足', '微乎其微', '人微言轻',
+    '肝胆相照', '披肝沥胆', '侠肝义胆', '胆大妄为', '胆战心惊', '胆大心细', '明目张胆', '赤胆忠心',
+    '肺腑之言', '感人肺腑', '心腹之患', '腹背受敌', '满腹经纶', '骨肉相连', '骨瘦如柴', '粉身碎骨',
+    '脱胎换骨', '刻骨铭心', '恨之入骨', '毛骨悚然', '毛遂自荐', '吹毛求疵', '血流成河', '头破血流',
+    '茹毛饮血', '呕心沥血', '咬牙切齿', '咬文嚼字', '咬紧牙关', '龇牙咧嘴', '伶牙俐齿', '唇枪舌剑',
+    '唇齿相依', '反唇相讥', '油嘴滑舌', '鹦鹉学舌', '笨嘴拙舌', '体无完肤', '体贴入微', '量体裁衣',
+    '融为一体', '浑然一体', '身体力行', '身临其境', '身不由己', '身经百战', '身无分文', '安身立命',
+    '立身处世', '挺身而出', '奋不顾身', '设身处地', '现身说法', '修身养性', '独善其身', '明哲保身',
+    '大显身手', '脱颖而出',
+    /* —— 心 情 情 绪 —— */
+    '心旷神怡', '心平气和', '心安理得', '心服口服', '心甘情愿', '心急如焚', '心想事成', '心如刀割',
+    '心如止水', '心照不宣', '心领神会', '心悦诚服', '心惊肉跳', '心慌意乱', '心烦意乱', '心力交瘁',
+    '心心相印', '心满意足', '心口如一', '心血来潮', '心怀鬼胎', '心怀叵测', '忠心耿耿', '语重心长',
+    '用心良苦', '处心积虑', '勾心斗角', '平心而论', '居心叵测', '丧心病狂', '提心吊胆', '专心致志',
+    '聚精会神', '全神贯注', '齐心协力', '同心协力', '众志成城', '称心如意', '贪得无厌', '贪小失大',
+    '贪生怕死', '诚心诚意', '诚惶诚恐', '虚情假意', '虚怀若谷', '虚张声势', '虚有其表', '故弄玄虚',
+    '弄虚作假', '装模作样', '装腔作势', '装聋作哑', '半信半疑', '深信不疑', '言而有信', '信以为真',
+    '信手拈来', '喜出望外', '喜气洋洋', '喜闻乐见', '喜上眉梢', '喜新厌旧', '皆大欢喜',
+    '欢聚一堂', '欢声笑语', '欢欣鼓舞', '大喜过望', '喜笑颜开', '笑逐颜开', '开怀大笑', '捧腹大笑',
+    '哄堂大笑', '贻笑大方', '谈笑风生', '有说有笑', '笑里藏刀', '笑容可掬', '笑口常开', '哭笑不得',
+    '啼笑皆非', '声泪俱下', '泪流满面', '潸然泪下', '痛哭流涕', '悲欢离合', '悲喜交加', '悲痛欲绝',
+    '乐极生悲', '乐不思蜀', '乐善好施', '乐在其中', '其乐无穷', '安居乐业', '幸灾乐祸', '津津乐道',
+    '喜怒无常', '喜怒哀乐', '麻木不仁', '怒发冲冠', '怒火中烧', '怒气冲冲', '怒气冲天',
+    '怒不可遏', '气急败坏', '气势汹汹', '气势磅礴', '气吞山河', '气壮山河', '气宇轩昂', '忍气吞声',
+    '唉声叹气', '扬眉吐气', '气象万千', '朝气蓬勃', '意气风发', '意气用事', '神气活现', '盛气凌人',
+    '正气凛然', '威风凛凛', '威武不屈', '耀武扬威', '穷兵黩武', '文武双全', '惊涛骇浪', '惊慌失措',
+    '惊魂未定', '大惊小怪', '大惊失色', '战战兢兢', '畏首畏尾', '无所畏惧', '面不改色', '泰然自若',
+    '镇定自若', '临危不惧', '临阵脱逃', '临危受命', '外强中干', '迫不及待', '刻不容缓', '当务之急',
+    '危在旦夕', '岌岌可危', '危如累卵', '安然无恙', '化险为夷', '转危为安', '逢凶化吉', '吉人天相',
+    '吉祥如意', '大吉大利', '吉星高照', '福星高照', '凶多吉少', '兴高采烈', '兴致勃勃', '兴师动众',
+    '兴风作浪', '高高兴兴', '忧心忡忡', '忐忑不安', '坐立不安', '寝食难安', '辗转反侧', '焦头烂额',
+    '心有余悸', '惴惴不安', '如释重负', '如梦初醒', '梦寐以求', '魂牵梦绕', '魂飞魄散', '失魂落魄',
+    '居安思危',
+    /* —— 品 德 智 慧 学 习 —— */
+    '助人为乐', '与人为善', '平易近人', '和蔼可亲', '和颜悦色', '和睦相处', '和盘托出', '和衷共济',
+    '舍己为人', '舍己救人', '舍生忘死', '舍近求远', '舍本逐末', '恋恋不舍', '依依不舍', '锲而不舍',
+    '强人所难', '强词夺理', '牵强附会', '自强不息', '发愤图强', '奋发图强', '奋发向上', '奋勇向前',
+    '英勇无畏', '英勇善战', '英雄本色', '豪言壮语', '壮志未酬', '雄心壮志', '雄才大略', '波澜壮阔',
+    '波涛汹涌', '力挽狂澜', '力争上游', '力所能及', '力不从心', '全力以赴', '尽力而为', '自食其力',
+    '自力更生', '自暴自弃', '自由自在', '自言自语', '自作自受', '自作聪明', '自以为是', '自命不凡',
+    '自欺欺人', '自相矛盾', '自圆其说', '自寻烦恼', '自讨苦吃', '自惭形秽', '自告奋勇', '自得其乐',
+    '自高自大', '自私自利', '自吹自擂', '好事多磨', '好高骛远', '好逸恶劳', '好大喜功', '好为人师',
+    '好吃懒做', '善解人意', '善罢甘休', '从善如流', '尽善尽美', '多多益善', '惩恶扬善', '疾恶如仇',
+    '深恶痛绝', '无恶不作', '恶贯满盈', '恶语相向', '实事求是', '老老实实', '踏踏实实', '认认真真',
+    '兢兢业业', '勤勤恳恳', '任劳任怨', '埋头苦干', '含辛茹苦', '艰苦奋斗', '吃苦耐劳', '彬彬有礼',
+    '落落大方', '文质彬彬', '温文尔雅', '通情达理', '合情合理', '尊老爱幼', '尊师重道', '礼尚往来',
+    '先来后到', '先人后己', '先见之明', '先发制人', '先声夺人', '先斩后奏', '先礼后兵', '未卜先知',
+    '敬而远之', '足智多谋', '智勇双全', '大智若愚', '急中生智', '才华横溢', '才高八斗', '才貌双全',
+    '博学多才', '博大精深', '博古通今', '见多识广', '学识渊博', '学富五车', '学以致用', '勤学好问',
+    '勤能补拙', '勤俭节约', '勤俭持家', '学无止境', '温故知新', '举一反三', '触类旁通', '融会贯通',
+    '无师自通', '不耻下问', '循序渐进', '循循善诱', '因材施教', '寓教于乐', '教学相长', '茅塞顿开',
+    '恍然大悟', '豁然开朗', '抛砖引玉', '集思广益', '群策群力', '独具匠心', '别具一格', '别出心裁',
+    '标新立异', '独树一帜', '独一无二', '独具慧眼', '神机妙算', '神通广大', '料事如神', '出神入化',
+    '神采飞扬', '神采奕奕', '神清气爽', '神魂颠倒', '貌合神离', '怡然自得', '悠然自得', '焕然一新',
+    '昭然若揭', '井然有序', '浑然天成', '恍如隔世', '油然而生', '肃然起敬', '泰然处之', '截然不同',
+    '迥然不同', '幡然醒悟', '蔚然成风', '依然如故', '谦虚谨慎', '戒骄戒躁', '不骄不躁', '骄傲自满',
+    '引以为戒', '引人注目', '引人入胜', '引经据典', '引火烧身', '引吭高歌', '沾沾自喜', '得意忘形',
+    '得意洋洋', '粗心大意', '粗枝大叶', '粗茶淡饭', '粗制滥造', '骄兵必败', '哀兵必胜',
+    /* —— 生 死 病 药 —— */
+    '生死攸关', '生死存亡', '生死与共', '生离死别', '生老病死', '生机勃勃', '起死回生', '死里逃生',
+    '死去活来', '死心塌地', '死气沉沉', '死不瞑目', '宁死不屈', '视死如归', '出生入死', '至死不渝',
+    '誓不罢休', '药到病除', '对症下药', '病入膏肓', '无病呻吟', '治病救人', '救死扶伤', '讳疾忌医',
+    '不可救药', '有备无患', '防患未然', '防微杜渐',
+    /* —— 战 争 兵 法 —— */
+    '战无不胜', '攻无不克', '南征北战', '背水一战', '决一死战', '争分夺秒', '争先恐后', '明争暗斗',
+    '暗箭伤人', '暗箭难防', '明枪暗箭', '草船借箭', '归心似箭', '一箭之仇', '明察暗访', '明知故犯',
+    '明知故问', '明辨是非', '是非分明', '是非曲直', '颠倒是非', '无事生非', '惹是生非', '独断专行',
+    '南辕北辙', '南柯一梦', '寿比南山', '走南闯北', '东张西望', '东奔西走', '东倒西歪', '东拉西扯',
+    '声东击西', '东窗事发', '东施效颦', '左顾右盼', '左右逢源', '左邻右舍', '左思右想', '旁敲侧击',
+    '旁征博引', '穷途末路', '穷凶极恶', '无穷无尽', '回味无穷', '层出不穷', '变化多端', '变幻莫测',
+    '谈古论今', '古往今来', '古今中外', '古色古香', '古道热肠', '古为今用', '今非昔比', '忆苦思甜',
+    '苦尽甘来', '同甘共苦', '苦中作乐',
+    /* —— 高 低 大 小 多 少 老 少 —— */
+    '高瞻远瞩', '高谈阔论', '高高在上', '高不可攀', '高深莫测', '高枕无忧', '高朋满座', '高抬贵手',
+    '高楼大厦', '居高临下', '至高无上', '步步高升', '步步为营', '远走高飞', '远见卓识', '远近闻名',
+    '近水楼台', '近在咫尺', '深入浅出', '深谋远虑', '深居简出', '深思熟虑', '深更半夜', '情深义重',
+    '发人深省', '深明大义', '低声下气', '大公无私', '大义灭亲', '大义凛然', '大显神通', '大模大样',
+    '大摇大摆', '大彻大悟', '大器晚成', '大材小用', '大同小异', '大张旗鼓', '大势所趋', '大势已去',
+    '大庭广众', '大失所望', '大有人在', '大有作为', '大名鼎鼎', '大刀阔斧', '大动干戈', '大腹便便',
+    '大喊大叫', '大祸临头', '大快人心', '大逆不道', '大声疾呼', '大放异彩', '大放厥词', '大言不惭',
+    '大展宏图', '小题大做', '小心翼翼', '小巧玲珑', '小家碧玉', '小菜一碟', '少见多怪', '少年老成',
+    '老少皆宜', '老当益壮', '老谋深算', '老气横秋', '老泪纵横', '老骥伏枥', '老生常谈', '男耕女织',
+    '男女老少', '童叟无欺', '返老还童', '童言无忌', '童心未泯', '娇生惯养', '养尊处优', '养精蓄锐',
+    '养虎为患', '缺衣少食', '丰衣足食', '节衣缩食', '食不果腹', '饥不择食', '画饼充饥', '锦衣玉食',
+    '茶余饭后', '良辰美景', '美轮美奂', '完美无缺', '物美价廉', '美不胜收',
+    /* —— 家 国 天 下 —— */
+    '家喻户晓', '家家户户', '家破人亡', '家常便饭', '家徒四壁', '成家立业', '安家落户', '无家可归',
+    '国泰民安', '国富民强', '国计民生', '保家卫国', '忧国忧民', '祸国殃民', '治国安邦', '国色天香',
+    '名满天下', '举世闻名', '举世无双', '举国上下', '太平盛世', '六畜兴旺', '人丁兴旺', '繁荣昌盛',
+    '繁荣富强', '兴旺发达',
+    /* —— 无 有 不 —— */
+    '无所不能', '无所事事', '无所适从', '无缘无故', '无边无际', '无声无息', '无忧无虑', '无拘无束',
+    '无影无踪', '无情无义', '无依无靠', '无济于事', '无可奈何', '无可挑剔', '无与伦比', '无懈可击',
+    '无微不至', '无话可说', '无动于衷', '无独有偶', '无中生有', '无理取闹', '无精打采', '无孔不入',
+    '无坚不摧', '无奇不有', '有求必应', '有条不紊', '有声有色', '有恃无恐', '有增无减', '有名无实',
+    '有利可图', '有教无类', '有气无力', '有始有终', '有朝一日', '有惊无险', '有模有样', '有血有肉',
+    '有板有眼', '有滋有味', '井井有条', '不由自主', '不知不觉', '不慌不忙', '不紧不慢', '不折不扣',
+    '不屈不挠', '不声不响', '不明不白', '不知所措', '不知所云', '不翼而飞', '不谋而合', '不约而同',
+    '不言而喻', '不欢而散', '不辞而别', '不期而遇', '不寒而栗', '不择手段', '不以为然', '不以为意',
+    '不分彼此', '不相上下', '不可开交', '不可名状', '不可理喻', '不可思议', '不可估量', '不可多得',
+    '不可分割', '不共戴天', '不敢苟同', '不甘示弱', '不甘落后', '不辞劳苦', '不计其数', '不假思索',
+    '不屑一顾', '不堪一击', '不堪设想', '不堪回首', '不堪入目', '不省人事', '不速之客', '不务正业',
+    '不学无术', '不远万里', '不怀好意', '不知好歹', '不知去向', '不切实际', '不合时宜', '不识时务',
+    '不置可否', '不痛不痒', '不打自招', '不攻自破', '不自量力', '不进则退', '不思进取', '不求甚解',
+    '不出所料', '不由分说', '不遗余力', '不着边际', '不同凡响', '非同凡响', '凡夫俗子', '超凡脱俗',
+    '平淡无奇', '平起平坐', '平分秋色', '平安无事', '平铺直叙', '多此一举', '欲盖弥彰',
+    /* —— 事 世 名 恩 义 —— */
+    '事在人为', '事倍功半', '事半功倍', '若无其事', '若有所思', '若隐若现', '若即若离', '郑重其事',
+    '世外桃源', '与世无争', '欺世盗名', '世世代代', '生生世世', '人情世故', '不可一世', '名副其实',
+    '名不虚传', '名列前茅', '名正言顺', '名存实亡', '名落孙山', '闻名遐迩', '驰名中外', '莫名其妙',
+    '实至名归', '徒有虚名', '声名狼藉', '毕恭毕敬', '举棋不定', '举目无亲', '轻而易举', '情投意合',
+    '情不自禁', '情有可原', '情非得已', '两全其美', '委曲求全', '顾全大局', '通力合作', '同舟共济',
+    '患难与共', '患难之交', '患得患失', '掉以轻心', '摇旗呐喊', '摇身一变', '摇摇欲坠', '招摇撞骗',
+    '滥竽充数', '邯郸学步', '自相残杀', '残兵败将', '苟延残喘', '苟且偷生', '不苟言笑', '一本万利',
+    '本末倒置', '变本加厉', '追本溯源', '忘恩负义', '恩将仇报', '感恩戴德', '感恩图报', '恩重如山',
+    '义无反顾', '义不容辞', '见义勇为', '望文生义', '断章取义', '开宗明义', '见利忘义', '利令智昏',
+    '利欲熏心', '急功近利', '功成名就', '功败垂成', '徒劳无功', '劳苦功高', '功德无量', '德才兼备',
+    '德高望重', '以德报怨', '以德服人', '感激不尽', '感同身受', '多才多艺', '多愁善感', '熟 能生巧',
+    /* —— 补充常用（时间/真假/成败/前因后果）—— */
+    '熟能生巧', '废寝忘食', '孜孜不倦', '走投无路', '悬梁刺股', '凿壁偷光', '囊萤映雪',
+    '临危不乱', '动人心弦', '感人至深', '引人深思', '耐人寻味', '意味深长',
+    '情真意切', '真心实意', '实心实意', '先公后私', '假戏真做', '弄假成真',
+    '以假乱真', '去伪存真', '返璞归真', '天真烂漫', '真才实学', '真知灼见', '弄巧成拙', '画地为牢',
+    '指天画地',
+    /* —— 前 后 因 果 —— */
+    '前呼后拥', '前思后想', '前仰后合', '前赴后继', '前车之鉴', '前程似锦', '前功尽弃', '前所未有',
+    '瞻前顾后', '空前绝后', '承上启下', '承前启后', '后来居上', '后起之秀', '后生可畏', '后患无穷',
+    '后顾之忧', '勇往直前', '所向披靡', '所向无敌', '顽固不化', '固执己见', '刚愎自用', '桀骜不驯',
+    '目空一切', '妄自尊大', '妄自菲薄', '夜郎自大', '孤芳自赏', '孤陋寡闻', '寡不敌众', '众叛亲离',
+    '顶礼膜拜', '荣华富贵', '富丽堂皇', '富可敌国', '腰缠万贯', '挥霍无度', '省吃俭用', '精打细算',
+    '细水长流', '细枝末节', '精益求精', '精神抖擞', '精疲力竭', '筋疲力尽', '轻描淡写', '浓墨重彩',
+    '文人墨客', '胸无点墨', '满城风雨', '满载而归', '琳琅满目', '应有尽有', '一应俱全', '包罗万象',
+    '出类拔萃', '出尔反尔', '出其不意', '出奇制胜', '出谋划策', '足不出户', '神出鬼没',
+    /* —— 真 假 虚 实 是 非 —— */
+    '真相大白', '说一不二', '数一数二', '接二连三', '不二法门', '二话不说', '表里如一', '言行一致',
+    '货真价实', '朝思暮想', '想入非非', '非分之想', '想方设法', '将计就计', '运筹帷幄',
+    '决胜千里', '稳操胜券', '反败为胜', '旗开得胜', '旗鼓相当', '偃旗息鼓', '重整旗鼓', '旗帜鲜明',
+    '当机立断', '首当其冲', '身先士卒', '以身作则', '以身试法', '知法犯法', '奉公守法', '假公济私',
+    '开诚布公', '公事公办', '求真务实', '华而不实', '绵里藏针', '针锋相对', '如坐针毡', '灵丹妙药',
+    '痛改前非', '改邪归正', '改过自新', '后悔莫及', '追悔莫及', '悔不当初', '执迷不悟', '始终不渝',
+    '忠贞不渝', '比翼双飞', '相濡以沫', '相敬如宾', '琴瑟和鸣', '琴棋书画', '望尘莫及', '指日可待',
+    '指点迷津', '指桑骂槐', '了如指掌', '醍醐灌顶', '拨乱反正', '尘埃落定', '川流不息', '络绎不绝',
+    '源源不断', '生生不息', '经久不息', '决一雌雄', '你死我活', '泾渭分明', '分门别类', '分道扬镳',
+    '分秒必争', '分崩离析', '难分难舍', '难分难解', '难以置信', '难能可贵', '可歌可泣', '泣不成声',
+    '声嘶力竭', '声势浩大', '浩浩荡荡', '荡然无存', '永垂不朽', '流芳百世', '遗臭万年', '臭名昭著',
+    '臭气熏天', '平白无故', '忍辱负重', '奇耻大辱', '厚颜无耻', '卑鄙无耻', '卑躬屈膝', '能屈能伸',
+    '能说会道', '能言善辩', '巧舌如簧', '能工巧匠', '匠心独运', '洞若观火', '纸醉金迷', '醉生梦死',
+    '酒池肉林', '行尸走肉', '藕断丝连',
+    /* —— 典 故 寓 言 —— */
+    '刻舟求剑', '拔苗助长', '愚公移山', '精卫填海', '夸父逐日', '卧薪尝胆', '破釜沉舟', '完璧归赵',
+    '三顾茅庐', '黔驴技穷', '退避三舍', '约法三章', '破镜重圆', '余音绕梁', '洛阳纸贵',
+    /* —— 自 然 生 活 补 充 —— */
+    '遮天蔽日', '翻箱倒柜', '悬崖勒马', '悬崖峭壁', '如临大敌', '棋逢对手', '望女成凤', '慈眉善目',
+    '数不胜数', '屡见不鲜', '源远流长', '波光粼粼', '奄奄一息',
+    '念念不忘', '记忆犹新', '历历在目', '稍纵即逝', '白驹过隙', '度日如年', '坚如磐石', '稳如泰山',
+    '坚不可摧', '犬牙交错', '参差不齐', '错落有致', '杂乱无章', '糊里糊涂', '似懂非懂', '匪夷所思',
+    '异想天开', '重见天日', '重蹈覆辙', '相辅相成', '相得益彰', '相形见绌', '相安无事', '冷眼旁观',
+    '冷嘲热讽', '心灰意冷', '绝处逢生', '绝无仅有', '与世隔绝', '饱经沧桑', '饱经风霜', '温情脉脉',
+    '含情脉脉', '豪情壮志', '儿女情长', '来日方长', '长吁短叹', '一技之长', '技高一筹', '略胜一筹',
+    '一筹莫展', '斗志昂扬', '昂首挺胸', '昂首阔步', '高歌猛进', '歌舞升平', '载歌载舞', '慷慨激昂',
+    '慷慨解囊', '缓兵之计', '权宜之计', '锦囊妙计', '阴谋诡计', '诡计多端', '尔虞我诈', '暗度陈仓',
+    '陈词滥调', '老调重弹', '朝令夕改', '朝夕相处', '只争朝夕', '与日俱增', '蒸蒸日上', '欣欣向荣',
+    '欣喜若狂', '忘乎所以', '耿耿于怀', '闷闷不乐', '郁郁寡欢', '郁郁葱葱', '苍翠欲滴', '秀外慧中',
+    '秀色可餐', '垂涎三尺', '垂涎欲滴', '洁身自好', '孤苦伶仃', '无能为力'
+  ];
+
+  /* —— 清洗：去重保序（保险起见，运行时兜底去重） —— */
+  var seen = Object.create(null);
+  var clean = [];
+  for (var i = 0; i < list.length; i++) {
+    var w = list[i];
+    if (!seen[w] && /^[\u4e00-\u9fff]{4}$/.test(w)) {
+      seen[w] = true;
+      clean.push(w);
+    }
+  }
+  list = clean;
+
+  /* —— 单字频次统计 → COMMON_CHARS（频次降序，同频按首次出现顺序稳定排列） —— */
+  var freq = Object.create(null);
+  var order = [];
+  for (var m = 0; m < list.length; m++) {
+    var word = list[m];
+    for (var n = 0; n < 4; n++) {
+      var ch = word.charAt(n);
+      if (!freq[ch]) { freq[ch] = 0; order.push(ch); }
+      freq[ch]++;
+    }
+  }
+  var COMMON_CHARS = order.filter(function (c) { return freq[c] >= 2; })
+    .sort(function (a, b) { return freq[b] - freq[a]; });
+  /* 兜底：极端情况下不足 220 字时补入频次为 1 的字，仍保持降序 */
+  if (COMMON_CHARS.length < 220) {
+    COMMON_CHARS = order.slice().sort(function (a, b) { return freq[b] - freq[a]; })
+      .slice(0, Math.max(220, COMMON_CHARS.length));
+  }
+
+  var CY_BANK = { list: list, COMMON_CHARS: COMMON_CHARS };
+
+  if (typeof window !== 'undefined') { window.CY_BANK = CY_BANK; }
+  if (typeof module !== 'undefined' && module.exports) { module.exports = CY_BANK; }
+})();
+
+
+/* ==== audio.js ==== */
+/* eslint-disable */
+// 填成语 · 音效模块（代理B）
+// 全 WebAudio 程序化合成，零外部文件。中国风柔和拨弦（古筝/琵琶质感）+ 木鱼短点。
+// 接口（契约 §2）：
+//   CY.audio = { init, unlock, play(name), setVol({master,sfx,bgm}),
+//                applyOverrides(map), startBgm(), stopBgm(), _lastPlayed }
+// node 环境（无 window/AudioContext）加载与调用均安全降级，不抛错。
+(function (root) {
+  'use strict';
+
+  // ---------- 状态 ----------
+  var S = {
+    ctx: null,          // AudioContext（懒建）
+    master: null,       // 主通道增益
+    sfx: null,          // 音效通道增益
+    bgm: null,          // 背景音乐通道增益
+    vol: { master: 0.9, sfx: 0.8, bgm: 0.25 }, // 与契约 config.audio 默认一致
+    muted: false,
+    bgmOn: false,       // 主线 startBgm() 后为 true，stopBgm()/静音时暂停
+    hidden: false,
+    bgmTimer: null,
+    visInstalled: false
+  };
+
+  // 五声音阶（宫商角徵羽 = C D E G A）常用音高
+  var NOTE = {
+    C4: 261.63, D4: 293.66, E4: 329.63, G4: 392.00, A4: 440.00,
+    C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880.00,
+    C6: 1046.50, D6: 1174.66, E6: 1318.51, G6: 1567.98, A6: 1760.00
+  };
+  var BGM_POOL = [NOTE.C4, NOTE.D4, NOTE.E4, NOTE.G4, NOTE.A4, NOTE.C5, NOTE.D5, NOTE.E5];
+
+  // ---------- 工具 ----------
+  function getAC() {
+    if (typeof window === 'undefined') return null;
+    return window.AudioContext || window.webkitAudioContext || null;
+  }
+  function clamp01(v) {
+    v = Number(v);
+    if (isNaN(v)) return 0;
+    return Math.min(1, Math.max(0, v));
+  }
+
+  function applyGains(smooth) {
+    if (!S.ctx) return;
+    var t = S.ctx.currentTime;
+    try {
+      if (smooth && S.master.gain.setTargetAtTime) {
+        S.master.gain.setTargetAtTime(S.muted ? 0 : S.vol.master, t, 0.02);
+        S.sfx.gain.setTargetAtTime(S.vol.sfx, t, 0.02);
+        S.bgm.gain.setTargetAtTime(S.vol.bgm, t, 0.02);
+      } else {
+        S.master.gain.value = S.muted ? 0 : S.vol.master;
+        S.sfx.gain.value = S.vol.sfx;
+        S.bgm.gain.value = S.vol.bgm;
+      }
+    } catch (err) { /* 降级 */ }
+  }
+
+  // ---------- 合成基元 ----------
+
+  // 拨弦（古筝/琵琶质感）：多泛音正弦 + 低通扫频 + 指甲瞬态噪声
+  function pluck(dest, freq, t0, dur, peak, bendCents, withAttack) {
+    var e = S.ctx;
+    if (!e || !dest) return;
+    var g = e.createGain();
+    var lp = e.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.Q.value = 0.6;
+    var fStart = Math.min(freq * 9, 8500);
+    var fEnd = Math.max(Math.min(freq * 2.2, 4200), 80);
+    lp.frequency.setValueAtTime(fStart, t0);
+    lp.frequency.exponentialRampToValueAtTime(fEnd, t0 + dur * 0.85);
+
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(peak, t0 + 0.007);
+    g.gain.exponentialRampToValueAtTime(0.0006, t0 + dur);
+
+    g.connect(lp);
+    lp.connect(dest);
+
+    var PARTIALS = [[1, 1.0], [2, 0.40], [3, 0.15], [4.02, 0.06]];
+    for (var i = 0; i < PARTIALS.length; i++) {
+      var mult = PARTIALS[i][0], amt = PARTIALS[i][1];
+      var o = e.createOscillator();
+      o.type = 'sine';
+      var f = freq * mult;
+      o.frequency.setValueAtTime(f, t0);
+      if (bendCents) { // 负值 = 轻微下滑（叹气感）
+        o.frequency.exponentialRampToValueAtTime(f * Math.pow(2, bendCents / 1200), t0 + dur);
+      }
+      var og = e.createGain();
+      og.gain.value = amt;
+      o.connect(og);
+      og.connect(g);
+      o.start(t0);
+      o.stop(t0 + dur + 0.06);
+    }
+    if (withAttack) {
+      attackNoise(dest, Math.min(freq * 3.2, 6500), t0, Math.min(peak * 0.22, 0.12));
+    }
+  }
+
+  // 拨弦起振的指甲瞬态（极短带通噪声）
+  function attackNoise(dest, freq, t0, amt) {
+    var e = S.ctx;
+    if (!e || !dest || amt <= 0) return;
+    var n = Math.max(64, Math.floor(e.sampleRate * 0.018));
+    var buf = e.createBuffer(1, n, e.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    var src = e.createBufferSource();
+    src.buffer = buf;
+    var bp = e.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = freq;
+    bp.Q.value = 1.1;
+    var g = e.createGain();
+    g.gain.setValueAtTime(amt, t0);
+    g.gain.exponentialRampToValueAtTime(0.0005, t0 + 0.025);
+    src.connect(bp);
+    bp.connect(g);
+    g.connect(dest);
+    src.start(t0);
+  }
+
+  // 柔和噪声洗（用于 wrong 的轻微噪声层）
+  function noiseWash(dest, freq, t0, dur, amt) {
+    var e = S.ctx;
+    if (!e || !dest || amt <= 0) return;
+    var n = Math.max(64, Math.floor(e.sampleRate * dur));
+    var buf = e.createBuffer(1, n, e.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < n; i++) {
+      var k = 1 - i / n;
+      d[i] = (Math.random() * 2 - 1) * k * k;
+    }
+    var src = e.createBufferSource();
+    src.buffer = buf;
+    var lp = e.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = freq;
+    var g = e.createGain();
+    g.gain.setValueAtTime(amt, t0);
+    g.gain.exponentialRampToValueAtTime(0.0005, t0 + dur);
+    src.connect(lp);
+    lp.connect(g);
+    g.connect(dest);
+    src.start(t0);
+  }
+
+  // 铃（加分音列的高频泛音，清而不刺）
+  function bellTone(dest, freq, t0, dur, peak) {
+    var e = S.ctx;
+    if (!e || !dest) return;
+    var g = e.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(peak, t0 + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0005, t0 + dur);
+    g.connect(dest);
+    var PARTS = [[1, 1.0], [2.756, 0.32], [5.404, 0.10], [8.933, 0.04]];
+    for (var i = 0; i < PARTS.length; i++) {
+      var o = e.createOscillator();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(freq * PARTS[i][0], t0);
+      var og = e.createGain();
+      og.gain.value = PARTS[i][1];
+      o.connect(og);
+      og.connect(g);
+      o.start(t0);
+      o.stop(t0 + dur + 0.06);
+    }
+  }
+
+  // ---------- 具体音效 ----------
+
+  // tap：木鱼式极短轻点（约 50ms，柔和）
+  function sTap(t0) {
+    var dest = S.sfx;
+    var o = S.ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(1150, t0);
+    o.frequency.exponentialRampToValueAtTime(780, t0 + 0.04);
+    var g = S.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(0.30, t0 + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0008, t0 + 0.05);
+    o.connect(g);
+    g.connect(dest);
+    o.start(t0);
+    o.stop(t0 + 0.09);
+    attackNoise(dest, 2600, t0, 0.05);
+  }
+
+  // wrong：低频闷响 + 轻微噪声（约 150ms，不刺耳）
+  function sWrong(t0) {
+    var dest = S.sfx;
+    var o = S.ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(165, t0);
+    o.frequency.exponentialRampToValueAtTime(105, t0 + 0.13);
+    var lp = S.ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 380;
+    lp.Q.value = 0.5;
+    var g = S.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(0.50, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0008, t0 + 0.15);
+    o.connect(lp);
+    lp.connect(g);
+    g.connect(dest);
+    o.start(t0);
+    o.stop(t0 + 0.2);
+    noiseWash(dest, 320, t0, 0.09, 0.10);
+  }
+
+  // correct：宫→徵 双音上行拨弦（C5→G5）
+  function sCorrect(t0) {
+    pluck(S.sfx, NOTE.C5, t0, 0.7, 0.50, 0, true);
+    pluck(S.sfx, NOTE.G5, t0 + 0.09, 0.95, 0.55, 0, true);
+  }
+
+  // milestone：两记高音铃 + 短琶音（金币到账感）
+  function sMilestone(t0) {
+    bellTone(S.sfx, NOTE.C6, t0, 0.5, 0.32);
+    bellTone(S.sfx, NOTE.E6, t0 + 0.11, 0.5, 0.30);
+    var arp = [NOTE.G5, NOTE.A5, NOTE.C6, NOTE.E6];
+    for (var i = 0; i < arp.length; i++) {
+      pluck(S.sfx, arp[i], t0 + 0.26 + i * 0.06, 0.55, 0.26, 0, false);
+    }
+  }
+
+  // win：五声音阶四音上行 + 高八度长尾音（衰减尾音模拟混响感）
+  function sWin(t0) {
+    var seq = [NOTE.C5, NOTE.D5, NOTE.E5, NOTE.G5];
+    for (var i = 0; i < seq.length; i++) {
+      pluck(S.sfx, seq[i], t0 + i * 0.12, 0.6, 0.45, 0, true);
+    }
+    pluck(S.sfx, NOTE.C6, t0 + 0.5, 1.7, 0.30, 0, false); // 长衰减收尾
+    pluck(S.sfx, NOTE.G5, t0 + 0.52, 1.4, 0.18, 0, false);
+  }
+
+  // fail：下行两音轻叹（徵→角，带下滑音头）
+  function sFail(t0) {
+    pluck(S.sfx, NOTE.G4, t0, 0.7, 0.38, -50, false);
+    pluck(S.sfx, NOTE.E4, t0 + 0.24, 1.0, 0.34, -70, false);
+  }
+
+  // coin：清脆高频短叮
+  function sCoin(t0) {
+    bellTone(S.sfx, NOTE.G6, t0, 0.28, 0.30);
+    attackNoise(S.sfx, 5200, t0, 0.04);
+  }
+
+  // hint：星光三连高音（快速上行）
+  function sHint(t0) {
+    var seq = [NOTE.C6, NOTE.E6, NOTE.G6];
+    for (var i = 0; i < seq.length; i++) {
+      bellTone(S.sfx, seq[i], t0 + i * 0.06, 0.3, 0.22);
+    }
+  }
+
+  var SFX = {
+    tap: sTap,
+    correct: sCorrect,
+    wrong: sWrong,
+    milestone: sMilestone,
+    win: sWin,
+    fail: sFail,
+    coin: sCoin,
+    hint: sHint
+  };
+
+  // ---------- BGM ----------
+  // 极轻的古风五声音阶拨弦循环：随机宫商角徵羽 + 长衰减，间隔 0.6~1.2s，默认音量很低。
+  function playBgmNote() {
+    if (!S.ctx || !S.bgm || S.muted) return;
+    var t0 = S.ctx.currentTime + 0.02;
+    var f = BGM_POOL[Math.floor(Math.random() * BGM_POOL.length)];
+    pluck(S.bgm, f, t0, 1.5 + Math.random() * 1.0, 0.22, 0, false);
+    if (Math.random() < 0.3) { // 偶尔纯五度点缀，古筝轮指感
+      pluck(S.bgm, f * 1.5, t0 + 0.07, 1.3 + Math.random(), 0.12, 0, false);
+    }
+  }
+
+  function pauseBgm() {
+    if (S.bgmTimer != null) {
+      clearTimeout(S.bgmTimer);
+      S.bgmTimer = null;
+    }
+  }
+
+  function scheduleBgm() {
+    if (!S.ctx || !S.bgmOn || S.muted || S.hidden) return;
+    pauseBgm();
+    S.bgmTimer = setTimeout(function () {
+      S.bgmTimer = null;
+      playBgmNote();
+      scheduleBgm();
+    }, 600 + Math.floor(Math.random() * 600));
+  }
+
+  function onVisibility() {
+    if (typeof document === 'undefined') return;
+    S.hidden = !!document.hidden;
+    if (S.hidden) {
+      pauseBgm(); // hidden 停 BGM
+    } else if (S.bgmOn && !S.muted) {
+      scheduleBgm(); // visible 且未静音时恢复
+    }
+  }
+
+  // ---------- 对外接口 ----------
+
+  function init() {
+    if (S.ctx) { applyGains(false); return; }
+    var AC = getAC();
+    if (!AC) return; // node / 老环境：安全降级
+    try {
+      S.ctx = new AC();
+    } catch (err) {
+      S.ctx = null;
+      return;
+    }
+    if (!S.ctx || !S.ctx.createGain) { S.ctx = null; return; }
+    S.master = S.ctx.createGain();
+    S.sfx = S.ctx.createGain();
+    S.bgm = S.ctx.createGain();
+    S.sfx.connect(S.master);
+    S.bgm.connect(S.master);
+    S.master.connect(S.ctx.destination);
+    S.hidden = (typeof document !== 'undefined') ? !!document.hidden : false;
+    applyGains(false);
+    if (!S.visInstalled && typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('visibilitychange', onVisibility);
+      S.visInstalled = true;
+    }
+  }
+
+  // 幂等：重复调用无副作用；恢复 suspended context
+  function unlock() {
+    if (!S.ctx) init();
+    if (S.ctx && S.ctx.state === 'suspended' && typeof S.ctx.resume === 'function') {
+      try {
+        var p = S.ctx.resume();
+        if (p && typeof p.catch === 'function') p.catch(function () {});
+      } catch (err) { /* 降级 */ }
+    }
+  }
+
+  // 未知名字安全 no-op；_lastPlayed 记录最近一次合法播放名
+  function play(name) {
+    var fn = SFX[name];
+    if (!fn) return; // 未知名：纯 no-op，不动 _lastPlayed
+    audio._lastPlayed = name;
+    if (!S.ctx) init();
+    if (!S.ctx || S.muted) return; // node / 静音：安全降级
+    try {
+      if (S.ctx.state === 'suspended' && typeof S.ctx.resume === 'function') {
+        var p = S.ctx.resume();
+        if (p && typeof p.catch === 'function') p.catch(function () {});
+      }
+    } catch (err) { /* 降级 */ }
+    try {
+      fn(S.ctx.currentTime + 0.015);
+    } catch (err) { /* 合成失败不影响游戏 */ }
+  }
+
+  function setVol(v) {
+    if (!v || typeof v !== 'object') return;
+    if (typeof v.master === 'number') S.vol.master = clamp01(v.master);
+    if (typeof v.sfx === 'number') S.vol.sfx = clamp01(v.sfx);
+    if (typeof v.bgm === 'number') S.vol.bgm = clamp01(v.bgm);
+    applyGains(true);
+  }
+
+  // {muted:true} 全部静音（master 归零 + BGM 暂停）；muted:false 恢复
+  function applyOverrides(map) {
+    if (!map || typeof map !== 'object') return;
+    if (typeof map.muted === 'boolean') {
+      S.muted = map.muted;
+      applyGains(true);
+      if (S.muted) {
+        pauseBgm();
+      } else if (S.bgmOn && !S.hidden) {
+        scheduleBgm();
+      }
+    }
+  }
+
+  // BGM 起播由主线在 init 后决定时调用；node 环境仅记账不发声
+  function startBgm() {
+    S.bgmOn = true;
+    if (!S.ctx) init();
+    if (!S.ctx) return;
+    if (!S.muted && !S.hidden) {
+      playBgmNote();
+      scheduleBgm();
+    }
+  }
+
+  function stopBgm() {
+    S.bgmOn = false;
+    pauseBgm();
+  }
+
+  var audio = {
+    _lastPlayed: null,
+    init: init,
+    unlock: unlock,
+    play: play,
+    setVol: setVol,
+    applyOverrides: applyOverrides,
+    startBgm: startBgm,
+    stopBgm: stopBgm
+  };
+
+  root.CY = root.CY || {};
+  root.CY.audio = audio;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = (typeof window !== 'undefined' ? window : globalThis).CY.audio;
+}
+
+
+/* ==== logic.js ==== */
+/* 填成语 — 出题引擎与可行性分析（纯函数、无 DOM、node 可测） */
+(function () {
+  'use strict';
+
+  /* ---------- 随机与哈希 ---------- */
+  function rng32(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function fnv1a(str) {
+    var h = 0x811c9dc5;
+    str = String(str == null ? '' : str);
+    for (var i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+    return h >>> 0;
+  }
+  function shuffle(arr, rng) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(rng() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+  function K(r, c) { return r + ',' + c; }
+  var BIT_H = 1, BIT_V = 2;
+  function dirBit(d) { return d === 'H' ? BIT_H : BIT_V; }
+
+  /* ---------- 网格摆放 ----------
+   * cells: Map "r,c" -> {ch, dirs, r, c}
+   * 硬规则（与参考游戏一致，词与词只允许十字交叉，不允许并排贴边）：
+   *  1. 已占格字符必须相同，且同一方向上不允许重叠
+   *  2. 词首前/词尾后一格必须为空（防止连读成 5+ 字）
+   *  3. 新占格的垂直于词方向的相邻格必须为空（防止贴边并排）
+   * 返回新占格坐标数组（[r,c,...]），不合法返回 null */
+  function canPlace(cells, w, r, c, dir) {
+    var dr = dir === 'V' ? 1 : 0, dc = dir === 'H' ? 1 : 0;
+    var fresh = [];
+    for (var i = 0; i < w.length; i++) {
+      var rr = r + dr * i, cc = c + dc * i;
+      var cell = cells.get(K(rr, cc));
+      if (cell) {
+        if (cell.ch !== w[i]) return null;
+        if (cell.dirs & dirBit(dir)) return null;
+      } else fresh.push(rr, cc);
+    }
+    if (cells.has(K(r - dr, c - dc))) return null;
+    if (cells.has(K(r + dr * w.length, c + dc * w.length))) return null;
+    var pr = dc, pc = dr;
+    for (var j = 0; j < fresh.length; j += 2) {
+      var fr = fresh[j], fc = fresh[j + 1];
+      if (cells.has(K(fr + pr, fc + pc))) return null;
+      if (cells.has(K(fr - pr, fc - pc))) return null;
+    }
+    return fresh;
+  }
+  function applyPlace(cells, w, r, c, dir, wi) {
+    var dr = dir === 'V' ? 1 : 0, dc = dir === 'H' ? 1 : 0;
+    for (var i = 0; i < w.length; i++) {
+      var rr = r + dr * i, cc = c + dc * i, k = K(rr, cc);
+      var cell = cells.get(k);
+      if (!cell) { cell = { ch: w[i], dirs: 0, r: rr, c: cc }; cells.set(k, cell); }
+      cell.dirs |= dirBit(dir);
+    }
+  }
+
+  /* ---------- 生成核心：贪心扩叉 ----------
+   * 从一粒种子词开始，反复挑选交叉机会点放入新成语，直到 target 个或无路可走。
+   * budget(now()、iters) 可选，返回 false 中止。 */
+  function generateCore(rng, list, target, maxSpan, budget) {
+    if (!list || !list.length) {
+      return { words: [], cells: new Map(), complete: false, iters: 0 };
+    }
+    target = Math.max(1, Math.min(target, list.length));
+    var byChar = new Map();
+    for (var wi = 0; wi < list.length; wi++) {
+      var w = list[wi];
+      for (var p = 0; p < w.length; p++) {
+        var ch = w[p];
+        var arr = byChar.get(ch);
+        if (!arr) { arr = []; byChar.set(ch, arr); }
+        arr.push({ wi: wi, p: p });
+      }
+    }
+    var cells = new Map(), words = [], used = new Set();
+    var ops = [], dead = {};
+    var minR = 0, maxR = 0, minC = 0, maxC = 0;
+    var iters = 0;
+    function overBudget() {
+      iters++;
+      return budget ? !budget(iters) : false;
+    }
+    function addOps(wi) {
+      var wd = words[wi];
+      var dir = wd.dir === 'H' ? 'V' : 'H';
+      for (var i = 0; i < wd.w.length; i++) {
+        var rr = wd.r + (wd.dir === 'V' ? i : 0), cc = wd.c + (wd.dir === 'H' ? i : 0);
+        var ok = true;
+        for (var q = 0; q < ops.length; q++) {
+          if (ops[q].r === rr && ops[q].c === cc && ops[q].dir === dir) { ok = false; break; }
+        }
+        if (ok) ops.push({ r: rr, c: cc, dir: dir });
+      }
+    }
+    var wi0 = Math.floor(rng() * list.length);
+    applyPlace(cells, list[wi0], 0, 0, 'H');
+    used.add(wi0);
+    words.push({ w: list[wi0], r: 0, c: 0, dir: 'H' });
+    addOps(0);
+
+    while (words.length < target && ops.length) {
+      if (overBudget()) break;
+      /* 机会点：洗牌后按“到重心距离+抖动”排序，保持字形紧凑 */
+      shuffle(ops, rng);
+      var sr = 0, sc = 0, n = 0;
+      cells.forEach(function (cell) { sr += cell.r; sc += cell.c; n++; });
+      sr /= n; sc /= n;
+      ops.sort(function (a, b) {
+        return (Math.abs(a.r - sr) + Math.abs(a.c - sc) + rng() * 2.5) -
+               (Math.abs(b.r - sr) + Math.abs(b.c - sc) + rng() * 2.5);
+      });
+      var placedAny = false;
+      for (var oi = 0; oi < ops.length; oi++) {
+        var op = ops[oi];
+        var opKey = op.r + ',' + op.c + ',' + op.dir;
+        if (dead[opKey]) continue;
+        var cell = cells.get(K(op.r, op.c));
+        if (cell.dirs & dirBit(op.dir)) { dead[opKey] = 1; continue; }
+        var cands = (byChar.get(cell.ch) || []).slice();
+        shuffle(cands, rng);
+        var done = false;
+        for (var ci = 0; ci < cands.length; ci++) {
+          if (overBudget()) return finish();
+          var cand = cands[ci];
+          if (used.has(cand.wi)) continue;
+          var w = list[cand.wi];
+          var r = op.dir === 'V' ? op.r - cand.p : op.r;
+          var c = op.dir === 'H' ? op.c - cand.p : op.c;
+          var dr = op.dir === 'V' ? 1 : 0, dc = op.dir === 'H' ? 1 : 0;
+          var nrMin = Math.min(minR, r), nrMax = Math.max(maxR, r + dr * (w.length - 1));
+          var ncMin = Math.min(minC, c), ncMax = Math.max(maxC, c + dc * (w.length - 1));
+          if (nrMax - nrMin + 1 > maxSpan || ncMax - ncMin + 1 > maxSpan) continue;
+          if (!canPlace(cells, w, r, c, op.dir)) continue;
+          applyPlace(cells, w, r, c, op.dir);
+          used.add(cand.wi);
+          words.push({ w: w, r: r, c: c, dir: op.dir });
+          minR = nrMin; maxR = nrMax; minC = ncMin; maxC = ncMax;
+          addOps(words.length - 1);
+          done = true; placedAny = true;
+          break;
+        }
+        if (done) { ops.splice(oi, 1); break; }
+        dead[opKey] = 1;
+      }
+      if (!placedAny) break;
+    }
+    function finish() {
+      return { words: words, cells: cells, complete: words.length >= target, iters: iters };
+    }
+    return finish();
+  }
+
+  /* ---------- 对外：按关卡种子出题 ---------- */
+  /* opt: {seed, count, maxSpan, list, tries} → {words:[{w,r,c,dir}], cells:Map, complete} */
+  function genPuzzle(opt) {
+    var list = opt.list, count = Math.max(1, opt.count | 0);
+    var maxSpan = opt.maxSpan || 9, tries = opt.tries || 40;
+    var best = null;
+    for (var t = 0; t < tries; t++) {
+      var rng = rng32((opt.seed >>> 0) ^ Math.imul(t + 1, 0x9E3779B9));
+      var res = generateCore(rng, list, count, maxSpan);
+      if (!best || res.words.length > best.words.length) best = res;
+      if (best.words.length >= count) break;
+    }
+    return best;
+  }
+
+  /* ---------- 定稿：归一化坐标 + 预给字 + 候选池 ----------
+   * opt: {words, seed, givenRatio, distractorBank}
+   * → {seed, words(归一), cells{"r,c":{ch,given,words}}, pool:[ch], distractorCount} */
+  function finalizePuzzle(opt) {
+    var words = opt.words;
+    var minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity;
+    words.forEach(function (x) {
+      for (var i = 0; i < x.w.length; i++) {
+        var rr = x.r + (x.dir === 'V' ? i : 0), cc = x.c + (x.dir === 'H' ? i : 0);
+        if (rr < minR) minR = rr; if (rr > maxR) maxR = rr;
+        if (cc < minC) minC = cc; if (cc > maxC) maxC = cc;
+      }
+    });
+    var W = words.map(function (x) { return { w: x.w, r: x.r - minR, c: x.c - minC, dir: x.dir }; });
+    var cells = {};
+    W.forEach(function (x, wi) {
+      for (var i = 0; i < x.w.length; i++) {
+        var rr = x.r + (x.dir === 'V' ? i : 0), cc = x.c + (x.dir === 'H' ? i : 0), k = K(rr, cc);
+        var cell = cells[k];
+        if (!cell) { cell = { ch: x.w[i], given: 0, words: [] }; cells[k] = cell; }
+        cell.words.push({ wi: wi, i: i });
+      }
+    });
+    var rng = rng32((opt.seed >>> 0) ^ 0x51ed270b);
+    var ratio = opt.givenRatio == null ? 0.3 : opt.givenRatio;
+    var order = W.map(function (_, i) { return i; });
+    shuffle(order, rng);
+    order.forEach(function (wi) {
+      var x = W[wi];
+      var idxs = [0, 1, 2, 3];
+      shuffle(idxs, rng);
+      var n = Math.max(1, Math.min(3, Math.round(ratio * 4)));
+      for (var q = 0; q < idxs.length && n > 0; q++) {
+        var rr = x.r + (x.dir === 'V' ? idxs[q] : 0), cc = x.c + (x.dir === 'H' ? idxs[q] : 0);
+        var cell = cells[K(rr, cc)];
+        if (!cell.given) { cell.given = 1; n--; }
+      }
+    });
+    /* 兜底：某词四格全被（含交叉）预给 → 让出一格 */
+    W.forEach(function (x) {
+      var ks = [];
+      for (var i = 0; i < 4; i++) ks.push(K(x.r + (x.dir === 'V' ? i : 0), x.c + (x.dir === 'H' ? i : 0)));
+      var allGiven = ks.every(function (k) { return cells[k].given; });
+      if (allGiven) cells[ks[Math.floor(rng() * 4)]].given = 0;
+    });
+    var needed = [], neededSet = {};
+    for (var k in cells) {
+      if (!cells[k].given) { needed.push(cells[k].ch); neededSet[cells[k].ch] = 1; }
+    }
+    var bank = opt.distractorBank || [];
+    var eligible = bank.filter(function (ch) { return !neededSet[ch]; });
+    shuffle(eligible, rng);
+    var dn = Math.ceil(needed.length / 2) + 1;
+    var distractors = eligible.slice(0, dn);
+    var pool = shuffle(needed.concat(distractors), rng);
+    return { seed: opt.seed >>> 0, words: W, cells: cells, pool: pool, distractorCount: distractors.length };
+  }
+
+  /* ---------- 独立校验（测试用） ----------
+   * pz: {words, cells(plain obj)} → {ok, errors[]} */
+  function validateGrid(pz) {
+    var errors = [];
+    var cells = new Map();
+    pz.words.forEach(function (x, wi) {
+      if (!/^[\u4e00-\u9fff]{4}$/.test(x.w)) errors.push('词非法:' + x.w);
+      for (var i = 0; i < x.w.length; i++) {
+        var rr = x.r + (x.dir === 'V' ? i : 0), cc = x.c + (x.dir === 'H' ? i : 0), k = K(rr, cc);
+        var cell = cells.get(k);
+        if (!cell) { cell = { ch: x.w[i], dirs: 0, words: [] }; cells.set(k, cell); }
+        if (cell.ch !== x.w[i]) errors.push('交叉字符冲突@' + k);
+        if (cell.dirs & dirBit(x.dir)) errors.push('同向重叠@' + k + ' 词' + wi);
+        cell.dirs |= dirBit(x.dir);
+        cell.words.push(wi);
+      }
+      if (cells.has(K(x.r - (x.dir === 'V' ? 1 : 0), x.c - (x.dir === 'H' ? 1 : 0)))) errors.push('词首粘连:' + x.w);
+      if (cells.has(K(x.r + (x.dir === 'V' ? 4 : 0), x.c + (x.dir === 'H' ? 4 : 0)))) errors.push('词尾粘连:' + x.w);
+    });
+    cells.forEach(function (cell, k) {
+      var parts = k.split(',');
+      var r = +parts[0], c = +parts[1];
+      if ((cell.dirs & BIT_H) && (cells.has(K(r, c - 1)) || cells.has(K(r, c + 1)))) {
+        /* 左右邻存在 → 它们必须属于本词（由词内相邻必然在 map 中）——
+           这里只需查：本格有 H 词时，左右邻若在 map 中必须也有 H 词且与本格同词，简化为：邻格必须在词表上与本格连通 */
+      }
+    });
+    /* 贴边检查：每格的每个方向邻居若存在，本格必须有对应方向词，且邻居格与本格同属一个词 */
+    cells.forEach(function (cell, k) {
+      var parts = k.split(',');
+      var r = +parts[0], c = +parts[1];
+      [[1, 0, BIT_V], [-1, 0, BIT_V], [0, 1, BIT_H], [0, -1, BIT_H]].forEach(function (d) {
+        var nk = K(r + d[0], c + d[1]);
+        var nb = cells.get(nk);
+        if (!nb) return;
+        var share = cell.words.some(function (wi) { return nb.words.indexOf(wi) >= 0; });
+        if (!share) errors.push('并排贴边@' + k + '->' + nk);
+      });
+    });
+    /* 预给字符一致性 */
+    if (pz.cells) {
+      cells.forEach(function (cell, k) {
+        var g = pz.cells[k];
+        if (g && g.ch !== cell.ch) errors.push('cells 字符不一致@' + k);
+      });
+      for (var k2 in pz.cells) {
+        if (!cells.has(k2)) errors.push('cells 多出格@' + k2);
+      }
+    }
+    /* 连通性：除单词外，所有词须共字连通 */
+    if (pz.words.length > 1) {
+      var parent = pz.words.map(function (_, i) { return i; });
+      function find(x) { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; }
+      cells.forEach(function (cell) {
+        for (var i = 1; i < cell.words.length; i++) {
+          var a = find(cell.words[0]), b = find(cell.words[i]);
+          if (a !== b) parent[a] = b;
+        }
+      });
+      var root = find(0);
+      for (var i = 1; i < pz.words.length; i++) {
+        if (find(i) !== root) { errors.push('词不连通:' + pz.words[i].w); break; }
+      }
+    }
+    return { ok: errors.length === 0, errors: errors };
+  }
+
+  /* ---------- 自定义词库可行性分析 ---------- */
+  /* 返回 {parsed, valid, invalid, duplicates, isolated, placement{placed,unplaced,ms,iters}, verdict, adopt} */
+  function analyzeImport(text, opt) {
+    opt = opt || {};
+    var maxMs = opt.maxMs || 1500, maxIters = opt.maxIters || 250000;
+    var tries = opt.tries || 12, maxSpan = opt.maxSpan || 9;
+    var t0 = Date.now();
+    var tokens = String(text || '')
+      .split(/[\s,，、;；:：!！?？.。·•\-—_|]+/)
+      .map(function (s) { return s.trim(); })
+      .filter(Boolean);
+    var valid = [], invalid = [], duplicates = [];
+    var seen = {};
+    tokens.forEach(function (tk) {
+      var w = tk.replace(/^[「『【(''“‘<《]+|[」』】)''”’>》]+$/g, '');
+      if (!w) return;
+      if (!/^[\u4e00-\u9fff]+$/.test(w)) { invalid.push({ w: tk, reason: '含非汉字字符' }); return; }
+      if (w.length !== 4) { invalid.push({ w: w, reason: '不是四个字' }); return; }
+      if (seen[w]) { duplicates.push(w); return; }
+      seen[w] = 1; valid.push(w);
+    });
+    /* 共字并查集 → 孤立词识别 */
+    var parent = valid.map(function (_, i) { return i; });
+    function find(x) { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; }
+    function union(a, b) { a = find(a); b = find(b); if (a !== b) parent[a] = b; }
+    var charNode = new Map();
+    valid.forEach(function (w, i) {
+      for (var p = 0; p < w.length; p++) {
+        var ch = w[p];
+        var n = charNode.get(ch);
+        if (n === undefined) { n = valid.length + charNode.size; charNode.set(ch, n); parent[n] = n; }
+        union(i, n);
+      }
+    });
+    var compSize = {};
+    valid.forEach(function (_, i) {
+      var rt = find(i);
+      compSize[rt] = (compSize[rt] || 0) + 1;
+    });
+    var isolated = [], pool = [];
+    valid.forEach(function (w, i) {
+      if (compSize[find(i)] === 1) isolated.push(w); else pool.push(w);
+    });
+    /* 摆放求解：多种子贪心，保留最大可行子集。
+       跨度自适应：池子大时自动放大网格（9×9 只容得下 ~20 词），否则"全部连起来"无从谈起 */
+    var span = opt.maxSpan || 9;
+    if (pool.length > 10) {
+      span = Math.min(20, Math.max(span, Math.ceil(Math.sqrt(pool.length * 3.2)) + 2));
+    }
+    var best = null, iters = 0;
+    if (pool.length) {
+      for (var s = 0; s < tries; s++) {
+        if (iters > maxIters || Date.now() - t0 > maxMs) break;
+        var rng = rng32(fnv1a(text) ^ Math.imul(s + 1, 0x85EBCA6B));
+        var shuffled = pool.slice();
+        shuffle(shuffled, rng);
+        var res = generateCore(rng, shuffled, pool.length, span, function (it) {
+          iters = it;
+          return it <= maxIters && Date.now() - t0 <= maxMs;
+        });
+        if (!best || res.words.length > best.words.length) best = res;
+        if (best.words.length >= pool.length) break;
+      }
+    }
+    var placed = best ? best.words : [];
+    var placedSet = {};
+    placed.forEach(function (x) { placedSet[x.w] = 1; });
+    var unplaced = pool.filter(function (w) { return !placedSet[w]; })
+      .map(function (w) { return { w: w, reason: '与已摆成语字位冲突，暂无法连入' }; });
+    var verdict;
+    if (valid.length === 0 || placed.length < 2) verdict = 'none';
+    else if (placed.length === valid.length && isolated.length === 0 &&
+             invalid.length === 0 && duplicates.length === 0) verdict = 'full';
+    else verdict = 'partial';
+    return {
+      parsed: tokens.length,
+      valid: valid,
+      invalid: invalid,
+      duplicates: duplicates,
+      isolated: isolated,
+      placement: {
+        placed: placed,
+        unplaced: unplaced,
+        ms: Date.now() - t0,
+        iters: iters
+      },
+      verdict: verdict,
+      adopt: placed.map(function (x) { return x.w; })
+    };
+  }
+
+  /* ---------- 里程碑 ---------- */
+  /* total 累计填对数；从 idx 起推进，返回 {idx, gains:[{target,amount}]} */
+  function advanceMilestones(total, milestones, amounts, idx) {
+    var gains = [];
+    while (idx < milestones.length && total >= milestones[idx]) {
+      gains.push({ target: milestones[idx], amount: amounts[idx] || 0 });
+      idx++;
+    }
+    return { idx: idx, gains: gains };
+  }
+
+  var CY_LOGIC = {
+    rng32: rng32, fnv1a: fnv1a, shuffle: shuffle,
+    canPlace: canPlace, applyPlace: applyPlace,
+    genPuzzle: genPuzzle, finalizePuzzle: finalizePuzzle,
+    validateGrid: validateGrid, analyzeImport: analyzeImport,
+    advanceMilestones: advanceMilestones
+  };
+  if (typeof window !== 'undefined') {
+    window.CY = window.CY || {};
+    window.CY.logic = CY_LOGIC;
+  }
+  if (typeof module !== 'undefined' && module.exports) module.exports = CY_LOGIC;
+})();
+
+
+/* ==== config-panel.js ==== */
+/* eslint-disable */
+// 填成语 · 设置面板（代理C）
+// 接口（契约 §2）：CY.panel = { open(section?), close(), isOpen() }
+// 渲染进 #drawer（不存在则创建到 body 末尾），右侧滑入抽屉 + 遮罩点击关闭。
+// 配置读写一律走 CY.config（契约 §2/§6 红线：本模块永不直接读写 localStorage）。
+// "词库管理"按钮调用 window.CY && CY.game && CY.game.openImport && CY.game.openImport()。
+// node 环境（无 document/window）加载与调用均安全降级，不抛错。
+(function (root) {
+  'use strict';
+
+  var doc = (typeof document !== 'undefined') ? document : null;
+
+  // ---------- 内部状态 ----------
+  var S = {
+    open: false,
+    drawer: null,       // #drawer 元素
+    bodyEl: null,       // 滚动容器 .cyp-body
+    binders: [],        // [{ refresh(cfg) }]
+    inMilestones: null, // 里程碑节点文本框
+    inAmounts: null,    // 里程碑金额文本框
+    bankBox: null,      // 词库单选容器
+    importBox: null,    // 导入配置折叠区
+    importTa: null,     // 导入文本域
+    unsub: null,        // CY.config.onChange 退订函数
+    selfTick: 0,        // 本面板发起 set() 的计数（标记同步自触发回调）
+    keysOn: false
+  };
+
+  // CY.config 未就绪时的兜底显示值（仅用于渲染，绝不落盘）
+  var FALLBACK = {
+    level: { startWords: 4, growthEvery: 2, maxWords: 14, givenRatio: 0.30, attempts: 5, maxSpan: 9 },
+    rewards: { milestones: [1, 3, 14], amounts: [120, 120, 240], completeCoins: 0 },
+    props: { hintCost: 80, reviveCost: 150, reviveAttempts: 3 },
+    audio: { master: 0.9, sfx: 0.8, bgm: 0.25, muted: false },
+    motion: { reduced: false },
+    bank: { source: 'builtin' }
+  };
+
+  // ---------- 小工具 ----------
+  function getCfg() {
+    try {
+      var C = root.CY;
+      if (C && C.config && typeof C.config.get === 'function') {
+        var cfg = C.config.get();
+        if (cfg && typeof cfg === 'object') return cfg;
+      }
+    } catch (e) { /* 降级 */ }
+    return FALLBACK;
+  }
+  function getPath(obj, path) {
+    var seg = String(path).split('.');
+    for (var i = 0; i < seg.length; i++) {
+      if (obj == null) return undefined;
+      obj = obj[seg[i]];
+    }
+    return obj;
+  }
+  function pathToPatch(path, value) {
+    var seg = String(path).split('.');
+    var patch = {}; var cur = patch;
+    for (var i = 0; i < seg.length - 1; i++) { cur[seg[i]] = {}; cur = cur[seg[i]]; }
+    cur[seg[seg.length - 1]] = value;
+    return patch;
+  }
+  function el(tag, attrs, kids) {
+    var d = doc.createElement(tag);
+    if (attrs) {
+      for (var k in attrs) {
+        if (!Object.prototype.hasOwnProperty.call(attrs, k)) continue;
+        if (k === 'class') d.className = attrs[k];
+        else if (k === 'text') d.textContent = attrs[k];
+        else if (k === 'placeholder') d.setAttribute('placeholder', attrs[k]);
+        else if (k.slice(0, 2) === 'on' && typeof attrs[k] === 'function') d.addEventListener(k.slice(2), attrs[k]);
+        else if (attrs[k] !== null && attrs[k] !== undefined) d.setAttribute(k, attrs[k]);
+      }
+    }
+    if (kids) {
+      for (var i = 0; i < kids.length; i++) if (kids[i]) d.appendChild(kids[i]);
+    }
+    return d;
+  }
+  // 数值显示：小数步长按 2 位去尾零（0.30→0.3、0.00→0），整数原样（绝不吞 10/20/100 的尾零）
+  function fmtNum(v, step) {
+    var n = Number(v);
+    if (isNaN(n)) return String(v == null ? '' : v);
+    if (step != null && step < 1) {
+      var s = n.toFixed(2).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+      return s;
+    }
+    return String(n);
+  }
+
+  // ---------- 列表解析（契约 §6：解析失败保持原值并 toast） ----------
+  // 里程碑：逗号分隔递增正整数，≤999
+  function parseIntList(s, max) {
+    var parts = String(s == null ? '' : s).split(/[,，、\s]+/).filter(function (x) { return x !== ''; });
+    if (!parts.length) return null;
+    var out = []; var prev = 0;
+    for (var i = 0; i < parts.length; i++) {
+      if (!/^\d+$/.test(parts[i])) return null;
+      var n = parseInt(parts[i], 10);
+      if (n < 1 || n > max) return null;
+      if (n <= prev) return null; // 必须严格递增
+      prev = n; out.push(n);
+    }
+    return out;
+  }
+  // 金额：逗号分隔非负整数，0..9999（允许 0，无需递增）
+  function parseAmountList(s) {
+    var parts = String(s == null ? '' : s).split(/[,，、\s]+/).filter(function (x) { return x !== ''; });
+    if (!parts.length) return null;
+    var out = [];
+    for (var i = 0; i < parts.length; i++) {
+      if (!/^\d+$/.test(parts[i])) return null;
+      var n = parseInt(parts[i], 10);
+      if (n < 0 || n > 9999) return null;
+      out.push(n);
+    }
+    return out;
+  }
+
+  // ---------- 提交（唯一写入口，全部走 CY.config.set） ----------
+  function commitPatch(patch) {
+    var C = root.CY;
+    if (!(C && C.config && typeof C.config.set === 'function')) {
+      toast('配置模块未就绪，暂不能修改');
+      return false;
+    }
+    S.selfTick++; // 标记：接下来若同步收到 onChange，是本面板自己引起的
+    try { C.config.set(patch); } catch (e) { toast('保存失败'); return false; }
+    return true;
+  }
+  function commitPath(path, value) { return commitPatch(pathToPatch(path, value)); }
+
+  // ---------- toast ----------
+  var toastTimer = null;
+  function toast(msg) {
+    if (!doc || !doc.body) return;
+    var t = doc.getElementById('cyp-toast');
+    if (!t) { t = doc.createElement('div'); t.id = 'cyp-toast'; doc.body.appendChild(t); }
+    t.textContent = String(msg);
+    void t.offsetWidth; // 强制重排以重播过渡
+    t.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 1900);
+  }
+
+  // ---------- 样式（令牌带 fallback，契约 §5；扁平中式，无 SaaS 卡片/emoji） ----------
+  var CSS = [
+    '#drawer{position:fixed;inset:0;z-index:900;pointer-events:none;',
+    'font-family:"Songti SC","STSong","Noto Serif CJK SC","SimSun",serif;}',
+    '#drawer.cyp-open{pointer-events:auto;}',
+    '#drawer .cyp-mask{position:absolute;inset:0;background:rgba(20,4,30,.55);opacity:0;transition:opacity .22s ease;}',
+    '#drawer.cyp-open .cyp-mask{opacity:1;}',
+    '#drawer .cyp-panel{position:absolute;top:0;right:0;bottom:0;width:min(340px,86vw);',
+    'display:flex;flex-direction:column;background:var(--bg1,#3c0d55);color:var(--cream,#f2e7cf);',
+    'border-left:1px solid rgba(217,200,166,.35);box-shadow:-10px 0 28px rgba(0,0,0,.35);',
+    'transform:translateX(102%);transition:transform .24s ease;}',
+    '#drawer.cyp-open .cyp-panel{transform:translateX(0);}',
+    '#drawer.cyp-nomotion .cyp-panel,#drawer.cyp-nomotion .cyp-mask,#drawer.cyp-nomotion *{transition:none !important;}',
+    '#drawer .cyp-head{flex:none;display:flex;align-items:center;justify-content:space-between;',
+    'padding:13px 14px 13px 18px;border-bottom:1px solid rgba(242,231,207,.18);}',
+    '#drawer .cyp-title{font-size:17px;letter-spacing:9px;text-indent:9px;}',
+    '#drawer .cyp-x{appearance:none;background:transparent;border:1px solid rgba(242,231,207,.4);color:var(--cream,#f2e7cf);',
+    'width:30px;height:30px;border-radius:4px;font-size:14px;line-height:1;cursor:pointer;font-family:inherit;}',
+    '#drawer .cyp-x:active{background:rgba(242,231,207,.12);}',
+    '#drawer .cyp-body{position:relative;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;',
+    'padding-bottom:calc(18px + env(safe-area-inset-bottom));}',
+    '#drawer .cyp-sec{padding:14px 18px 4px;border-bottom:1px solid rgba(242,231,207,.12);}',
+    '#drawer .cyp-sec.hl{background:rgba(255,180,58,.09);transition:background .5s ease;}',
+    '#drawer .cyp-stitle{display:flex;align-items:center;gap:8px;font-size:13px;letter-spacing:3px;',
+    'color:rgba(242,231,207,.92);margin-bottom:6px;}',
+    '#drawer .cyp-stitle i{flex:none;width:4px;height:13px;background:var(--accent,#ffb43a);}',
+    '#drawer .cyp-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;}',
+    '#drawer .cyp-lab{font-size:14px;line-height:1.35;min-width:0;}',
+    '#drawer .cyp-hint{display:block;font-size:11px;color:rgba(242,231,207,.5);margin-top:2px;letter-spacing:.5px;}',
+    '#drawer .cyp-num,#drawer .cyp-text{background:rgba(0,0,0,.28);border:1px solid rgba(242,231,207,.32);',
+    'color:var(--cream,#f2e7cf);border-radius:4px;padding:7px 9px;font:inherit;font-size:14px;}',
+    '#drawer .cyp-num{width:96px;text-align:right;flex:none;}',
+    '#drawer .cyp-text{width:168px;text-align:left;}',
+    '#drawer .cyp-num:focus,#drawer .cyp-text:focus{outline:none;border-color:var(--accent,#ffb43a);}',
+    '#drawer .cyp-range{flex:1;max-width:150px;accent-color:var(--accent,#ffb43a);height:22px;}',
+    '#drawer .cyp-rval{flex:none;width:42px;text-align:right;font-size:13px;color:rgba(242,231,207,.85);font-variant-numeric:tabular-nums;}',
+    '#drawer .cyp-sw{position:relative;flex:none;width:44px;height:24px;}',
+    '#drawer .cyp-sw input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer;}',
+    '#drawer .cyp-sw i{position:absolute;inset:0;border-radius:12px;background:rgba(0,0,0,.35);',
+    'border:1px solid rgba(242,231,207,.3);pointer-events:none;transition:background .15s;}',
+    '#drawer .cyp-sw i::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;',
+    'background:var(--cream,#f2e7cf);transition:transform .15s;}',
+    '#drawer .cyp-sw input:checked + i{background:var(--green,#2fa75e);border-color:var(--green-edge,#1f7d43);}',
+    '#drawer .cyp-sw input:checked + i::after{transform:translateX(20px);}',
+    '#drawer .cyp-bank{display:flex;align-items:center;gap:10px;padding:9px 2px;cursor:pointer;font-size:14px;',
+    'border-bottom:1px dashed rgba(242,231,207,.14);}',
+    '#drawer .cyp-bank:last-child{border-bottom:none;}',
+    '#drawer .cyp-bank input{position:absolute;opacity:0;pointer-events:none;}',
+    '#drawer .cyp-bank .cyp-dot{flex:none;font-size:15px;color:rgba(242,231,207,.55);width:16px;text-align:center;}',
+    '#drawer .cyp-bank.on .cyp-dot{color:var(--accent,#ffb43a);}',
+    '#drawer .cyp-bank .cyp-bankname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
+    '#drawer .cyp-bank.on .cyp-bankname{color:var(--accent,#ffb43a);}',
+    '#drawer .cyp-bank .cyp-banktag{flex:none;font-size:11px;color:rgba(242,231,207,.45);letter-spacing:1px;}',
+    '#drawer .cyp-note{font-size:11px;color:rgba(242,231,207,.5);line-height:1.6;margin:6px 0 8px;}',
+    '#drawer .cyp-btnrow{display:flex;gap:8px;padding:4px 0 8px;}',
+    '#drawer .cyp-btn{appearance:none;background:transparent;border:1px solid rgba(242,231,207,.4);',
+    'color:var(--cream,#f2e7cf);border-radius:4px;padding:8px 10px;font:inherit;font-size:13px;',
+    'letter-spacing:2px;cursor:pointer;flex:1;min-width:0;}',
+    '#drawer .cyp-btn:active{background:rgba(242,231,207,.12);}',
+    '#drawer .cyp-btn.block{display:block;width:100%;flex:none;margin:6px 0 10px;}',
+    '#drawer .cyp-btn.warn{border-color:rgba(255,180,58,.7);color:var(--accent,#ffb43a);}',
+    '#drawer .cyp-btn.danger{border-color:rgba(242,231,207,.55);background:rgba(163,22,95,.4);}',
+    '#drawer .cyp-import{display:none;padding:2px 0 8px;}',
+    '#drawer .cyp-import.show{display:block;}',
+    '#drawer .cyp-import textarea{box-sizing:border-box;width:100%;min-height:84px;resize:vertical;',
+    'background:rgba(0,0,0,.28);border:1px solid rgba(242,231,207,.32);color:var(--cream,#f2e7cf);',
+    'border-radius:4px;padding:8px;font:inherit;font-size:12px;line-height:1.5;}',
+    '#drawer .cyp-import textarea:focus{outline:none;border-color:var(--accent,#ffb43a);}',
+    '#cyp-toast{position:fixed;left:50%;bottom:calc(56px + env(safe-area-inset-bottom));z-index:950;',
+    'transform:translateX(-50%) translateY(8px);max-width:82vw;text-align:center;',
+    'background:var(--ink,#453526);color:var(--cream,#f2e7cf);border:1px solid rgba(242,231,207,.35);',
+    'border-radius:4px;padding:8px 16px;font-size:13px;letter-spacing:1px;',
+    'font-family:"Songti SC","STSong","Noto Serif CJK SC","SimSun",serif;',
+    'opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;}',
+    '#cyp-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}'
+  ].join('\n');
+
+  function ensureStyle() {
+    if (!doc) return;
+    if (doc.getElementById('cy-panel-style')) return;
+    var st = doc.createElement('style');
+    st.id = 'cy-panel-style';
+    st.textContent = CSS;
+    (doc.head || doc.documentElement || doc.body).appendChild(st);
+  }
+
+  // ---------- 控件构造 ----------
+  function secBox(id, marker, title) {
+    return el('section', { 'class': 'cyp-sec', id: id },
+      [el('div', { 'class': 'cyp-stitle' }, [
+        el('i', null), el('span', { text: marker + ' · ' + title })
+      ])]);
+  }
+  function labelBox(text, hint) {
+    return el('label', { 'class': 'cyp-lab' }, [
+      el('span', { text: text }),
+      hint ? el('span', { 'class': 'cyp-hint', text: hint }) : null
+    ]);
+  }
+  // 数值行：type=number，带 min/max 提示（契约 §6）
+  function numberRow(sec, path, text, min, max, step, desc) {
+    var input = el('input', {
+      'class': 'cyp-num', type: 'number',
+      min: String(min), max: String(max), step: String(step),
+      'aria-label': text
+    });
+    var hint = '范围 ' + min + '~' + max + (desc ? '，' + desc : '');
+    sec.appendChild(el('div', { 'class': 'cyp-row' }, [labelBox(text, hint), input]));
+    S.binders.push({
+      refresh: function (cfg) {
+        if (doc.activeElement === input) return; // 不打断输入
+        var v = getPath(cfg, path);
+        input.value = (typeof v === 'number' && !isNaN(v)) ? fmtNum(v, step) : String(v == null ? '' : v);
+      }
+    });
+    input.addEventListener('change', function () {
+      var raw = input.value.trim();
+      if (raw === '' || isNaN(Number(raw))) { toast('请输入有效数字（' + min + '~' + max + '）'); input.value = fmtNum(getPath(getCfg(), path), step); return; }
+      if (commitPath(path, Number(raw))) {
+        // 回写钳制后的生效值（防自触发：程序化赋值不派发 change）
+        input.value = fmtNum(getPath(getCfg(), path), step);
+      }
+    });
+    return input;
+  }
+  // 滑杆行 0..1 step .01
+  function rangeRow(sec, path, text) {
+    var range = el('input', { 'class': 'cyp-range', type: 'range', min: '0', max: '1', step: '0.01', 'aria-label': text });
+    var rval = el('span', { 'class': 'cyp-rval', text: '0.00' });
+    sec.appendChild(el('div', { 'class': 'cyp-row' }, [labelBox(text, '范围 0~1'), range, rval]));
+    S.binders.push({
+      refresh: function (cfg) {
+        if (doc.activeElement === range) return;
+        var v = Number(getPath(cfg, path));
+        if (!isNaN(v)) { range.value = String(Math.min(1, Math.max(0, v))); rval.textContent = v.toFixed(2); }
+      }
+    });
+    range.addEventListener('input', function () { rval.textContent = Number(range.value).toFixed(2); }); // 仅显示，change 才提交
+    range.addEventListener('change', function () { commitPath(path, Number(range.value)); });
+  }
+  // 开关行
+  function switchRow(sec, path, text, desc) {
+    var input = el('input', { type: 'checkbox', 'aria-label': text });
+    var knob = el('i');
+    var sw = el('span', { 'class': 'cyp-sw' }, [input, knob]);
+    sec.appendChild(el('div', { 'class': 'cyp-row' }, [labelBox(text, desc || ''), sw]));
+    S.binders.push({
+      refresh: function (cfg) { input.checked = !!getPath(cfg, path); }
+    });
+    input.addEventListener('change', function () { commitPath(path, !!input.checked); });
+  }
+  // 里程碑/金额 文本行
+  function listRow(sec, kind, text, hint, placeholder) {
+    var input = el('input', { 'class': 'cyp-text', type: 'text', placeholder: placeholder, 'aria-label': text });
+    sec.appendChild(el('div', { 'class': 'cyp-row' }, [labelBox(text, hint), input]));
+    if (kind === 'milestones') S.inMilestones = input; else S.inAmounts = input;
+    S.binders.push({
+      refresh: function (cfg) {
+        if (doc.activeElement === input) return;
+        var arr = getPath(cfg, kind === 'milestones' ? 'rewards.milestones' : 'rewards.amounts');
+        input.value = Array.isArray(arr) ? arr.join(',') : '';
+      }
+    });
+    input.addEventListener('change', function () { commitRewardPair(kind); });
+    return input;
+  }
+
+  // 里程碑 + 金额 成对校验提交（个数不一致 → 拒绝并 toast，保持原值）
+  function commitRewardPair(changed) {
+    var cfg = getCfg();
+    var ms = parseIntList(S.inMilestones ? S.inMilestones.value : '', 999);
+    var am = parseAmountList(S.inAmounts ? S.inAmounts.value : '');
+    function restore() {
+      var cur = cfg && cfg.rewards ? cfg.rewards : FALLBACK.rewards;
+      if (S.inMilestones && doc.activeElement !== S.inMilestones) S.inMilestones.value = (cur.milestones || []).join(',');
+      if (S.inAmounts && doc.activeElement !== S.inAmounts) S.inAmounts.value = (cur.amounts || []).join(',');
+    }
+    if (!ms) { toast('里程碑需为逗号分隔的递增正整数（1~999）'); restore(); return; }
+    if (!am) { toast('金额需为逗号分隔的非负整数（0~9999）'); restore(); return; }
+    if (ms.length !== am.length) { toast('奖励个数与里程碑个数不一致，已保留原值'); restore(); return; }
+    commitPatch({ rewards: { milestones: ms, amounts: am } });
+  }
+
+  // ---------- 词库列表（只经 CY.* 公开接口取数，本模块永不碰 localStorage） ----------
+  // 发现顺序：主线 CY.custom.list()（game.js CustomStore）> 其他可能的兜底访问器。
+  function getCustomBanks() {
+    var C = root.CY;
+    try {
+      if (C && C.custom && typeof C.custom.list === 'function') {
+        var a = C.custom.list();
+        if (Array.isArray(a)) return a;
+      }
+      if (C && C.game && typeof C.game.getCustomBanks === 'function') {
+        var b = C.game.getCustomBanks();
+        if (Array.isArray(b)) return b;
+      }
+      if (C && Array.isArray(C.customBanks)) return C.customBanks;
+      if (C && typeof C.customBanks === 'function') {
+        var c = C.customBanks();
+        if (Array.isArray(c)) return c;
+      }
+    } catch (e) { /* 降级 */ }
+    return null;
+  }
+  function collectBanks(cfg) {
+    var out = [{ id: 'builtin', label: '内置词库', tag: '官方' }];
+    var arr = getCustomBanks();
+    if (arr) {
+      for (var i = 0; i < arr.length; i++) {
+        var b = arr[i] || {};
+        var id = (b.id != null) ? String(b.id) : ('x' + i);
+        out.push({ id: 'custom:' + id, label: b.name || ('自定义包 ' + id.slice(0, 10)), tag: '自定义' });
+      }
+    }
+    var src = getPath(cfg, 'bank.source');
+    if (src && src !== 'builtin') {
+      var found = false;
+      for (var j = 0; j < out.length; j++) if (out[j].id === src) { found = true; break; }
+      if (!found) out.push({ id: src, label: '自定义包 ' + String(src).replace(/^custom:/, '').slice(0, 10) || src, tag: '自定义' });
+    }
+    return out;
+  }
+  function refreshBanks(cfg) {
+    if (!S.bankBox) return;
+    var src = getPath(cfg, 'bank.source') || 'builtin';
+    var banks = collectBanks(cfg);
+    S.bankBox.textContent = '';
+    for (var i = 0; i < banks.length; i++) {
+      (function (b) {
+        var input = el('input', { type: 'radio', name: 'cyp-bank', value: b.id });
+        input.checked = (b.id === src);
+        var dot = el('span', { 'class': 'cyp-dot', text: input.checked ? '◉' : '○' });
+        var lab = el('label', { 'class': 'cyp-bank' + (input.checked ? ' on' : '') }, [
+          input, dot,
+          el('span', { 'class': 'cyp-bankname', text: b.label }),
+          b.tag ? el('span', { 'class': 'cyp-banktag', text: b.tag }) : null
+        ]);
+        input.addEventListener('change', function () {
+          if (input.checked) commitPatch({ bank: { source: input.value } });
+        });
+        S.bankBox.appendChild(lab);
+      })(banks[i]);
+    }
+  }
+
+  // ---------- 数据区动作 ----------
+  function legacyCopy(text) {
+    try {
+      var ta = doc.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed'; ta.style.left = '-9999px'; ta.style.top = '0';
+      doc.body.appendChild(ta); ta.select();
+      var ok = doc.execCommand('copy');
+      doc.body.removeChild(ta);
+      return !!ok;
+    } catch (e) { return false; }
+  }
+  function copyText(text) {
+    return new Promise(function (resolve) {
+      var nav = (typeof navigator !== 'undefined') ? navigator : null;
+      if (nav && nav.clipboard && typeof nav.clipboard.writeText === 'function') {
+        nav.clipboard.writeText(text).then(function () { resolve(true); }, function () { resolve(legacyCopy(text)); });
+      } else resolve(legacyCopy(text));
+    });
+  }
+  function doExport() {
+    var C = root.CY;
+    var s;
+    if (C && C.config && typeof C.config.export === 'function') {
+      try { s = C.config.export(); } catch (e) { s = null; }
+    }
+    if (typeof s !== 'string' || !s) s = JSON.stringify(getCfg());
+    copyText(s).then(function (ok) { toast(ok ? '配置已复制到剪贴板' : '复制失败，请手动重试'); });
+  }
+  function doApplyImport() {
+    var C = root.CY;
+    if (!(C && C.config && typeof C.config.importJson === 'function')) { toast('配置模块未就绪'); return; }
+    var txt = S.importTa ? S.importTa.value : '';
+    if (!String(txt).trim()) { toast('请先粘贴配置 JSON'); return; }
+    var ok = false;
+    try { ok = !!C.config.importJson(txt); } catch (e) { ok = false; }
+    toast(ok ? '配置已导入' : '内容无效，导入失败');
+    if (ok && S.importBox) S.importBox.classList.remove('show');
+  }
+  function doReset() {
+    var C = root.CY;
+    if (!(C && C.config && typeof C.config.resetAll === 'function')) { toast('配置模块未就绪'); return; }
+    if (!root.confirm('确定清空全部进度与设置？此操作不可恢复。')) return;
+    if (!root.confirm('再次确认：真的要清空全部进度吗？')) return;
+    try { C.config.resetAll(); } catch (e) { toast('重置失败'); }
+  }
+  function doBankMgr() {
+    // 契约 §2：CY.game?.openImport?.() 的显式判空写法
+    if (root.CY && root.CY.game && typeof root.CY.game.openImport === 'function') {
+      try { root.CY.game.openImport(); } catch (e) { toast('词库管理打开失败'); }
+    } else toast('词库管理暂不可用');
+  }
+
+  // ---------- DOM 构建 ----------
+  function buildBody() {
+    var body = el('div', { 'class': 'cyp-body' });
+
+    // 壹 · 玩法
+    var secPlay = secBox('cyp-sec-play', '壹', '玩法');
+    numberRow(secPlay, 'level.startWords', '每关起始词数', 3, 8, 1, '开局成语数量');
+    numberRow(secPlay, 'level.growthEvery', '每隔几关加一词', 1, 5, 1, '难度增长节奏');
+    numberRow(secPlay, 'level.maxWords', '单关词数上限', 4, 16, 1, '网格内最多成语数');
+    numberRow(secPlay, 'level.givenRatio', '预给字比例', 0, 0.6, 0.01, '预填字占比');
+    numberRow(secPlay, 'level.attempts', '初始剩余次数', 1, 20, 1, '填错一次减一次');
+    numberRow(secPlay, 'level.maxSpan', '网格最大跨度', 6, 12, 1, '行/列跨度上限');
+    body.appendChild(secPlay);
+
+    // 贰 · 奖励与道具
+    var secReward = secBox('cyp-sec-reward', '贰', '奖励与道具');
+    listRow(secReward, 'milestones', '里程碑节点', '逗号分隔递增正整数，如 1,3,14', '如 1,3,14');
+    listRow(secReward, 'amounts', '里程碑奖励金币', '逗号分隔，个数须与节点一致', '如 120,120,240');
+    numberRow(secReward, 'rewards.completeCoins', '过关奖励金币', 0, 999, 1);
+    numberRow(secReward, 'props.hintCost', '提示单价（金币）', 0, 9999, 1);
+    numberRow(secReward, 'props.reviveCost', '补次数单价（金币）', 0, 9999, 1);
+    numberRow(secReward, 'props.reviveAttempts', '补次数恢复次数', 1, 20, 1);
+    body.appendChild(secReward);
+
+    // 叁 · 声音与动效
+    var secAudio = secBox('cyp-sec-audio', '叁', '声音与动效');
+    rangeRow(secAudio, 'audio.master', '主音量');
+    rangeRow(secAudio, 'audio.sfx', '音效音量');
+    rangeRow(secAudio, 'audio.bgm', '背景音乐音量');
+    switchRow(secAudio, 'audio.muted', '静音', '关闭全部声音');
+    switchRow(secAudio, 'motion.reduced', '减弱动效', '关闭过渡与动画');
+    body.appendChild(secAudio);
+
+    // 肆 · 数据
+    var secData = secBox('cyp-sec-data', '肆', '数据');
+    secData.appendChild(labelBox('出题词库', '选择成语来源'));
+    S.bankBox = el('div', { 'class': 'cyp-banks' });
+    secData.appendChild(S.bankBox);
+    secData.appendChild(el('div', {
+      'class': 'cyp-note',
+      text: '切换词库由游戏在下一关生效；若包内可用词太少会自动回退内置词库。'
+    }));
+
+    var rowBtns = el('div', { 'class': 'cyp-btnrow' }, [
+      el('button', { 'class': 'cyp-btn', type: 'button', text: '导出配置', onclick: doExport }),
+      el('button', {
+        'class': 'cyp-btn', type: 'button', text: '导入配置',
+        onclick: function () {
+          if (S.importBox) {
+            var show = !S.importBox.classList.contains('show');
+            S.importBox.classList.toggle('show', show);
+            if (show && S.importTa) { try { S.importTa.focus(); } catch (e) { } }
+          }
+        }
+      })
+    ]);
+    secData.appendChild(rowBtns);
+
+    S.importBox = el('div', { 'class': 'cyp-import' });
+    S.importTa = el('textarea', { placeholder: '粘贴配置 JSON（可先在别处“导出配置”获得）' });
+    S.importBox.appendChild(S.importTa);
+    S.importBox.appendChild(el('button', { 'class': 'cyp-btn block', type: 'button', text: '应用导入', onclick: doApplyImport }));
+    secData.appendChild(S.importBox);
+
+    secData.appendChild(el('button', { 'class': 'cyp-btn warn block', type: 'button', text: '清空全部进度', onclick: doReset }));
+    secData.appendChild(el('div', { 'class': 'cyp-note', text: '清空将删除进度、金币与全部设置并刷新页面，需两次确认。' }));
+    secData.appendChild(el('button', { 'class': 'cyp-btn block', type: 'button', text: '词库管理', onclick: doBankMgr }));
+    body.appendChild(secData);
+
+    return body;
+  }
+
+  function ensureDrawer() {
+    if (!doc || !doc.body) return;
+    var d = doc.getElementById('drawer');
+    if (!d) {
+      d = doc.createElement('aside');
+      d.id = 'drawer';
+      doc.body.appendChild(d); // 不存在则创建到 body 末尾（契约 §5）
+    }
+    if (d.getAttribute('data-cyp') === '1') { S.drawer = d; return; }
+
+    d.textContent = '';
+    d.setAttribute('data-cyp', '1');
+    d.setAttribute('aria-hidden', 'true');
+
+    var mask = el('div', { 'class': 'cyp-mask' });
+    mask.addEventListener('click', function () { close(); }); // 遮罩点击关闭
+
+    var head = el('div', { 'class': 'cyp-head' }, [
+      el('div', { 'class': 'cyp-title', text: '设置' }),
+      el('button', { 'class': 'cyp-x', type: 'button', 'aria-label': '关闭设置', text: '✕', onclick: function () { close(); } })
+    ]);
+
+    S.bodyEl = buildBody();
+    var panel = el('div', { 'class': 'cyp-panel', role: 'dialog', 'aria-label': '设置' }, [head, S.bodyEl]);
+    d.appendChild(mask);
+    d.appendChild(panel);
+    S.drawer = d;
+  }
+
+  // ---------- 订阅与刷新 ----------
+  function refreshAll(cfg) {
+    cfg = cfg || getCfg();
+    for (var i = 0; i < S.binders.length; i++) {
+      try { S.binders[i].refresh(cfg); } catch (e) { /* 单项失败不拖垮整体 */ }
+    }
+    refreshBanks(cfg);
+    if (S.drawer) S.drawer.classList.toggle('cyp-nomotion', !!getPath(cfg, 'motion.reduced'));
+  }
+  function subscribeCfg() {
+    if (S.unsub) return;
+    var C = root.CY;
+    if (C && C.config && typeof C.config.onChange === 'function') {
+      try {
+        S.unsub = C.config.onChange(function (cfg) { onCfgChange(cfg); });
+      } catch (e) { S.unsub = null; }
+    }
+  }
+  function onCfgChange(cfg) {
+    // 防自触发回环：本面板 set() 引起的同步回调不回写 set()；
+    // 刷新为“值不同才写 DOM”+ 程序化赋值不派发 change 事件，故天然无回环。
+    if (S.selfTick > 0) S.selfTick--;
+    refreshAll(cfg);
+  }
+
+  // ---------- 滚动锚点 ----------
+  var SEC_MAP = {
+    'play': 'cyp-sec-play', 'level': 'cyp-sec-play', 'gameplay': 'cyp-sec-play', '玩法': 'cyp-sec-play',
+    'reward': 'cyp-sec-reward', 'rewards': 'cyp-sec-reward', 'props': 'cyp-sec-reward',
+    '奖励': 'cyp-sec-reward', '奖励与道具': 'cyp-sec-reward', '道具': 'cyp-sec-reward',
+    'audio': 'cyp-sec-audio', 'sound': 'cyp-sec-audio', 'motion': 'cyp-sec-audio',
+    '声音': 'cyp-sec-audio', '声音与动效': 'cyp-sec-audio', '动效': 'cyp-sec-audio',
+    'data': 'cyp-sec-data', 'bank': 'cyp-sec-data', '数据': 'cyp-sec-data', '词库': 'cyp-sec-data'
+  };
+  function scrollToSection(section) {
+    var key = String(section).trim();
+    var id = SEC_MAP[key] || SEC_MAP[key.toLowerCase()];
+    if (!id || !S.bodyEl) return;
+    var t = doc.getElementById(id);
+    if (!t) return;
+    setTimeout(function () {
+      if (!S.open || !S.bodyEl) return;
+      S.bodyEl.scrollTop = Math.max(0, t.offsetTop - 10);
+      t.classList.add('hl');
+      setTimeout(function () { t.classList.remove('hl'); }, 900);
+    }, 60);
+  }
+
+  function installKeys() {
+    if (S.keysOn || !doc) return;
+    S.keysOn = true;
+    doc.addEventListener('keydown', function (e) {
+      if (e && (e.key === 'Escape' || e.key === 'Esc') && S.open) close();
+    });
+  }
+
+  // ---------- 对外接口 ----------
+  function open(section) {
+    if (!doc || !doc.body) return false; // node / 无 DOM 环境：安全空操作
+    ensureStyle();
+    ensureDrawer();
+    subscribeCfg();
+    refreshAll();
+    if (!S.open) {
+      S.open = true;
+      S.drawer.classList.add('cyp-open');
+      S.drawer.setAttribute('aria-hidden', 'false');
+      installKeys();
+    }
+    if (section != null && section !== '') scrollToSection(section);
+    return true;
+  }
+  function close() {
+    if (!doc || !S.open) return false;
+    S.open = false;
+    if (S.drawer) {
+      S.drawer.classList.remove('cyp-open');
+      S.drawer.setAttribute('aria-hidden', 'true');
+    }
+    return true;
+  }
+  function isOpen() { return !!S.open; }
+
+  var panel = { open: open, close: close, isOpen: isOpen };
+
+  root.CY = root.CY || {};
+  root.CY.panel = panel;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = (typeof window !== 'undefined' ? window : globalThis).CY.panel;
+}
+
+
+/* ==== game.js ==== */
+/* 填成语 — 状态机 / 渲染 / 交互 / 自定义词库导入分析 UI */
+(function () {
+  'use strict';
+  var L = window.CY.logic;
+  var cfg = window.CY.config.get();
+  var root = window;
+
+  /* ---------- 内置兜底词库（词库模块缺失时保命） ---------- */
+  var EMERGENCY = ('一心一意 十全十美 万水千山 千军万马 青山绿水 山清水秀 风和日丽 春暖花开 ' +
+    '花红柳绿 鸟语花香 井井有条 头头是道 天长地久 地久天长 日新月异 异想天开 开门见山 ' +
+    '山水相连 连绵不断 断断续续 继往开来 来日方长 长年累月 月明星稀 稀奇古怪 怪模怪样 ' +
+    '样样精通 通情达理 理直气壮 壮志凌云 云开雾散 散兵游勇 勇往直前 前因后果 果实累累 ' +
+    '累教不改 改邪归正 正大光明 明察秋毫 毫不利己 己所不欲 欲罢不能 能屈能伸 伸手不凡 ' +
+    '凡夫俗子 子虚乌有 有口皆碑 碑文流传 传为佳话 话中有话 话不投机 机不可失 失而复得').split(/\s+/);
+
+  /* ---------- 自定义词库存取 ---------- */
+  var CustomStore = {
+    list: function () {
+      try { return JSON.parse(localStorage.getItem(window.CY.config.KEYS.custom) || '[]'); }
+      catch (e) { return []; }
+    },
+    save: function (pkg) {
+      var arr = CustomStore.list().filter(function (p) { return p.id !== pkg.id; });
+      arr.unshift(pkg);
+      try { localStorage.setItem(window.CY.config.KEYS.custom, JSON.stringify(arr.slice(0, 30))); } catch (e) { }
+      return pkg;
+    },
+    get: function (id) {
+      var hit = null;
+      CustomStore.list().forEach(function (p) { if (p.id === id) hit = p; });
+      return hit;
+    },
+    remove: function (id) {
+      var arr = CustomStore.list().filter(function (p) { return p.id !== id; });
+      try { localStorage.setItem(window.CY.config.KEYS.custom, JSON.stringify(arr)); } catch (e) { }
+    }
+  };
+  root.CY.custom = CustomStore;
+
+  /* ---------- 状态 ---------- */
+  var state = loadState();
+  var selKey = null;
+  var lastReport = null;
+  var fallbackToasted = false;
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(window.CY.config.KEYS.state);
+      if (raw) {
+        var s = JSON.parse(raw);
+        if (s && s.v === 2) return s;
+      }
+    } catch (e) { }
+    return { v: 2, level: 1, coins: 0, totalFilled: 0, milestoneIdx: 0, levelGains: 0, puzzle: null, progress: null };
+  }
+  function saveState() {
+    try { localStorage.setItem(window.CY.config.KEYS.state, JSON.stringify(state)); } catch (e) { }
+  }
+
+  /* ---------- 关卡数学 ---------- */
+  function wordCountFor(level) {
+    var c = cfg.level.startWords + Math.floor((level - 1) / cfg.level.growthEvery);
+    return Math.min(cfg.level.maxWords, Math.max(3, c));
+  }
+  function givenRatioFor(level) {
+    return Math.max(0.06, cfg.level.givenRatio - cfg.level.givenDecay * (level - 1));
+  }
+  function activeBank() {
+    var src = cfg.bank.source;
+    if (src && src.indexOf('custom:') === 0) {
+      var pkg = CustomStore.get(src.slice(7));
+      if (pkg && pkg.adopt && pkg.adopt.length >= 3) return pkg.adopt;
+      if (!fallbackToasted) { toast('自定义词库可用词条不足，已回退内置词库'); fallbackToasted = true; }
+    }
+    return (root.CY_BANK && CY_BANK.list && CY_BANK.list.length > 10) ? CY_BANK.list : EMERGENCY;
+  }
+  function commonChars() {
+    return (root.CY_BANK && CY_BANK.COMMON_CHARS) || EMERGENCY.join('').split('');
+  }
+  function levelSeed(level) {
+    return L.fnv1a(cfg.bank.source + '|lvl|' + level + '|v1');
+  }
+  function ensurePuzzle(force) {
+    if (state.puzzle && !force) return;
+    var list = activeBank();
+    var raw = null, salt = 0;
+    while (salt < 6) {
+      raw = L.genPuzzle({ seed: (levelSeed(state.level) + salt * 0x9e37) >>> 0, count: wordCountFor(state.level), maxSpan: cfg.level.maxSpan, list: list });
+      if (raw && raw.words.length >= 2) break;
+      salt++;
+    }
+    if (!raw || raw.words.length < 2) {
+      raw = L.genPuzzle({ seed: levelSeed(state.level), count: Math.min(4, wordCountFor(state.level)), maxSpan: cfg.level.maxSpan, list: EMERGENCY });
+    }
+    state.puzzle = L.finalizePuzzle({
+      words: raw.words, seed: levelSeed(state.level),
+      givenRatio: givenRatioFor(state.level), distractorBank: commonChars()
+    });
+    state.progress = { fills: {}, used: [], attempts: cfg.level.attempts };
+    state.levelGains = 0;
+    selKey = null;
+    saveState();
+  }
+  function gotoLevel(n) {
+    n = Math.max(1, Math.min(999999, Math.round(Number(n) || 1)));
+    state.level = n;
+    ensurePuzzle(true);
+    closeModal();
+    render();
+  }
+
+  /* ---------- 小工具 ---------- */
+  function $(id) { return document.getElementById(id); }
+  function h(tag, cls, html) {
+    var el = document.createElement(tag);
+    if (cls) el.className = cls;
+    if (html != null) el.innerHTML = html;
+    return el;
+  }
+  function cnNum(n) {
+    if (n > 99) return String(n);
+    var d = '零一二三四五六七八九';
+    if (n <= 9) return d[n];
+    if (n === 10) return '十';
+    if (n < 20) return '十' + d[n % 10];
+    var t = Math.floor(n / 10), o = n % 10;
+    return d[t] + '十' + (o ? d[o] : '');
+  }
+  function sfx(name) { try { root.CY.audio && CY.audio.play(name); } catch (e) { } }
+
+  /* ---------- 渲染 ---------- */
+  function render() {
+    renderTop();
+    renderStat();
+    renderBanner();
+    renderRack(); /* 先撑开候选区，棋盘高度才真实 */
+    renderGrid();
+    /* 字体加载/布局微移兜底：下一帧再校准一次网格尺寸 */
+    requestAnimationFrame(function () { renderGrid(); });
+  }
+  function renderTop() {
+    $('coin-num').textContent = state.coins;
+  }
+  function renderStat() {
+    $('stat-words').textContent = state.totalFilled;
+    $('stat-attempts').textContent = state.progress ? state.progress.attempts : cfg.level.attempts;
+    var chain = $('chain');
+    chain.innerHTML = '';
+    var ms = cfg.rewards.milestones, am = cfg.rewards.amounts;
+    ms.forEach(function (m, i) {
+      if (i > 0) {
+        chain.appendChild(h('div', 'chain-bar' + (i <= state.milestoneIdx ? ' lit' : '')));
+      }
+      var st = i < state.milestoneIdx ? 'done' : (i === state.milestoneIdx ? 'next' : 'lock');
+      var node = h('div', 'chain-node ' + st);
+      node.innerHTML =
+        '<div class="chain-label">填对' + m + '个</div>' +
+        '<div class="badge"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 C41 3 45 9 47 15 C57 15 61 22 61 32 C61 42 57 49 47 49 C45 55 41 61 32 61 C23 61 19 55 17 49 C7 49 3 42 3 32 C3 22 7 15 17 15 C19 9 23 3 32 3 Z"/></svg>' +
+        '<div class="badge-in"><span class="zg">最高</span><span class="amt">+' + am[i] + '</span></div></div>';
+      chain.appendChild(node);
+    });
+  }
+  function renderBanner() {
+    var t = '第' + cnNum(state.level) + '关';
+    if (cfg.bank.source && cfg.bank.source.indexOf('custom:') === 0) t += ' · 自定义';
+    $('banner-text').textContent = t;
+  }
+  function gridMetrics() {
+    var pz = state.puzzle;
+    var minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity;
+    Object.keys(pz.cells).forEach(function (k) {
+      var p = k.split(',');
+      var r = +p[0], c = +p[1];
+      if (r < minR) minR = r; if (r > maxR) maxR = r;
+      if (c < minC) minC = c; if (c > maxC) maxC = c;
+    });
+    return { minR: minR, maxR: maxR, minC: minC, maxC: maxC, rows: maxR - minR + 1, cols: maxC - minC + 1 };
+  }
+  function renderGrid() {
+    var pz = state.puzzle, m = gridMetrics();
+    var board = $('board'), grid = $('grid');
+    var bw = board.clientWidth || 360, bh = board.clientHeight || 420;
+    /* 先按 gap≈13%size 估尺寸，再用实际 gap 收敛一次，保证含间隙不溢出 */
+    function fit(side, n) { return Math.floor(side / (n + 0.13 * Math.max(0, n - 1))); }
+    var size = Math.max(30, Math.min(fit(bw - 20, m.cols), fit(bh - 20, m.rows), 60));
+    var gap = Math.max(4, Math.round(size * 0.13));
+    size = Math.max(30, Math.min(
+      Math.floor((bw - 20 - (m.cols - 1) * gap) / m.cols),
+      Math.floor((bh - 20 - (m.rows - 1) * gap) / m.rows),
+      size));
+    gap = Math.max(4, Math.round(size * 0.13));
+    var gw = m.cols * size + (m.cols - 1) * gap;
+    var gh = m.rows * size + (m.rows - 1) * gap;
+    grid.style.width = gw + 'px';
+    grid.style.height = gh + 'px';
+    grid.style.setProperty('--cell', size + 'px');
+    grid.style.setProperty('--gap', gap + 'px');
+    grid.innerHTML = '';
+    var fills = state.progress.fills;
+    Object.keys(pz.cells).forEach(function (k) {
+      var p = k.split(',');
+      var r = +p[0] - m.minR, c = +p[1] - m.minC;
+      var cell = pz.cells[k];
+      var filled = !!fills[k];
+      var el = h('div', 'cell');
+      el.style.left = (c * (size + gap)) + 'px';
+      el.style.top = (r * (size + gap)) + 'px';
+      el.dataset.key = k;
+      if (cell.given) el.classList.add('given');
+      else if (filled) el.classList.add('filled');
+      else el.classList.add('empty');
+      if (k === selKey) el.classList.add('sel');
+      el.textContent = (cell.given || filled) ? cell.ch : '';
+      grid.appendChild(el);
+    });
+  }
+  function renderRack() {
+    var rack = $('rack');
+    rack.innerHTML = '';
+    var pz = state.puzzle;
+    var used = {};
+    (state.progress.used || []).forEach(function (i) { used[i] = 1; });
+    var seedRng = L.rng32((pz.seed ^ 0x7a11) >>> 0);
+    var jitters = pz.pool.map(function () { return seedRng(); });
+    pz.pool.forEach(function (ch, i) {
+      var el = h('button', 'tile');
+      el.type = 'button';
+      el.textContent = ch;
+      el.dataset.idx = i;
+      if (used[i]) { el.classList.add('gone'); }
+      var j = jitters[i];
+      el.style.transform = 'rotate(' + ((j * 6 - 3).toFixed(1)) + 'deg) translateY(' + ((j * 5 - 2.5).toFixed(1)) + 'px)';
+      rack.appendChild(el);
+    });
+  }
+
+  /* ---------- 玩法逻辑 ---------- */
+  function firstEmptyKey() {
+    var pz = state.puzzle, fills = state.progress.fills;
+    var keys = Object.keys(pz.cells).filter(function (k) { return !pz.cells[k].given && !fills[k]; });
+    keys.sort(function (a, b) {
+      var pa = a.split(','), pb = b.split(',');
+      return (+pa[0] - +pb[0]) || (+pa[1] - +pb[1]);
+    });
+    return keys[0] || null;
+  }
+  function selectKey(k) {
+    selKey = k;
+    var grid = $('grid');
+    Array.prototype.forEach.call(grid.children, function (el) {
+      el.classList.toggle('sel', el.dataset.key === k);
+    });
+  }
+  function consumeTile(idx) {
+    state.progress.used = state.progress.used || [];
+    state.progress.used.push(idx);
+  }
+  function wordDoneFlash(key) {
+    var pz = state.puzzle, fills = state.progress.fills;
+    var flash = [];
+    pz.words.forEach(function (w) {
+      var ks = [];
+      for (var i = 0; i < 4; i++) ks.push((w.r + (w.dir === 'V' ? i : 0)) + ',' + (w.c + (w.dir === 'H' ? i : 0)));
+      if (ks.indexOf(key) < 0) return;
+      var done = ks.every(function (k) { return pz.cells[k].given || fills[k]; });
+      if (done) flash = flash.concat(ks);
+    });
+    var grid = $('grid');
+    flash.forEach(function (k) {
+      var el = grid.querySelector('[data-key="' + k + '"]');
+      if (el) { el.classList.remove('wdone'); void el.offsetWidth; el.classList.add('wdone'); }
+    });
+  }
+  /* 填对（玩家或提示共用）：不校验对错 */
+  function applyCorrect(key, tileIdx, viaHint) {
+    var pz = state.puzzle;
+    var cell = pz.cells[key];
+    state.progress.fills[key] = cell.ch;
+    if (tileIdx != null) consumeTile(tileIdx);
+    state.totalFilled++;
+    var adv = L.advanceMilestones(state.totalFilled, cfg.rewards.milestones, cfg.rewards.amounts, state.milestoneIdx);
+    if (adv.gains.length) {
+      adv.gains.forEach(function (g) {
+        state.coins += g.amount;
+        state.levelGains += g.amount;
+        toast('里程碑达成 填对' + g.target + '个 +' + g.amount + ' 金币');
+      });
+      sfx('milestone');
+    }
+    state.milestoneIdx = adv.idx;
+    sfx('correct');
+    if (viaHint) sfx('hint');
+    saveState();
+    render();
+    /* 渲染后再挂动画类，避免被 DOM 重建抹掉 */
+    var el = $('grid').querySelector('[data-key="' + key + '"]');
+    if (el) el.classList.add('pop');
+    wordDoneFlash(key);
+    /* 全部填完 → 过关 */
+    var allDone = Object.keys(pz.cells).every(function (k) { return pz.cells[k].given || state.progress.fills[k]; });
+    if (allDone) setTimeout(winLevel, 450);
+    else selectKey(firstEmptyKey());
+  }
+  function tapTile(idx) {
+    var pz = state.puzzle;
+    if ((state.progress.used || []).indexOf(idx) >= 0) return;
+    var ch = pz.pool[idx];
+    if (!selKey || pz.cells[selKey].given || state.progress.fills[selKey]) {
+      var k = firstEmptyKey();
+      if (!k) return;
+      selectKey(k);
+    }
+    var key = selKey;
+    var cellEl = $('grid').querySelector('[data-key="' + key + '"]');
+    var tileEl = $('rack').querySelector('[data-idx="' + idx + '"]');
+    if (ch === pz.cells[key].ch) {
+      applyCorrect(key, idx, false);
+    } else {
+      sfx('wrong');
+      if (cellEl) { cellEl.classList.remove('wrong'); void cellEl.offsetWidth; cellEl.classList.add('wrong'); }
+      if (tileEl) { tileEl.classList.remove('wrong'); void tileEl.offsetWidth; tileEl.classList.add('wrong'); }
+      state.progress.attempts--;
+      saveState();
+      $('stat-attempts').textContent = state.progress.attempts;
+      if (state.progress.attempts <= 0) setTimeout(showFail, 500);
+    }
+  }
+  function hint() {
+    var pz = state.puzzle;
+    var k = (selKey && !pz.cells[selKey].given && !state.progress.fills[selKey]) ? selKey : firstEmptyKey();
+    if (!k) { toast('本关已没有待填的空格'); return; }
+    if (state.coins < cfg.props.hintCost) { toast('金币不足（提示需 ' + cfg.props.hintCost + '）'); sfx('fail'); return; }
+    state.coins -= cfg.props.hintCost;
+    var idx = -1;
+    for (var i = 0; i < pz.pool.length; i++) {
+      if (pz.pool[i] === pz.cells[k].ch && (state.progress.used || []).indexOf(i) < 0) { idx = i; break; }
+    }
+    closeMenu();
+    applyCorrect(k, idx >= 0 ? idx : null, true);
+  }
+
+  /* ---------- 过关 / 失败 ---------- */
+  function winLevel() {
+    sfx('win');
+    if (cfg.rewards.completeCoins > 0) {
+      state.coins += cfg.rewards.completeCoins;
+      state.levelGains += cfg.rewards.completeCoins;
+      saveState();
+      renderTop();
+    }
+    var pz = state.puzzle;
+    var chips = pz.words.map(function (w) { return '<span class="chip">' + w.w + '</span>'; }).join('');
+    showModal(
+      '<h3>本关完成</h3>' +
+      '<div class="win-sub">第' + cnNum(state.level) + '关 · 本关获得 +' + state.levelGains + ' 金币</div>' +
+      '<div class="chips">' + chips + '</div>',
+      [
+        { label: '下一关', primary: true, cb: function () { state.level++; ensurePuzzle(true); closeModal(); render(); } },
+        { label: '重玩本关', cb: function () { restartLevel(); closeModal(); } }
+      ]);
+  }
+  function restartLevel() {
+    state.progress = { fills: {}, used: [], attempts: cfg.level.attempts };
+    selKey = null;
+    saveState();
+    render();
+    selectKey(firstEmptyKey());
+  }
+  function showFail() {
+    sfx('fail');
+    showModal(
+      '<h3>次数用完了</h3>' +
+      '<div class="win-sub">再接再厉！补点次数或重新开始本关</div>',
+      [
+        {
+          label: '补次数 +' + cfg.props.reviveAttempts + '（' + cfg.props.reviveCost + ' 金币）', primary: true, cb: function () {
+            if (state.coins < cfg.props.reviveCost) { toast('金币不足'); return; }
+            state.coins -= cfg.props.reviveCost;
+            state.progress.attempts = cfg.props.reviveAttempts;
+            saveState();
+            closeModal();
+            render();
+            selectKey(firstEmptyKey());
+          }
+        },
+        { label: '重新开始本关', cb: function () { restartLevel(); closeModal(); } },
+        { label: '设置', cb: function () { closeModal(); root.CY.panel && CY.panel.open(); } }
+      ]);
+  }
+
+  /* ---------- 弹窗 / 菜单 / Toast ---------- */
+  function showModal(bodyHtml, btns, opts) {
+    opts = opts || {};
+    var maskRoot = $('modal-root');
+    maskRoot.innerHTML = '';
+    var mask = h('div', 'mask');
+    var box = h('div', 'modal');
+    if (opts.wide) box.classList.add('wide');
+    box.innerHTML = bodyHtml;
+    var btnRow = h('div', 'btns');
+    (btns || []).forEach(function (b) {
+      var el = h('button', 'btn' + (b.primary ? ' primary' : ''));
+      el.type = 'button';
+      el.textContent = b.label;
+      el.addEventListener('click', function () { try { b.cb && b.cb(); } catch (e) { console.error(e); } });
+      btnRow.appendChild(el);
+    });
+    box.appendChild(btnRow);
+    mask.appendChild(box);
+    if (!opts.lock) {
+      mask.addEventListener('click', function (e) { if (e.target === mask && !opts.lock) closeModal(); });
+    }
+    maskRoot.appendChild(mask);
+  }
+  function closeModal() { $('modal-root').innerHTML = ''; }
+  function openMenu() {
+    var menu = $('menu-pop');
+    menu.classList.add('on');
+  }
+  function closeMenu() { var m = $('menu-pop'); if (m) m.classList.remove('on'); }
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('on'); }, 1800);
+  }
+
+  /* ---------- 词库导入与可行性分析 ---------- */
+  var SAMPLE_IMPORT = '光彩夺目 举目千里 千家万户 万事大吉 大功告成 七步成章\n光明磊落 落落大方 大快人心 心想事成 成千上万 万紫千红';
+  function openImport() {
+    closeMenu();
+    showModal(
+      '<h3>自定义词库导入</h3>' +
+      '<div class="imp-tip">每行一条或用空格/逗号分隔，每条四个汉字。<br>导入后自动做可行性分析：能否相连成谜、能否完整作答。</div>' +
+      '<textarea id="imp-text" rows="6" placeholder="例如：&#10;光彩夺目 举目千里 千家万户&#10;万事大吉 大功告成"></textarea>' +
+      '<div class="imp-ops">' +
+      '<button type="button" class="btn ghost" id="imp-sample">填入示例</button>' +
+      '<button type="button" class="btn ghost" id="imp-curr">导出当前关成语</button>' +
+      '<button type="button" class="btn primary" id="imp-run">开始分析</button>' +
+      '</div>' +
+      '<div id="imp-report"></div>',
+      [{ label: '关闭', cb: closeModal }], { wide: true });
+    $('imp-sample').addEventListener('click', function () { $('imp-text').value = SAMPLE_IMPORT; });
+    $('imp-curr').addEventListener('click', function () {
+      $('imp-text').value = state.puzzle.words.map(function (w) { return w.w; }).join(' ');
+    });
+    $('imp-run').addEventListener('click', function () {
+      var text = $('imp-text').value || '';
+      var rep = $('imp-report');
+      rep.innerHTML = '<div class="imp-loading">分析中…（连通性 + 摆放求解）</div>';
+      setTimeout(function () { runAnalysis(text); }, 30);
+    });
+  }
+  function runAnalysis(text, salt) {
+    var rep = $('imp-report');
+    if (!rep) return;
+    analysisSalt = salt || 0;
+    var r;
+    try { r = L.analyzeImport(text + ' '.repeat(analysisSalt), { maxMs: 1500, tries: 12, maxSpan: cfg.level.maxSpan }); }
+    catch (e) { rep.innerHTML = '<div class="imp-sec bad">分析出错：' + e.message + '</div>'; return; }
+    lastReport = r;
+    var html = '';
+    /* 谜面预览 */
+    if (r.placement.placed.length >= 2) {
+      html += '<div class="imp-sec good"><b>✓ 可行子集 ' + r.placement.placed.length + ' 条</b>，可连成一张完整字谜（预览如下，均可作答）</div>';
+      html += '<div class="pv-wrap">' + previewHtml(r.placement.placed) + '</div>';
+    } else {
+      html += '<div class="imp-sec bad">✗ 不可行：有效且能相连的成语不足 2 条，无法组成字谜</div>';
+    }
+    if (r.valid.length) html += '<div class="imp-sec">有效 <b>' + r.valid.length + '</b> 条</div>';
+    if (r.duplicates.length) html += '<div class="imp-sec">忽略重复 ' + r.duplicates.length + ' 条（' + esc(r.duplicates.join('、')) + '）</div>';
+    if (r.invalid.length) html += '<div class="imp-sec warn">✗ 无效 ' + r.invalid.length + ' 条：' + r.invalid.map(function (x) { return esc(x.w) + '（' + x.reason + '）'; }).join('、') + '</div>';
+    if (r.isolated.length) html += '<div class="imp-sec warn">✗ 孤立 ' + r.isolated.length + ' 条（与其他成语无公共字，永远连不进字谜）：' + esc(r.isolated.join('、')) + '</div>';
+    if (r.placement.unplaced.length) html += '<div class="imp-sec warn">⚠ 未摆入 ' + r.placement.unplaced.length + ' 条（相互位置冲突）：' + r.placement.unplaced.map(function (x) { return esc(x.w); }).join('、') + '</div>';
+    var verdictTxt = { full: '结论：全部可行，可直接开玩', partial: '结论：部分可行，可采用下方可行子集', none: '结论：不可行' }[r.verdict];
+    html += '<div class="imp-sec verdict ' + r.verdict + '">' + verdictTxt + '（求解 ' + r.placement.ms + 'ms / ' + r.placement.iters + ' 次尝试）</div>';
+    html += '<div class="imp-ops">' +
+      '<button type="button" class="btn primary" id="imp-adopt"' + (r.adopt.length >= 2 ? '' : ' disabled') + '>采用可行子集（' + r.adopt.length + ' 条）并开始</button>' +
+      '<button type="button" class="btn ghost" id="imp-keep"' + (r.valid.length ? '' : ' disabled') + '>仅保存词库</button>' +
+      '<button type="button" class="btn ghost" id="imp-retry">重新分析（换摆法）</button>' +
+      '</div>';
+    rep.innerHTML = html;
+    var adoptBtn = $('imp-adopt');
+    if (adoptBtn) adoptBtn.addEventListener('click', function () { adoptAnalysis(r, text, true); });
+    var keepBtn = $('imp-keep');
+    if (keepBtn) keepBtn.addEventListener('click', function () { adoptAnalysis(r, text, false); });
+    var retryBtn = $('imp-retry');
+    if (retryBtn) retryBtn.addEventListener('click', function () {
+      rep.innerHTML = '<div class="imp-loading">分析中…（换一种摆放顺序）</div>';
+      setTimeout(function () { runAnalysis(text, analysisSalt + 1); }, 30);
+    });
+  }
+  /* 换摆法：加盐重跑，结果确定性可复现 */
+  var analysisSalt = 0;
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
+  }
+  function previewHtml(placedWords) {
+    var minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity;
+    placedWords.forEach(function (x) {
+      for (var i = 0; i < 4; i++) {
+        var rr = x.r + (x.dir === 'V' ? i : 0), cc = x.c + (x.dir === 'H' ? i : 0);
+        if (rr < minR) minR = rr; if (rr > maxR) maxR = rr;
+        if (cc < minC) minC = cc; if (cc > maxC) maxC = cc;
+      }
+    });
+    var map = {};
+    placedWords.forEach(function (x) {
+      for (var i = 0; i < 4; i++) {
+        var k = (x.r + (x.dir === 'V' ? i : 0)) + ',' + (x.c + (x.dir === 'H' ? i : 0));
+        map[k] = x.w[i];
+      }
+    });
+    var rows = maxR - minR + 1, cols = maxC - minC + 1;
+    var size = rows > 8 || cols > 8 ? 18 : 24;
+    var html = '<div class="pv-grid" style="grid-template-columns:repeat(' + cols + ',' + size + 'px);">';
+    for (var r = minR; r <= maxR; r++) {
+      for (var c = minC; c <= maxC; c++) {
+        var ch = map[r + ',' + c];
+        html += ch ? '<span class="pv-cell">' + ch + '</span>' : '<span class="pv-blank"></span>';
+      }
+    }
+    return html + '</div>';
+  }
+  function adoptAnalysis(r, text, andPlay) {
+    if (!r.valid.length) { toast('没有有效成语可保存'); return; }
+    var pkg = {
+      id: 'c' + Date.now().toString(36),
+      name: (r.valid[0] || '') + '等' + r.valid.length + '条',
+      text: text,
+      adopt: r.adopt,
+      createdAt: Date.now()
+    };
+    CustomStore.save(pkg);
+    if (andPlay && r.adopt.length >= 2) {
+      window.CY.config.set({ bank: { source: 'custom:' + pkg.id } });
+      toast('已切换自定义词库（' + r.adopt.length + ' 条可行）');
+    } else {
+      toast('词库已保存，可在设置→数据中启用');
+    }
+    closeModal();
+  }
+
+  /* ---------- 配置联动 ---------- */
+  window.CY.config.onChange(function (c) {
+    var old = cfg;
+    cfg = c;
+    try {
+      if (root.CY.audio) {
+        CY.audio.setVol(c.audio);
+        CY.audio.applyOverrides({ muted: !!c.audio.muted });
+      }
+    } catch (e) { }
+    document.body.classList.toggle('reduced', !!c.motion.reduced);
+    if (!state.puzzle) return;
+    if (old.bank.source !== c.bank.source) {
+      ensurePuzzle(true); render(); return;
+    }
+    if (old.level.attempts !== c.level.attempts) {
+      state.progress.attempts = c.level.attempts;
+      saveState();
+    }
+    /* 里程碑配置变化 → 从累计数重推进度（不补发金币） */
+    state.milestoneIdx = L.advanceMilestones(state.totalFilled, c.rewards.milestones, c.rewards.amounts, 0).idx;
+    render();
+  });
+
+  /* ---------- 事件绑定与启动 ---------- */
+  function bind() {
+    $('grid').addEventListener('click', function (e) {
+      var el = e.target.closest('.cell');
+      if (!el) return;
+      var k = el.dataset.key;
+      var cell = state.puzzle.cells[k];
+      if (cell.given || state.progress.fills[k]) return;
+      sfx('tap');
+      selectKey(k);
+    });
+    $('rack').addEventListener('click', function (e) {
+      var el = e.target.closest('.tile');
+      if (!el || el.classList.contains('gone')) return;
+      tapTile(+el.dataset.idx);
+    });
+    $('btn-menu').addEventListener('click', function (e) {
+      e.stopPropagation();
+      sfx('tap');
+      var m = $('menu-pop');
+      m.classList.contains('on') ? closeMenu() : openMenu();
+    });
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('#menu-pop') && !e.target.closest('#btn-menu')) closeMenu();
+    });
+    $('btn-back').addEventListener('click', function () {
+      showModal('<h3>重新开始本关？</h3><div class="win-sub">当前进度将清空（成语总数与金币保留）</div>',
+        [{ label: '重开本关', primary: true, cb: function () { restartLevel(); closeModal(); } }, { label: '取消', cb: closeModal }]);
+    });
+    $('menu-hint').addEventListener('click', hint);
+    $('menu-restart').addEventListener('click', function () { closeMenu(); restartLevel(); });
+    $('menu-jump').addEventListener('click', function () {
+      closeMenu();
+      showModal(
+        '<h3>跳关</h3><div class="win-sub">输入关卡号（1 ~ 999999），直达对应谜面</div>' +
+        '<input id="jump-num" class="num-in" type="number" min="1" max="999999" value="' + state.level + '">',
+        [{
+          label: '跳过去', primary: true, cb: function () { gotoLevel($('jump-num').value); }
+        }, { label: '取消', cb: closeModal }]);
+    });
+    $('menu-import').addEventListener('click', openImport);
+    $('menu-cfg').addEventListener('click', function () {
+      closeMenu();
+      if (root.CY.panel) CY.panel.open();
+      else toast('设置面板未加载');
+    });
+    window.addEventListener('resize', function () { renderGrid(); });
+    document.addEventListener('visibilitychange', function () { });
+    document.addEventListener('pointerdown', function unlockAudio() {
+      try {
+        if (root.CY.audio) {
+          CY.audio.init();
+          CY.audio.unlock();
+          CY.audio.setVol(cfg.audio);
+          CY.audio.applyOverrides({ muted: !!cfg.audio.muted });
+          if (!cfg.audio.muted && cfg.audio.bgm > 0) CY.audio.startBgm();
+        }
+      } catch (e) { }
+      document.removeEventListener('pointerdown', unlockAudio);
+    });
+  }
+
+  function start() {
+    if (!root.CY_BANK || !CY_BANK.list || CY_BANK.list.length < 10) {
+      /* 词库模块缺失/过小时用兜底词库，游戏不死锁 */
+    }
+    ensurePuzzle(false);
+    bind();
+    render();
+    selectKey(firstEmptyKey());
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+
+  /* ---------- 调试钩子 ---------- */
+  root.__cy = {
+    get state() { return state; },
+    cfg: function () { return window.CY.config.get(); },
+    fill: function (r, c, ch) {
+      var k = r + ',' + c;
+      selectKey(k);
+      var pz = state.puzzle;
+      for (var i = 0; i < pz.pool.length; i++) {
+        if (pz.pool[i] === (ch || pz.cells[k].ch) && (state.progress.used || []).indexOf(i) < 0) { tapTile(i); return true; }
+      }
+      return false;
+    },
+    puzzle: function () { return state.puzzle; },
+    analyze: function (t) { return L.analyzeImport(t, { maxMs: 1500 }); },
+    gotoLevel: gotoLevel,
+    setCoins: function (n) { state.coins = n | 0; saveState(); renderTop(); },
+    openImport: openImport,
+    restart: restartLevel,
+    get report() { return lastReport; }
+  };
+  if (typeof module !== 'undefined' && module.exports) { /* 浏览器专属，node 不导出 */ }
+})();
+
+</script>
+</body>
+</html>
