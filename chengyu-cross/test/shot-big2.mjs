@@ -1,0 +1,12 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pw = require('/Users/yiqunwu/wuyiqun/power_project/ai-x/ai_coding/ai-cases/gulangyu-world/web/tools/node_modules/playwright/index.js');
+const browser = await pw.chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', args: ['--no-proxy-server'] });
+const page = await (await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 })).newPage();
+await page.goto('http://localhost:8770/index.html?reset=1&t=' + Date.now(), { waitUntil: 'networkidle' });
+await page.waitForTimeout(400);
+await page.evaluate(() => window.__cy.gotoLevel(18));
+await page.waitForTimeout(500);
+await page.screenshot({ path: 'shot-biglevel.png' });
+await browser.close();
+console.log('ok');

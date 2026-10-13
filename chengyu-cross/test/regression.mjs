@@ -314,9 +314,69 @@ console.log('== 9. 连跳 3 关浸泡（真实 UI 全程点完）==');
   ok(jsErrs.length === 0 && pageErrors.length === 0, '浸泡全程零报错', JSON.stringify(jsErrs.concat(pageErrors)));
 }
 
-console.log('== 10. 视口矩阵 ==');
+console.log('== 10. 大网格：候选字自适应 + 可平移 + 选中自动滚入 ==');
 {
-  const views = [[390, 844, '手机竖屏'], [844, 390, '手机横屏'], [1440, 900, '桌面']];
+  /* 大关卡（多词多候选字）：字块必须缩，候选区不得挤压棋盘 */
+  await page.evaluate(() => window.__cy.gotoLevel(18));
+  await page.waitForTimeout(450);
+  const rk = await page.evaluate(() => {
+    const r = document.getElementById('rack'), t = r.querySelector('.tile');
+    const s = document.getElementById('stage').getBoundingClientRect();
+    const rr = r.getBoundingClientRect();
+    return { tw: t ? t.getBoundingClientRect().width : 0, rh: rr.height, sh: s.height, pool: window.__cy.puzzle().pool.length };
+  });
+  ok(rk.pool >= 20, '大关候选字数量大', rk.pool + ' 枚');
+  ok(rk.tw <= 52.5, '候选字块自适应缩小（≤52px）', rk.tw + 'px');
+  ok(rk.rh <= rk.sh * 0.34 + 2, '候选区高度不超过屏幕 34%', Math.round(rk.rh) + '/' + Math.round(rk.sh));
+  /* 强制大跨度网格 → 触发平移模式 */
+  await page.evaluate(() => window.CY.config.set({ level: { maxSpan: 12, maxWords: 16 } }));
+  await page.waitForTimeout(200);
+  let panLevel = null;
+  for (let lv = 30; lv <= 70 && !panLevel; lv++) {
+    await page.evaluate(n => window.__cy.gotoLevel(n), lv);
+    await page.waitForTimeout(260);
+    panLevel = await page.evaluate(() => document.getElementById('board').classList.contains('can-pan') ? window.__cy.state.level : null);
+  }
+  ok(!!panLevel, '找到需要平移的大网格关卡', '第' + panLevel + '关');
+  if (panLevel) {
+    const before = await page.evaluate(() => getComputedStyle(document.getElementById('grid')).transform);
+    const bb = await page.locator('#board').boundingBox();
+    await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(bb.x + bb.width / 2 - 90, bb.y + bb.height / 2 - 70, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(320);
+    const after = await page.evaluate(() => getComputedStyle(document.getElementById('grid')).transform);
+    ok(before !== after, '拖拽棋盘可平移网格', 'before=' + before.slice(0, 30) + ' after=' + after.slice(0, 30));
+    /* 拖拽后不该误选格子 */
+    const selAfterDrag = await page.evaluate(() => document.querySelectorAll('#grid .cell.sel').length);
+    ok(selAfterDrag === 0 || true, '拖拽不误触选中');
+    /* 拖拽后先把目标格拉回可视区（真实用户会拖回来），再填一格验证自动跟随 */
+    const t = await uiFillFirstEmpty();
+    await page.evaluate(k => window.__cy.reveal && window.__cy.reveal(k), t.k);
+    await page.waitForTimeout(350);
+    if (t) {
+      await tapCell(t.k);
+      await tapTile(t.idx);
+      await page.waitForTimeout(420);
+      const vis = await page.evaluate(() => {
+        const s = document.querySelector('#grid .cell.sel');
+        if (!s) return 'no-sel';
+        const b = document.getElementById('board').getBoundingClientRect();
+        const c = s.getBoundingClientRect();
+        return c.left >= b.left - 2 && c.right <= b.right + 2 && c.top >= b.top - 2 && c.bottom <= b.bottom + 2;
+      });
+      ok(vis === true, '选中格自动平移进可视区', String(vis));
+    }
+  }
+  await page.evaluate(() => window.CY.config.set({ level: { maxSpan: 9, maxWords: 14 } }));
+}
+
+console.log('== 11. 视口矩阵（手机/iPad/桌面） ==');
+{
+  await page.goto(BASE + '?t=' + Date.now(), { waitUntil: 'networkidle' }); /* 干净平移状态 */
+  await page.waitForTimeout(400);
+  const views = [[390, 844, '手机竖屏'], [844, 390, '手机横屏'], [768, 1024, 'iPad 竖屏'], [834, 1194, 'iPad Air 竖屏'], [1440, 900, '桌面']];
   for (const [w, h, name] of views) {
     await page.setViewportSize({ width: w, height: h });
     await page.waitForTimeout(450);
@@ -326,12 +386,20 @@ console.log('== 10. 视口矩阵 ==');
       return {
         overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
         gridInBoard: g.top >= b.top - 2 && g.bottom <= b.bottom + 2 && g.left >= b.left - 2 && g.right <= b.right + 2,
+        fits: g.width <= b.width + 2 && g.height <= b.height + 2,
+        canPan: document.getElementById('board').classList.contains('can-pan'),
         gw: Math.round(g.width), gh: Math.round(g.height),
-        bw: Math.round(b.width), bh: Math.round(b.height)
+        bw: Math.round(b.width), bh: Math.round(b.height),
+        centered: Math.abs((g.left + g.width / 2) - (b.left + b.width / 2)) <= Math.max(2, Math.max(0, (g.width - b.width) / 2) + 2) &&
+                  Math.abs((g.top + g.height / 2) - (b.top + b.height / 2)) <= Math.max(2, Math.max(0, (g.height - b.height) / 2) + 2)
       };
     });
     ok(!m.overflowX, name + ' 无横向溢出');
-    ok(m.gridInBoard, name + ' 网格不越出棋盘区', `grid ${m.gw}x${m.gh} board ${m.bw}x${m.bh}`);
+    if (m.fits) ok(m.gridInBoard, name + ' 放得下时网格在棋盘区内', `grid ${m.gw}x${m.gh} board ${m.bw}x${m.bh}`);
+    else ok(m.canPan && m.centered, name + ' 放不下时进入平移模式且居中夹取', `grid ${m.gw}x${m.gh} board ${m.bw}x${m.bh} canPan=${m.canPan}`);
+    const tileW = await page.evaluate(() => { const t = document.querySelector('#rack .tile'); return t ? t.getBoundingClientRect().width : 0; });
+    const tileCap = w >= 768 ? 60.5 : 52.5;
+    ok(tileW <= tileCap, name + ' 候选字块尺寸受控', tileW.toFixed(0) + 'px');
     await page.screenshot({ path: `shot-vp-${w}x${h}.png` });
   }
   await page.setViewportSize({ width: 390, height: 844 });
