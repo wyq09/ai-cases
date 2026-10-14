@@ -2,48 +2,100 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>会员运营 · 数字化驱动增长 — WebGL 3D 实时粒子可视化大屏</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>会员运营 · 数字化驱动增长 — WebGL 3D 实时粒子可视化大屏（PC 宽屏 / 移动 H5 双端自适应）</title>
 <style>
-  :root {
-    --gold-bright: #ffe5a3;
-    --gold-main: #f3b95f;
-    --gold-deep: #c98227;
-    --blue-bright: #70bdff;
-    --blue-main: #2a7fff;
-    --text-white: #f2f6fc;
-    --text-muted: #9ab0ce;
-  }
+/* ============================================================
+   双端自适应路由：html 根类 mode-desktop / mode-mobile 由头部启动脚本判定
+   ============================================================ */
+html.mode-mobile #viewport-wrapper,
+html.mode-mobile #control-pill { display: none !important; }
+html.mode-desktop #bg-ambient,
+html.mode-desktop .mobile-app,
+html.mode-desktop .mobile-bottom-bar { display: none !important; }
 
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    user-select: none;
-    -webkit-font-smoothing: antialiased;
-  }
+/* ===== 桌面宽屏根变量与全局 ===== */
+html.mode-desktop {
+  --gold-bright: #ffe5a3;
+  --gold-main: #f3b95f;
+  --gold-deep: #c98227;
+  --blue-bright: #70bdff;
+  --blue-main: #2a7fff;
+  --text-white: #f2f6fc;
+  --text-muted: #9ab0ce;
+}
+html.mode-desktop,
+html.mode-desktop body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #020610;
+  font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "Helvetica Neue", Arial, sans-serif;
+  color: var(--text-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-rendering: optimizeLegibility;
+}
+html.mode-desktop body.mode-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+html.mode-desktop body.mode-scroll::-webkit-scrollbar { width: 6px; }
+html.mode-desktop body.mode-scroll::-webkit-scrollbar-track { background: #030917; }
+html.mode-desktop body.mode-scroll::-webkit-scrollbar-thumb { background: rgba(245, 188, 92, 0.45); border-radius: 3px; }
 
-  html, body {
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    background: #020610;
-    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "Helvetica Neue", Arial, sans-serif;
-    color: var(--text-white);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+/* ===== 移动端根变量与全局 ===== */
+html.mode-mobile {
+  --gold-bright: #ffe6a6;
+  --gold-main: #f4bc5c;
+  --gold-deep: #c98022;
+  --blue-bright: #75c2ff;
+  --blue-main: #2a7fff;
+  --bg-deep: #020611;
+  --bg-card: rgba(9, 22, 48, 0.76);
+  --border-blue: rgba(65, 138, 238, 0.30);
+  --border-gold: rgba(242, 184, 88, 0.42);
+  --text-white: #f3f7fd;
+  --text-sub: #b4c8e4;
+}
+html.mode-mobile,
+html.mode-mobile body {
+  width: 100%;
+  min-height: 100vh;
+  background: #020611;
+  color: var(--text-white);
+  font-family: "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
 
-  /* 1920x1080 1:1 锁定比例大屏容器 */
+/* ===== 通用 ===== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ==================== 以下为桌面宽屏大屏版样式 ==================== */
+/* 1920x1080 1:1 锁定比例大屏容器（支持小屏 PC 高清超采样、智能铺满与滚轮缩放漫游） */
   #viewport-wrapper {
     position: relative;
     width: 1920px;
     height: 1080px;
-    flex-shrink: 0; /* body 是 flex 容器：防止窗口小于 1920 时布局宽被压缩，导致 JS 缩放二次叠加、右缘面板被裁 */
     transform-origin: center center;
     overflow: hidden;
+    flex-shrink: 0;
     background: radial-gradient(ellipse 72% 68% at 48% 48%, #0a1b3d 0%, #040a1a 56%, #02050d 100%);
+    backface-visibility: hidden;
+  }
+  body.mode-scroll #viewport-wrapper {
+    transform-origin: top left;
   }
 
   /*
@@ -706,41 +758,1326 @@
     letter-spacing: 0.4px;
   }
 
-  /* 悬浮控制微胶囊（鼠标移入右下角显现，默认透明不干扰 1:1 视觉） */
+  /* 小屏 PC 清晰度增强：当窗口宽度 <= 1600px 时自动强化次级文字字重与对比度 */
+  body.is-small-pc .metric-label,
+  body.is-small-pc .callout-sub,
+  body.is-small-pc .tier-item-sub,
+  body.is-small-pc .lifecycle-card-sub,
+  body.is-small-pc .touchpoint-label,
+  body.is-small-pc .benefit-label,
+  body.is-small-pc .radar-label,
+  body.is-small-pc .marketing-label,
+  body.is-small-pc .metric-yoy {
+    color: #dce9fc !important;
+    font-weight: 500 !important;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.98) !important;
+  }
+  body.is-small-pc .callout-sub { font-size: 14px !important; }
+  body.is-small-pc .tier-item-sub { font-size: 13px !important; }
+  body.is-small-pc .lifecycle-card-sub { font-size: 12.5px !important; }
+  body.is-small-pc .radar-label { font-size: 14.5px !important; }
+
+  /* 悬浮控制微胶囊（支持小屏 PC 视图模式切换：智能铺满 / 适宽滚动 / 等比 / 缩放 / 全屏） */
   #control-pill {
-    position: absolute;
-    right: 22px;
-    bottom: 6px;
-    z-index: 20;
+    position: fixed;
+    left: 24px;
+    bottom: 14px;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: rgba(6, 15, 34, 0.88);
+    border: 1px solid rgba(245, 188, 92, 0.42);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.65);
+    font-size: 12px;
+    color: #c5d6ed;
+    opacity: 0.22;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: auto;
+    backdrop-filter: blur(8px);
+  }
+  body.is-small-pc #control-pill {
+    opacity: 0.88;
+  }
+  #control-pill:hover {
+    opacity: 1 !important;
+  }
+  #control-pill button {
+    background: rgba(245, 188, 92, 0.15);
+    border: 1px solid rgba(245, 188, 92, 0.42);
+    color: #ffe299;
+    border-radius: 12px;
+    padding: 3px 9px;
+    font-size: 11.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+  #control-pill button:hover,
+  #control-pill button.active {
+    background: rgba(245, 188, 92, 0.35);
+    border-color: #ffe299;
+    color: #ffffff;
+  }
+  #control-pill .sep {
+    width: 1px;
+    height: 12px;
+    background: rgba(245, 188, 92, 0.28);
+    margin: 0 2px;
+  }
+
+
+/* ==================== 以下为移动端 H5 版样式 ==================== */
+/* 全局固定背景星尘与赛博网格微光 */
+  #bg-ambient {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(circle at 50% 28%, rgba(235, 165, 55, 0.14) 0%, transparent 55%),
+      radial-gradient(circle at 50% 65%, rgba(35, 102, 215, 0.16) 0%, transparent 60%),
+      linear-gradient(180deg, #03091a 0%, #051129 48%, #020611 100%);
+  }
+
+  /* 移动端主容器（兼容手机端 100% 宽度与平板居中展示） */
+  .mobile-app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 540px;
+    margin: 0 auto;
+    padding-bottom: 84px;
+  }
+
+  /* ================= 顶部粘性毛玻璃导航头 ================= */
+  .mobile-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(4, 11, 26, 0.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(245, 188, 92, 0.25);
+    padding: 12px 16px 10px 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  }
+  .header-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .mobile-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: linear-gradient(180deg, #fff2cc 0%, #f5be64 55%, #d98f2b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .mobile-title .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #f5be64;
+    box-shadow: 0 0 8px #f5be64;
+  }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chip-btn {
+    background: rgba(245, 188, 92, 0.15);
+    border: 1px solid rgba(245, 188, 92, 0.45);
+    color: #ffe39e;
+    border-radius: 14px;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .chip-btn:active {
+    transform: scale(0.95);
+    background: rgba(245, 188, 92, 0.32);
+  }
+  .mobile-subtitle {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #a9bedc;
+    letter-spacing: 0.4px;
+  }
+
+  /* 快捷锚点导航条 */
+  .nav-pills {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 3px 10px;
-    border-radius: 16px;
-    background: rgba(6, 15, 34, 0.82);
-    border: 1px solid rgba(245, 188, 92, 0.35);
+    margin-top: 10px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .nav-pills::-webkit-scrollbar { display: none; }
+  .nav-pill {
+    flex-shrink: 0;
+    padding: 4px 11px;
+    border-radius: 14px;
+    font-size: 12px;
+    color: #bfd2ec;
+    background: rgba(16, 36, 74, 0.65);
+    border: 1px solid rgba(68, 136, 232, 0.28);
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  .nav-pill.active,
+  .nav-pill:active {
+    color: #09152b;
+    font-weight: 600;
+    background: linear-gradient(90deg, #ffe299 0%, #f3b550 100%);
+    border-color: #ffe299;
+    box-shadow: 0 0 10px rgba(245, 185, 82, 0.45);
+  }
+
+  /* 通用移动端科技卡片 */
+  .m-section {
+    margin: 14px 12px 0 12px;
+    background: linear-gradient(160deg, rgba(11, 26, 56, 0.74) 0%, rgba(5, 12, 28, 0.86) 100%);
+    border: 1px solid var(--border-blue);
+    border-radius: 14px;
+    padding: 14px;
+    position: relative;
+    box-shadow:
+      inset 0 0 22px rgba(28, 78, 165, 0.14),
+      0 6px 20px rgba(0, 0, 0, 0.45);
+  }
+  .m-section::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 18px;
+    right: 18px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(95, 168, 255, 0.5) 30%, rgba(248, 195, 98, 0.72) 75%, transparent 100%);
+  }
+
+  .m-sec-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .m-sec-title {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    background: linear-gradient(180deg, #ffeab8 0%, #eab052 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .m-sec-line {
+    flex: 1;
+    height: 1px;
+    margin-left: 12px;
+    background: linear-gradient(90deg, rgba(245, 188, 92, 0.75) 0%, rgba(245, 188, 92, 0.08) 100%);
+    position: relative;
+  }
+  .m-sec-line::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: -2px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #ffe299;
+    box-shadow: 0 0 6px #ffc452;
+  }
+
+  /* ================= 1. 会员规模概览 (2x2 网格) ================= */
+  .scale-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .scale-card {
+    background: linear-gradient(135deg, rgba(16, 36, 74, 0.65) 0%, rgba(7, 16, 36, 0.82) 100%);
+    border: 1px solid rgba(68, 128, 215, 0.28);
+    border-radius: 10px;
+    padding: 10px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .scale-card:active {
+    transform: scale(0.98);
+    border-color: rgba(245, 188, 92, 0.7);
+  }
+  .scale-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 1.2px solid rgba(235, 175, 78, 0.65);
+    background: radial-gradient(circle, rgba(235, 168, 62, 0.2) 0%, rgba(10, 22, 46, 0.75) 75%);
+    box-shadow: 0 0 10px rgba(235, 168, 62, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .scale-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .scale-label {
+    font-size: 12px;
+    color: #c9dbf2;
+    white-space: nowrap;
+  }
+  .scale-val-row {
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+    margin: 2px 0;
+  }
+  .scale-num {
+    font-size: 22px;
+    font-weight: 700;
+    background: linear-gradient(180deg, #fff0c4 0%, #f5b955 65%, #dc8e26 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-variant-numeric: tabular-nums;
+  }
+  .scale-unit {
+    font-size: 12px;
+    color: #d6e2f5;
+  }
+  .scale-yoy {
     font-size: 11px;
     color: #9ab0ce;
-    opacity: 0;
-    transition: opacity 0.25s ease;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .scale-yoy b {
+    color: #e0ecfc;
+    font-weight: 600;
+  }
+
+  /* ================= 2. 核心 3D WebGL 漏斗与粒子流互动舞台 ================= */
+  .funnel-stage-section {
+    padding: 12px 10px 14px 10px;
+    overflow: hidden;
+  }
+  .funnel-canvas-box {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 750 / 790;
+    border-radius: 12px;
+    overflow: hidden;
+    background: radial-gradient(ellipse 85% 75% at 50% 48%, rgba(16, 40, 84, 0.48) 0%, rgba(4, 10, 24, 0.85) 100%);
+    border: 1px solid rgba(245, 188, 92, 0.22);
+    touch-action: pan-y;
+  }
+  #m-webgl-canvas,
+  #m-particle-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  #m-webgl-canvas { z-index: 1; }
+  #m-particle-canvas { z-index: 2; }
+
+  /* 漏斗中心 6 级文字浮层（百分比定位严格对齐 750x790 漏斗舞台） */
+  .m-funnel-labels {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .m-f-label {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
     pointer-events: auto;
-  }
-  #control-pill:hover {
-    opacity: 0.95;
-  }
-  #control-pill button {
-    background: rgba(245, 188, 92, 0.16);
-    border: 1px solid rgba(245, 188, 92, 0.45);
-    color: #ffe299;
-    border-radius: 10px;
-    padding: 2px 8px;
-    font-size: 11px;
     cursor: pointer;
+    padding: 2px 10px;
+    border-radius: 8px;
+    transition: transform 0.2s ease, background 0.2s ease;
   }
+  .m-f-label.active {
+    transform: translate(-50%, -50%) scale(1.08);
+    background: rgba(245, 188, 92, 0.18);
+    box-shadow: 0 0 12px rgba(245, 188, 92, 0.35);
+  }
+  .m-f-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #f4f7fc;
+    text-shadow: 0 1px 5px rgba(0, 0, 0, 0.98);
+    line-height: 1.15;
+  }
+  .m-f-num {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffe39e;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.98), 0 0 10px rgba(180, 110, 15, 0.75);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+  }
+  .m-f-label.sm .m-f-name { font-size: 11px; }
+  .m-f-label.sm .m-f-num  { font-size: 14px; }
+  .m-f-label.xs .m-f-name { font-size: 10px; }
+  .m-f-label.xs .m-f-num  { font-size: 12.5px; }
+
+  .stage-hint {
+    text-align: center;
+    font-size: 11.5px;
+    color: #9ab2d4;
+    margin: 8px 0 10px 0;
+  }
+
+  /* 漏斗下方 6 级引出策略卡片列表（点击联动高亮 3D 漏斗对应层级） */
+  .callout-cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .m-callout-card {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, rgba(16, 36, 74, 0.62) 0%, rgba(8, 18, 40, 0.78) 100%);
+    border: 1px solid rgba(68, 134, 228, 0.25);
+    cursor: pointer;
+    transition: all 0.22s ease;
+  }
+  .m-callout-card.active {
+    border-color: rgba(248, 195, 98, 0.85);
+    background: linear-gradient(90deg, rgba(58, 42, 18, 0.65) 0%, rgba(16, 34, 68, 0.82) 100%);
+    box-shadow: 0 0 15px rgba(245, 185, 82, 0.28);
+  }
+  .m-callout-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1.2px solid rgba(235, 176, 82, 0.62);
+    background: radial-gradient(circle, rgba(235, 170, 65, 0.22) 0%, rgba(8, 18, 38, 0.88) 78%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .m-callout-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .m-callout-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+  .m-callout-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f5ca79;
+  }
+  .m-callout-Stat {
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffe39e;
+    background: rgba(245, 188, 92, 0.14);
+    border: 1px solid rgba(245, 188, 92, 0.32);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .m-callout-sub {
+    font-size: 12px;
+    color: #b4c8e4;
+  }
+
+  /* ================= 3. 会员全生命周期运营 (4 步横向流程) ================= */
+  .lifecycle-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    position: relative;
+  }
+  .m-life-card {
+    background: linear-gradient(160deg, rgba(22, 34, 58, 0.76) 0%, rgba(8, 15, 30, 0.90) 100%);
+    border: 1px solid rgba(232, 174, 78, 0.45);
+    border-radius: 10px;
+    padding: 10px 4px 8px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+  }
+  .m-life-title {
+    margin-top: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #f4c675;
+  }
+  .m-life-sub {
+    margin-top: 2px;
+    font-size: 10.5px;
+    color: #adc2df;
+    line-height: 1.2;
+  }
+
+  /* ================= 4. 多渠道会员触点 (7 大触点网格) ================= */
+  .touchpoints-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px 8px;
+    justify-items: center;
+  }
+  .m-tp-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .m-tp-circle {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 1.2px solid rgba(235, 176, 82, 0.58);
+    background: radial-gradient(circle at 50% 50%, rgba(235, 172, 68, 0.20) 0%, rgba(8, 19, 42, 0.85) 76%);
+    box-shadow: 0 0 12px rgba(235, 170, 65, 0.2), inset 0 0 8px rgba(245, 188, 92, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .m-tp-circle::before {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #ffe39e;
+    box-shadow: 0 0 5px #ffc452;
+  }
+  .m-tp-label {
+    font-size: 12px;
+    color: #d0e0f5;
+    white-space: nowrap;
+  }
+
+  /* ================= 5. 会员数据中台 (环绕核心 + 动态电光蓝声波图) ================= */
+  .hub-canvas-wrap {
+    position: relative;
+    width: 100%;
+    height: 255px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 42%, rgba(22, 52, 108, 0.35) 0%, rgba(5, 13, 30, 0.65) 100%);
+  }
+  #m-hub-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .m-hub-pill {
+    position: absolute;
+    padding: 4px 12px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(16, 40, 82, 0.82) 0%, rgba(8, 20, 44, 0.92) 100%);
+    border: 1px solid rgba(74, 145, 242, 0.45);
+    box-shadow: 0 0 10px rgba(42, 118, 232, 0.25);
+    font-size: 12px;
+    color: #d4e5fc;
+  }
+
+  /* ================= 6. 会员分层运营体系 (3D 金字塔 + 四层列表) ================= */
+  .pyramid-layout {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .pyramid-svg-box {
+    width: 44%;
+    flex-shrink: 0;
+  }
+  .m-tier-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .m-tier-card {
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, rgba(18, 42, 86, 0.52) 0%, rgba(10, 24, 52, 0.20) 100%);
+    border-left: 2.5px solid #58a6ff;
+  }
+  .m-tier-card.gold { border-left-color: #f5be64; }
+  .m-tier-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #f3c674;
+  }
+  .m-tier-title span {
+    color: #dce8f8;
+    font-weight: 500;
+    font-size: 12.5px;
+  }
+  .m-tier-sub {
+    font-size: 11.5px;
+    color: #b4c8e4;
+    margin-top: 1px;
+  }
+
+  /* ================= 7. 会员营销效果分析 & 8. 会员价值评估模型 ================= */
+  .m-mkt-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    padding: 4px 2px;
+  }
+  .m-mkt-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .m-mkt-label {
+    width: 78px;
+    font-size: 13px;
+    color: #d2e2f8;
+    flex-shrink: 0;
+  }
+  .m-mkt-track {
+    flex: 1;
+    height: 9px;
+    border-radius: 5px;
+    background: rgba(22, 48, 92, 0.55);
+    position: relative;
+    overflow: hidden;
+  }
+  .m-mkt-bar {
+    height: 100%;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #b8761e 0%, #f4bc5c 70%, #ffe6a3 100%);
+    box-shadow: 0 0 10px rgba(245, 188, 92, 0.5);
+  }
+  .m-mkt-val {
+    width: 48px;
+    text-align: right;
+    font-size: 14px;
+    font-weight: 700;
+    color: #f5c670;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .radar-box {
+    position: relative;
+    width: 100%;
+    height: 230px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #m-radar-canvas {
+    width: 240px;
+    height: 220px;
+  }
+  .m-radar-tag {
+    position: absolute;
+    font-size: 12.5px;
+    color: #d0e1f9;
+    font-weight: 500;
+    transform: translate(-50%, -50%);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
+  }
+
+  /* ================= 9. 会员权益体系 (3x2 网格) ================= */
+  .benefits-m-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px 10px;
+    justify-items: center;
+  }
+
+  /* 底部悬浮控制条 */
+  .mobile-bottom-bar {
+    position: fixed;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    z-index: 60;
+    width: calc(100% - 28px);
+    max-width: 480px;
+    background: rgba(6, 15, 34, 0.90);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(245, 188, 92, 0.42);
+    border-radius: 24px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.75);
+    font-size: 12px;
+    color: #c5d7f0;
+  }
+  .bottom-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #52ffa8;
+    box-shadow: 0 0 8px #52ffa8;
+  }
+
 </style>
+<script>
+/* 双端路由：手机/窄窗口 → 移动 H5 版，宽屏 PC → 大屏版；跨断点自动重载切换 */
+(function () {
+  window.addEventListener('error', function (e) { (window.__cyErrors = window.__cyErrors || []).push(String((e && e.message) || e)); }, true);
+  window.addEventListener('unhandledrejection', function (e) { (window.__cyErrors = window.__cyErrors || []).push('unhandledrejection: ' + String((e && e.reason) || e)); }, true);
+
+  function decideMobile() {
+    if (/Android|iPhone|iPod|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+      return window.innerWidth < 1024; /* 手机横屏仍走移动版 */
+    }
+    return window.matchMedia('(max-width: 767.98px)').matches;
+  }
+
+  var isMobile = decideMobile();
+  document.documentElement.classList.add(isMobile ? 'mode-mobile' : 'mode-desktop');
+  window.__cyIsMobile = isMobile;
+
+  window.addEventListener('resize', function () {
+    if (decideMobile() !== isMobile) location.reload();
+  });
+})();
+</script>
 </head>
 <body>
 
+<!-- ==================== 移动端 H5 视图树（手机访问时显示） ==================== -->
+<div id="bg-ambient"></div>
+
+<!-- 全局共用 SVG 渐变定义 -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="mGoldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fff0c2" />
+      <stop offset="55%" stop-color="#f3b856" />
+      <stop offset="100%" stop-color="#c97f22" />
+    </linearGradient>
+    <linearGradient id="mPyr1L" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f4e6ca" /><stop offset="100%" stop-color="#b69f79" />
+    </linearGradient>
+    <linearGradient id="mPyr1R" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9e8762" /><stop offset="100%" stop-color="#6c593c" />
+    </linearGradient>
+    <linearGradient id="mPyr2L" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e5aa4a" /><stop offset="100%" stop-color="#b57c24" />
+    </linearGradient>
+    <linearGradient id="mPyr2R" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9c6b1f" /><stop offset="100%" stop-color="#6e4810" />
+    </linearGradient>
+    <linearGradient id="mPyr3L" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#586988" /><stop offset="100%" stop-color="#3c4a63" />
+    </linearGradient>
+    <linearGradient id="mPyr3R" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3a465e" /><stop offset="100%" stop-color="#273145" />
+    </linearGradient>
+    <linearGradient id="mPyr4L" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d4888" /><stop offset="100%" stop-color="#112b54" />
+    </linearGradient>
+    <linearGradient id="mPyr4R" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#143366" /><stop offset="100%" stop-color="#0b1d3d" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="mobile-app">
+  <!-- 顶部粘性毛玻璃导航栏 -->
+  <header class="mobile-header">
+    <div class="header-top-row">
+      <h1 class="mobile-title">
+        <span>会员运营</span>
+        <span class="dot"></span>
+        <span>数字化驱动增长</span>
+      </h1>
+      <div class="header-actions">
+        <button class="chip-btn" id="m-btn-pulse">能量脉冲</button>
+      </div>
+    </div>
+    <p class="mobile-subtitle">会员全生命周期运营体系，驱动客户价值持续提升</p>
+    <nav class="nav-pills">
+      <a class="nav-pill active" href="#sec-funnel">3D转化漏斗</a>
+      <a class="nav-pill" href="#sec-scale">会员规模</a>
+      <a class="nav-pill" href="#sec-touch">渠道触点</a>
+      <a class="nav-pill" href="#sec-hub">数据中台</a>
+      <a class="nav-pill" href="#sec-tier">分层体系</a>
+      <a class="nav-pill" href="#sec-mkt">营销与价值</a>
+      <a class="nav-pill" href="#sec-rights">权益体系</a>
+    </nav>
+  </header>
+
+  <!-- 1. 会员规模概览 (2x2 核心指标卡) -->
+  <section class="m-section" id="sec-scale">
+    <div class="m-sec-header">
+      <span class="m-sec-title">会员规模概览</span>
+      <div class="m-sec-line"></div>
+    </div>
+    <div class="scale-grid">
+      <div class="scale-card" data-stage="0">
+        <div class="scale-icon">
+          <svg width="26" height="26" viewBox="0 0 48 48">
+            <circle cx="22" cy="15" r="8" fill="url(#mGoldGrad)" />
+            <path d="M8,38 C8,28 14,25 22,25 C30,25 36,28 36,38 Z" fill="url(#mGoldGrad)" />
+            <path d="M35,23 L35,31 M31,27 L39,27" stroke="#ffe5a3" stroke-width="3" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="scale-info">
+          <div class="scale-label">会员总数</div>
+          <div class="scale-val-row">
+            <span class="scale-num">385.6</span>
+            <span class="scale-unit">万</span>
+          </div>
+          <div class="scale-yoy">同比 <b>+23.7%</b> ↗</div>
+        </div>
+      </div>
+
+      <div class="scale-card" data-stage="3">
+        <div class="scale-icon">
+          <svg width="26" height="26" viewBox="0 0 48 48">
+            <rect x="10" y="29" width="5" height="9" rx="1" fill="url(#mGoldGrad)" />
+            <rect x="18" y="25" width="5" height="13" rx="1" fill="url(#mGoldGrad)" />
+            <rect x="26" y="21" width="5" height="17" rx="1" fill="url(#mGoldGrad)" />
+            <rect x="34" y="16" width="5" height="22" rx="1" fill="url(#mGoldGrad)" />
+            <path d="M10,23 L20,15 L26,18 L37,9" fill="none" stroke="#ffe5a3" stroke-width="3" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="scale-info">
+          <div class="scale-label">活跃会员数</div>
+          <div class="scale-val-row">
+            <span class="scale-num">128.7</span>
+            <span class="scale-unit">万</span>
+          </div>
+          <div class="scale-yoy">同比 <b>+25.4%</b> ↗</div>
+        </div>
+      </div>
+
+      <div class="scale-card" data-stage="5">
+        <div class="scale-icon">
+          <svg width="26" height="26" viewBox="0 0 48 48">
+            <polygon points="15,13 33,13 40,22 24,39 8,22" fill="none" stroke="url(#mGoldGrad)" stroke-width="2.8" stroke-linejoin="round" />
+            <polyline points="8,22 40,22" stroke="url(#mGoldGrad)" stroke-width="2.2" />
+          </svg>
+        </div>
+        <div class="scale-info">
+          <div class="scale-label">高价值会员数</div>
+          <div class="scale-val-row">
+            <span class="scale-num">28.9</span>
+            <span class="scale-unit">万</span>
+          </div>
+          <div class="scale-yoy">同比 <b>+31.2%</b> ↗</div>
+        </div>
+      </div>
+
+      <div class="scale-card" data-stage="4">
+        <div class="scale-icon">
+          <svg width="26" height="26" viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r="14" fill="none" stroke="url(#mGoldGrad)" stroke-width="2.8" />
+            <path d="M18,16 L24,23 L30,16 M18,23 L30,23 M18,27.5 L30,27.5 M24,23 L24,33" fill="none" stroke="#ffe5a3" stroke-width="2.6" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="scale-info">
+          <div class="scale-label">会员贡献销售占比</div>
+          <div class="scale-val-row">
+            <span class="scale-num">62.3</span>
+            <span class="scale-unit">%</span>
+          </div>
+          <div class="scale-yoy">同比 <b>+18.6%</b> ↗</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 核心 3D WebGL 漏斗与实时粒子流舞台 + 6 级转化策略联动卡片 -->
+  <section class="m-section funnel-stage-section" id="sec-funnel">
+    <div class="m-sec-header" style="padding: 0 4px;">
+      <span class="m-sec-title">全域会员转化 3D 漏斗</span>
+      <div class="m-sec-line"></div>
+    </div>
+
+    <div class="funnel-canvas-box" id="m-funnel-box">
+      <canvas id="m-webgl-canvas" width="750" height="790"></canvas>
+      <canvas id="m-particle-canvas" width="750" height="790"></canvas>
+
+      <div class="m-funnel-labels">
+        <div class="m-f-label active" style="top: 32.5%;" data-stage="0">
+          <div class="m-f-name">会员曝光/触达</div>
+          <div class="m-f-num">3,856,000</div>
+        </div>
+        <div class="m-f-label" style="top: 42.8%;" data-stage="1">
+          <div class="m-f-name">会员注册</div>
+          <div class="m-f-num">1,256,000</div>
+        </div>
+        <div class="m-f-label" style="top: 52.8%;" data-stage="2">
+          <div class="m-f-name">会员激活</div>
+          <div class="m-f-num">785,000</div>
+        </div>
+        <div class="m-f-label" style="top: 62.4%;" data-stage="3">
+          <div class="m-f-name">会员活跃</div>
+          <div class="m-f-num">385,600</div>
+        </div>
+        <div class="m-f-label sm" style="top: 71.5%;" data-stage="4">
+          <div class="m-f-name">会员消费</div>
+          <div class="m-f-num">128,700</div>
+        </div>
+        <div class="m-f-label xs" style="top: 79.8%;" data-stage="5">
+          <div class="m-f-name">高价值会员</div>
+          <div class="m-f-num">28,900</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage-hint">👆 左右滑动漏斗可体验 3D 视差，点击任一层级高亮转化路径</div>
+
+    <!-- 漏斗右侧 6 级引出标注（移动端交互卡片化） -->
+    <div class="callout-cards-list">
+      <div class="m-callout-card active" data-stage="0">
+        <div class="m-callout-icon">
+          <svg width="20" height="20" viewBox="0 0 32 32">
+            <circle cx="15" cy="17" r="10" fill="none" stroke="url(#mGoldGrad)" stroke-width="2.2" />
+            <circle cx="15" cy="17" r="5" fill="none" stroke="url(#mGoldGrad)" stroke-width="2" />
+            <path d="M16,16 L26,6 M21,6 L26,6 L26,11" fill="none" stroke="#ffe5a3" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="m-callout-body">
+          <div class="m-callout-top">
+            <span class="m-callout-title">1. 多渠道触达潜在用户</span>
+            <span class="m-callout-Stat">曝光 3,856,000</span>
+          </div>
+          <div class="m-callout-sub">精准投放 | 内容营销 | 活动引流</div>
+        </div>
+      </div>
+
+      <div class="m-callout-card" data-stage="1">
+        <div class="m-callout-icon">
+          <svg width="20" height="20" viewBox="0 0 32 32">
+            <circle cx="14" cy="11" r="5.5" fill="url(#mGoldGrad)" />
+            <path d="M5,25 C5,19 9,17 14,17 C19,17 23,19 23,25 Z" fill="url(#mGoldGrad)" />
+            <path d="M25,15 L25,21 M22,18 L28,18" stroke="#ffe5a3" stroke-width="2.4" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="m-callout-body">
+          <div class="m-callout-top">
+            <span class="m-callout-title">2. 引导注册成为会员</span>
+            <span class="m-callout-Stat">注册 1,256,000</span>
+          </div>
+          <div class="m-callout-sub">新人礼 | 注册有礼 | 快速入会</div>
+        </div>
+      </div>
+
+      <div class="m-callout-card" data-stage="2">
+        <div class="m-callout-icon">
+          <svg width="20" height="20" viewBox="0 0 32 32">
+            <rect x="6" y="7" width="18" height="18" rx="3" fill="none" stroke="url(#mGoldGrad)" stroke-width="2.2" />
+            <path d="M11,16 L15,20 L25,9" fill="none" stroke="#ffe5a3" stroke-width="2.4" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="m-callout-body">
+          <div class="m-callout-top">
+            <span class="m-callout-title">3. 会员激活转化</span>
+            <span class="m-callout-Stat">激活 785,000</span>
+          </div>
+          <div class="m-callout-sub">首单优惠 | 积分激励 | 新手引导</div>
+        </div>
+      </div>
+
+      <div class="m-callout-card" data-stage="3">
+        <div class="m-callout-icon">
+          <svg width="20" height="20" viewBox="0 0 32 32">
+            <path d="M16,26 C16,26 5,18.5 5,11.5 C5,7.8 8,5.5 11.2,5.5 C13.4,5.5 15.1,6.8 16,8.5 C16.9,6.8 18.6,5.5 20.8,5.5 C24,5.5 27,7.8 27,11.5 C27,18.5 16,26 16,26 Z" fill="url(#mGoldGrad)" />
+          </svg>
+        </div>
+        <div class="m-callout-body">
+          <div class="m-callout-top">
+            <span class="m-callout-title">4. 提升会员活跃度</span>
+            <span class="m-callout-Stat">活跃 385,600</span>
+          </div>
+          <div class="m-callout-sub">会员日 | 积分互动 | 社群运营</div>
+        </div>
+      </div>
+
+      <div class="m-callout-card" data-stage="4">
+        <div class="m-callout-icon">
+          <svg width="20" height="20" viewBox="0 0 32 32">
+            <path d="M8,12 L24,12 L25.5,26 L6.5,26 Z" fill="url(#mGoldGrad)" />
+            <path d="M12,12 L12,9 C12,6.5 13.8,5 16,5 C18.2,5 20,6.5 20,9 L20,12" fill="none" stroke="#ffe5a3" stroke-width="2.2" />
+          </svg>
+        </div>
+        <div class="m-callout-body">
+          <div class="m-callout-top">
+            <span class="m-callout-title">5. 促进会员消费转化</span>
+            <span class="m-callout-Stat">消费 128,700</span>
+          </div>
+          <div class="m-callout-sub">优惠券 | 精准推荐 | 场景营销</div>
+        </div>
+      </div>
+
+      <div class="m-callout-card" data-stage="5">
+        <div class="m-callout-icon">
+          <svg width="20" height="20" viewBox="0 0 32 32">
+            <polygon points="10,8 22,8 27,14 16,26 5,14" fill="none" stroke="url(#mGoldGrad)" stroke-width="2.2" stroke-linejoin="round" />
+            <line x1="5" y1="14" x2="27" y2="14" stroke="url(#mGoldGrad)" stroke-width="1.8" />
+          </svg>
+        </div>
+        <div class="m-callout-body">
+          <div class="m-callout-top">
+            <span class="m-callout-title">6. 培养高价值会员</span>
+            <span class="m-callout-Stat">高价值 28,900</span>
+          </div>
+          <div class="m-callout-sub">专属权益 | 会员分层 | 1V1服务</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 会员全生命周期运营 -->
+  <section class="m-section">
+    <div class="m-sec-header">
+      <span class="m-sec-title">会员全生命周期运营</span>
+      <div class="m-sec-line"></div>
+    </div>
+    <div class="lifecycle-grid">
+      <div class="m-life-card">
+        <svg width="28" height="28" viewBox="0 0 48 48">
+          <circle cx="20" cy="15" r="7" fill="none" stroke="url(#mGoldGrad)" stroke-width="2.8" />
+          <path d="M9,35 C9,27 14,24 20,24 C26,24 31,27 31,35" fill="none" stroke="url(#mGoldGrad)" stroke-width="2.8" stroke-linecap="round" />
+          <path d="M35,23 L35,33 M30,28 L40,28" stroke="#ffe5a3" stroke-width="2.8" stroke-linecap="round" />
+        </svg>
+        <div class="m-life-title">拉新获客</div>
+        <div class="m-life-sub">扩大会员规模</div>
+      </div>
+
+      <div class="m-life-card">
+        <svg width="28" height="28" viewBox="0 0 48 48">
+          <polyline points="6,25 15,25 19,12 25,36 30,19 34,25 42,25" fill="none" stroke="url(#mGoldGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <div class="m-life-title">促活留存</div>
+        <div class="m-life-sub">提升活跃度</div>
+      </div>
+
+      <div class="m-life-card">
+        <svg width="28" height="28" viewBox="0 0 48 48">
+          <path d="M18,12 L30,12 L27,17 L21,17 Z" fill="url(#mGoldGrad)" />
+          <path d="M19,17 C12,19 10,26 11,33 C12,37 16,39 24,39 C32,39 36,37 37,33 C38,26 36,19 29,17 Z" fill="url(#mGoldGrad)" />
+          <text x="24" y="33" text-anchor="middle" fill="#0d1b36" font-size="16" font-weight="900">$</text>
+        </svg>
+        <div class="m-life-title">转化变现</div>
+        <div class="m-life-sub">促进消费增长</div>
+      </div>
+
+      <div class="m-life-card">
+        <svg width="28" height="28" viewBox="0 0 48 48">
+          <polygon points="9,33 12,17 20,24 24,13 28,24 36,17 39,33" fill="url(#mGoldGrad)" stroke="#ffe5a3" stroke-width="1.2" />
+          <rect x="10" y="35" width="28" height="3.5" rx="1.5" fill="#ffe5a3" />
+        </svg>
+        <div class="m-life-title">忠诚提升</div>
+        <div class="m-life-sub">提高会员价值</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 多渠道会员触点 -->
+  <section class="m-section" id="sec-touch">
+    <div class="m-sec-header">
+      <span class="m-sec-title">多渠道会员触点</span>
+      <div class="m-sec-line"></div>
+    </div>
+    <div class="touchpoints-grid">
+      <div class="m-tp-item">
+        <div class="m-tp-circle">
+          <svg width="26" height="26" viewBox="0 0 36 36">
+            <rect x="7" y="14" width="22" height="6" rx="1.5" fill="url(#mGoldGrad)" />
+            <rect x="9" y="21" width="18" height="10" rx="1.5" fill="url(#mGoldGrad)" />
+            <rect x="16.5" y="14" width="3" height="17" fill="#0d1b36" />
+          </svg>
+        </div>
+        <span class="m-tp-label">商场活动</span>
+      </div>
+      <div class="m-tp-item">
+        <div class="m-tp-circle">
+          <svg width="28" height="28" viewBox="0 0 36 36">
+            <ellipse cx="15" cy="15" rx="9" ry="7.5" fill="url(#mGoldGrad)" />
+            <circle cx="12" cy="14" r="1.3" fill="#0d1b36" /><circle cx="18" cy="14" r="1.3" fill="#0d1b36" />
+            <ellipse cx="23" cy="21" rx="7.5" ry="6" fill="#ffe5a3" stroke="#0d1b36" stroke-width="1" />
+          </svg>
+        </div>
+        <span class="m-tp-label">微信公众号</span>
+      </div>
+      <div class="m-tp-item">
+        <div class="m-tp-circle">
+          <svg width="26" height="26" viewBox="0 0 36 36">
+            <path d="M14,22 A5.5,5.5 0 1,1 19.5,16.5 L19.5,20.5 A5.5,5.5 0 1,0 25,15" fill="none" stroke="url(#mGoldGrad)" stroke-width="2.8" stroke-linecap="round" />
+          </svg>
+        </div>
+        <span class="m-tp-label">小程序</span>
+      </div>
+      <div class="m-tp-item">
+        <div class="m-tp-circle">
+          <svg width="26" height="26" viewBox="0 0 36 36">
+            <rect x="11" y="6" width="14" height="24" rx="2.5" fill="none" stroke="url(#mGoldGrad)" stroke-width="2.4" />
+            <circle cx="18" cy="26.5" r="1.5" fill="#ffe5a3" />
+          </svg>
+        </div>
+        <span class="m-tp-label">APP</span>
+      </div>
+      <div class="m-tp-item">
+        <div class="m-tp-circle">
+          <svg width="26" height="26" viewBox="0 0 36 36">
+            <circle cx="16" cy="13" r="5.5" fill="url(#mGoldGrad)" />
+            <path d="M7,27 C7,21 11,19 16,19 C21,19 25,21 25,27 Z" fill="url(#mGoldGrad)" />
+            <path d="M27,16 L27,22 M24,19 L30,19" stroke="#ffe5a3" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <span class="m-tp-label">会员注册</span>
+      </div>
+      <div class="m-tp-item">
+        <div class="m-tp-circle">
+          <svg width="26" height="26" viewBox="0 0 36 36">
+            <path d="M7,15 L9.5,8 L26.5,8 L29,15 Z" fill="url(#mGoldGrad)" />
+            <rect x="9" y="16" width="18" height="12" rx="1" fill="none" stroke="url(#mGoldGrad)" stroke-width="2.2" />
+          </svg>
+        </div>
+        <span class="m-tp-label">线下门店</span>
+      </div>
+      <div class="m-tp-item">
+        <div class="m-tp-circle">
+          <svg width="26" height="26" viewBox="0 0 36 36">
+            <path d="M6,16 L13,11 L19,15 L23,11 L30,16 L25,23 L18,26 L11,23 Z" fill="none" stroke="url(#mGoldGrad)" stroke-width="2.2" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <span class="m-tp-label">异业合作</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. 会员数据中台 (环绕粒子核心 + 动态声波图) -->
+  <section class="m-section" id="sec-hub">
+    <div class="m-sec-header">
+      <span class="m-sec-title">会员数据中台</span>
+      <div class="m-sec-line"></div>
+    </div>
+    <div class="hub-canvas-wrap">
+      <canvas id="m-hub-canvas" width="460" height="255"></canvas>
+      <div class="m-hub-pill" style="left: 14px; top: 18px;">行为数据</div>
+      <div class="m-hub-pill" style="right: 14px; top: 18px;">交易数据</div>
+      <div class="m-hub-pill" style="left: 14px; top: 126px;">基础数据</div>
+      <div class="m-hub-pill" style="right: 14px; top: 126px;">互动数据</div>
+    </div>
+  </section>
+
+  <!-- 6. 会员分层运营体系 (3D 金字塔 + 四层详情) -->
+  <section class="m-section" id="sec-tier">
+    <div class="m-sec-header">
+      <span class="m-sec-title">会员分层运营体系</span>
+      <div class="m-sec-line"></div>
+    </div>
+    <div class="pyramid-layout">
+      <div class="pyramid-svg-box">
+        <svg viewBox="0 0 210 215" style="width:100%;height:auto;display:block;">
+          <!-- Tier 1 -->
+          <polygon points="105,12 80,56 105,56" fill="url(#mPyr1L)" stroke="rgba(255,235,190,0.65)" stroke-width="1" />
+          <polygon points="105,12 105,56 130,56" fill="url(#mPyr1R)" stroke="rgba(255,235,190,0.45)" stroke-width="1" />
+          <polygon points="105,32 110,38 105,44 100,38" fill="#fff6db" />
+          <!-- Tier 2 -->
+          <polygon points="77,62 52,106 105,106 105,62" fill="url(#mPyr2L)" stroke="rgba(245,190,95,0.55)" stroke-width="1" />
+          <polygon points="105,62 105,106 158,106 133,62" fill="url(#mPyr2R)" stroke="rgba(245,190,95,0.4)" stroke-width="1" />
+          <!-- Tier 3 -->
+          <polygon points="49,112 24,156 105,156 105,112" fill="url(#mPyr3L)" stroke="rgba(140,175,230,0.45)" stroke-width="1" />
+          <polygon points="105,112 105,156 186,156 161,112" fill="url(#mPyr3R)" stroke="rgba(140,175,230,0.32)" stroke-width="1" />
+          <!-- Tier 4 -->
+          <polygon points="21,162 -2,206 105,206 105,162" fill="url(#mPyr4L)" stroke="rgba(75,140,235,0.5)" stroke-width="1" />
+          <polygon points="105,162 105,206 212,206 189,162" fill="url(#mPyr4R)" stroke="rgba(75,140,235,0.35)" stroke-width="1" />
+        </svg>
+      </div>
+      <div class="m-tier-list">
+        <div class="m-tier-card gold">
+          <div class="m-tier-title">钻石会员 <span>(2%)</span></div>
+          <div class="m-tier-sub">高价值 | 高忠诚 | 高贡献</div>
+        </div>
+        <div class="m-tier-card gold">
+          <div class="m-tier-title">金卡会员 <span>(8%)</span></div>
+          <div class="m-tier-sub">高活跃 | 高复购 | 高潜力</div>
+        </div>
+        <div class="m-tier-card">
+          <div class="m-tier-title">银卡会员 <span>(20%)</span></div>
+          <div class="m-tier-sub">中等活跃 | 稳定消费</div>
+        </div>
+        <div class="m-tier-card">
+          <div class="m-tier-title">普通会员 <span>(70%)</span></div>
+          <div class="m-tier-sub">基础会员 | 待提升</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. 会员营销效果分析 -->
+  <section class="m-section" id="sec-mkt">
+    <div class="m-sec-header">
+      <span class="m-sec-title">会员营销效果分析</span>
+      <div class="m-sec-line"></div>
+    </div>
+    <div class="m-mkt-rows">
+      <div class="m-mkt-row">
+        <span class="m-mkt-label">优惠券核销率</span>
+        <div class="m-mkt-track"><div class="m-mkt-bar" style="width: 68%;"></div></div>
+        <span class="m-mkt-val">45.6%</span>
+      </div>
+      <div class="m-mkt-row">
+        <span class="m-mkt-label">活动参与率</span>
+        <div class="m-mkt-track"><div class="m-mkt-bar" style="width: 56%;"></div></div>
+        <span class="m-mkt-val">38.2%</span>
+      </div>
+      <div class="m-mkt-row">
+        <span class="m-mkt-label">复购率</span>
+        <div class="m-mkt-track"><div class="m-mkt-bar" style="width: 78%;"></div></div>
+        <span class="m-mkt-val">56.8%</span>
+      </div>
+      <div class="m-mkt-row">
+        <span class="m-mkt-label">客单价提升</span>
+        <div class="m-mkt-track"><div class="m-mkt-bar" style="width: 44%;"></div></div>
+        <span class="m-mkt-val">27.3%</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. 会员价值评估模型 (六维雷达图) -->
+  <section class="m-section">
+    <div class="m-sec-header">
+      <span class="m-sec-title">会员价值评估模型</span>
+      <div class="m-sec-line"></div>
+    </div>
+    <div class="radar-box">
+      <canvas id="m-radar-canvas" width="260" height="230"></canvas>
+      <span class="m-radar-tag" style="left: 50%; top: 10%;">消费能力</span>
+      <span class="m-radar-tag" style="left: 82%; top: 28%;">活跃度</span>
+      <span class="m-radar-tag" style="left: 82%; top: 74%;">活跃度</span>
+      <span class="m-radar-tag" style="left: 50%; top: 92%;">贡献度</span>
+      <span class="m-radar-tag" style="left: 18%; top: 74%;">忠诚度</span>
+      <span class="m-radar-tag" style="left: 18%; top: 28%;">满意度</span>
+    </div>
+  </section>
+
+  <!-- 9. 会员权益体系 (3x2 网格) -->
+  <section class="m-section" id="sec-rights">
+    <div class="m-sec-header">
+      <span class="m-sec-title">会员权益体系</span>
+      <div class="m-sec-line"></div>
+    </div>
+    <div class="benefits-m-grid">
+      <div class="m-tp-item">
+        <div class="m-tp-circle">
+          <svg width="26" height="26" viewBox="0 0 32 32">
+            <ellipse cx="16" cy="10" rx="8" ry="3.2" fill="url(#mGoldGrad)" />
+            <path d="M8,14 C8,16 24,16 24,14 L24,17 C24,19 8,19 8,17 Z" fill="url(#mGoldGrad)" />
+            <path d="M8,20 C8,22 24,22 24,20 L24,23 C24,25 8,25 8,23 Z" fill="url(#mGoldGrad)" />
+          </svg>
+        </div>
+        <span class="m-tp-label">积分权益</span>
+      </div>
+      <div class="m-tp-item">
+        <div class="m-tp-circle">
+          <svg width="26" height="26" viewBox="0 0 32 32">
+            <polygon points="16,6 26,16 16,26 6,16" fill="none" stroke="url(#mGoldGrad)" stroke-width="2.2" />
+            <text x="16" y="20" text-anchor="middle" fill="#ffe5a3" font-size="11" font-weight="bold">¥</text>
+          </svg>
+        </div>
+        <span class="m-tp-label">会员折扣</span>
+      </div>
+      <div class="m-tp-item">
+        <div class="m-tp-circle">
+          <svg width="26" height="26" viewBox="0 0 32 32">
+            <rect x="7" y="13" width="18" height="4.5" rx="1" fill="url(#mGoldGrad)" />
+            <rect x="8.5" y="18.5" width="15" height="8" rx="1" fill="none" stroke="url(#mGoldGrad)" stroke-width="2" />
+            <line x1="16" y1="13" x2="16" y2="26.5" stroke="url(#mGoldGrad)" stroke-width="2" />
+          </svg>
+        </div>
+        <span class="m-tp-label">专属活动</span>
+      </div>
+      <div class="m-tp-item">
+        <div class="m-tp-circle">
+          <svg width="26" height="26" viewBox="0 0 32 32">
+            <rect x="7" y="17" width="18" height="8" rx="1.5" fill="url(#mGoldGrad)" />
+            <line x1="12" y1="11" x2="12" y2="16" stroke="#ffe5a3" stroke-width="2" stroke-linecap="round" />
+            <line x1="16" y1="10" x2="16" y2="16" stroke="#ffe5a3" stroke-width="2" stroke-linecap="round" />
+            <line x1="20" y1="11" x2="20" y2="16" stroke="#ffe5a3" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <span class="m-tp-label">生日礼遇</span>
+      </div>
+      <div class="m-tp-item">
+        <div class="m-tp-circle">
+          <svg width="26" height="26" viewBox="0 0 32 32">
+            <path d="M8,18 L8,15 C8,10.5 11.6,7 16,7 C20.4,7 24,10.5 24,15 L24,18" fill="none" stroke="url(#mGoldGrad)" stroke-width="2.2" />
+            <rect x="6" y="15" width="3.5" height="6.5" rx="1.5" fill="url(#mGoldGrad)" />
+            <rect x="22.5" y="15" width="3.5" height="6.5" rx="1.5" fill="url(#mGoldGrad)" />
+          </svg>
+        </div>
+        <span class="m-tp-label">专属客服</span>
+      </div>
+      <div class="m-tp-item">
+        <div class="m-tp-circle">
+          <svg width="26" height="26" viewBox="0 0 32 32">
+            <path d="M11,24 L11,9 L17.5,9 C20.5,9 22,10.8 22,13.5 C22,16.2 20.5,18 17.5,18 L11,18" fill="none" stroke="url(#mGoldGrad)" stroke-width="2.5" stroke-linecap="round" />
+            <circle cx="22" cy="22" r="3" fill="none" stroke="#ffe5a3" stroke-width="1.8" />
+          </svg>
+        </div>
+        <span class="m-tp-label">停车权益</span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- 底部悬浮状态与粒子流速控制条 -->
+<div class="mobile-bottom-bar">
+  <div class="bottom-bar-left">
+    <span class="status-dot"></span>
+    <span id="m-active-stage-text">当前聚焦：会员曝光/触达 (385.6万)</span>
+  </div>
+  <div style="display:flex;gap:6px;">
+    <button class="chip-btn" id="m-btn-speed">流速 1.0x</button>
+    <button class="chip-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})">顶部 ↑</button>
+  </div>
+</div>
+
+<!-- ==================== 桌面宽屏 1920×1080 大屏视图树（PC 访问时显示） ==================== -->
 <div id="viewport-wrapper">
   <!-- Layer 1: 玻璃面板底框层 (置于最底层，避免遮挡或模糊上层图表与矢量元素) -->
   <div id="bg-panel-layer">
@@ -1483,21 +2820,34 @@
     </section>
   </div>
 
-  <!-- 右下角隐藏式交互控制栏 -->
-  <div id="control-pill">
-    <span>WebGL 粒子流速</span>
+  <!-- 右下角智能交互控制栏（针对小屏 PC 提供：智能满屏 / 适宽滚动 / 缩放漫游 / 全屏切换） -->
+  <div id="control-pill" title="支持 Ctrl+滚轮缩放画布，按住左键拖拽漫游，双击画布复位">
+    <span>视图:</span>
+    <button id="btn-mode-fill" class="active" title="智能适配当前窗口，消除黑边">智能满屏</button>
+    <button id="btn-mode-scroll" title="宽度 100% 铺满小屏 PC，支持上下滚动查看放大细节">适宽滚动</button>
+    <button id="btn-mode-fit" title="严格 16:9 等比居中">16:9等比</button>
+    <span class="sep"></span>
+    <button id="btn-zoom-out" title="缩小">－</button>
+    <span id="zoom-label" style="min-width:36px;text-align:center;color:#ffe299;font-variant-numeric:tabular-nums;">100%</span>
+    <button id="btn-zoom-in" title="放大 (或按住 Ctrl + 鼠标滚轮)">＋</button>
+    <button id="btn-zoom-reset" title="复位缩放与位置">复位</button>
+    <span class="sep"></span>
+    <span>粒子:</span>
     <button id="btn-speed">1.0x</button>
-    <button id="btn-pulse">能量脉冲</button>
+    <button id="btn-pulse">脉冲</button>
+    <button id="btn-fullscreen" title="切换全屏 (F11)">全屏</button>
   </div>
 </div>
 
 <script>
+
 /**
  * ============================================================================
  * 会员运营 · 数字化驱动增长 — 1:1 WebGL Shader + 3D Particle Flow 渲染引擎
  * ============================================================================
  */
 (function() {
+  if (!document.documentElement.classList.contains('mode-desktop')) return; /* 移动端不启动桌面引擎 */
   const wrapper = document.getElementById('viewport-wrapper');
   const glCanvas = document.getElementById('webgl-canvas');
   const pCanvas = document.getElementById('particle-canvas');
@@ -1506,19 +2856,155 @@
   const W = 1920;
   const H = 1080;
 
-  // 自适应窗口缩放（支持全屏无黑边贴合与任意比例居中缩放）
-  function resizeViewport() {
-    const scaleX = window.innerWidth / W;
-    const scaleY = window.innerHeight / H;
-    if (Math.abs(scaleX - scaleY) < 0.12) {
-      wrapper.style.transform = `scale(${scaleX}, ${scaleY})`;
+  // ==========================================================================
+  // 小屏 PC 专属多模式自适应引擎（智能满屏 / 适宽滚动 / 16:9 等比 / 滚轮缩放漫游）
+  // ==========================================================================
+  let viewMode = 'fill'; // 'fill' | 'scroll' | 'fit'
+  let userZoom = 1.0;
+  let panX = 0, panY = 0;
+  let isDraggingCanvas = false;
+  let dragStartX = 0, dragStartY = 0;
+
+  function applyViewportTransform() {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const scaleX = vw / W;
+    const scaleY = vh / H;
+
+    // 标记是否为小屏幕 PC (如 13/14 寸笔记本 1280x720 / 1366x768 / 1536x864)
+    if (vw <= 1600 || vh <= 860) {
+      document.body.classList.add('is-small-pc');
     } else {
-      const scale = Math.min(scaleX, scaleY);
-      wrapper.style.transform = `scale(${scale})`;
+      document.body.classList.remove('is-small-pc');
+    }
+
+    const zoomLabel = document.getElementById('zoom-label');
+    if (zoomLabel) zoomLabel.textContent = Math.round(userZoom * 100) + '%';
+
+    if (viewMode === 'scroll') {
+      document.body.classList.add('mode-scroll');
+      const s = scaleX * userZoom;
+      wrapper.style.transform = `scale(${s})`;
+      wrapper.style.marginBottom = `${Math.max(0, H * s - vh + 24)}px`;
+      return;
+    }
+
+    document.body.classList.remove('mode-scroll');
+    wrapper.style.marginBottom = '0px';
+
+    if (viewMode === 'fill') {
+      // 智能满屏：在常见 PC 浏览器比例偏差（如顶部带标签栏/书签栏导致宽高比在 1.6~2.15 之间）下，
+      // 自动进行微张力满屏贴合，彻底消除小屏幕 PC 左右两侧的黑边浪费
+      const aspect = vw / Math.max(1, vh);
+      if (aspect >= 1.55 && aspect <= 2.18 && userZoom === 1.0 && panX === 0 && panY === 0) {
+        wrapper.style.transform = `scale(${scaleX}, ${scaleY})`;
+      } else {
+        const baseScale = Math.min(scaleX, scaleY);
+        const sx = (aspect >= 1.55 && aspect <= 2.18 ? scaleX : baseScale) * userZoom;
+        const sy = (aspect >= 1.55 && aspect <= 2.18 ? scaleY : baseScale) * userZoom;
+        wrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${sx}, ${sy})`;
+      }
+    } else {
+      // 严格 16:9 等比模式
+      const s = Math.min(scaleX, scaleY) * userZoom;
+      wrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${s})`;
     }
   }
-  window.addEventListener('resize', resizeViewport);
-  resizeViewport();
+
+  window.addEventListener('resize', applyViewportTransform);
+  applyViewportTransform();
+
+  // 模式按钮绑定
+  function setViewMode(mode) {
+    viewMode = mode;
+    userZoom = 1.0;
+    panX = 0;
+    panY = 0;
+    document.getElementById('btn-mode-fill').classList.toggle('active', mode === 'fill');
+    document.getElementById('btn-mode-scroll').classList.toggle('active', mode === 'scroll');
+    document.getElementById('btn-mode-fit').classList.toggle('active', mode === 'fit');
+    applyViewportTransform();
+  }
+  document.getElementById('btn-mode-fill').addEventListener('click', () => setViewMode('fill'));
+  document.getElementById('btn-mode-scroll').addEventListener('click', () => setViewMode('scroll'));
+  document.getElementById('btn-mode-fit').addEventListener('click', () => setViewMode('fit'));
+
+  document.getElementById('btn-zoom-in').addEventListener('click', () => {
+    userZoom = Math.min(2.5, +(userZoom + 0.15).toFixed(2));
+    applyViewportTransform();
+  });
+  document.getElementById('btn-zoom-out').addEventListener('click', () => {
+    userZoom = Math.max(0.6, +(userZoom - 0.15).toFixed(2));
+    if (userZoom === 1.0) { panX = 0; panY = 0; }
+    applyViewportTransform();
+  });
+  document.getElementById('btn-zoom-reset').addEventListener('click', () => {
+    userZoom = 1.0;
+    panX = 0;
+    panY = 0;
+    applyViewportTransform();
+  });
+  document.getElementById('btn-fullscreen').addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  });
+
+  // 支持小屏 PC 下 Ctrl/Alt + 滚轮缩放，以及放大后左键拖拽漫游、双击复位
+  window.addEventListener('wheel', (e) => {
+    if (viewMode === 'scroll' && !e.ctrlKey && !e.metaKey) return;
+    if (e.ctrlKey || e.metaKey || userZoom > 1.01) {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.12 : -0.12;
+      userZoom = Math.max(0.65, Math.min(2.6, +(userZoom + delta).toFixed(2)));
+      if (Math.abs(userZoom - 1.0) < 0.05) {
+        userZoom = 1.0;
+        panX = 0;
+        panY = 0;
+      }
+      applyViewportTransform();
+    }
+  }, { passive: false });
+
+  wrapper.addEventListener('mousedown', (e) => {
+    if (userZoom <= 1.01 || viewMode === 'scroll') return;
+    if (e.target.closest('#control-pill')) return;
+    isDraggingCanvas = true;
+    dragStartX = e.clientX - panX;
+    dragStartY = e.clientY - panY;
+    wrapper.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!isDraggingCanvas) return;
+    panX = e.clientX - dragStartX;
+    panY = e.clientY - dragStartY;
+    applyViewportTransform();
+  });
+  window.addEventListener('mouseup', () => {
+    if (isDraggingCanvas) {
+      isDraggingCanvas = false;
+      wrapper.style.cursor = '';
+    }
+  });
+  wrapper.addEventListener('dblclick', (e) => {
+    if (e.target.closest('#control-pill')) return;
+    if (userZoom > 1.01) {
+      userZoom = 1.0;
+      panX = 0;
+      panY = 0;
+    } else {
+      // 双击任意区域在小屏 PC 上快速放大至 1.45x
+      userZoom = 1.45;
+      const rect = wrapper.getBoundingClientRect();
+      const cx = rect.left + rect.width * 0.5;
+      const cy = rect.top + rect.height * 0.5;
+      panX = (cx - e.clientX) * 0.65;
+      panY = (cy - e.clientY) * 0.65;
+    }
+    applyViewportTransform();
+  });
 
   // 交互状态
   let speedMultiplier = 1.0;
@@ -2724,6 +4210,846 @@
 
   requestAnimationFrame(renderFrame);
 })();
+
+</script>
+
+<script>
+
+/**
+ * ============================================================================
+ * 移动端专属 WebGL 3D 漏斗 + 实时粒子流 + 触控视差引擎
+ * ============================================================================
+ */
+(function() {
+  if (!document.documentElement.classList.contains('mode-mobile')) return; /* 宽屏端不启动移动引擎 */
+  const glCanvas = document.getElementById('m-webgl-canvas');
+  const pCanvas  = document.getElementById('m-particle-canvas');
+  const ctx      = pCanvas.getContext('2d');
+
+  const W = 750;
+  const H = 790;
+  const CX = 375;
+
+  let speedMultiplier = 1.0;
+  let pulseBoost = 0.0;
+  let activeStage = 0;
+  let parallaxX = 0, parallaxY = 0;
+  let targetParallaxX = 0, targetParallaxY = 0;
+
+  const STAGE_NAMES = [
+    '会员曝光/触达 (3,856,000)',
+    '会员注册 (1,256,000)',
+    '会员激活 (785,000)',
+    '会员活跃 (385,600)',
+    '会员消费 (128,700)',
+    '高价值会员 (28,900)'
+  ];
+
+  function selectStage(stageIdx) {
+    activeStage = stageIdx;
+    pulseBoost = 0.9;
+    document.querySelectorAll('.m-f-label').forEach(el => {
+      el.classList.toggle('active', parseInt(el.dataset.stage, 10) === stageIdx);
+    });
+    document.querySelectorAll('.m-callout-card').forEach(el => {
+      el.classList.toggle('active', parseInt(el.dataset.stage, 10) === stageIdx);
+    });
+    const statusText = document.getElementById('m-active-stage-text');
+    if (statusText && STAGE_NAMES[stageIdx]) {
+      statusText.textContent = '聚焦：' + STAGE_NAMES[stageIdx];
+    }
+  }
+
+  document.querySelectorAll('[data-stage]').forEach(el => {
+    el.addEventListener('click', () => {
+      const st = parseInt(el.getAttribute('data-stage'), 10);
+      if (!isNaN(st)) selectStage(st);
+    });
+  });
+
+  // 触控滑动 3D 视差交互
+  const funnelBox = document.getElementById('m-funnel-box');
+  let touchStartX = 0, touchStartY = 0;
+  funnelBox.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+  funnelBox.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 1) {
+      const dx = (e.touches[0].clientX - touchStartX) / 120;
+      const dy = (e.touches[0].clientY - touchStartY) / 160;
+      targetParallaxX = Math.max(-1, Math.min(1, dx)) * 12;
+      targetParallaxY = Math.max(-1, Math.min(1, dy)) * 5;
+    }
+  }, { passive: true });
+  funnelBox.addEventListener('touchend', () => {
+    targetParallaxX = 0;
+    targetParallaxY = 0;
+  });
+
+  // 导航胶囊点击高亮
+  document.querySelectorAll('.nav-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+
+  document.getElementById('m-btn-speed').addEventListener('click', (e) => {
+    if (speedMultiplier === 1.0) speedMultiplier = 1.8;
+    else if (speedMultiplier === 1.8) speedMultiplier = 0.5;
+    else speedMultiplier = 1.0;
+    e.target.textContent = '流速 ' + speedMultiplier.toFixed(1) + 'x';
+  });
+
+  document.getElementById('m-btn-pulse').addEventListener('click', () => {
+    pulseBoost = 1.6;
+  });
+
+  // --------------------------------------------------------------------------
+  // 1. 移动端 3D 漏斗几何参数 (750x790 坐标系)
+  // --------------------------------------------------------------------------
+  const FUNNEL_LEVELS = [
+    { y: 212, rx: 280, ry: 11 },
+    { y: 294, rx: 232, ry: 11.5 },
+    { y: 374, rx: 188, ry: 10.5 },
+    { y: 452, rx: 146, ry: 9.5 },
+    { y: 528, rx: 108, ry: 8.0 },
+    { y: 600, rx: 72,  ry: 6.0 },
+    { y: 672, rx: 42,  ry: 4.2 }
+  ];
+
+  function getFunnelRadiusAtY(y) {
+    if (y <= FUNNEL_LEVELS[0].y) return { rx: FUNNEL_LEVELS[0].rx, ry: FUNNEL_LEVELS[0].ry };
+    for (let i = 0; i < FUNNEL_LEVELS.length - 1; i++) {
+      const a = FUNNEL_LEVELS[i];
+      const b = FUNNEL_LEVELS[i + 1];
+      if (y >= a.y && y <= b.y) {
+        const t = (y - a.y) / (b.y - a.y);
+        return {
+          rx: a.rx + (b.rx - a.rx) * t,
+          ry: a.ry + (b.ry - a.ry) * t
+        };
+      }
+    }
+    const last = FUNNEL_LEVELS[FUNNEL_LEVELS.length - 1];
+    const t = Math.min(1, (y - last.y) / (715 - last.y));
+    return {
+      rx: last.rx * (1 - t * 0.28),
+      ry: last.ry * (1 - t * 0.28)
+    };
+  }
+
+  // 顶部 15 个获客用户头像气泡
+  const AVATAR_NODES = [
+    { x: 325, y: 54,  r: 27, phase: 0.0 },
+    { x: 218, y: 80,  r: 19, phase: 1.1 },
+    { x: 446, y: 112, r: 24, phase: 2.3 },
+    { x: 548, y: 84,  r: 22, phase: 0.7 },
+    { x: 158, y: 104, r: 16, phase: 3.1 },
+    { x: 115, y: 94,  r: 12, phase: 4.2 },
+    { x: 192, y: 124, r: 11, phase: 1.9 },
+    { x: 245, y: 114, r: 14, phase: 2.8 },
+    { x: 288, y: 106, r: 16, phase: 0.5 },
+    { x: 342, y: 122, r: 11, phase: 3.7 },
+    { x: 390, y: 82,  r: 17, phase: 1.5 },
+    { x: 425, y: 54,  r: 12, phase: 4.8 },
+    { x: 474, y: 62,  r: 11, phase: 2.1 },
+    { x: 496, y: 134, r: 16, phase: 0.9 },
+    { x: 608, y: 104, r: 16, phase: 3.4 },
+    { x: 652, y: 104, r: 17, phase: 5.1 }
+  ];
+
+  const STREAM_CURVES = [];
+  for (let i = 0; i < 48; i++) {
+    let startX, startY;
+    if (i < AVATAR_NODES.length * 2) {
+      const av = AVATAR_NODES[i % AVATAR_NODES.length];
+      const ang = (i * 1.37) % (Math.PI * 2);
+      startX = av.x + Math.cos(ang) * (av.r * 0.45);
+      startY = av.y + av.r * 0.65;
+    } else {
+      const spread = (i - AVATAR_NODES.length * 2) / (48 - AVATAR_NODES.length * 2);
+      startX = 75 + spread * 600 + Math.sin(i * 7.1) * 14;
+      startY = 72 + Math.pow(Math.abs(spread - 0.5) * 2, 1.35) * 84 + (i % 5) * 5;
+    }
+    const u = (startX - CX) / 310;
+    const clampedU = Math.max(-0.96, Math.min(0.96, u + Math.sin(i * 3.3) * 0.07));
+    const endX = CX + clampedU * (FUNNEL_LEVELS[0].rx - 6);
+    const endY = FUNNEL_LEVELS[0].y + Math.sin(i * 1.9) * (FUNNEL_LEVELS[0].ry * 0.55);
+
+    const sideOffset = (startX - CX) * 0.28;
+    const cp1X = startX + sideOffset * 0.45 + Math.sin(i * 2.1) * 20;
+    const cp1Y = startY + (endY - startY) * 0.52;
+    const cp2X = endX + sideOffset * 0.22;
+    const cp2Y = startY + (endY - startY) * 0.86;
+
+    STREAM_CURVES.push({
+      p0: { x: startX, y: startY },
+      p1: { x: cp1X, y: cp1Y },
+      p2: { x: cp2X, y: cp2Y },
+      p3: { x: endX, y: endY },
+      alpha: 0.24 + (i % 4) * 0.08,
+      width: 0.8 + (i % 3) * 0.35
+    });
+  }
+
+  function evalCubicBezier(curve, t) {
+    const mt = 1 - t;
+    const mt2 = mt * mt;
+    const t2 = t * t;
+    return {
+      x: mt2 * mt * curve.p0.x + 3 * mt2 * t * curve.p1.x + 3 * mt * t2 * curve.p2.x + t2 * t * curve.p3.x,
+      y: mt2 * mt * curve.p0.y + 3 * mt2 * t * curve.p1.y + 3 * mt * t2 * curve.p2.y + t2 * t * curve.p3.y
+    };
+  }
+
+  const streamParticles = [];
+  for (let i = 0; i < 210; i++) {
+    streamParticles.push({
+      curveIdx: i % STREAM_CURVES.length,
+      t: Math.random(),
+      speed: 0.24 + Math.random() * 0.34,
+      size: 1.2 + Math.random() * 1.7,
+      bright: 0.6 + Math.random() * 0.4
+    });
+  }
+
+  const funnelVortexParticles = [];
+  for (let i = 0; i < 520; i++) {
+    funnelVortexParticles.push({
+      progress: Math.random(),
+      theta: Math.random() * Math.PI * 2,
+      radialFactor: 0.12 + Math.pow(Math.random(), 0.72) * 0.86,
+      speed: 0.08 + Math.random() * 0.14,
+      rotSpeed: (0.85 + Math.random() * 1.4) * (Math.random() > 0.2 ? 1 : -1),
+      size: 1.1 + Math.random() * 2.1,
+      twinkle: Math.random() * Math.PI * 2
+    });
+  }
+
+  const pedestalParticles = [];
+  for (let i = 0; i < 260; i++) {
+    pedestalParticles.push({
+      ringRadius: 50 + Math.pow(Math.random(), 0.85) * 260,
+      theta: Math.random() * Math.PI * 2,
+      rotSpeed: (0.25 + Math.random() * 0.65) * (i % 2 === 0 ? 1 : -1),
+      riseY: Math.random() * 48,
+      riseSpeed: 8 + Math.random() * 18,
+      size: 1.0 + Math.random() * 2.0,
+      isBlue: Math.random() > 0.70
+    });
+  }
+
+  // WebGL 初始化
+  let gl = glCanvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: false }) ||
+           glCanvas.getContext('experimental-webgl', { alpha: true, antialias: true });
+  let glProgramFunnel = null;
+  let glProgramParticles = null;
+  let funnelBuffer = null;
+  let funnelVertexCount = 0;
+  let gpuParticleBuffer = null;
+  const GPU_PARTICLE_COUNT = 1200;
+  const gpuParticlesData = new Float32Array(GPU_PARTICLE_COUNT * 6);
+
+  function createShader(gl, type, source) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, source);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) return null;
+    return s;
+  }
+  function createProgram(gl, vsSrc, fsSrc) {
+    const vs = createShader(gl, gl.VERTEX_SHADER, vsSrc);
+    const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSrc);
+    if (!vs || !fs) return null;
+    const p = gl.createProgram();
+    gl.attachShader(p, vs);
+    gl.attachShader(p, fs);
+    gl.linkProgram(p);
+    return gl.getProgramParameter(p, gl.LINK_STATUS) ? p : null;
+  }
+
+  if (gl) {
+    const funnelVS = `
+      attribute vec3 aPos;
+      attribute vec2 aUV;
+      uniform vec2 uResolution;
+      varying vec2 vUV;
+      varying float vZ;
+      void main() {
+        vUV = aUV;
+        vZ = aPos.z;
+        vec2 clip = (aPos.xy / uResolution) * 2.0 - 1.0;
+        gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
+      }
+    `;
+    const funnelFS = `
+      precision mediump float;
+      varying vec2 vUV;
+      varying float vZ;
+      uniform float uTime;
+      uniform float uHoverStage;
+      void main() {
+        float nx = cos(vUV.x * 6.2831853);
+        float rim = pow(abs(nx), 1.8);
+        float coreGlow = exp(-pow(nx * 2.8, 2.0));
+        vec3 goldColor = vec3(0.96, 0.68, 0.25);
+        vec3 deepGold  = vec3(0.58, 0.34, 0.08);
+        vec3 blueColor = vec3(0.10, 0.38, 0.85);
+        vec3 cyanGlow  = vec3(0.32, 0.68, 1.00);
+        float blueMix = smoothstep(0.67, 0.71, vUV.y);
+        vec3 baseCol = mix(
+          mix(deepGold, goldColor, rim * 0.75 + 0.25),
+          mix(blueColor, cyanGlow, rim * 0.65 + 0.25),
+          blueMix
+        );
+        float bottomCore = smoothstep(0.78, 0.99, vUV.y) * coreGlow;
+        baseCol = mix(baseCol, vec3(1.0, 0.86, 0.52), bottomCore * 0.55);
+        float wave = sin(vUV.y * 28.0 - uTime * 3.2) * 0.5 + 0.5;
+        float scan = pow(wave, 5.0) * 0.14;
+        float stageHighlight = 0.0;
+        if (uHoverStage >= 0.0) {
+          float sTop = uHoverStage / 6.0;
+          float sBot = (uHoverStage + 1.0) / 6.0;
+          if (vUV.y >= sTop && vUV.y <= sBot) stageHighlight = 0.22;
+        }
+        float frontFactor = vZ >= 0.0 ? 1.0 : 0.42;
+        float alpha = (0.14 + rim * 0.44 + bottomCore * 0.22 + scan + stageHighlight) * frontFactor;
+        gl_FragColor = vec4(baseCol * (1.0 + rim * 0.3 + stageHighlight), alpha);
+      }
+    `;
+    const particleVS = `
+      attribute vec4 aParticle;
+      attribute vec2 aColorSeed;
+      uniform vec2 uResolution;
+      varying float vAlpha;
+      varying float vColorType;
+      void main() {
+        vAlpha = aParticle.w;
+        vColorType = aColorSeed.x;
+        vec2 clip = (aParticle.xy / uResolution) * 2.0 - 1.0;
+        gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
+        gl_PointSize = aParticle.z;
+      }
+    `;
+    const particleFS = `
+      precision mediump float;
+      varying float vAlpha;
+      varying float vColorType;
+      void main() {
+        vec2 coord = gl_PointCoord - vec2(0.5);
+        float dist = length(coord) * 2.0;
+        if (dist > 1.0) discard;
+        float glow = pow(1.0 - dist, 2.3);
+        float core = smoothstep(0.42, 0.0, dist);
+        vec3 colGold = vec3(1.0, 0.78, 0.35);
+        vec3 colBlue = vec3(0.32, 0.70, 1.0);
+        vec3 colWhite = vec3(1.0, 0.95, 0.82);
+        vec3 base = vColorType < 0.5 ? colGold : (vColorType < 1.5 ? colBlue : colWhite);
+        gl_FragColor = vec4(mix(base, colWhite, core * 0.72), glow * vAlpha);
+      }
+    `;
+    glProgramFunnel = createProgram(gl, funnelVS, funnelFS);
+    glProgramParticles = createProgram(gl, particleVS, particleFS);
+
+    const verts = [];
+    const segsU = 56, segsV = 40;
+    const yStart = FUNNEL_LEVELS[0].y;
+    const yEnd = FUNNEL_LEVELS[FUNNEL_LEVELS.length - 1].y;
+    for (let pass = 0; pass < 2; pass++) {
+      const uStart = pass === 0 ? Math.PI : 0;
+      const uEnd = pass === 0 ? Math.PI * 2 : Math.PI;
+      for (let iv = 0; iv < segsV; iv++) {
+        const v0 = iv / segsV, v1 = (iv + 1) / segsV;
+        const y0 = yStart + v0 * (yEnd - yStart), y1 = yStart + v1 * (yEnd - yStart);
+        const r0 = getFunnelRadiusAtY(y0), r1 = getFunnelRadiusAtY(y1);
+        for (let iu = 0; iu < segsU / 2; iu++) {
+          const u0 = uStart + (iu / (segsU / 2)) * (uEnd - uStart);
+          const u1 = uStart + ((iu + 1) / (segsU / 2)) * (uEnd - uStart);
+          const p00 = [CX + Math.cos(u0) * r0.rx, y0 + Math.sin(u0) * r0.ry, Math.sin(u0), u0 / (Math.PI * 2), v0];
+          const p10 = [CX + Math.cos(u1) * r0.rx, y0 + Math.sin(u1) * r0.ry, Math.sin(u1), u1 / (Math.PI * 2), v0];
+          const p01 = [CX + Math.cos(u0) * r1.rx, y1 + Math.sin(u0) * r1.ry, Math.sin(u0), u0 / (Math.PI * 2), v1];
+          const p11 = [CX + Math.cos(u1) * r1.rx, y1 + Math.sin(u1) * r1.ry, Math.sin(u1), u1 / (Math.PI * 2), v1];
+          verts.push(...p00, ...p10, ...p01, ...p10, ...p11, ...p01);
+        }
+      }
+    }
+    funnelVertexCount = verts.length / 5;
+    funnelBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, funnelBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+    gpuParticleBuffer = gl.createBuffer();
+  }
+
+  // 数据中台 Canvas 与六维雷达 Canvas
+  const hubCanvas = document.getElementById('m-hub-canvas');
+  const hubCtx = hubCanvas.getContext('2d');
+  const radarCanvas = document.getElementById('m-radar-canvas');
+  const radarCtx = radarCanvas.getContext('2d');
+
+  const WAVE_PEAKS = [
+    0.16, 0.42, 0.22, 0.18, 0.52, 0.25, 0.95, 0.35, 0.55, 0.24,
+    0.38, 0.18, 0.62, 0.32, 0.88, 0.45, 0.72, 0.28, 0.48, 0.20, 0.30, 0.15
+  ];
+  const RADAR_VALUES = [0.64, 0.84, 0.82, 0.78, 0.76, 0.80];
+
+  let lastTime = performance.now();
+  let elapsed = 0;
+
+  function renderMobileFrame(now) {
+    const dt = Math.min(0.05, (now - lastTime) * 0.001);
+    lastTime = now;
+    elapsed += dt * (speedMultiplier + pulseBoost);
+    pulseBoost *= Math.pow(0.15, dt);
+
+    parallaxX += (targetParallaxX - parallaxX) * 0.1;
+    parallaxY += (targetParallaxY - parallaxY) * 0.1;
+
+    // 1. 更新 GPU 粒子
+    let pIdx = 0;
+    function pushGPU(x, y, size, alpha, cType, seed) {
+      if (pIdx >= GPU_PARTICLE_COUNT) return;
+      const b = pIdx * 6;
+      gpuParticlesData[b] = x;
+      gpuParticlesData[b+1] = y;
+      gpuParticlesData[b+2] = size;
+      gpuParticlesData[b+3] = alpha;
+      gpuParticlesData[b+4] = cType;
+      gpuParticlesData[b+5] = seed;
+      pIdx++;
+    }
+
+    for (let i = 0; i < funnelVortexParticles.length; i++) {
+      const p = funnelVortexParticles[i];
+      p.progress += dt * p.speed * (speedMultiplier + pulseBoost * 1.4) * (1.0 + p.progress * 0.85);
+      if (p.progress > 1.0) {
+        p.progress %= 1.0;
+        p.theta = Math.random() * Math.PI * 2;
+      }
+      p.theta += dt * p.rotSpeed * (1.0 + p.progress * 2.2) * speedMultiplier;
+      const y = 212 + p.progress * (712 - 212);
+      const rad = getFunnelRadiusAtY(y);
+      const rf = p.progress > 0.9 ? p.radialFactor * 0.55 : p.radialFactor;
+      const x = CX + parallaxX * 0.4 + Math.cos(p.theta) * rad.rx * rf;
+      const py = y + parallaxY * 0.3 + Math.sin(p.theta) * rad.ry * rf;
+      const twinkle = 0.65 + 0.35 * Math.sin(elapsed * 4.0 + p.twinkle);
+      const alpha = (Math.sin(p.theta) >= 0 ? 0.85 : 0.38) * twinkle;
+      let cType = 0.0;
+      if (y > 528 && y < 672 && p.radialFactor > 0.38) cType = 1.0;
+      else if (y >= 672) cType = 2.0;
+      pushGPU(x, py, p.size * 2.6, alpha, cType, i);
+    }
+
+    for (let i = 0; i < pedestalParticles.length; i++) {
+      const p = pedestalParticles[i];
+      p.theta += dt * p.rotSpeed * speedMultiplier;
+      p.riseY = (p.riseY + dt * p.riseSpeed * speedMultiplier) % 48;
+      const rx = p.ringRadius;
+      const ry = p.ringRadius * 0.24;
+      const x = CX + parallaxX * 0.5 + Math.cos(p.theta) * rx;
+      const y = 725 + parallaxY * 0.3 + Math.sin(p.theta) * ry - (p.ringRadius < 95 ? p.riseY * 0.55 : p.riseY * 0.16);
+      const alpha = (1.0 - p.riseY / 48) * (Math.sin(p.theta) > 0 ? 0.82 : 0.4);
+      pushGPU(x, y, p.size * 2.6, alpha, p.isBlue ? 1.0 : 0.0, i);
+    }
+
+    if (gl && glProgramFunnel && glProgramParticles) {
+      gl.viewport(0, 0, W, H);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+
+      gl.useProgram(glProgramFunnel);
+      gl.bindBuffer(gl.ARRAY_BUFFER, funnelBuffer);
+      const aPos = gl.getAttribLocation(glProgramFunnel, 'aPos');
+      const aUV  = gl.getAttribLocation(glProgramFunnel, 'aUV');
+      gl.enableVertexAttribArray(aPos);
+      gl.enableVertexAttribArray(aUV);
+      gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 20, 0);
+      gl.vertexAttribPointer(aUV,  2, gl.FLOAT, false, 20, 12);
+      gl.uniform2f(gl.getUniformLocation(glProgramFunnel, 'uResolution'), W, H);
+      gl.uniform1f(gl.getUniformLocation(glProgramFunnel, 'uTime'), elapsed);
+      gl.uniform1f(gl.getUniformLocation(glProgramFunnel, 'uHoverStage'), activeStage);
+      gl.drawArrays(gl.TRIANGLES, 0, funnelVertexCount);
+
+      gl.useProgram(glProgramParticles);
+      gl.bindBuffer(gl.ARRAY_BUFFER, gpuParticleBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, gpuParticlesData.subarray(0, pIdx * 6), gl.DYNAMIC_DRAW);
+      const aPart = gl.getAttribLocation(glProgramParticles, 'aParticle');
+      const aColS = gl.getAttribLocation(glProgramParticles, 'aColorSeed');
+      gl.enableVertexAttribArray(aPart);
+      gl.enableVertexAttribArray(aColS);
+      gl.vertexAttribPointer(aPart, 4, gl.FLOAT, false, 24, 0);
+      gl.vertexAttribPointer(aColS, 2, gl.FLOAT, false, 24, 16);
+      gl.uniform2f(gl.getUniformLocation(glProgramParticles, 'uResolution'), W, H);
+      gl.drawArrays(gl.POINTS, 0, pIdx);
+    }
+
+    // 2. 绘制 2D 混合特效画布（底座、漏斗光环、顶部流光彗星、头像气泡）
+    ctx.clearRect(0, 0, W, H);
+    drawMobilePedestal(ctx, CX + parallaxX * 0.45, 725 + parallaxY * 0.25, elapsed);
+    drawMobileFunnel(ctx, CX + parallaxX * 0.35, parallaxY * 0.2, elapsed);
+    drawMobileTopStreams(ctx, dt, elapsed);
+
+    // 3. 绘制数据中台动态环绕与电光蓝频谱
+    drawMobileDataHub(hubCtx, 460, 255, elapsed);
+
+    // 4. 绘制六维雷达图
+    drawMobileRadar(radarCtx, 130, 115, 76, elapsed);
+
+    requestAnimationFrame(renderMobileFrame);
+  }
+
+  function drawMobilePedestal(ctx, cx, cy, t) {
+    ctx.save();
+    const baseDark = ctx.createRadialGradient(cx, cy, 15, cx, cy, 295);
+    baseDark.addColorStop(0, 'rgba(12, 24, 48, 0.72)');
+    baseDark.addColorStop(0.75, 'rgba(6, 14, 32, 0.55)');
+    baseDark.addColorStop(1, 'rgba(4, 10, 24, 0)');
+    ctx.fillStyle = baseDark;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 295, 72, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalCompositeOperation = 'lighter';
+    const rings = [
+      { rx: 310, ry: 72, color: 'rgba(45, 122, 242, 0.32)', width: 1.3, dash: [20, 12], speed: 0.15 },
+      { rx: 274, ry: 64, color: 'rgba(235, 168, 58, 0.45)', width: 1.6, dash: [], speed: 0 },
+      { rx: 242, ry: 57, color: 'rgba(255, 198, 88, 0.85)', width: 2.8, dash: [], speed: 0 },
+      { rx: 218, ry: 51, color: 'rgba(255, 225, 138, 0.82)', width: 2.2, dash: [95, 22], speed: 0.3 },
+      { rx: 188, ry: 44, color: 'rgba(68, 152, 255, 0.46)', width: 1.6, dash: [12, 8], speed: -0.36 },
+      { rx: 162, ry: 38, color: 'rgba(250, 190, 78, 0.88)', width: 2.6, dash: [], speed: 0 },
+      { rx: 128, ry: 30, color: 'rgba(255, 218, 125, 0.92)', width: 3.2, dash: [], speed: 0 },
+      { rx: 96,  ry: 22, color: 'rgba(255, 235, 168, 0.96)', width: 3.6, dash: [], speed: 0 }
+    ];
+    rings.forEach((r, idx) => {
+      const yOff = idx < 3 ? 5 : (idx < 5 ? 0 : -10);
+      ctx.save();
+      ctx.translate(cx, cy + yOff);
+      ctx.scale(1, r.ry / r.rx);
+      ctx.rotate(t * r.speed);
+      ctx.strokeStyle = r.color;
+      ctx.lineWidth = r.width * (r.rx / r.ry) * 0.34;
+      if (r.dash.length) ctx.setLineDash(r.dash);
+      ctx.shadowColor = r.color;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(0, 0, r.rx, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    });
+
+    const coreY = cy - 18;
+    const coreGrad = ctx.createRadialGradient(cx, coreY, 2, cx, coreY, 72);
+    coreGrad.addColorStop(0, 'rgba(255, 250, 225, 0.96)');
+    coreGrad.addColorStop(0.3, 'rgba(255, 212, 118, 0.78)');
+    coreGrad.addColorStop(1, 'rgba(240, 160, 45, 0)');
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath();
+    ctx.ellipse(cx, coreY, 72, 17, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 底座正前方中心 VIP 徽章
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.save();
+    ctx.translate(cx, cy + 26);
+    ctx.fillStyle = 'rgba(8, 16, 34, 0.92)';
+    ctx.strokeStyle = 'rgba(248, 195, 98, 0.88)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 27, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#f5be64';
+    ctx.beginPath();
+    ctx.arc(0, -7, 7.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-14, 13);
+    ctx.quadraticCurveTo(-14, 2, 0, 2);
+    ctx.quadraticCurveTo(14, 2, 14, 13);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  function drawMobileFunnel(ctx, cx, pyOff, t) {
+    ctx.save();
+    for (let i = 0; i < FUNNEL_LEVELS.length - 1; i++) {
+      const top = FUNNEL_LEVELS[i];
+      const bot = FUNNEL_LEVELS[i + 1];
+      const y0 = top.y + pyOff;
+      const y1 = bot.y + pyOff;
+      const isBlue = i >= 4;
+      const isSelected = activeStage === i;
+
+      const hGrad = ctx.createLinearGradient(cx - top.rx, (y0 + y1) * 0.5, cx + top.rx, (y0 + y1) * 0.5);
+      if (!isBlue) {
+        const b = isSelected ? 0.2 : 0;
+        hGrad.addColorStop(0.0,  `rgba(255, 212, 120, ${0.65 + b})`);
+        hGrad.addColorStop(0.15, `rgba(225, 152, 46, ${0.36 + b})`);
+        hGrad.addColorStop(0.50, `rgba(95, 56, 12, ${0.24 + b * 0.5})`);
+        hGrad.addColorStop(0.85, `rgba(225, 152, 46, ${0.36 + b})`);
+        hGrad.addColorStop(1.0,  `rgba(255, 212, 120, ${0.65 + b})`);
+      } else {
+        const b = isSelected ? 0.22 : 0;
+        hGrad.addColorStop(0.0,  `rgba(115, 192, 255, ${0.76 + b})`);
+        hGrad.addColorStop(0.22, `rgba(28, 96, 218, ${0.48 + b})`);
+        hGrad.addColorStop(0.50, `rgba(185, 128, 42, ${0.28 + b})`);
+        hGrad.addColorStop(0.78, `rgba(28, 96, 218, ${0.48 + b})`);
+        hGrad.addColorStop(1.0,  `rgba(115, 192, 255, ${0.76 + b})`);
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(cx - top.rx, y0);
+      ctx.ellipse(cx, y0, top.rx, top.ry, 0, Math.PI, 0, true);
+      ctx.lineTo(cx + bot.rx, y1);
+      ctx.ellipse(cx, y1, bot.rx, bot.ry, 0, 0, Math.PI, false);
+      ctx.closePath();
+      ctx.fillStyle = hGrad;
+      ctx.fill();
+    }
+
+    ctx.globalCompositeOperation = 'lighter';
+    [-1, 1].forEach(dir => {
+      const edgeGrad = ctx.createLinearGradient(cx, 212 + pyOff, cx, 672 + pyOff);
+      edgeGrad.addColorStop(0, 'rgba(255, 236, 175, 0.92)');
+      edgeGrad.addColorStop(0.68, 'rgba(248, 192, 88, 0.88)');
+      edgeGrad.addColorStop(0.84, 'rgba(110, 192, 255, 0.90)');
+      edgeGrad.addColorStop(1, 'rgba(165, 220, 255, 0.92)');
+      ctx.strokeStyle = edgeGrad;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      FUNNEL_LEVELS.forEach((lv, idx) => {
+        const ex = cx + dir * lv.rx;
+        const ey = lv.y + pyOff;
+        if (idx === 0) ctx.moveTo(ex, ey);
+        else ctx.lineTo(ex, ey);
+      });
+      ctx.stroke();
+    });
+
+    FUNNEL_LEVELS.forEach((lv, idx) => {
+      const y = lv.y + pyOff;
+      const isBlue = idx >= 5;
+      ctx.strokeStyle = isBlue ? 'rgba(72, 162, 255, 0.25)' : 'rgba(245, 185, 82, 0.24)';
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.ellipse(cx, y, lv.rx, lv.ry, 0, Math.PI, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = idx === 0 ? 'rgba(255, 238, 185, 0.96)' : (isBlue ? 'rgba(145, 212, 255, 0.90)' : 'rgba(255, 218, 130, 0.90)');
+      ctx.lineWidth = idx === 0 ? 2.8 : 2.0;
+      ctx.beginPath();
+      ctx.ellipse(cx, y, lv.rx, lv.ry, 0, 0, Math.PI);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  function drawMobileTopStreams(ctx, dt, t) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    STREAM_CURVES.forEach((c) => {
+      const grad = ctx.createLinearGradient(c.p0.x, c.p0.y, c.p3.x, c.p3.y);
+      grad.addColorStop(0, `rgba(245, 185, 82, ${c.alpha * 0.45})`);
+      grad.addColorStop(0.55, `rgba(255, 205, 105, ${c.alpha})`);
+      grad.addColorStop(1, `rgba(255, 232, 165, ${c.alpha * 1.4})`);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = c.width;
+      ctx.beginPath();
+      ctx.moveTo(c.p0.x, c.p0.y);
+      ctx.bezierCurveTo(c.p1.x, c.p1.y, c.p2.x, c.p2.y, c.p3.x, c.p3.y);
+      ctx.stroke();
+    });
+
+    for (let i = 0; i < streamParticles.length; i++) {
+      const sp = streamParticles[i];
+      sp.t = (sp.t + dt * sp.speed * (speedMultiplier + pulseBoost * 1.2)) % 1.0;
+      const curve = STREAM_CURVES[sp.curveIdx];
+      const head = evalCubicBezier(curve, sp.t);
+      const tTail = Math.max(0, sp.t - 0.065);
+      const tailPos = evalCubicBezier(curve, tTail);
+
+      const tailGrad = ctx.createLinearGradient(tailPos.x, tailPos.y, head.x, head.y);
+      tailGrad.addColorStop(0, 'rgba(245, 180, 68, 0)');
+      tailGrad.addColorStop(1, `rgba(255, 232, 160, ${sp.bright * 0.75})`);
+      ctx.strokeStyle = tailGrad;
+      ctx.lineWidth = sp.size * 0.75;
+      ctx.beginPath();
+      ctx.moveTo(tailPos.x, tailPos.y);
+      ctx.lineTo(head.x, head.y);
+      ctx.stroke();
+
+      const rg = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, sp.size * 1.9);
+      rg.addColorStop(0, 'rgba(255, 250, 225, 0.95)');
+      rg.addColorStop(0.4, `rgba(255, 205, 100, ${sp.bright * 0.85})`);
+      rg.addColorStop(1, 'rgba(245, 175, 65, 0)');
+      ctx.fillStyle = rg;
+      ctx.beginPath();
+      ctx.arc(head.x, head.y, sp.size * 1.9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.globalCompositeOperation = 'source-over';
+    AVATAR_NODES.forEach((av) => {
+      const floatY = av.y + Math.sin(t * 2.2 + av.phase) * 2.4;
+      const r = av.r;
+      ctx.save();
+      ctx.translate(av.x, floatY);
+      const bg = ctx.createRadialGradient(0, -r * 0.2, r * 0.1, 0, 0, r);
+      bg.addColorStop(0, 'rgba(65, 45, 18, 0.86)');
+      bg.addColorStop(1, 'rgba(18, 14, 10, 0.92)');
+      ctx.fillStyle = bg;
+      ctx.strokeStyle = 'rgba(255, 215, 128, 0.88)';
+      ctx.lineWidth = r > 20 ? 1.7 : 1.2;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      const scale = r / 18;
+      ctx.scale(scale, scale);
+      ctx.fillStyle = '#f5be64';
+      ctx.beginPath();
+      ctx.arc(0, -4.2, 4.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-8.8, 9.2);
+      ctx.quadraticCurveTo(-8.8, 1.5, 0, 1.5);
+      ctx.quadraticCurveTo(8.8, 1.5, 8.8, 9.2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    });
+    ctx.restore();
+  }
+
+  function drawMobileDataHub(ctx, w, h, t) {
+    ctx.clearRect(0, 0, w, h);
+    const cx = w * 0.5, cy = 88;
+
+    // 同心轨道与旋转粒子
+    const radii = [28, 44, 60, 76];
+    radii.forEach((r, idx) => {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(t * (idx % 2 === 0 ? 0.35 : -0.45));
+      ctx.strokeStyle = idx === 3 ? 'rgba(68, 142, 245, 0.38)' : 'rgba(245, 185, 82, 0.52)';
+      ctx.lineWidth = 1.3;
+      if (idx === 1) ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // 轨道发光点
+      const pAng = t * 1.2 + idx * 1.5;
+      ctx.fillStyle = idx === 3 ? '#7cc4ff' : '#ffe299';
+      ctx.beginPath();
+      ctx.arc(Math.cos(pAng) * r, Math.sin(pAng) * r, 2.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // 中心人像
+    ctx.fillStyle = 'rgba(235, 165, 55, 0.22)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 28, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#f5be64';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 6, 7.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx - 14, cy + 13);
+    ctx.quadraticCurveTo(cx - 14, cy + 2, cx, cy + 2);
+    ctx.quadraticCurveTo(cx + 14, cy + 2, cx + 14, cy + 13);
+    ctx.closePath();
+    ctx.fill();
+
+    // 底部电光蓝频谱声波图
+    const startX = 16, endX = w - 16, baseY = h - 10, maxH = 66;
+    const spanW = endX - startX;
+    for (let i = 0; i <= 54; i++) {
+      const u = i / 54;
+      const x = startX + u * spanW;
+      const idxF = u * (WAVE_PEAKS.length - 1);
+      const i0 = Math.floor(idxF), i1 = Math.min(WAVE_PEAKS.length - 1, i0 + 1);
+      const amp = WAVE_PEAKS[i0] * (1 - (idxF - i0)) + WAVE_PEAKS[i1] * (idxF - i0);
+      const bh = amp * maxH * (0.86 + 0.14 * Math.sin(t * 3.8 + i * 0.45));
+      ctx.fillStyle = 'rgba(75, 165, 255, 0.48)';
+      ctx.fillRect(x - 1, baseY - bh, 2, bh);
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(startX, baseY);
+    for (let i = 0; i < WAVE_PEAKS.length; i++) {
+      const u = i / (WAVE_PEAKS.length - 1);
+      const x = startX + u * spanW;
+      const y = baseY - WAVE_PEAKS[i] * maxH * (0.88 + 0.12 * Math.sin(t * 3.4 + i * 0.9));
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(endX, baseY);
+    ctx.closePath();
+    const fg = ctx.createLinearGradient(0, baseY - maxH, 0, baseY);
+    fg.addColorStop(0, 'rgba(78, 172, 255, 0.42)');
+    fg.addColorStop(1, 'rgba(20, 68, 165, 0.05)');
+    ctx.fillStyle = fg;
+    ctx.fill();
+    ctx.strokeStyle = '#75c4ff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  function drawMobileRadar(ctx, cx, cy, maxR, t) {
+    ctx.clearRect(0, 0, 260, 230);
+    for (let ring = 1; ring <= 5; ring++) {
+      const r = (ring / 5) * maxR;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const ang = -Math.PI / 2 + (i * Math.PI) / 3;
+        const x = cx + Math.cos(ang) * r, y = cy + Math.sin(ang) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = ring === 5 ? 'rgba(245, 188, 92, 0.5)' : 'rgba(135, 175, 235, 0.22)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    for (let i = 0; i < 6; i++) {
+      const ang = -Math.PI / 2 + (i * Math.PI) / 3;
+      ctx.strokeStyle = 'rgba(135, 175, 235, 0.25)';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(ang) * maxR, cy + Math.sin(ang) * maxR);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const ang = -Math.PI / 2 + (i * Math.PI) / 3;
+      const r = RADAR_VALUES[i] * maxR * (1.0 + 0.025 * Math.sin(t * 2.5 + i));
+      const x = cx + Math.cos(ang) * r, y = cy + Math.sin(ang) * r;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(245, 185, 82, 0.38)';
+    ctx.fill();
+    ctx.strokeStyle = '#f7c264';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  requestAnimationFrame(renderMobileFrame);
+})();
+
 </script>
 </body>
 </html>
