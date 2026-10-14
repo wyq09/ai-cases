@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>art-harness</title>
+<style>body{margin:0;background:#0b1016;display:flex;gap:12px;padding:12px;flex-wrap:wrap}
+canvas{border:1px solid #333;display:block}</style></head>
+<body>
+<script src="../src/art.js"></script>
+<script>
+// 舞台 A：整场景静态 —— bg + wall + player + 四种僵尸站位
+function sceneA(){
+  const W=480,H=800, c=document.createElement('canvas'); c.width=W;c.height=H;
+  const ctx=c.getContext('2d');
+  const wallY=H-110, py=H-70;
+  ctx.drawImage(ZD.ART.bg(W,H),0,0);
+  ZD.ART.wall(ctx,W,wallY,120,0.75);
+  // 四种僵尸（含状态变体）
+  const mk=(type,x,y,hp,max,o)=>Object.assign({type,x,y,w:{normal:36,fast:30,tank:48,boss:84}[type],
+    h:{normal:44,fast:36,tank:56,boss:92}[type],hurt:0,slow:0,burn:0,hp,max},o||{});
+  const zs=[ mk('normal',70,300,10,18), mk('fast',150,260,10,10),
+             mk('tank',240,300,60,60), mk('boss',380,260,400,400,{hurt:6}),
+             mk('normal',110,420,10,18,{slow:120}), mk('normal',330,430,10,18,{burn:100}) ];
+  zs.forEach(z=>ZD.ART.zombie(ctx,z,120));
+  ZD.ART.player(ctx,240,py,0.35,3,4,120);
+  ZD.ART.drone(ctx,320,py-70,120);
+  // 子弹/激光/特效
+  ZD.ART.bullet(ctx,{x:262,y:420,vx:0,vy:-16,crit:false,drone:false});
+  ZD.ART.bullet(ctx,{x:300,y:460,vx:2,vy:-16,crit:true,drone:false});
+  ZD.ART.bullet(ctx,{x:322,y:470,vx:0,vy:-13,crit:false,drone:true});
+  ZD.ART.laser(ctx,240,py-22,380,330,3,120);
+  ZD.ART.ring(ctx,{x:240,y:py-30,r:60,color:'#e8a33d',lw:4,life:10,maxLife:18});
+  ZD.ART.bolt(ctx,{pts:[{x:100,y:300},{x:160,y:340},{x:230,y:360}]});
+  for(let i=0;i<20;i++) ZD.ART.part(ctx,{x:240+(Math.sin(i*2.3)*60),y:py-90-i*6,color:i%3?'#d9483f':'#f2c14e',life:30});
+  for(let i=0;i<6;i++) ZD.ART.coin(ctx,{x:200+i*14,y:py-120-i*10});
+  ZD.ART.floatText(ctx,{x:240,y:200,txt:'处决!',color:'#ff5ce1',life:30,maxLife:40});
+  ctx.drawImage(ZD.ART.vignette(W,H),0,0);
+  document.body.appendChild(c);
+}
+// 舞台 B：走路动画 3 帧 × 4 类型（验证有动作差异）
+function sceneB(){
+  const W=480,H=300, c=document.createElement('canvas'); c.width=W;c.height=H;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#10161f'; ctx.fillRect(0,0,W,H);
+  const types=['normal','fast','tank','boss'];
+  types.forEach((t,ti)=>{ for(let f=0;f<3;f++){
+    const x=60+ti*110, y=60+f*80;
+    const w={normal:36,fast:30,tank:48,boss:84}[t], h={normal:44,fast:36,tank:56,boss:92}[t];
+    ZD.ART.zombie(ctx,{type:t,x,y,w,h,hurt:0,slow:0,burn:0,hp:1,max:1},f*20);
+    ctx.fillStyle='#666'; ctx.font='9px monospace'; ctx.fillText(t+'@'+(f*20),x-w/2,y+h+12);
+  }});
+  document.body.appendChild(c);
+}
+try{ sceneA(); sceneB(); document.title='harness-ok'; }
+catch(e){ document.title='harness-ERR:'+e.message; const d=document.createElement('pre'); d.textContent=e.stack; document.body.appendChild(d); }
+</script></body></html>

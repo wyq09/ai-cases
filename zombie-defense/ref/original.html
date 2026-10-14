@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>僵尸防线 · 至尊版</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; background:#120f1e; display:flex; align-items:center; justify-content:center;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif; overflow:hidden; }
+  #wrap { position:relative; }
+  canvas { display:block; background:#1b1630; border-radius:12px; touch-action:none; cursor:crosshair; }
+  .tag { position:absolute; top:-24px; left:0; color:#7a7799; font-size:12px; letter-spacing:1px; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div class="tag">至尊版 · 局外养成 + 抽宝石 + 模拟充值 · 数据自动存档</div>
+  <canvas id="cv" width="480" height="800"></canvas>
+</div>
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+const WALL_Y = H - 110, PLAYER_Y = H - 70;
+
+// ================= 存档（局外累积） =================
+const SAVE_KEY = 'zf_save_v1';
+function loadSave(){
+  try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if(s && s.up) return s; } catch(e){}
+  return { coins:0, dia:0, gems:[], up:{atk:0,rate:0,hp:0,coin:0}, paid:{}, vipPts:0 };
+}
+let save = loadSave();
+function persist(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
+
+const VIP_LV = ()=> Math.floor(save.vipPts/60);
+const VIP_COIN_BONUS = ()=> VIP_LV()*0.08;
+
+// 宝石定义：q=品质 1传说 2绝世 3至尊
+const GEM_TYPES = [
+  { id:'critR', name:'致命宝石', base:0.02, unit:'%暴击',   fmt:v=>`+${Math.round(v*100)}% 暴击率` },
+  { id:'critD', name:'狂暴宝石', base:0.10, unit:'%暴伤',   fmt:v=>`+${Math.round(v*100)}% 暴击伤害` },
+  { id:'atk',   name:'力量宝石', base:0.04, unit:'%攻击',   fmt:v=>`+${Math.round(v*100)}% 攻击力` },
+  { id:'rate',  name:'迅捷宝石', base:0.03, unit:'%射速',   fmt:v=>`+${Math.round(v*100)}% 射速` },
+  { id:'coin',  name:'贪财宝石', base:0.05, unit:'%金币',   fmt:v=>`+${Math.round(v*100)}% 金币收益` },
+  { id:'exe',   name:'处决宝石', base:0.01, unit:'%秒杀',   fmt:v=>`+${(v*100).toFixed(1)}% 处决概率` },
+];
+const GEM_QUALITY = [ {n:'传说',c:'#8ea2ff',m:1}, {n:'绝世',c:'#ffb347',m:2}, {n:'至尊',c:'#ff5ce1',m:3.5} ];
+
+function gemBonus(id){
+  return save.gems.filter(g=>g.id===id).reduce((s,g)=> s + GEM_TYPES.find(t=>t.id===g.id).base * GEM_QUALITY[g.q].m, 0);
+}
+function gemPower(){ return save.gems.reduce((s,g)=>s+g.q,0); }
+
+// ================= 全局状态 =================
+let state = 'menu';   // menu | play | levelup | over
+let speed = 1;
+let frame = 0;
+let player, wall, bullets, zombies, parts, drones, bolts, bossShots, floatTexts;
+let wave, spawnQueue, kills, runCoins, runDia, xp, level, xpNeed, stats, runSkills, shake;
+let effects, coinsFly;   // 冲击波特效 / 飞向钱包的金币
+let flashMuzzle = 0, barrageTimer = 0, chainTimer = 0;
+
+// 局外加成
+function metaBonus(){
+  return {
+    atk:  1 + save.up.atk*0.10 + gemBonus('atk'),
+    rate: 1 + save.up.rate*0.06 + gemBonus('rate'),
+    hp:   1 + save.up.hp*0.10,
+    coin: save.up.coin*0.08 + VIP_COIN_BONUS() + gemBonus('coin'),
+    exe:  gemBonus('exe'),
+  };
+}
+
+function baseStats(){
+  const m = metaBonus();
+  return { dmg:10*m.atk, rate:2.4*m.rate, multi:1, pierce:0, boom:0, ice:0, drone:0,
+           crit:Math.min(0.95, gemBonus('critR')), critD:2.5+gemBonus('critD'),
+           laser:0, burn:0, chain:0, barrage:0, exe:0,
+           wall:100*m.hp, exeGem:m.exe };
+}
+
+function reset(){
+  stats = baseStats();          // 每局重建属性（清掉上一局技能，重算局外加成）
+  waveTimer = 90;
+  player = { x:W/2, targetX:W/2, cd:0, ang:0, recoil:0 };
+  wall = { hp:stats.wall, max:stats.wall };
+  bullets=[]; zombies=[]; parts=[]; drones=[]; bolts=[]; bossShots=[]; floatTexts=[];
+  effects=[]; coinsFly=[];
+  wave=0; spawnQueue=[]; kills=0; runCoins=0; runDia=0;
+  xp=0; level=1; xpNeed=8; runSkills={}; shake=0; barrageTimer=480; chainTimer=240;
+  flashMuzzle=0;
+}
+
+// ================= 技能池 =================
+const MAX_DISTINCT = 4;   // 一局最多学 4 个不同技能（之后只能升级已学的）
+const SKILL_POOL = [
+  { id:'dmg',    icon:'💥', name:'火力强化', desc:'子弹伤害 +35%',              max:8 },
+  { id:'rate',   icon:'⚡', name:'极速扳机', desc:'射击速度 +25%',              max:8 },
+  { id:'multi',  icon:'🔱', name:'多弹道',   desc:'同时多发射一发子弹',          max:4 },
+  { id:'pierce', icon:'🏹', name:'穿甲弹头', desc:'子弹可穿透 +1 个目标',        max:4 },
+  { id:'boom',   icon:'🧨', name:'爆破弹头', desc:'命中后小范围爆炸',            max:5 },
+  { id:'ice',    icon:'❄️', name:'低温弹',   desc:'命中减速 40%，持续 2 秒',     max:3 },
+  { id:'drone',  icon:'🛸', name:'无人战机', desc:'召唤一台自动副炮',            max:4 },
+  { id:'crit',   icon:'🎯', name:'致命瞄准', desc:'暴击率 +12%',                max:6 },
+  { id:'wall',   icon:'🛡️', name:'防线加固', desc:'防线回 30% 并提升上限 15%',   max:5 },
+  { id:'laser',  icon:'🔆', name:'制导激光', desc:'持续照射最近敌人的高能光束',   max:5 },
+  { id:'burn',   icon:'🔥', name:'燃烧弹',   desc:'命中点燃，持续灼烧伤害',      max:4 },
+  { id:'chain',  icon:'🌩️', name:'雷电链',   desc:'闪电在敌人之间跳跃',          max:4 },
+  { id:'barrage',icon:'✨', name:'弹幕风暴', desc:'周期性向全屏发射弹幕',        max:3 },
+  { id:'exe',    icon:'☠️', name:'处决令',   desc:'击中时有概率直接秒杀小怪',    max:4 },
+];
+const ICON_OF = id => (SKILL_POOL.find(s=>s.id===id)||{}).icon || '❔';
+
+function offerSkills(){
+  const owned = Object.keys(runSkills).filter(k=>runSkills[k]>0);
+  let pool = SKILL_POOL.filter(s => (runSkills[s.id]||0) < s.max);
+  // 技能槽满了：只能升级已学的，不能再学新技能
+  if(owned.length >= MAX_DISTINCT) pool = pool.filter(s => runSkills[s.id] > 0);
+  const picks = [];
+  while(picks.length<3 && pool.length){
+    const i = Math.floor(Math.random()*pool.length);
+    picks.push(pool.splice(i,1)[0]);
+  }
+  if(picks.length===0){
+    // 全部满级：转化为金币奖励
+    runCoins += 100;
+    floatText(player.x, PLAYER_Y-90, '技能全满级 · +100金币', '#ffd93d');
+    return;
+  }
+  state='levelup'; levelupOptions = picks;
+}
+let levelupOptions = [];
+
+function applySkill(s){
+  runSkills[s.id]=(runSkills[s.id]||0)+1;
+  ring(player.x, PLAYER_Y-30, 90, '#b98cff', 4, 20);
+  floatText(player.x, PLAYER_Y-90, s.name+' Lv.'+runSkills[s.id], '#b98cff');
+  switch(s.id){
+    case 'dmg': stats.dmg*=1.35; break;
+    case 'rate': stats.rate*=1.25; break;
+    case 'multi': stats.multi+=1; break;
+    case 'pierce': stats.pierce+=1; break;
+    case 'boom': stats.boom+=1; break;
+    case 'ice': stats.ice+=1; break;
+    case 'drone': stats.drone+=1; drones.push({x:player.x,y:PLAYER_Y,cd:0}); break;
+    case 'crit': stats.crit=Math.min(0.95, stats.crit+0.12); break;
+    case 'wall': wall.max=Math.round(wall.max*1.15); wall.hp=Math.min(wall.max, wall.hp+wall.max*0.3); break;
+    case 'laser': stats.laser+=1; break;
+    case 'burn': stats.burn+=1; break;
+    case 'chain': stats.chain+=1; break;
+    case 'barrage': stats.barrage+=1; break;
+    case 'exe': stats.exe+=1; break;
+  }
+  state='play';
+}
+
+// ================= 波次 =================
+function buildWave(n){
+  spawnQueue = [];
+  const boss = n % 5 === 0;
+  let count = 6 + Math.floor(n*1.8);
+  if(boss) count = Math.floor(count*0.6);
+  for(let i=0;i<count;i++){
+    let type = 'normal';
+    const r = Math.random();
+    if(n>=3 && r<0.22) type='fast';
+    else if(n>=4 && r<0.34) type='tank';
+    spawnQueue.push({ type, delay: i*(boss?34:22) });
+  }
+  if(boss) spawnQueue.push({ type:'boss', delay: count*22 + 40 });
+}
+
+const ZTYPES = {
+  normal:{ hp:18,  hpw:6,   spd:0.35, spw:0.012, w:36, h:44, dmg:8,  coin:2,  dia:0, xp:2 },
+  fast:  { hp:10,  hpw:4,   spd:0.85, spw:0.02,  w:30, h:36, dmg:5,  coin:3,  dia:0, xp:3 },
+  tank:  { hp:60,  hpw:16,  spd:0.22, spw:0.008, w:48, h:56, dmg:16, coin:6,  dia:0, xp:5 },
+  boss:  { hp:400, hpw:90,  spd:0.16, spw:0,     w:84, h:92, dmg:30, coin:50, dia:20, xp:30 },
+};
+function spawn(type){
+  const b = ZTYPES[type];
+  zombies.push({ type, x: 50+Math.random()*(W-100), y: -b.h, hurt:0,
+    hp:b.hp+wave*b.hpw, max:b.hp+wave*b.hpw, spd:b.spd+wave*b.spw,
+    w:b.w, h:b.h, dmg:b.dmg, coin:b.coin, dia:b.dia, xpv:b.xp, slow:0, atkCd:0, burn:0, shotCd:240 });
+}
+
+// ================= 输入 =================
+let speedBtn = { x:W-52, y:52, r:22 };
+let pauseBtn = { x:W-112, y:52, r:20 };
+function pt(e){
+  const r = cv.getBoundingClientRect();
+  return { x:(e.clientX-r.left)*(W/r.width), y:(e.clientY-r.top)*(H/r.height) };
+}
+cv.addEventListener('pointerdown', e=>{
+  const p = pt(e);
+  const dx=p.x-speedBtn.x, dy=p.y-speedBtn.y;
+  if(state==='play' && dx*dx+dy*dy < speedBtn.r*speedBtn.r){
+    speed = speed===1?2:(speed===2?3:1); return;
+  }
+  const px=p.x-pauseBtn.x, py=p.y-pauseBtn.y;
+  if(state==='play' && px*px+py*py < pauseBtn.r*pauseBtn.r){
+    state='pause'; return;
+  }
+  player.targetX = p.x;
+});
+cv.addEventListener('pointermove', e=>{
+  if(e.buttons){ const p = pt(e); player.targetX = p.x; }
+});
+
+// ================= 射击 =================
+function fireBullet(x,y,t,dmgMul,isDrone){
+  const crit = Math.random()<stats.crit;
+  bullets.push({ x,y, vx:0, vy:isDrone?-13:-16,
+    dmg:stats.dmg*dmgMul*(crit?stats.critD:1), crit, pierce:isDrone?0:stats.pierce,
+    hitSet:new Set(), drone:!!isDrone, target:t, spd:isDrone?13:16 });
+}
+function shoot(){
+  const t = zombies.filter(z=>z.y>-z.h).sort((a,b)=>b.y-a.y)[0];
+  if(!t) return;
+  // 枪口尖端出膛（跟随枪口角度 + 后坐）
+  const tipX = player.x + Math.sin(player.ang)*(32-player.recoil);
+  const tipY = (PLAYER_Y-18) - Math.cos(player.ang)*(32-player.recoil);
+  for(let i=0;i<stats.multi;i++){
+    const off = (i-(stats.multi-1)/2);
+    fireBullet(tipX + Math.cos(player.ang)*off*8, tipY + Math.sin(player.ang)*off*8, t, 1, false);
+  }
+  flashMuzzle = 4;
+  player.recoil = 7;
+  player.cd = 60/stats.rate;
+}
+
+// ================= 特效 =================
+function burst(x,y,color,n=8){
+  for(let i=0;i<n;i++) parts.push({ x,y, vx:(Math.random()-0.5)*5, vy:(Math.random()-0.5)*5,
+    life:20+Math.random()*15, color });
+}
+function boomArea(x,y,r,dmg){
+  burst(x,y,'#ff8c42',14);
+  effects.push({x,y,r:8,maxR:r,life:13,maxLife:13,color:'#ff8c42',lw:5});
+  zombies.forEach(z=>{ const dx=z.x-x, dy=(z.y+z.h/2)-y;
+    if(dx*dx+dy*dy < r*r){ z.hp-=dmg; z.hurt=8; } });
+}
+function ring(x,y,maxR,color,lw=3,life=18){
+  effects.push({x,y,r:6,maxR,life,maxLife:life,color,lw});
+}
+function floatText(x,y,txt,color){ floatTexts.push({x,y,txt,color,life:40}); }
+
+// ================= 主循环（单步） =================
+function update(){
+  frame++;
+  player.x += (player.targetX-player.x)*0.25;
+  player.x = Math.max(24, Math.min(W-24, player.x));
+  // 炮管转向：追踪离防线最近的怪（限制不朝后打）
+  {
+    const tgt = zombies.filter(z=>z.hp>0 && z.y>-z.h).sort((a,b)=>b.y-a.y)[0];
+    let desired = 0;
+    if(tgt){
+      const dx = tgt.x - player.x, dy = (tgt.y+tgt.h/2) - (PLAYER_Y-10);
+      desired = Math.max(-1.15, Math.min(1.15, Math.atan2(dx, -dy)));
+    }
+    player.ang += (desired - player.ang)*0.22;
+  }
+  if(player.recoil>0) player.recoil*=0.8;
+  if(--player.cd<=0) shoot();
+  if(flashMuzzle>0) flashMuzzle--;
+
+  drones.forEach((d,i)=>{
+    d.x += ((player.x + Math.sin(frame*0.05+i*2)*70) - d.x)*0.1;
+    d.y = PLAYER_Y - 60 + Math.cos(frame*0.06+i)*10;
+    if(--d.cd<=0){
+      const t = zombies.filter(z=>z.y>-z.h).sort((a,b)=>b.y-a.y)[0];
+      if(t){ fireBullet(d.x,d.y,t,0.5,true); d.cd=45; }
+    }
+  });
+
+  // 波次推进
+  if(--waveTimer<=0 && spawnQueue.length===0){ wave++; buildWave(wave); if(wave%5===0) shake=12; }
+  spawnQueue.forEach(s=>s.delay--);
+  spawnQueue.filter(s=>s.delay<=0).forEach(s=>spawn(s.type));
+  spawnQueue = spawnQueue.filter(s=>s.delay>0);
+  if(spawnQueue.length===0 && zombies.length===0){
+    runDia += 2; waveTimer = 100;
+    wave++; buildWave(wave);
+  }
+
+  // 弹幕风暴
+  if(stats.barrage>0 && --barrageTimer<=0){
+    barrageTimer = 480 - stats.barrage*60;
+    for(let i=0;i<14;i++){
+      const a = Math.PI + (i/13)*Math.PI;
+      bullets.push({ x:player.x, y:PLAYER_Y-24, vx:Math.cos(a)*9, vy:Math.sin(a)*9,
+        dmg:stats.dmg*0.6, crit:false, pierce:1, hitSet:new Set(), drone:false });
+    }
+    floatText(player.x, PLAYER_Y-60, '弹幕风暴!', '#8be9fd');
+  }
+  // 雷电链
+  if(stats.chain>0 && --chainTimer<=0){
+    chainTimer = 300 - stats.chain*25;
+    const alive = zombies.filter(z=>z.hp>0 && z.y>-z.h);
+    if(alive.length){
+      let cur = alive[Math.floor(Math.random()*alive.length)];
+      const chainSet = [cur]; const pts=[{x:cur.x,y:cur.y+cur.h/2}];
+      for(let j=0;j<2+stats.chain;j++){
+        const next = alive.filter(z=>!chainSet.includes(z))
+          .sort((a,b)=>Math.hypot(a.x-cur.x,a.y-cur.y)-Math.hypot(b.x-cur.x,b.y-cur.y))[0];
+        if(!next) break;
+        chainSet.push(next); pts.push({x:next.x,y:next.y+next.h/2}); cur=next;
+      }
+      chainSet.forEach(z=>{ z.hp-=stats.dmg*1.2; z.hurt=8; });
+      bolts.push({pts, life:14});
+    }
+  }
+
+  // 子弹（锁定追踪：飞行中持续转向目标，指哪打哪）
+  bullets.forEach(b=>{
+    if(b.target && b.target.hp>0 && !b.target.deadTag){
+      const tx=b.target.x, ty=b.target.y+b.target.h/2;
+      const dx=tx-b.x, dy=ty-b.y, d=Math.hypot(dx,dy)||1;
+      b.vx=dx/d*b.spd; b.vy=dy/d*b.spd;
+    }
+    b.x+=b.vx; b.y+=b.vy;
+    zombies.forEach(z=>{
+      if(b.hitSet.has(z) || z.hp<=0) return;
+      if(b.x>z.x-z.w/2-4 && b.x<z.x+z.w/2+4 && b.y>z.y && b.y<z.y+z.h){
+        b.hitSet.add(z);
+        z.hp-=b.dmg; z.hurt=8;
+        burst(b.x,b.y, b.crit?'#ffd93d':'#ff6b6b', b.crit?6:3);
+        if(stats.exe && z.type!=='boss' && Math.random() < 0.02*stats.exe + stats.exeGem){
+          z.hp=0; floatText(z.x,z.y,'处决!','#ff5ce1');
+        }
+        if(stats.boom) boomArea(b.x,b.y, 40+stats.boom*10, stats.dmg*0.4*stats.boom);
+        if(stats.ice) z.slow = 120;
+        if(stats.burn) z.burn = 180;
+        if(b.pierce>0) b.pierce--; else b.dead=true;
+      }
+    });
+  });
+  bullets = bullets.filter(b=>!b.dead && b.y>-20 && b.x>-20 && b.x<W+20);
+
+  // 制导激光
+  if(stats.laser>0){
+    const t = zombies.filter(z=>z.hp>0 && z.y>-z.h).sort((a,b)=>b.y-a.y)[0];
+    laserTarget = t || null;
+    if(t){ t.hp -= 0.3*stats.laser; t.hurt = 4; }
+  } else laserTarget = null;
+
+  // 僵尸
+  zombies.forEach(z=>{
+    if(z.hp<=0) return;
+    const spd = z.spd * (z.slow>0?0.6:1);
+    if(z.slow>0) z.slow--;
+    if(z.hurt>0) z.hurt--;
+    if(z.burn>0){ z.burn--; z.hp -= 0.08*stats.burn; if(frame%6===0) parts.push({x:z.x+(Math.random()-0.5)*z.w,y:z.y+z.h*0.5,vx:0,vy:-1.5,life:14,color:'#ff7b3a'}); }
+    if(z.y + z.h < WALL_Y + 30){ z.y += spd; }
+    else {
+      if(--z.atkCd<=0){ wall.hp -= z.dmg; z.atkCd=50; burst(z.x, WALL_Y, '#ff5252', 5); shake=Math.max(shake,4); }
+    }
+    // Boss 远程攻击
+    if(z.type==='boss' && z.y>60 && --z.shotCd<=0){
+      z.shotCd = 200;
+      bossShots.push({ x:z.x, y:z.y+z.h, vx:(player.x-z.x)*0.004, vy:4.5 });
+    }
+  });
+  // Boss 弹
+  bossShots.forEach(s=>{ s.x+=s.vx; s.y+=s.vy;
+    if(s.y>WALL_Y+20){ wall.hp-=12; burst(s.x,s.y,'#ff5252',8); shake=Math.max(shake,6); s.dead=true; } });
+  bossShots = bossShots.filter(s=>!s.dead && s.y<H+20);
+
+  // 死亡结算
+  zombies.forEach(z=>{
+    if(z.hp<=0 && !z.deadTag){
+      z.deadTag=true; kills++;
+      runCoins+=z.coin; runDia+=z.dia; xp+=z.xpv;
+      burst(z.x,z.y+z.h/2, z.color, z.type==='boss'?30:8);
+      // 金币飞进钱包
+      const nCoins = z.type==='boss'?12:(z.type==='tank'?5:3);
+      for(let i=0;i<nCoins;i++)
+        coinsFly.push({x:z.x,y:z.y+z.h/2, vx:(Math.random()-0.5)*7, vy:-Math.random()*5-2});
+      if(z.type==='boss'){ ring(z.x,z.y+z.h/2,120,'#ffd93d',6,26); wall.hp=Math.min(wall.max, wall.hp+20); shake=14; floatText(z.x,z.y,'BOSS击破 +20钻','#ffd93d'); }
+    }
+  });
+  zombies = zombies.filter(z=>!z.deadTag);
+  parts.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.life--; });
+  parts = parts.filter(p=>p.life>0);
+  // 金币追踪飞向 HUD 钱包
+  coinsFly.forEach(c=>{
+    const tx=190, ty=26;
+    c.vx += (tx-c.x)*0.0016; c.vy += (ty-c.y)*0.0016;
+    c.vx*=0.93; c.vy*=0.93;
+    const sp=Math.hypot(c.vx,c.vy), max=15;
+    if(sp>max){ c.vx*=max/sp; c.vy*=max/sp; }
+    c.x+=c.vx; c.y+=c.vy;
+    if(Math.hypot(tx-c.x,ty-c.y)<22) c.got=true;
+  });
+  coinsFly = coinsFly.filter(c=>!c.got);
+  effects.forEach(e=>{ e.life--; e.r += (e.maxR-e.r)*0.25; });
+  effects = effects.filter(e=>e.life>0);
+  bolts.forEach(b=>b.life--); bolts = bolts.filter(b=>b.life>0);
+  floatTexts.forEach(f=>{f.y-=0.6;f.life--;}); floatTexts = floatTexts.filter(f=>f.life>0);
+  if(shake>0) shake-=0.5;
+
+  if(xp>=xpNeed){ xp-=xpNeed; level++; xpNeed=Math.round(xpNeed*1.5); offerSkills(); }
+  if(wall.hp<=0){ settleRun(); state='over'; }
+}
+// 结算带出（防线失守 & 中途退出共用）
+function settleRun(){
+  const m = metaBonus();
+  save.coins += Math.round(runCoins*(1+m.coin));
+  save.dia += runDia;
+  persist();
+}
+let waveTimer = 90;
+let laserTarget = null;
+
+// ================= 绘制 =================
+// 背景（离屏预渲染）
+const bg = document.createElement('canvas'); bg.width=W; bg.height=H;
+(function(){
+  const b = bg.getContext('2d');
+  const g = b.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#141026'); g.addColorStop(0.55,'#1e1836'); g.addColorStop(1,'#2a2148');
+  b.fillStyle=g; b.fillRect(0,0,W,H);
+  // 月亮
+  b.fillStyle='#e8e4ff22'; b.beginPath(); b.arc(W-80,90,46,0,7); b.fill();
+  b.fillStyle='#e8e4ff44'; b.beginPath(); b.arc(W-80,90,34,0,7); b.fill();
+  // 远处城市剪影
+  b.fillStyle='#171226';
+  let x=0; let seed=7;
+  while(x<W){ seed=(seed*16807)%2147483647; const bw=30+seed%50, bh=40+seed%90;
+    b.fillRect(x, WALL_Y-bh, bw, bh);
+    b.fillStyle='#1d1730';
+    for(let wy=WALL_Y-bh+8; wy<WALL_Y-10; wy+=16)
+      for(let wx=x+6; wx<x+bw-8; wx+=12)
+        if((wx*wy)%7<2){ b.fillRect(wx,wy,4,6); }
+    b.fillStyle='#171226';
+    x+=bw+8;
+  }
+  // 地面
+  b.fillStyle='#241d3e'; b.fillRect(0,WALL_Y+30,W,H-WALL_Y-30);
+  b.strokeStyle='#2e2650'; b.lineWidth=1;
+  for(let y=WALL_Y+44;y<H;y+=18){ b.beginPath(); b.moveTo(0,y); b.lineTo(W,y); b.stroke(); }
+})();
+
+function drawZombie(z){
+  ctx.save(); ctx.translate(z.x, z.y);
+  const t = frame*0.15 + z.x;
+  const step = Math.sin(t)*4;           // 走路摆动
+  const lean = z.type==='fast'? -0.12 : 0;
+  ctx.rotate(lean);
+  const C = { normal:{body:'#5d9448',dark:'#436f33',head:'#7ab35e'},
+              fast:  {body:'#b09a3e',dark:'#8a772c',head:'#d0b955'},
+              tank:  {body:'#6d4b96',dark:'#523677',head:'#8a63b8'},
+              boss:  {body:'#a83a3a',dark:'#7d2727',head:'#c74f4f'} }[z.type];
+  // 腿
+  ctx.fillStyle=C.dark;
+  ctx.fillRect(-z.w*0.28 + step*0.4, z.h*0.78, z.w*0.2, z.h*0.24);
+  ctx.fillRect( z.w*0.08 - step*0.4, z.h*0.78, z.w*0.2, z.h*0.24);
+  // 身体
+  ctx.fillStyle = z.hurt>0? '#fff' : C.body;
+  ctx.beginPath(); ctx.roundRect(-z.w*0.38, z.h*0.34, z.w*0.76, z.h*0.48, 7); ctx.fill();
+  // 前伸手臂
+  ctx.fillStyle = z.hurt>0? '#fff' : C.dark;
+  ctx.save(); ctx.translate(-z.w*0.34, z.h*0.42); ctx.rotate(Math.sin(t)*0.2);
+  ctx.fillRect(-z.w*0.42, 0, z.w*0.5, 7); ctx.restore();
+  ctx.save(); ctx.translate(z.w*0.34, z.h*0.42); ctx.rotate(-Math.sin(t)*0.2);
+  ctx.fillRect(-z.w*0.08, 0, z.w*0.5, 7); ctx.restore();
+  // 头
+  ctx.fillStyle = z.hurt>0? '#fff' : C.head;
+  ctx.beginPath(); ctx.arc(step*0.2, z.h*0.2, z.w*0.3, 0, 7); ctx.fill();
+  // 红眼
+  ctx.fillStyle='#ff3b3b';
+  ctx.fillRect(-z.w*0.16+step*0.2, z.h*0.13, 5, 5);
+  ctx.fillRect( z.w*0.05+step*0.2, z.h*0.13, 5, 5);
+  // Boss 犄角
+  if(z.type==='boss'){
+    ctx.fillStyle='#e8c14a';
+    ctx.beginPath(); ctx.moveTo(-z.w*0.3,-z.h*0.02); ctx.lineTo(-z.w*0.42,-z.h*0.22); ctx.lineTo(-z.w*0.16,-z.h*0.08); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(z.w*0.3,-z.h*0.02); ctx.lineTo(z.w*0.42,-z.h*0.22); ctx.lineTo(z.w*0.16,-z.h*0.08); ctx.fill();
+  }
+  // 灼烧
+  if(z.burn>0){ ctx.fillStyle='rgba(255,120,40,0.25)'; ctx.beginPath(); ctx.arc(0,z.h/2,z.w*0.55,0,7); ctx.fill(); }
+  // 冰冻
+  if(z.slow>0){ ctx.strokeStyle='#7fd6ff'; ctx.lineWidth=2; ctx.strokeRect(-z.w/2-2,-2,z.w+4,z.h+4); }
+  // 血条
+  ctx.fillStyle='#00000088'; ctx.fillRect(-z.w/2,-12,z.w,5);
+  ctx.fillStyle='#ff5252'; ctx.fillRect(-z.w/2,-12,z.w*(z.hp/z.max),5);
+  ctx.restore();
+}
+
+function draw(){
+  ctx.save();
+  if(shake>0) ctx.translate((Math.random()-0.5)*shake,(Math.random()-0.5)*shake);
+  ctx.drawImage(bg,0,0);
+
+  // 防线（沙袋墙）
+  ctx.fillStyle='#4a3f2a'; ctx.fillRect(0,WALL_Y+30,W,16);
+  for(let x=0;x<W;x+=34){
+    ctx.fillStyle='#5c4e33'; ctx.beginPath(); ctx.roundRect(x+2,WALL_Y+16,30,15,4); ctx.fill();
+    ctx.fillStyle='#6b5c3d'; ctx.beginPath(); ctx.roundRect(x+6,WALL_Y+28,26,13,4); ctx.fill();
+  }
+  ctx.fillStyle='#00000066'; ctx.fillRect(20,WALL_Y+54,W-40,12);
+  ctx.fillStyle= wall.hp/wall.max>0.3? '#4ade80':'#ff5252';
+  ctx.fillRect(20,WALL_Y+54,(W-40)*Math.max(0,wall.hp/wall.max),12);
+  ctx.fillStyle='#cfcfe8'; ctx.font='11px sans-serif';
+  ctx.fillText(`防线 ${Math.max(0,Math.ceil(wall.hp))}/${Math.ceil(wall.max)}`, 22, WALL_Y+52);
+
+  // 哨兵（人形建模，持枪瞄准）
+  ctx.save(); ctx.translate(player.x, PLAYER_Y);
+  const rec = player.recoil;
+  // 双腿 + 靴子
+  ctx.fillStyle='#2e3a55';
+  ctx.beginPath(); ctx.roundRect(-11,-14,8,16,3); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(3,-14,8,16,3); ctx.fill();
+  ctx.fillStyle='#1a2338';
+  ctx.fillRect(-13,-2,11,4); ctx.fillRect(1,-2,11,4);
+  // 躯干护甲
+  const tg2 = ctx.createLinearGradient(0,-34,0,-10);
+  tg2.addColorStop(0,'#6fa8e8'); tg2.addColorStop(1,'#2c4a7c');
+  ctx.fillStyle=tg2; ctx.beginPath(); ctx.roundRect(-12,-34,24,22,7); ctx.fill();
+  ctx.fillStyle='#ffffff22'; ctx.beginPath(); ctx.roundRect(-9,-32,18,6,3); ctx.fill();
+  // 胸前能量灯（脉冲）
+  ctx.save(); ctx.shadowColor='#8be9fd'; ctx.shadowBlur=8;
+  ctx.fillStyle='#bff4ff'; ctx.beginPath(); ctx.arc(0,-24,2.6+Math.sin(frame*0.15)*0.8,0,7); ctx.fill();
+  ctx.restore();
+  // 头 + 战术头盔
+  ctx.fillStyle='#f0c8a0'; ctx.beginPath(); ctx.arc(0,-42,7.5,0,7); ctx.fill();
+  ctx.fillStyle='#34527e'; ctx.beginPath(); ctx.arc(0,-43,8.5,Math.PI,0); ctx.fill();
+  ctx.fillRect(-9.5,-44,19,3.5);
+  ctx.fillStyle='#ffffff33'; ctx.beginPath(); ctx.arc(-3,-46,3,0,7); ctx.fill();
+  // 步枪 + 双臂（随目标旋转，带后坐）
+  ctx.save(); ctx.translate(0,-20); ctx.rotate(player.ang);
+  ctx.fillStyle='#f0c8a0';
+  ctx.beginPath(); ctx.arc(2,-2,3.4,0,7); ctx.fill();
+  ctx.beginPath(); ctx.arc(11,-1,3.4,0,7); ctx.fill();
+  ctx.fillStyle='#101828'; ctx.beginPath(); ctx.roundRect(-4,-24+rec,8,22,3); ctx.fill();
+  const ggrad = ctx.createLinearGradient(-4,0,4,0);
+  ggrad.addColorStop(0,'#7d8aa8'); ggrad.addColorStop(0.5,'#c6d2e8'); ggrad.addColorStop(1,'#5a6a8c');
+  ctx.fillStyle=ggrad; ctx.beginPath(); ctx.roundRect(-3.5,-23+rec,7,20,3); ctx.fill();
+  ctx.fillStyle='#39415c'; ctx.beginPath(); ctx.roundRect(-5,-26+rec,10,5,2); ctx.fill();   // 枪口
+  ctx.fillStyle='#39415c'; ctx.beginPath(); ctx.roundRect(-3,-8+rec,6,9,2); ctx.fill();     // 弹匣
+  ctx.restore();
+  // 枪口火光（跟随枪口尖端）
+  if(flashMuzzle>0){
+    ctx.save();
+    ctx.translate(Math.sin(player.ang)*(34-rec), -18-Math.cos(player.ang)*(34-rec));
+    ctx.shadowColor='#ffd93d'; ctx.shadowBlur=12;
+    ctx.fillStyle='#fff3b0'; ctx.beginPath(); ctx.arc(0,0,6.5,0,7); ctx.fill();
+    ctx.fillStyle='#ffb347'; ctx.beginPath(); ctx.arc(0,0,3.6,0,7); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // 无人机
+  drones.forEach(d=>{
+    ctx.fillStyle='#8be9fd'; ctx.beginPath(); ctx.arc(d.x,d.y,9,0,7); ctx.fill();
+    ctx.fillStyle='#1b1630'; ctx.beginPath(); ctx.arc(d.x,d.y,3.5,0,7); ctx.fill();
+    ctx.strokeStyle='#8be9fd66'; ctx.beginPath(); ctx.arc(d.x,d.y,13+Math.sin(frame*0.3)*2,0,7); ctx.stroke();
+  });
+
+  // 激光（发光+命中点闪烁）
+  if(laserTarget && stats.laser>0){
+    ctx.save();
+    ctx.shadowColor='#ff5ce1'; ctx.shadowBlur=14;
+    ctx.strokeStyle='#ff9df0'; ctx.lineWidth=2+stats.laser;
+    ctx.globalAlpha=0.85;
+    ctx.beginPath(); ctx.moveTo(player.x,PLAYER_Y-22); ctx.lineTo(laserTarget.x,laserTarget.y+laserTarget.h/2); ctx.stroke();
+    ctx.strokeStyle='#ffffff'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(player.x,PLAYER_Y-22); ctx.lineTo(laserTarget.x,laserTarget.y+laserTarget.h/2); ctx.stroke();
+    ctx.globalAlpha=1;
+    const fx=laserTarget.x, fy=laserTarget.y+laserTarget.h/2;
+    ctx.fillStyle='#ffceff';
+    ctx.beginPath(); ctx.arc(fx,fy,4+Math.random()*4,0,7); ctx.fill();
+    ctx.restore();
+  }
+  // 闪电
+  bolts.forEach(bo=>{
+    ctx.strokeStyle='#ffe95c'; ctx.lineWidth=2.5; ctx.globalAlpha=bo.life/14;
+    ctx.beginPath();
+    bo.pts.forEach((p,i)=>{
+      if(i===0) ctx.moveTo(p.x,p.y);
+      else { const prev=bo.pts[i-1];
+        const mx=(prev.x+p.x)/2+(Math.random()-0.5)*18, my=(prev.y+p.y)/2+(Math.random()-0.5)*18;
+        ctx.lineTo(mx,my); ctx.lineTo(p.x,p.y); }
+    });
+    ctx.stroke(); ctx.globalAlpha=1;
+  });
+
+  // 怪物 & Boss弹（此前被误删导致怪物隐身，已修复）
+  zombies.forEach(drawZombie);
+  bossShots.forEach(s=>{ ctx.fillStyle='#ff7b6b'; ctx.beginPath(); ctx.arc(s.x,s.y,6,0,7); ctx.fill(); });
+  // 子弹（发光拖尾）
+  bullets.forEach(b=>{
+    const col = b.crit? '#ffd93d' : (b.drone? '#8be9fd':'#ffb347');
+    // 拖尾
+    ctx.strokeStyle=col; ctx.globalAlpha=0.45; ctx.lineWidth=b.crit?4:2.5;
+    ctx.beginPath(); ctx.moveTo(b.x-b.vx*2.4, b.y-b.vy*2.4); ctx.lineTo(b.x,b.y); ctx.stroke();
+    ctx.globalAlpha=1;
+    // 本体发光
+    ctx.save();
+    ctx.shadowColor=col; ctx.shadowBlur= b.crit?16:9;
+    ctx.fillStyle= b.crit? '#fff6c9' : col;
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.crit?5.5:3.8,0,7); ctx.fill();
+    ctx.restore();
+  });
+  // 冲击波
+  effects.forEach(e=>{
+    ctx.globalAlpha=e.life/e.maxLife;
+    ctx.strokeStyle=e.color; ctx.lineWidth=e.lw;
+    ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,7); ctx.stroke();
+    ctx.globalAlpha=1;
+  });
+  // 飞行金币
+  coinsFly.forEach(c=>{
+    ctx.save(); ctx.shadowColor='#ffd93d'; ctx.shadowBlur=8;
+    ctx.fillStyle='#ffd93d'; ctx.beginPath(); ctx.arc(c.x,c.y,4.2,0,7); ctx.fill();
+    ctx.fillStyle='#b8860b'; ctx.beginPath(); ctx.arc(c.x,c.y,4.2,0.6,2.6); ctx.stroke();
+    ctx.restore();
+  });
+  parts.forEach(p=>{ ctx.globalAlpha=Math.min(1,p.life/35); ctx.fillStyle=p.color;
+    ctx.fillRect(p.x-2,p.y-2,4,4); ctx.globalAlpha=1; });
+  floatTexts.forEach(f=>{ ctx.globalAlpha=Math.min(1,f.life/40); ctx.fillStyle=f.color;
+    ctx.font='bold 15px sans-serif'; ctx.textAlign='center'; ctx.fillText(f.txt,f.x,f.y); ctx.textAlign='left'; ctx.globalAlpha=1; });
+
+  ctx.restore(); // shake 结束
+
+  // HUD（不参与震动）
+  ctx.fillStyle='#cfcfe8'; ctx.font='bold 16px sans-serif';
+  ctx.fillText(`第 ${wave} 波`, 20, 30);
+  ctx.font='13px sans-serif';
+  ctx.fillText(`击杀 ${kills}`, 110, 30);
+  ctx.fillText(`💰${runCoins}`, 175, 30);
+  ctx.fillText(`💎${runDia}`, 240, 30);
+  ctx.fillText(`Lv.${level}`, 300, 30);
+  ctx.fillStyle='#00000066'; ctx.fillRect(340,16,80,10);
+  ctx.fillStyle='#b98cff'; ctx.fillRect(340,16,80*Math.min(1,xp/xpNeed),10);
+  // 倍速按钮
+  ctx.fillStyle='#00000088'; ctx.beginPath(); ctx.arc(speedBtn.x,speedBtn.y,speedBtn.r,0,7); ctx.fill();
+  ctx.strokeStyle= speed>1?'#ffb347':'#66648a'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle= speed>1?'#ffb347':'#aaa8c8'; ctx.font='bold 15px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('x'+speed, speedBtn.x, speedBtn.y+5); ctx.textAlign='left';
+  // 暂停按钮
+  ctx.fillStyle='#00000088'; ctx.beginPath(); ctx.arc(pauseBtn.x,pauseBtn.y,pauseBtn.r,0,7); ctx.fill();
+  ctx.strokeStyle='#8886a8'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='#cfcfe8'; ctx.font='bold 14px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('❚❚', pauseBtn.x, pauseBtn.y+5); ctx.textAlign='left';
+
+  // 右侧已学技能栏（图标 + 等级）
+  const ownedSkills = Object.keys(runSkills).filter(k=>runSkills[k]>0);
+  if(ownedSkills.length){
+    const px = W-38, py = 92;
+    ctx.fillStyle='#00000073'; ctx.beginPath(); ctx.roundRect(px-36, py-20, 46, ownedSkills.length*25+32, 9); ctx.fill();
+    ctx.strokeStyle='#4a437088'; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle='#9996b5'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(`技能 ${ownedSkills.length}/${MAX_DISTINCT}`, px-13, py-6);
+    ownedSkills.forEach((id,i)=>{
+      const s = SKILL_POOL.find(x=>x.id===id);
+      ctx.font='15px sans-serif'; ctx.fillText(s.icon, px-24, py+13+i*25);
+      ctx.fillStyle= runSkills[id]>=s.max? '#ffd93d':'#cfcfe8';
+      ctx.font='bold 11px sans-serif';
+      ctx.fillText('Lv'+runSkills[id], px+0, py+12+i*25);
+    });
+    ctx.textAlign='left';
+  }
+
+  if(spawnQueue.length===0 && zombies.length===0 && state==='play'){
+    ctx.fillStyle='#b98cff'; ctx.font='bold 20px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('波次间歇 · 下一波来袭', W/2, 120); ctx.textAlign='left';
+  }
+}
+
+// ================= DOM 覆盖层 =================
+const wrap = document.getElementById('wrap');
+function getOL(){
+  let ol = document.getElementById('ol');
+  if(!ol){
+    ol=document.createElement('div'); ol.id='ol';
+    Object.assign(ol.style,{position:'absolute',inset:0,display:'flex',flexDirection:'column',
+      alignItems:'center',justifyContent:'center',textAlign:'center',overflowY:'auto',padding:'20px'});
+    wrap.appendChild(ol);
+  }
+  return ol;
+}
+function overlay(html, sig){
+  const ol = getOL();
+  if(ol.dataset.sig === sig) return;
+  ol.dataset.sig = sig;
+  ol.innerHTML = html;
+  ol.style.pointerEvents='auto';
+  ol.querySelectorAll('.btn').forEach(b=>{
+    Object.assign(b.style,{background:'#ffb347',color:'#221c33',fontWeight:'bold',
+      padding:'12px 44px',borderRadius:'10px',cursor:'pointer',fontSize:'18px',margin:'6px'});
+    b.onclick=()=>{ b.dataset.act==='menu'? backToMenu() : (reset(), state='play', ol.remove()); };
+  });
+  ol.querySelectorAll('.rowbtn').forEach(b=>{
+    Object.assign(b.style,{background: b.dataset.can==='1'?'#ffb347':'#4a4370',color: b.dataset.can==='1'?'#221c33':'#9996b5',
+      fontWeight:'bold',padding:'6px 14px',borderRadius:'8px',cursor: b.dataset.can==='1'?'pointer':'default',
+      fontSize:'13px',whiteSpace:'nowrap'});
+    b.onclick=()=>{ if(b.dataset.can==='1') b.dataset.fn(); };
+  });
+  ol.querySelectorAll('.card').forEach(c=>{
+    Object.assign(c.style,{width:'132px',padding:'14px 10px',background:'#322b4d',
+      borderRadius:'12px',cursor:'pointer',border:'2px solid #4a4370'});
+    c.onmouseenter=()=>c.style.borderColor='#ffb347';
+    c.onmouseleave=()=>c.style.borderColor='#4a4370';
+    c.onclick=()=>{ applySkill(levelupOptions[+c.dataset.i]); ol.remove(); };
+  });
+  styleOL(ol);
+  return ol;
+}
+function styleOL(ol){
+  ol.querySelectorAll('.h1').forEach(e=>Object.assign(e.style,{fontSize:'26px',fontWeight:'bold',color:'#ffb347',marginBottom:'6px'}));
+  ol.querySelectorAll('.sub').forEach(e=>Object.assign(e.style,{color:'#aaa8c8',fontSize:'13px',marginBottom:'14px'}));
+  ol.querySelectorAll('.row').forEach(e=>Object.assign(e.style,{display:'flex',alignItems:'center',gap:'10px',
+    background:'#2a2444',borderRadius:'10px',padding:'10px 12px',margin:'4px 0',width:'100%',maxWidth:'400px',textAlign:'left'}));
+  ol.querySelectorAll('.rname').forEach(e=>Object.assign(e.style,{color:'#fff',fontWeight:'bold',fontSize:'14px'}));
+  ol.querySelectorAll('.rdesc').forEach(e=>Object.assign(e.style,{color:'#9996b5',fontSize:'11px',marginTop:'2px'}));
+  ol.querySelectorAll('.gold').forEach(e=>e.style.color='#ffd93d');
+  ol.querySelectorAll('.dia').forEach(e=>e.style.color='#8be9fd');
+  ol.querySelectorAll('.note').forEach(e=>Object.assign(e.style,{color:'#66648a',fontSize:'11px',marginTop:'16px',lineHeight:1.7}));
+}
+function clearOL(){ const ol=document.getElementById('ol'); if(ol) ol.remove(); }
+function backToMenu(){ state='menu'; menuDirty=true; clearOL(); }
+
+// ---------- 菜单 ----------
+let menuDirty = true;
+function drawMenu(){
+  draw();
+  const sig = 'menu'+save.coins+'_'+save.dia+'_'+save.gems.length+'_'+JSON.stringify(save.up)+'_'+save.vipPts;
+  const canUp = UPGRADES.some(u=> save.up[u.id]<20 && save.coins>=upCost(u,save.up[u.id]));
+  const canChest = save.dia>=100;
+  const sig2 = sig + (canUp?'U':'') + (canChest?'C':'');
+  if(!menuDirty && document.getElementById('ol') && document.getElementById('ol').dataset.sig===sig2) return;
+  menuDirty = false;
+  const vip = VIP_LV();
+  const ol = overlay(`
+    <div class="h1">🧟 僵尸防线 · 至尊版</div>
+    <div class="sub">金币 <span class="gold">${save.coins}</span> ｜ 钻石 <span class="dia">${save.dia}</span> ｜ 宝石 <span style="color:#ff5ce1">${save.gems.length}</span> 颗${vip?` ｜ <span style="color:#ffd93d">VIP${vip}</span>`:''}</div>
+    <div class="btn" style="background:#4ade80">开始游戏</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:6px">
+      <div class="btn" data-act="menu" style="background:#4a4370;color:#fff;font-size:14px;padding:9px 18px;position:relative" id="btnUp">🔧 军备研究所${canUp?'<span style="position:absolute;top:-6px;right:-6px;background:#ff5252;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;line-height:18px">!</span>':''}</div>
+      <div class="btn" data-act="menu" style="background:#4a4370;color:#fff;font-size:14px;padding:9px 18px;position:relative" id="btnChest">🎁 至尊宝箱${canChest?'<span style="position:absolute;top:-6px;right:-6px;background:#8be9fd;color:#123;border-radius:50%;width:18px;height:18px;font-size:11px;line-height:18px">!</span>':''}</div>
+      <div class="btn" data-act="menu" style="background:#c0392b;color:#fff;font-size:14px;padding:9px 18px" id="btnPay">💎 充值中心</div>
+    </div>
+    ${!save.paid._seen? `<div style="margin-top:14px;background:linear-gradient(90deg,#c0392b,#e67e22);border-radius:10px;padding:8px 16px;color:#fff;font-size:12px;cursor:pointer" id="fc">🔥 首充 ¥6 送 888 钻 + 专属称号 →</div>`:''}
+    <div class="note" style="text-align:center">
+      <span class="gold">💰 金币</span> → 军备研究所买<b>永久属性</b>（越买越强）<br>
+      <span class="dia">💎 钻石</span> → 至尊宝箱抽<b>宝石</b>（品质越高加成越猛，自动生效）<br>
+      击杀 Boss 必掉钻石 · 每波通关 +2 钻 · 存档自动保存
+    </div>`, sig2);
+  if(!ol) return;
+  const bu=ol.querySelector('#btnUp'); if(bu) bu.dataset.act='menu', bu.onclick=()=>{ subView='up'; menuDirty=true; clearOL(); state='menuSub'; };
+  const bc=ol.querySelector('#btnChest'); if(bc) bc.onclick=()=>{ subView='chest'; chestView='shop'; menuDirty=true; clearOL(); state='menuSub'; };
+  const bp=ol.querySelector('#btnPay'); if(bp) bp.onclick=()=>{ subView='pay'; save.paid._seen=1; persist(); menuDirty=true; clearOL(); state='menuSub'; };
+  const fc=ol.querySelector('#fc'); if(fc) fc.onclick=()=>{ subView='pay'; menuDirty=true; clearOL(); state='menuSub'; };
+}
+
+// ---------- 子页面 ----------
+let subView='up', chestView='shop', chestResults=[], paidGain=0;
+const UPGRADES = [
+  { id:'atk',  name:'火力校准', desc:lv=>`子弹伤害 +${lv*10}% → +${(lv+1)*10}%`, base:200 },
+  { id:'rate', name:'供弹系统', desc:lv=>`射速 +${lv*6}% → +${(lv+1)*6}%`,      base:260 },
+  { id:'hp',   name:'防线工事', desc:lv=>`防线血量 +${lv*10}% → +${(lv+1)*10}%`, base:300 },
+  { id:'coin', name:'战利品回收', desc:lv=>`金币收益 +${lv*8}% → +${(lv+1)*8}%`,  base:150 },
+];
+const upCost = (u,lv)=> Math.round(u.base * Math.pow(1.55, lv));
+
+function drawMenuSub(){
+  draw();
+  const vip = VIP_LV();
+  if(subView==='up'){
+    const rows = UPGRADES.map((u,i)=>{
+      const lv = save.up[u.id];
+      const cost = upCost(u,lv);
+      const can = save.coins>=cost && lv<20;
+      return `<div class="row">
+        <div style="flex:1"><div class="rname">${u.name} <span style="color:#b98cff;font-size:12px">Lv.${lv}</span></div>
+        <div class="rdesc">${u.desc(lv)}</div></div>
+        <div class="rowbtn" data-can="${can?1:0}">💰 ${cost}</div></div>`;
+    }).join('');
+    const ol = overlay(`
+      <div class="h1">🔧 军备研究所</div>
+      <div class="sub">永久生效 · 金币 <span class="gold">${save.coins}</span></div>
+      ${rows}
+      <div class="btn" data-act="menu" style="margin-top:14px;font-size:15px">返回基地</div>
+      <div class="note">当前战力加成：攻击 +${Math.round((metaBonus().atk-1)*100)}% ｜ 射速 +${Math.round((metaBonus().rate-1)*100)}% ｜ 防线 +${Math.round((metaBonus().hp-1)*100)}% ｜ 金币 +${Math.round(metaBonus().coin*100)}%${vip?` ｜ VIP${vip} 加成已含`:''}</div>`,
+      'up'+save.coins+JSON.stringify(save.up));
+    bindUpgrades(getOL());   // 每帧重绑，点击时实时读状态，杜绝重建时序问题
+  }
+  else if(subView==='chest'){
+    let body;
+    if(chestView==='result'){
+      body = chestResults.map(g=>{
+        const t=GEM_TYPES.find(x=>x.id===g.id), q=GEM_QUALITY[g.q];
+        return `<div style="background:#322b4d;border:2px solid ${q.c};border-radius:12px;padding:14px;margin:5px;min-width:140px">
+          <div style="color:${q.c};font-weight:bold;font-size:15px">${q.n}·${t.name}</div>
+          <div style="color:#cfcfe8;font-size:12px;margin-top:6px">${t.fmt(t.base*q.m)}</div></div>`;
+      }).join('');
+      body = `<div style="display:flex;flex-wrap:wrap;justify-content:center">${body}</div>
+        <div class="btn" id="chestOk" style="margin-top:12px;font-size:15px">收下</div>`;
+    } else {
+      body = `
+        <div class="row"><div style="flex:1"><div class="rname">普通宝箱</div><div class="rdesc">1 颗宝石 · 传说/绝世/至尊 70/25/5</div></div>
+          <div class="rowbtn" data-can="${save.dia>=100?1:0}" id="ch1">💎100</div></div>
+        <div class="row"><div style="flex:1"><div class="rname" style="color:#ff5ce1">至尊宝箱</div><div class="rdesc">一次 3 颗 · 至尊概率 15%</div></div>
+          <div class="rowbtn" data-can="${save.dia>=300?1:0}" id="ch3">💎300</div></div>
+        <div class="btn" data-act="menu" style="margin-top:10px;font-size:15px">返回基地</div>
+        <div class="note">已有宝石 ${save.gems.length} 颗 · 战力 ${gemPower()} 点<br>宝石属性全局自动生效，无需镶嵌</div>`;
+    }
+    const ol = overlay(`<div class="h1">🎁 至尊宝箱</div>
+      <div class="sub">钻石 <span class="dia">${save.dia}</span> ｜ Boss 必掉钻石</div>${body}`,
+      'chest'+save.dia+chestView+save.gems.length);
+    if(!ol) return;
+    const c1=ol.querySelector('#ch1'); if(c1) c1.onclick=()=>drawChest(1);
+    const c3=ol.querySelector('#ch3'); if(c3) c3.onclick=()=>drawChest(3);
+    const ok=ol.querySelector('#chestOk'); if(ok) ok.onclick=()=>{ chestView='shop'; menuDirty=true; clearOL(); };
+  }
+  else if(subView==='pay'){
+    const tiers = [
+      { p:'¥6',   d:60,  id:'t6'  },
+      { p:'¥30',  d:300, id:'t30' },
+      { p:'¥98',  d:980, id:'t98' },
+    ];
+    const rows = tiers.map(t=>{
+      const doubled = !save.paid[t.id];
+      return `<div class="row">
+        <div style="flex:1"><div class="rname">${t.p} <span class="dia">${t.d} 钻</span>${doubled?'<span style="color:#e67e22;font-size:11px"> 首充双倍!</span>':''}</div>
+        <div class="rdesc">${doubled?'首购额外送 '+t.d+' 钻':'已购，可重复购买'}</div></div>
+        <div class="rowbtn" data-can="1">购买</div></div>`;
+    }).join('');
+    const ol = overlay(`
+      <div class="h1">💎 充值中心</div>
+      <div class="sub">钻石 <span class="dia">${save.dia}</span> ｜ VIP ${vip}（每级金币收益 +8%）</div>
+      ${rows}
+      <div class="btn" data-act="menu" style="margin-top:12px;font-size:15px">返回基地</div>
+      <div class="note">⚠️ 本游戏为纯单机模拟，<b>不产生任何真实扣费</b><br>充值点击即到账（模拟支付），只为还原那股充值的手感</div>`,
+      'pay'+save.dia+save.vipPts);
+    if(!ol) return;
+    ol.querySelectorAll('.rowbtn').forEach((b,i)=>{
+      const t = tiers[i];
+      b.onclick=()=>{
+        const doubled = !save.paid[t.id];
+        let gain = t.d; if(doubled){ gain*=2; save.paid[t.id]=1; }
+        save.dia += gain; save.vipPts += t.d/10;
+        persist(); menuDirty=true; paidGain=gain; subView='paid';
+      };
+    });
+  }
+  else if(subView==='paid'){
+    overlay(`
+      <div style="background:#322b4d;border-radius:16px;padding:30px 40px">
+        <div style="font-size:40px">✅</div>
+        <div style="color:#4ade80;font-weight:bold;font-size:18px;margin:10px 0">模拟支付成功</div>
+        <div style="color:#8be9fd;font-weight:bold;font-size:22px;margin-bottom:8px">钻石 +${paidGain}</div>
+        <div style="color:#9996b5;font-size:12px;margin-bottom:16px">已到账 · 当前钻石 ${save.dia}（0 元真实支付）</div>
+        <div class="btn" id="paidOk" style="font-size:14px">好的</div></div>`,
+      'paid'+paidGain+'_'+save.dia);
+    const ok=document.querySelector('#paidOk');
+    if(ok) ok.onclick=()=>{ subView='pay'; menuDirty=true; clearOL(); };
+  }
+}
+function bindUpgrades(ol){
+  if(!ol) return;
+  ol.querySelectorAll('.rowbtn').forEach((b,i)=>{
+    const u = UPGRADES[i]; if(!u) return;
+    b.onclick=()=>{
+      const lv = save.up[u.id];        // 点击瞬间实时取等级
+      const cost = upCost(u,lv);
+      if(save.coins>=cost && lv<20){
+        save.coins-=cost; save.up[u.id]++; persist(); menuDirty=true;
+        const nl = save.up[u.id];
+        b.innerHTML = '💰 ' + upCost(u,nl);
+        b.style.background='#4ade80';   // 购买成功的即时反馈
+        setTimeout(()=>{ menuDirty=true; }, 60);
+      }
+    };
+  });
+}
+function drawChest(n){
+  const cost = n===1?100:300;
+  if(save.dia<cost) return;
+  save.dia-=cost;
+  chestResults=[];
+  for(let k=0;k<n;k++){
+    const r=Math.random();
+    const q = r < (n===3?0.15:0.05)? 2 : (r < (n===3?0.60:0.30)? 1 : 0);
+    const t = GEM_TYPES[Math.floor(Math.random()*GEM_TYPES.length)];
+    chestResults.push({id:t.id, q});
+  }
+  save.gems.push(...chestResults);
+  persist(); chestView='result'; menuDirty=true;
+}
+
+// ================= 场景切换 =================
+function drawLevelup(){
+  draw();
+  const owned = Object.keys(runSkills).filter(k=>runSkills[k]>0).length;
+  const cards = levelupOptions.map((s,i)=>{
+    const isNew = !(runSkills[s.id]>0);
+    return `
+    <div class="card" data-i="${i}">
+      <div class="icn">${s.icon}</div>
+      <div class="cn">${s.name} ${runSkills[s.id]?`<span style="color:#b98cff;font-size:12px">Lv.${runSkills[s.id]+1}</span>`:`<span style="color:#4ade80;font-size:11px">新</span>`}</div>
+      <div class="cd2">${s.desc}</div>
+    </div>`;
+  }).join('');
+  const ol = overlay(`<div style="font-size:22px;font-weight:bold;color:#b98cff;margin-bottom:6px">升级！三选一</div>
+    <div style="color:#9996b5;font-size:12px;margin-bottom:14px">技能槽 ${owned}/${MAX_DISTINCT}${owned>=MAX_DISTINCT?' · 已满，只能升级已学技能':''}</div>
+    <div style="display:flex;gap:12px">${cards}</div>`,
+    'lv'+level+'_'+levelupOptions.map(s=>s.id).join(','));
+  if(!ol) return;
+  ol.querySelectorAll('.card').forEach(c=>{
+    Object.assign(c.style,{width:'132px',padding:'14px 10px',background:'#322b4d',
+      borderRadius:'12px',cursor:'pointer',border:'2px solid #4a4370'});
+    c.onmouseenter=()=>c.style.borderColor='#ffb347';
+    c.onmouseleave=()=>c.style.borderColor='#4a4370';
+    c.onclick=()=>{ applySkill(levelupOptions[+c.dataset.i]); clearOL(); };
+  });
+  ol.querySelectorAll('.icn').forEach(e=>Object.assign(e.style,{fontSize:'30px',marginBottom:'6px'}));
+  ol.querySelectorAll('.cn').forEach(e=>Object.assign(e.style,{color:'#fff',fontWeight:'bold',marginBottom:'8px',fontSize:'15px'}));
+  ol.querySelectorAll('.cd2').forEach(e=>Object.assign(e.style,{color:'#aaa8c8',fontSize:'12px',lineHeight:1.5}));
+}
+function drawOver(){
+  draw();
+  const gained = Math.round(runCoins*(1+metaBonus().coin));
+  overlay(`
+    <div style="font-size:30px;font-weight:bold;color:#ff5252;margin-bottom:8px">防线失守</div>
+    <div style="color:#cfcfe8;font-size:15px;line-height:2;margin-bottom:16px">
+      坚守 <b style="color:#ffb347">${wave}</b> 波 · 击杀 <b style="color:#ffb347">${kills}</b><br>
+      结算带出：<span class="gold">金币 +${gained}</span>（含加成）<span class="dia"> ｜ 钻石 +${runDia}</span>
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="btn">再来一局</div>
+      <div class="btn" id="ovUp" style="background:#4ade80">💰 去强化战力</div>
+      <div class="btn" data-act="menu" style="background:#4a4370;color:#fff">回基地</div>
+    </div>
+    <div class="note">金币去军备研究所买永久属性 · 钻石去宝箱抽宝石</div>`, 'over'+wave+'_'+kills+'_'+gained);
+  const ou=document.getElementById('ovUp'); if(ou) ou.onclick=()=>{ subView='up'; state='menuSub'; menuDirty=true; clearOL(); };
+}
+function drawPause(){
+  draw();
+  const ol = overlay(`
+    <div style="font-size:26px;font-weight:bold;color:#cfcfe8;margin-bottom:16px">已暂停</div>
+    <div class="btn" id="pResume">继续战斗</div>
+    <div class="btn" id="pRestart" style="background:#4a4370;color:#fff;font-size:15px">重新开局</div>
+    <div class="btn" id="pExit" style="background:#4a4370;color:#fff;font-size:15px">结算并回基地</div>
+    <div class="note">结算 = 本局金币/钻石按加成带出局，不会白打</div>`, 'pause');
+  if(!ol) return;
+  const r=ol.querySelector('#pResume'); if(r) r.onclick=()=>{ state='play'; clearOL(); };
+  const rs=ol.querySelector('#pRestart'); if(rs) rs.onclick=()=>{ reset(); state='play'; clearOL(); };
+  const ex=ol.querySelector('#pExit'); if(ex) ex.onclick=()=>{ settleRun(); backToMenu(); };
+}
+
+// ================= 主循环 =================
+function loop(){
+  // 非战斗状态下也让飘字自然消失
+  if(state!=='play'){ floatTexts.forEach(f=>f.life--); floatTexts = floatTexts.filter(f=>f.life>0); }
+  if(state==='play'){
+    clearOL();
+    for(let i=0;i<speed;i++) update();
+    if(state==='play') draw();
+    else if(state==='levelup') drawLevelup();
+    else if(state==='over') drawOver();
+  }
+  else if(state==='menu') drawMenu();
+  else if(state==='menuSub') drawMenuSub();
+  else if(state==='levelup') drawLevelup();
+  else if(state==='over') drawOver();
+  else if(state==='pause') drawPause();
+  requestAnimationFrame(loop);
+}
+stats = baseStats();
+reset(); state='menu';
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
