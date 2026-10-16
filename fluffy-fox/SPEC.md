@@ -1,4 +1,7 @@
-# pumpkin-fox · 南瓜狐狸 · Three.js 毛茸茸 3D
+# fluffy-fox · 毛茸茸小狐 · Three.js 毛茸茸 3D
+
+> **v2 换装**：应用户要求已换成自然态小狐（无南瓜帽/围巾/外套），原南瓜套装几何配方见 git 历史；本文其余章节（色板/灯光/fur/textures/UI 接口）继续有效。fox.js 现为：无服饰 + 躯干奶油肚皮顶点色（fillFn 方向渐变）+ 头顶三撮锥形炸毛 + 张嘴吐舌 + 尾尖分界沿环向波浪 + 手臂/躯干纳入 furTargets（共 13 部位）。
+
 
 参考图：`reference/turnaround.png`（写代码前必须先 Read 这张图，取色、取比例、取服装细节）。
 技术参考：github.com/piellardj/fur-threejs（shell fur 壳层毛发）。

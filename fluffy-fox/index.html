@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>毛茸茸小狐 · 3D</title>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
+<style>
+:root{
+  --ink:#3a2e26;
+  --ink-soft:rgba(58,46,38,.6);
+  --line:rgba(58,46,38,.18);
+  --line-strong:rgba(58,46,38,.28);
+  --paper:#f6edda;
+  --accent:#c9702e;
+  --accent-ink:#f7edda;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  margin:0;overflow:hidden;color:var(--ink);
+  font-family:system-ui,-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:radial-gradient(120% 100% at 50% 18%,#f3ead9 0%,#e9d9bc 100%) fixed;
+}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+#stage{position:relative;width:100%;height:100dvh}
+#canvas-host{position:absolute;inset:0;touch-action:none}
+#canvas-host canvas{display:block}
+
+.brand{
+  position:fixed;z-index:10;user-select:none;pointer-events:none;
+  top:calc(14px + env(safe-area-inset-top));
+  left:calc(16px + env(safe-area-inset-left));
+}
+.brand h1{margin:0;font:600 26px/1.2 "Noto Serif SC","Songti SC",serif;letter-spacing:.08em}
+.brand p{margin:5px 0 0;font-size:12px;letter-spacing:.05em;color:var(--ink-soft)}
+
+.hint{
+  position:fixed;z-index:10;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);margin:0;padding:9px 16px;
+  font-size:12.5px;letter-spacing:.03em;white-space:nowrap;
+  color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:999px;
+  user-select:none;pointer-events:none;
+  animation:hint-out .8s ease 5s forwards;
+}
+@keyframes hint-out{to{opacity:0}}
+
+#panel-toggle{
+  position:fixed;z-index:30;cursor:pointer;
+  right:calc(14px + env(safe-area-inset-right));
+  bottom:calc(16px + env(safe-area-inset-bottom));
+  width:52px;height:52px;border-radius:50%;
+  border:1px solid var(--line-strong);background:var(--paper);
+  display:grid;place-items:center;
+}
+#panel-toggle:active{background:#efdfc2}
+#panel-toggle .i-close{display:none}
+body:has(#panel.open) #panel-toggle{bottom:calc(46vh + 16px)}
+body:has(#panel.open) #panel-toggle .i-knob{display:none}
+body:has(#panel.open) #panel-toggle .i-close{display:block}
+
+#panel{
+  position:fixed;z-index:20;left:0;right:0;bottom:0;
+  max-height:46vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  background:var(--paper);border-top:1px solid var(--line);
+  box-shadow:0 -6px 22px rgba(58,46,38,.12);
+  padding:0 20px calc(16px + env(safe-area-inset-bottom));
+  transform:translateY(110%);
+  transition:transform .32s cubic-bezier(.2,.8,.25,1);
+}
+#panel.open{transform:translateY(0)}
+.grabber{position:sticky;top:0;z-index:2;display:flex;justify-content:center;padding:10px 0 8px;background:var(--paper)}
+.grabber i{width:44px;height:4px;border-radius:2px;background:var(--line-strong)}
+.panel-title{display:none}
+#panel h3{
+  margin:16px 0 4px;padding-bottom:7px;border-bottom:1px solid var(--line);
+  font:600 12px/1 "Noto Serif SC","Songti SC",serif;letter-spacing:.35em;color:var(--ink-soft);
+}
+.row{display:flex;align-items:center;gap:12px;min-height:44px}
+.row>label{flex:1;font-size:14px}
+.row output{min-width:3.4em;text-align:right;font-size:13px;color:var(--accent);font-variant-numeric:tabular-nums}
+input[type="range"]{flex:2.2;min-width:0;min-height:40px;margin:0;background:transparent;accent-color:var(--accent)}
+.switch{position:relative;flex:none;width:50px;height:29px}
+.switch input{position:absolute;inset:-6px;margin:0;opacity:0;cursor:pointer}
+.switch i{position:absolute;inset:0;display:block;border:1px solid var(--line-strong);border-radius:999px;background:#eadec6;transition:background .18s ease}
+.switch i::after{
+  content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;
+  background:var(--accent-ink);border:1px solid rgba(58,46,38,.2);transition:transform .18s ease;
+}
+.switch input:checked+i{background:var(--accent);border-color:var(--accent)}
+.switch input:checked+i::after{transform:translateX(21px)}
+.seg{display:flex;border:1px solid var(--line-strong)}
+.seg button{flex:1;min-height:42px;border:0;background:transparent;cursor:pointer;font-size:14px}
+.seg button+button{border-left:1px solid var(--line-strong)}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.btns{display:flex;gap:10px;margin-top:4px}
+.btns button{flex:1;min-height:44px;border:1px solid var(--line-strong);background:transparent;cursor:pointer;font-size:14px}
+.btns button:active{background:rgba(201,112,46,.15)}
+
+@media (min-width:900px){
+  #panel{
+    top:0;bottom:0;left:auto;right:0;width:300px;max-height:none;
+    border-top:0;border-left:1px solid var(--line);
+    transform:none;transition:none;
+    padding:calc(20px + env(safe-area-inset-top)) 22px calc(20px + env(safe-area-inset-bottom));
+  }
+  #panel.open{transform:none}
+  .grabber{display:none}
+  .panel-title{display:block;margin:0 0 6px;font:600 20px/1.3 "Noto Serif SC","Songti SC",serif;letter-spacing:.14em}
+  #panel-toggle{display:none}
+}
+</style>
+</head>
+<body>
+
+<main id="stage">
+  <div id="canvas-host"></div>
+  <header class="brand">
+    <h1>毛茸茸小狐</h1>
+    <p>Three.js 壳层毛发 · 蓬松小狐狸</p>
+  </header>
+  <p class="hint">拖动旋转 · 双指缩放 · 点我一下有惊喜</p>
+</main>
+
+<section id="panel" aria-label="控制面板">
+  <div class="grabber" aria-hidden="true"><i></i></div>
+  <h2 class="panel-title">控制</h2>
+
+  <h3>毛发</h3>
+  <div class="row">
+    <label for="fur-length">毛发长度</label>
+    <input type="range" id="fur-length" min="0.4" max="2" step="0.01" value="1">
+    <output for="fur-length">1.00</output>
+  </div>
+  <div class="row">
+    <label for="fur-density">毛尖密度</label>
+    <input type="range" id="fur-density" min="0.2" max="0.8" step="0.01" value="0.42">
+    <output for="fur-density">0.42</output>
+  </div>
+
+  <h3>风与动画</h3>
+  <div class="row">
+    <label for="wind-strength">风力</label>
+    <input type="range" id="wind-strength" min="0" max="1.5" step="0.01" value="0.35">
+    <output for="wind-strength">0.35</output>
+  </div>
+  <div class="row">
+    <label for="wind-speed">风速</label>
+    <input type="range" id="wind-speed" min="0.2" max="2.5" step="0.01" value="1">
+    <output for="wind-speed">1.00</output>
+  </div>
+  <div class="row">
+    <label for="auto-rotate">自动转台</label>
+    <span class="switch"><input type="checkbox" id="auto-rotate" checked><i></i></span>
+  </div>
+  <div class="row">
+    <label for="idle-anim">待机动画</label>
+    <span class="switch"><input type="checkbox" id="idle-anim" checked><i></i></span>
+  </div>
+  <div class="row">
+    <label for="show-fur">毛发显隐</label>
+    <span class="switch"><input type="checkbox" id="show-fur" checked><i></i></span>
+  </div>
+
+  <h3>画质</h3>
+  <div class="seg" role="group" aria-label="画质档位">
+    <button type="button" id="q-low" data-q="low">低</button>
+    <button type="button" id="q-mid" data-q="mid" class="on">中</button>
+    <button type="button" id="q-high" data-q="high">高</button>
+  </div>
+
+  <h3>视角</h3>
+  <div class="btns">
+    <button type="button" id="reset-view">复位视角</button>
+    <button type="button" id="screenshot">保存截图</button>
+  </div>
+</section>
+
+<button id="panel-toggle" type="button" aria-label="打开控制面板">
+  <svg class="i-knob" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="8.2"/>
+    <line x1="12" y1="12" x2="16.6" y2="7.4"/>
+    <line x1="12" y1="3.8" x2="12" y2="5.6"/>
+    <line x1="20.2" y1="12" x2="18.4" y2="12"/>
+    <line x1="12" y1="20.2" x2="12" y2="18.4"/>
+    <line x1="3.8" y1="12" x2="5.6" y2="12"/>
+  </svg>
+  <svg class="i-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+    <line x1="6" y1="6" x2="18" y2="18"/>
+    <line x1="18" y1="6" x2="6" y2="18"/>
+  </svg>
+</button>
+
+<script type="module" src="./src/app.js"></script>
+</body>
+</html>
