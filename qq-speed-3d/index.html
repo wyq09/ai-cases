@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>QQ飞车 · 极速海岸 3D</title>
-<meta name="description" content="Three.js 3D 卡丁车竞速：漂移蓄力、双喷、氮气加速、AI 对手、程序化音效与粒子特效。">
+<title>QQ飞车 · 极速海岸 3D | 七大赛道 · 道具赛 · 无限赛道</title>
+<meta name="description" content="Three.js 3D 卡丁车竞速：7 条主题赛道 + 程序化无限赛道，漂移蓄力、双喷、氮气、追踪导弹 / 地雷 / 护盾 / 电磁风暴道具，AI 对手、程序化音效与粒子特效。">
 <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 <style>
 :root{
@@ -72,9 +72,11 @@ canvas{display:block}
 }
 /* minimap */
 #map-wrap{top:calc(16px + var(--safe-t));left:calc(16px + var(--safe-l));width:174px;padding:9px 10px 10px}
-#map-wrap .head{display:flex;justify-content:space-between;align-items:baseline;
+#map-wrap .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
   font-family:var(--font-display);font-size:10px;letter-spacing:.22em;color:var(--cyan-soft);margin-bottom:7px}
-#map-wrap .head b{color:var(--paper);font-size:11px;letter-spacing:.14em}
+#map-wrap .head b{color:var(--paper);font-size:11px;letter-spacing:.1em;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:66%}
+#map-wrap .head span{white-space:nowrap;font-size:8px;letter-spacing:.12em;opacity:.75;flex:0 0 auto}
 #minimap{width:154px;height:154px;display:block;filter:drop-shadow(0 0 10px rgba(39,220,255,.18))}
 #map-wrap .scheme{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:9.5px;letter-spacing:.08em;color:rgba(247,251,255,.6)}
 #map-wrap .scheme i{width:7px;height:7px;border-radius:50%;background:var(--orange);box-shadow:0 0 8px var(--orange)}
@@ -222,7 +224,9 @@ body.touch #nitro-wrap{top:calc(14px + var(--safe-t))}
   #race-top .v.time{font-size:14px}
   #race-top .k{font-size:8px;letter-spacing:.18em}
   #map-wrap{top:calc(66px + var(--safe-t));left:calc(10px + var(--safe-l));width:116px;padding:6px 7px 7px}
-  #map-wrap .head{font-size:8px;margin-bottom:4px;letter-spacing:.14em}
+  #map-wrap .head{font-size:8px;margin-bottom:4px;letter-spacing:.14em;gap:4px}
+  #map-wrap .head b{font-size:8.5px;letter-spacing:.06em;max-width:100%}
+  #map-wrap .head span{display:none}
   #minimap{width:102px;height:102px}
   #map-wrap .scheme{display:none}
   #nitro-wrap{top:calc(122px + var(--safe-t));right:calc(10px + var(--safe-r));padding:6px 7px 7px;gap:4px}
@@ -235,10 +239,206 @@ body.touch #nitro-wrap{top:calc(14px + var(--safe-t))}
   #speedo .lbl em{display:none}
   #speed-num{font-size:42px}
   #speedo .unit{font-size:8px;letter-spacing:.16em}
-  #drift-meter{left:50%;bottom:calc(96px + var(--safe-b));width:min(210px,50vw)}
-  #drift-meter .lbl{font-size:8px;letter-spacing:.22em}
+  body.touch #drift-meter{left:calc(10px + var(--safe-l));bottom:calc(252px + var(--safe-b));transform:none;width:150px}
+  body.touch #drift-meter .lbl{text-align:left;font-size:7px;letter-spacing:.18em}
   #start-tip{font-size:10.5px;padding:7px 12px;bottom:calc(19% + var(--safe-b));white-space:normal;max-width:78vw;text-align:center;line-height:1.6}
   #callout{top:31%}
+}
+
+
+/* ===== items / stage / item slot ===== */
+.cell.hide{display:none!important}
+#race-top .v.stage{color:var(--cyan-soft);font-size:19px}
+#item-slot{position:absolute;left:calc(18px + var(--safe-l));bottom:calc(18px + var(--safe-b));
+  width:196px;padding:9px 12px 10px;display:flex;flex-direction:column;gap:7px;
+  pointer-events:auto;text-align:left;--item-color:#9ff4ff;
+  transition:border-color .2s,transform .12s,opacity .2s;cursor:pointer}
+#item-slot:active{transform:scale(.98)}
+#item-slot .item-head{display:flex;justify-content:space-between;align-items:center;
+  font-family:var(--font-display);font-size:9px;letter-spacing:.24em;color:var(--cyan-soft)}
+#item-slot .item-head em{font-style:normal;font-size:8px;letter-spacing:.12em;padding:2px 5px;
+  border:1px solid rgba(159,244,255,.3);color:rgba(247,251,255,.7)}
+#item-slot .item-body{display:flex;align-items:center;gap:10px;min-width:0}
+#item-slot .item-glyph{width:38px;height:38px;flex:0 0 38px;padding:7px;color:var(--item-color);
+  border:1px solid currentColor;background:rgba(255,255,255,.05);
+  clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+  transition:box-shadow .2s;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#item-slot .item-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+#item-slot .item-text b{font-size:13px;letter-spacing:.05em;color:#eafcff;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#item-slot .item-text span{font-family:var(--font-display);font-size:8px;letter-spacing:.2em;color:rgba(247,251,255,.45)}
+#item-slot[data-item="none"]{opacity:.62}
+#item-slot.ready{border-color:var(--item-color);box-shadow:0 0 24px rgba(39,220,255,.16),inset 0 0 22px rgba(39,220,255,.07)}
+#item-slot.ready .item-glyph{box-shadow:0 0 18px var(--item-color),inset 0 0 12px rgba(255,255,255,.12)}
+#item-slot.pop{animation:itemPop .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes itemPop{0%{transform:scale(1)}35%{transform:scale(1.07)}100%{transform:scale(1)}}
+#item-toast{position:fixed;left:50%;top:calc(78px + var(--safe-t));transform:translateX(-50%);z-index:12;
+  padding:6px 14px;font-family:var(--font-display);font-size:11px;letter-spacing:.16em;color:#eafcff;
+  background:rgba(5,16,32,.82);border:1px solid rgba(159,244,255,.35);
+  clip-path:polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%);opacity:0;pointer-events:none;white-space:nowrap}
+#item-toast.show{animation:itemToast 1.7s ease-out forwards}
+@keyframes itemToast{0%{opacity:0;transform:translate(-50%,-6px)}12%{opacity:1;transform:translate(-50%,0)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-4px)}}
+#shield-pill{position:absolute;left:calc(18px + var(--safe-l));bottom:calc(108px + var(--safe-b));width:196px;
+  padding:7px 10px 8px;background:rgba(5,22,40,.8);border:1px solid rgba(79,232,255,.5);
+  clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));
+  opacity:0;transform:translateY(4px);transition:opacity .2s,transform .2s;pointer-events:none}
+#shield-pill.on{opacity:1;transform:none}
+#shield-pill .sh-head{font-family:var(--font-display);font-size:9px;letter-spacing:.2em;color:#4fe8ff;
+  display:flex;justify-content:space-between;align-items:center}
+#shield-pill .sh-head b{color:#fff;font-weight:400;font-variant-numeric:tabular-nums}
+#shield-pill .sh-bar{height:4px;margin-top:5px;background:rgba(79,232,255,.16);overflow:hidden}
+#shield-fill{display:block;height:100%;width:100%;background:linear-gradient(90deg,#4fe8ff,#bfeaff);
+  box-shadow:0 0 12px rgba(79,232,255,.7);transition:width .12s linear}
+#hud.stunned::before{content:"";position:fixed;inset:0;pointer-events:none;
+  box-shadow:inset 0 0 120px rgba(255,70,40,.42);animation:offroadPulse .3s ease-in-out infinite}
+#boost-flash.flash.shield{animation:flashCyan .6s ease-out forwards;
+  background:radial-gradient(ellipse at 50% 62%,rgba(79,232,255,0) 30%,rgba(79,232,255,.35) 62%,rgba(20,90,255,.5) 100%)}
+#boost-flash.flash.shock{animation:flashCyan .7s ease-out forwards;
+  background:radial-gradient(ellipse at 50% 62%,rgba(176,107,255,0) 26%,rgba(176,107,255,.4) 58%,rgba(60,0,160,.55) 100%)}
+#boost-flash.flash.hit{animation:flashOut .55s ease-out forwards;
+  background:radial-gradient(ellipse at 50% 62%,rgba(255,60,30,0) 30%,rgba(255,80,40,.38) 66%,rgba(160,0,0,.52) 100%)}
+body.touch #item-slot{left:auto;right:calc(14px + var(--safe-r));bottom:calc(184px + var(--safe-b));width:136px}
+body.touch #shield-pill{left:auto;right:calc(14px + var(--safe-r));bottom:calc(258px + var(--safe-b));width:136px}
+
+/* ===== select screen ===== */
+#select-screen{position:fixed;inset:0;z-index:31;display:flex;flex-direction:column;overflow-y:auto;
+  padding:clamp(16px,4vh,36px) clamp(16px,5vw,60px);background:
+    radial-gradient(ellipse at 12% 0%,rgba(20,70,120,.6),transparent 55%),
+    radial-gradient(ellipse at 90% 100%,rgba(255,106,24,.15),transparent 50%),
+    #04101e;
+  opacity:0;visibility:hidden;transition:opacity .35s,visibility .35s}
+#select-screen.show{opacity:1;visibility:visible}
+.select-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
+  padding-bottom:14px;border-bottom:1px solid rgba(159,244,255,.18)}
+.select-head h2{margin:6px 0 0;font-family:var(--font-display);font-style:italic;font-size:clamp(26px,4vw,44px);
+  letter-spacing:.02em;color:#fff;text-shadow:0 0 30px rgba(39,220,255,.3)}
+.select-coins{font-family:var(--font-display);font-size:10px;letter-spacing:.2em;color:rgba(247,251,255,.55)}
+.select-coins b{display:block;margin-top:4px;font-size:22px;color:var(--amber);text-align:right;letter-spacing:.02em}
+.select-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:18px}
+.track-card{position:relative;display:flex;gap:12px;padding:11px;text-align:left;
+  background:linear-gradient(160deg,rgba(12,34,58,.92),rgba(5,14,27,.86));
+  border:1px solid rgba(159,244,255,.16);
+  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+  transition:transform .18s,border-color .18s,box-shadow .18s;overflow:hidden}
+.track-card::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(120deg,var(--tc-a),transparent 46%);opacity:.1}
+.track-card:hover{transform:translateY(-3px);border-color:var(--tc-a);box-shadow:0 12px 30px rgba(0,0,0,.35)}
+.track-card:active{transform:translateY(-1px) scale(.995)}
+.tc-art{position:relative;flex:0 0 96px;height:96px;display:grid;place-items:center;
+  background:linear-gradient(155deg,var(--tc-top),var(--tc-horizon));
+  border:1px solid rgba(255,255,255,.18);overflow:hidden}
+.tc-art::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(120deg,rgba(255,255,255,.08) 0 1px,transparent 1px 9px)}
+.tc-art svg{width:78%;height:78%;position:relative;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+.tc-glow{fill:none;stroke:rgba(255,255,255,.32);stroke-width:14;stroke-linejoin:round}
+.tc-line{fill:none;stroke:var(--tc-a);stroke-width:5;stroke-linejoin:round}
+.tc-start{fill:var(--tc-b);stroke:#071626;stroke-width:1}
+.tc-index{position:absolute;left:5px;top:2px;z-index:2;font-family:var(--font-display);font-size:15px;
+  color:#fff;text-shadow:0 1px 5px rgba(0,0,0,.65)}
+.tc-state{position:absolute;right:4px;bottom:2px;z-index:2;font-family:var(--font-display);font-size:7px;
+  letter-spacing:.18em;color:rgba(255,255,255,.72)}
+.tc-info{flex:1;min-width:0;padding-top:2px}
+.tc-eyebrow{font-family:var(--font-display);font-size:8px;letter-spacing:.22em;color:rgba(247,251,255,.42)}
+.tc-name{margin-top:2px;font-size:16px;font-weight:700;letter-spacing:.02em;color:#f2fbff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tc-en{font-family:var(--font-display);font-size:7.5px;letter-spacing:.16em;color:var(--tc-a);margin-top:1px}
+.tc-meta{display:flex;justify-content:space-between;align-items:center;margin-top:7px;gap:6px}
+.tc-diff{display:flex;gap:3px}
+.tc-diff i{width:5px;height:5px;border:1px solid rgba(159,244,255,.45);transform:rotate(45deg)}
+.tc-diff i.on{background:var(--tc-a);border-color:var(--tc-a)}
+.tc-stars{display:flex;gap:1px;font-size:11px;color:rgba(255,255,255,.2);line-height:1}
+.tc-stars span.on{color:var(--amber);text-shadow:0 0 9px rgba(255,210,63,.75)}
+.tc-best{margin-top:5px;font-family:var(--font-display);font-size:8px;letter-spacing:.1em;color:rgba(247,251,255,.45)}
+.track-card.locked{filter:grayscale(.72);opacity:.56}
+.track-card.locked:hover{transform:none;border-color:rgba(159,244,255,.16);box-shadow:none}
+.tc-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:5px;
+  font-size:10px;letter-spacing:.06em;color:rgba(247,251,255,.8);background:rgba(3,9,18,.55)}
+.track-card.shake{animation:tcShake .36s ease-in-out}
+@keyframes tcShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.track-card.endless{background:linear-gradient(155deg,rgba(30,20,4,.95),rgba(8,18,30,.9));
+  border-color:rgba(255,210,63,.3)}
+.track-card.endless .tc-art{background:linear-gradient(155deg,#3d2a05,#0b2440)}
+.tc-infinity{font-family:var(--font-display);font-size:54px;line-height:1;color:var(--amber);
+  text-shadow:0 0 24px rgba(255,210,63,.55);position:relative;z-index:1}
+.tc-desc{font-size:8px;letter-spacing:.04em;color:rgba(255,247,220,.65)}
+.select-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  margin-top:auto;padding-top:20px}
+.select-hint{font-size:10px;letter-spacing:.06em;color:rgba(247,251,255,.4);text-align:right}
+
+/* ===== select codex ===== */
+@media (min-width:641px){
+  .select-grid{flex:1;align-content:center}
+}
+.select-codex{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;
+  margin-top:16px;padding:12px 16px;background:linear-gradient(135deg,rgba(10,32,54,.7),rgba(4,14,26,.55));
+  border:1px solid rgba(159,244,255,.14);clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.codex-head{display:flex;flex-direction:column;gap:3px}
+.codex-head b{font-family:var(--font-display);font-size:10px;letter-spacing:.28em;color:var(--cyan-soft)}
+.codex-head span{font-size:9.5px;letter-spacing:.05em;color:rgba(247,251,255,.4)}
+.codex-list{display:flex;flex-wrap:wrap;gap:8px 10px}
+.codex-item{display:inline-flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.04em;
+  padding:5px 9px;color:var(--c,#9ff4ff);border:1px solid rgba(159,244,255,.24);border-color:color-mix(in srgb,var(--c,#9ff4ff) 42%,transparent);
+  background:rgba(4,14,26,.45);border-radius:1px}
+.codex-item svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:640px){
+  .select-codex{padding:9px 11px;gap:8px;margin-top:10px}
+  .codex-head span{display:none}
+  .codex-item{font-size:8.5px;padding:4px 6px;gap:4px}
+  .codex-item svg{width:12px;height:12px}
+}
+
+/* ===== title additions ===== */
+.selected-track{margin-top:14px;font-size:11px;letter-spacing:.08em;color:rgba(247,251,255,.55)}
+.selected-track b{color:var(--amber);font-weight:600}
+.menu-endless{margin-top:7px;font-family:var(--font-display);font-size:9.5px;letter-spacing:.14em;color:rgba(159,244,255,.55)}
+
+/* ===== result additions ===== */
+#result-stars{display:flex;gap:2px;margin-top:8px;font-size:20px;line-height:1;color:rgba(255,255,255,.16)}
+#result-stars span.on{color:var(--amber);text-shadow:0 0 14px rgba(255,210,63,.8)}
+#result-stars.hide{display:none}
+#result-unlock{display:none;margin-top:12px;padding:8px 12px;border:1px dashed rgba(255,210,63,.5);
+  font-size:11px;letter-spacing:.06em;color:var(--amber);line-height:1.5}
+#result-unlock.on{display:block;animation:unlockIn .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes unlockIn{0%{opacity:0;transform:translateY(6px) scale(.96)}100%{opacity:1;transform:none}}
+.result-card{max-height:calc(100dvh - 36px);overflow-y:auto}
+.result-stats .v.small{font-size:13.5px}
+#pause-endless-btn.hide{display:none}
+
+@media (max-width:640px){
+  body.touch #item-slot{right:calc(10px + var(--safe-r));bottom:calc(184px + var(--safe-b));width:124px;padding:7px 9px 8px;gap:5px}
+  body.touch #item-slot .item-glyph{width:32px;height:32px;flex-basis:32px;padding:6px}
+  body.touch #item-slot .item-text b{font-size:11.5px}
+  body.touch #item-slot .item-head{font-size:8px}
+  body.touch #shield-pill{right:calc(10px + var(--safe-r));bottom:calc(258px + var(--safe-b));width:124px;padding:5px 8px 6px}
+  #item-toast{top:calc(60px + var(--safe-t));font-size:9.5px;padding:5px 10px;letter-spacing:.1em}
+  .selected-track{font-size:9.5px;margin-top:11px}
+  .menu-endless{font-size:8.5px;letter-spacing:.1em}
+  .help-inner{max-height:34vh;overflow-y:auto;padding-right:4px}
+  .select-grid{grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+  .track-card{flex-direction:column;gap:7px;padding:7px}
+  .tc-art{flex:0 0 auto;width:100%;height:62px}
+  .tc-info{padding-top:0}
+  .tc-name{font-size:13px}
+  .tc-en{font-size:7px}
+  .tc-meta{margin-top:4px}
+  .tc-best{font-size:7px;margin-top:3px}
+  .tc-lock{inset:auto;top:6px;right:6px;background:none;font-size:0;padding:0;align-items:center;justify-content:flex-end}
+  .tc-lock .lock-txt{display:none}
+  .tc-lock .lock-ico{font-size:11px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.7))}
+  .tc-stars{font-size:9px}
+  .select-head h2{font-size:26px}
+  .select-coins b{font-size:18px}
+  .select-foot{padding-top:14px}
+  .select-hint{font-size:8.5px;line-height:1.5}
+}
+@media (orientation:landscape) and (max-height:440px){
+  body.touch #item-slot{right:auto;left:calc(10px + var(--safe-l));transform:none;bottom:calc(84px + var(--safe-b));width:118px;padding:5px 8px 6px;gap:4px}
+  body.touch #item-slot:active{transform:scale(.98)}
+  body.touch #item-slot .item-glyph{width:26px;height:26px;flex-basis:26px;padding:4px}
+  body.touch #item-slot .item-text b{font-size:10px}
+  body.touch #item-slot .item-head{font-size:7px}
+  body.touch #shield-pill{left:calc(10px + var(--safe-l));right:auto;bottom:calc(150px + var(--safe-b));width:118px;transform:translateY(4px)}
+  body.touch #shield-pill.on{transform:none}
+  #item-toast{top:calc(54px + var(--safe-t));font-size:9px}
+  .select-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
 }
 
 /* ===== title screen ===== */
@@ -355,6 +555,32 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
   .menu-side{display:none}
 }
 
+@media (orientation:landscape) and (max-height:560px){
+  #title-screen{align-content:center;grid-template-columns:1fr;overflow-y:auto;
+    padding:calc(6px + var(--safe-t)) 5vw calc(2vh + var(--safe-b))}
+  .menu-side{display:none!important}
+  .brand-block{max-width:none;padding-top:0}
+  .brand-kicker{display:none}
+  h1.logo{font-size:clamp(38px,6.6vw,56px)}
+  h1.logo .speed{font-size:.26em;margin-top:2px;letter-spacing:.14em}
+  .tagline{display:none}
+  .menu-actions{margin-top:8px;gap:7px}
+  .btn-main{padding:9px 18px;font-size:12px}
+  .btn-ghost{padding:8px 12px;font-size:9.5px}
+  .selected-track{margin-top:6px;font-size:8.5px}
+  .menu-endless{display:none}
+  .menu-stats{margin-top:7px;max-width:none}
+  .menu-stats .s{padding:5px 10px 0 0}
+  .menu-stats .s + .s{padding-left:10px}
+  .menu-stats .k{font-size:7px;letter-spacing:.16em}
+  .menu-stats .v{font-size:15px;margin-top:2px}
+  .quality-row{margin-top:7px;gap:5px}
+  .quality-row .lab{font-size:8px}
+  .quality-btn,.sound-btn{padding:4px 8px;font-size:8px;letter-spacing:.08em}
+  .help-inner{max-height:26vh;overflow-y:auto;padding-top:8px;font-size:10px;line-height:1.65}
+  .help-inner .row{padding:4px 0}
+}
+
 /* ===== result ===== */
 #result-screen{position:fixed;inset:0;z-index:32;display:grid;place-items:center;
   background:radial-gradient(ellipse at 50% 40%,rgba(6,20,38,.4),rgba(3,9,18,.9));
@@ -445,10 +671,14 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
   #map-wrap .head{display:none}
   #minimap{width:92px;height:92px}
   #map-wrap .scheme{display:none}
-  #speedo{width:126px;bottom:calc(10px + var(--safe-b))}
-  #speed-num{font-size:38px}
+  #speedo{width:120px;bottom:calc(10px + var(--safe-b))}
+  #speed-num{font-size:34px}
   #hud-btns{top:calc(56px + var(--safe-t));right:calc(10px + var(--safe-r));flex-direction:row}
-  body.touch #speedo{bottom:calc(84px + var(--safe-b));left:auto;right:calc(10px + var(--safe-r));text-align:right}
+  body.touch #speedo{bottom:calc(148px + var(--safe-b));left:auto;right:calc(10px + var(--safe-r));width:120px;padding:6px 9px;text-align:right}
+  body.touch #speed-num{font-size:32px}
+  body.touch #speedo .lbl{font-size:8px}
+  body.touch #speedo .unit{font-size:7px;letter-spacing:.14em}
+  body.touch #speedo .bar{margin-top:4px;height:3px}
   body.touch #hud-btns{top:calc(56px + var(--safe-t));right:calc(10px + var(--safe-r));flex-direction:row}
   body.touch #nitro-wrap{top:calc(100px + var(--safe-t));right:calc(10px + var(--safe-r))}
   body.touch .tbtn{width:54px;height:54px}
@@ -463,6 +693,14 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ico-item-none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" stroke-dasharray="3 3"/></symbol>
+  <symbol id="ico-item-boost" viewBox="0 0 24 24"><path d="M12 2l4 7h-3l4 5h-3l4 7H6l4-7H7l4-5H8l4-7z"/></symbol>
+  <symbol id="ico-item-missile" viewBox="0 0 24 24"><path d="M12 2c3 3 4.5 6.5 4.5 10L12 22l-4.5-10C7.5 8.5 9 5 12 2z"/><circle cx="12" cy="9" r="1.7"/><path d="M7 16l-3 4M17 16l3 4"/></symbol>
+  <symbol id="ico-item-mine" viewBox="0 0 24 24"><circle cx="12" cy="13" r="6"/><path d="M12 3v4M5 7l3 3M19 7l-3 3M4 14h2M18 14h2"/></symbol>
+  <symbol id="ico-item-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="ico-item-shock" viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></symbol>
+</svg>
 <div id="stage"></div>
 <canvas id="speedlines"></canvas>
 <div id="boost-flash"></div>
@@ -470,12 +708,13 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
 <!-- ================= HUD ================= -->
 <div id="hud">
   <div id="map-wrap" class="hud-panel">
-    <div class="head"><b>极速海岸</b><span>CIRCUIT</span></div>
+    <div class="head"><b id="map-name">极速海岸</b><span id="map-en">CIRCUIT</span></div>
     <canvas id="minimap"></canvas>
     <div class="scheme"><i></i>你<span>·</span><i class="ai"></i>对手</div>
   </div>
 
   <div id="race-top">
+    <div class="cell hide" id="stage-cell"><div class="k">STAGE</div><div class="v stage" id="stage-num">1</div></div>
     <div class="cell"><div class="k">RANK</div><div class="v rank" id="rank-num">6</div></div>
     <div class="cell"><div class="k">LAP</div><div class="v" id="lap-num">1</div></div>
     <div class="cell"><div class="k">TIME</div><div class="v time" id="race-time">00:00.00</div></div>
@@ -496,6 +735,19 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
     <div class="unit">NITRO READY</div>
     <div class="bar"><div id="speed-bar"></div></div>
   </div>
+
+  <button id="item-slot" class="hud-panel" data-item="none" aria-label="使用道具（E）">
+    <div class="item-head"><span>ITEM</span><em>TAP / E</em></div>
+    <div class="item-body">
+      <svg class="item-glyph" viewBox="0 0 24 24" aria-hidden="true"><use id="item-glyph" href="#ico-item-none"></use></svg>
+      <div class="item-text"><b id="item-name">暂无道具</b><span id="item-tag">ITEM</span></div>
+    </div>
+  </button>
+  <div id="shield-pill">
+    <div class="sh-head">SHIELD <b id="shield-time">0.0</b></div>
+    <div class="sh-bar"><i id="shield-fill"></i></div>
+  </div>
+  <div id="item-toast"></div>
 
   <div id="drift-meter">
     <div class="track"><div id="drift-fill"></div></div>
@@ -546,15 +798,19 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
   <div class="brand-block">
     <div class="brand-kicker">THREE.JS ARCADE RACING <em>·</em> 3D FAN EDITION</div>
     <h1 class="logo"><span class="qq">QQ飞车</span><span class="speed">极速海岸</span></h1>
-    <p class="tagline">海风、引擎、烧胎的焦味。<b>漂移蓄力</b>攒出三格氮气，<b>松手喷火</b>再接<b>双喷</b>，在海岸弯道上反超五名对手——程序化贴图、粒子与音效，没有一个外部资源。</p>
+    <p class="tagline">七条主题赛道，一条越跑越长的<b>无限赛道</b>。<b>漂移蓄力</b>攒出三格氮气，<b>松手喷火</b>再接<b>双喷</b>；穿过问号箱拾取<b>追踪导弹</b>、<b>地雷</b>、<b>护盾</b>与<b>电磁风暴</b>，和五名对手斗智斗速。程序化贴图、粒子与音效，没有一个外部资源。</p>
     <div class="menu-actions">
       <button class="btn-main" id="start-btn">开始比赛 <span class="arrow">▶</span></button>
+      <button class="btn-ghost" id="select-btn">选择关卡</button>
+      <button class="btn-ghost" id="endless-btn">无限赛道</button>
       <button class="btn-ghost" id="help-btn">操作说明</button>
     </div>
+    <div class="selected-track" id="selected-track">即将出战 · <b>01 极速海岸</b></div>
+    <div class="menu-endless" id="menu-endless-best">无限赛道 · 每阶段前 4 名晋级</div>
     <div class="menu-stats">
       <div class="s"><div class="k">金币</div><div class="v coin" id="menu-coins">0</div></div>
       <div class="s"><div class="k">最佳单圈</div><div class="v best" id="menu-best">--:--.--</div></div>
-      <div class="s"><div class="k">完赛次数</div><div class="v" id="menu-races">0</div></div>
+      <div class="s"><div class="k">通关进度</div><div class="v" id="menu-races">0/7</div></div>
     </div>
     <div class="quality-row">
       <span class="lab">画质</span>
@@ -568,33 +824,35 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
       <div class="row"><span>漂移</span><span>Shift（转向时按住）</span></div>
       <div class="row"><span>氮气</span><span>空格（攒满 1 格可用）</span></div>
       <div class="row"><span>双喷</span><span>漂移松手后 0.7 秒内再按 Shift</span></div>
+      <div class="row"><span>道具</span><span>E（或点道具格）· 穿过问号箱拾取</span></div>
       <div class="row"><span>完美起步</span><span>倒数到 1 时按 Shift / 空格</span></div>
+      <div class="row"><span>关卡 / 无限</span><span>7 张主题赛道 · 无限赛道每阶段前 4 晋级</span></div>
       <div class="row"><span>暂停 / 静音</span><span>Esc / P · M</span></div>
     </div></div></div>
   </div>
 
   <aside class="menu-side">
     <h2>极速手册</h2>
-    <div class="sub">S-TIER DRIFT MANUAL</div>
+    <div class="sub">7 CIRCUITS · ITEMS · ENDLESS</div>
     <div class="feat">
       <div class="ico"><svg viewBox="0 0 24 24"><path d="M4 17c4-1 5-6 9-6s5 4 7 3"/><path d="M17 11l3 3-3 3"/></svg></div>
       <div class="tx"><b>漂移蓄力三段</b><span>轮胎火花由青转紫再转橙，蓄满松开必得强化喷。</span></div>
     </div>
     <div class="feat">
-      <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3l4 7h-3l4 5h-3l4 6H6l4-6H7l4-5H8l4-7z"/></svg></div>
-      <div class="tx"><b>双喷连招</b><span>漂移松手后 0.7 秒内补一记 Shift，二次点火叠速。</span></div>
+      <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 2c3 3 4.5 6.5 4.5 10L12 22l-4.5-10C7.1 8.5 9 5 12 2z"/><circle cx="12" cy="9" r="1.7"/></svg></div>
+      <div class="tx"><b>五种道具攻防</b><span>涡轮、追踪导弹、燃油地雷、能量护盾、电磁风暴。</span></div>
     </div>
     <div class="feat">
-      <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg></div>
-      <div class="tx"><b>完美起步</b><span>倒数到 1 的瞬间轰油门，直接弹射开局。</span></div>
+      <div class="ico"><svg viewBox="0 0 24 24"><path d="M4 19h16"/><path d="M6 19V9l6-5 6 5v10"/><path d="M10 19v-5h4v5"/></svg></div>
+      <div class="tx"><b>七条主题赛道</b><span>海岸、峡谷、霓虹、雪原、雨林、火山、云端。</span></div>
     </div>
     <div class="feat">
-      <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 18h18"/><path d="M6 18V9l6-5 6 5v9"/><path d="M10 18v-5h4v5"/></svg></div>
-      <div class="tx"><b>海岸赛道</b><span>3 圈 · 9 个加速带 · 5 名 AI 对手 · 实时排名。</span></div>
+      <div class="ico"><svg viewBox="0 0 24 24"><path d="M8 12a4 4 0 018 0 4 4 0 01-8 0z"/><path d="M4 12c0 4.4 3.6 8 8 8s8-3.6 8-8"/></svg></div>
+      <div class="tx"><b>无限赛道</b><span>每阶段程序生成新赛道与主题，前 4 名晋级下一关。</span></div>
     </div>
     <div class="keys">
       <div><kbd>←</kbd><kbd>→</kbd> 转向　<kbd>↓</kbd> 刹车　自动油门</div>
-      <div><kbd>Shift</kbd> 漂移　<kbd>空格</kbd> 氮气　<kbd>Esc</kbd> 暂停</div>
+      <div><kbd>Shift</kbd> 漂移　<kbd>空格</kbd> 氮气　<kbd>E</kbd> 道具　<kbd>Esc</kbd> 暂停</div>
     </div>
   </aside>
 </div>
@@ -602,16 +860,23 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
 <!-- ================= RESULT ================= -->
 <div id="result-screen">
   <div class="result-card">
-    <div class="result-kicker">RACE COMPLETE</div>
+    <div class="result-kicker" id="result-kicker">RACE COMPLETE</div>
     <div class="result-place-row">
       <div id="result-place">1</div>
-      <div><div id="result-place-name">冠军</div><span id="result-newbest">NEW RECORD</span></div>
+      <div>
+        <div id="result-place-name">冠军</div>
+        <span id="result-newbest">NEW RECORD</span>
+        <div id="result-stars"><span>★</span><span>★</span><span>★</span></div>
+      </div>
     </div>
-    <div class="result-stats">
+    <div id="result-unlock"></div>
+    <div class="result-stats" id="result-stat-rows">
+      <div class="r"><span class="k">赛道</span><span class="v small" id="result-track">极速海岸</span></div>
       <div class="r"><span class="k">总用时</span><span class="v" id="result-time">00:00.00</span></div>
       <div class="r"><span class="k">最佳单圈</span><span class="v" id="result-best">00:00.00</span></div>
       <div class="r"><span class="k">本局金币</span><span class="v gold" id="result-coins">+0</span></div>
-      <div class="r"><span class="k">双喷 / 氮气</span><span class="v" id="result-double" style="font-size:14px">0 次 · 氮气 0 次</span></div>
+      <div class="r"><span class="k">双喷 / 氮气</span><span class="v small" id="result-double">0 次 · 氮气 0 次</span></div>
+      <div class="r"><span class="k">道具使用</span><span class="v small" id="result-items">0 次 · 命中 0 次</span></div>
     </div>
     <div class="result-actions">
       <button class="btn-main" id="again-btn">再来一局 <span class="arrow">▶</span></button>
@@ -619,7 +884,7 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
     </div>
     <div class="result-split">
       <span>累计金币 <b id="result-total">0</b></span>
-      <span>历史最佳 <b id="result-history">--:--.--</b></span>
+      <span><span id="result-history-label">历史最佳</span> <b id="result-history">--:--.--</b></span>
     </div>
   </div>
 </div>
@@ -631,8 +896,36 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
     <p>比赛已暂停</p>
     <button class="btn-main" id="resume-btn">继续比赛</button>
     <button class="btn-ghost" id="restart-btn">重新开始</button>
+    <button class="btn-ghost hide" id="pause-endless-btn">结束无限挑战</button>
     <button class="btn-ghost" id="pause-menu-btn">返回主菜单</button>
     <div class="pause-tip">Esc / P 继续<br>切到后台会自动暂停</div>
+  </div>
+</div>
+
+
+<!-- ================= SELECT ================= -->
+<div id="select-screen">
+  <div class="select-head">
+    <div>
+      <div class="result-kicker">CIRCUIT SELECT</div>
+      <h2>选择赛道</h2>
+    </div>
+    <div class="select-coins">金币 <b id="select-coins">0</b></div>
+  </div>
+  <div class="select-grid" id="select-grid"></div>
+  <div class="select-codex">
+    <div class="codex-head"><b>ITEM CODEX</b><span>问号箱随机掉落 · 按 E 或点击道具格使用</span></div>
+    <div class="codex-list">
+      <span class="codex-item" style="--c:#ffb02e"><svg viewBox="0 0 24 24"><use href="#ico-item-boost"></use></svg>氮气引擎</span>
+      <span class="codex-item" style="--c:#ff5a4a"><svg viewBox="0 0 24 24"><use href="#ico-item-missile"></use></svg>追踪导弹</span>
+      <span class="codex-item" style="--c:#ffd23f"><svg viewBox="0 0 24 24"><use href="#ico-item-mine"></use></svg>燃油地雷</span>
+      <span class="codex-item" style="--c:#4fe8ff"><svg viewBox="0 0 24 24"><use href="#ico-item-shield"></use></svg>能量护盾</span>
+      <span class="codex-item" style="--c:#b06bff"><svg viewBox="0 0 24 24"><use href="#ico-item-shock"></use></svg>电磁风暴</span>
+    </div>
+  </div>
+  <div class="select-foot">
+    <button class="btn-ghost" id="select-back">返回主菜单</button>
+    <span class="select-hint">完成任意关卡解锁下一关 · 前 3 名获得星级 · 挑战「无限赛道」刷新最佳阶段</span>
   </div>
 </div>
 

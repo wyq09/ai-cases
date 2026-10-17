@@ -1,3 +1,5 @@
+import { ITEMS } from './items.js';
+
 const fmt = (ms) => {
   if (!Number.isFinite(ms) || ms < 0) ms = 0;
   const m = Math.floor(ms / 60000);
@@ -57,12 +59,51 @@ export class HUD {
     this.lastRank = null;
     this.lastLap = null;
     this.calloutTimer = 0;
+    this.toastTimer = 0;
     this.lastMinimap = 0;
     this.mapBg = document.createElement('canvas');
     this.mapBg.width = this.mapBg.height = 320;
+
+    this.mapName = document.getElementById('map-name');
+    this.mapEn = document.getElementById('map-en');
+    this.stageCell = document.getElementById('stage-cell');
+    this.stageNum = document.getElementById('stage-num');
+    this.itemSlot = document.getElementById('item-slot');
+    this.itemGlyph = document.getElementById('item-glyph');
+    this.itemName = document.getElementById('item-name');
+    this.itemTag = document.getElementById('item-tag');
+    this.itemToastEl = document.getElementById('item-toast');
+    this.shieldPill = document.getElementById('shield-pill');
+    this.shieldText = document.getElementById('shield-time');
+    this.shieldFill = document.getElementById('shield-fill');
+    this.starsEl = document.getElementById('result-stars');
+
     this.drawMapBackground();
     this.resize();
     window.addEventListener('resize', () => this.resize());
+  }
+
+  // ---------------------------------------------------------------- track UI
+  setTrack(track) {
+    this.track = track;
+    if (this.mapName) this.mapName.textContent = track.name || '极速赛道';
+    if (this.mapEn) this.mapEn.textContent = track.en || 'CIRCUIT';
+    this.lastRank = null;
+    this.lastLap = null;
+    this.drawMapBackground();
+  }
+
+  setMode({ mode = 'campaign', stage = 1, name, en, laps } = {}) {
+    if (this.stageCell) this.stageCell.classList.toggle('hide', mode !== 'endless');
+    if (this.stageNum) this.stageNum.textContent = stage;
+    if (name && this.mapName) this.mapName.textContent = name;
+    if (en && this.mapEn) this.mapEn.textContent = en;
+    if (laps) this.root.dataset.laps = laps;
+    this.root.dataset.mode = mode;
+  }
+
+  setStage(stage) {
+    if (this.stageNum) this.stageNum.textContent = stage;
   }
 
   resize() {
@@ -107,11 +148,10 @@ export class HUD {
     // boost pads
     for (const pad of this.track.minimap.padCenters) {
       const f = this.track.frameAt(pad.u);
-      const wp = {
-        x: f.p.x + f.right.x * pad.lane,
-        z: f.p.z + f.right.z * pad.lane,
-      };
-      const m = this.track.minimap.mapProject(wp.x, wp.z);
+      const m = this.track.minimap.mapProject(
+        f.p.x + f.right.x * pad.lane,
+        f.p.z + f.right.z * pad.lane
+      );
       ctx.fillStyle = '#6ff4ff';
       ctx.beginPath();
       ctx.arc(m.x * S, m.y * S, 5, 0, Math.PI * 2);
@@ -123,6 +163,7 @@ export class HUD {
     ctx.fillRect(s.x * S - 7, s.y * S - 7, 14, 14);
   }
 
+  // ---------------------------------------------------------------- menu
   showHUD(v) {
     this.root.classList.toggle('on', v);
   }
@@ -131,13 +172,15 @@ export class HUD {
     this.title.classList.toggle('hidden', !v);
   }
 
-  setMenuStats({ coins = 0, best = 0, races = 0 }) {
+  setMenuStats({ coins = 0, best = 0, races = 0, cleared = null, total = null, endlessBest = 0 }) {
     const c = document.getElementById('menu-coins');
     const b = document.getElementById('menu-best');
     const r = document.getElementById('menu-races');
     if (c) c.textContent = coins.toLocaleString('zh-CN');
     if (b) b.textContent = best ? fmt(best) : '--:--.--';
-    if (r) r.textContent = races;
+    if (r) r.textContent = cleared != null && total != null ? `${cleared}/${total}` : races;
+    const e = document.getElementById('menu-endless-best');
+    if (e) e.textContent = endlessBest ? `无尽最佳 STAGE ${endlessBest}` : '无限赛道 · 每阶段前 4 名晋级';
   }
 
   setCountdown(text, state = '') {
@@ -148,7 +191,6 @@ export class HUD {
     }
     this.countdownNum.textContent = text;
     this.countdownEl.className = 'show ' + state;
-    // restart CSS animation
     this.countdownNum.style.animation = 'none';
     void this.countdownNum.offsetWidth;
     this.countdownNum.style.animation = '';
@@ -174,11 +216,53 @@ export class HUD {
     this.boostFlash.className = 'flash ' + kind;
   }
 
+  // ---------------------------------------------------------------- items
+  setItem(id) {
+    const def = id ? ITEMS[id] : null;
+    if (!this.itemSlot) return;
+    this.itemSlot.dataset.item = def ? id : 'none';
+    this.itemSlot.classList.toggle('ready', !!def);
+    if (this.itemGlyph) this.itemGlyph.setAttribute('href', `#ico-item-${def ? id : 'none'}`);
+    if (this.itemName) this.itemName.textContent = def ? def.name : '暂无道具';
+    if (this.itemTag) this.itemTag.textContent = def ? def.short : 'ITEM';
+    if (def) this.itemSlot.style.setProperty('--item-color', def.color);
+    if (def) {
+      this.itemSlot.classList.remove('pop');
+      void this.itemSlot.offsetWidth;
+      this.itemSlot.classList.add('pop');
+    }
+  }
+
+  itemToast(item) {
+    if (!this.itemToastEl || !item) return;
+    this.itemToastEl.textContent = item.name;
+    this.itemToastEl.style.color = item.color || '#eafcff';
+    this.itemToastEl.classList.remove('show');
+    void this.itemToastEl.offsetWidth;
+    this.itemToastEl.classList.add('show');
+    this.toastTimer = 1.7;
+  }
+
+  setShield(t) {
+    if (!this.shieldPill) return;
+    const on = t > 0;
+    this.shieldPill.classList.toggle('on', on);
+    if (on) {
+      if (this.shieldText) this.shieldText.textContent = `${t.toFixed(1)}s`;
+      if (this.shieldFill) this.shieldFill.style.width = `${Math.min(100, (t / 8) * 100).toFixed(1)}%`;
+    }
+  }
+
+  // ---------------------------------------------------------------- update
   update(dt, d) {
     this.time += dt;
     if (this.calloutTimer > 0) {
       this.calloutTimer -= dt;
       if (this.calloutTimer <= 0) this.callout.classList.remove('show');
+    }
+    if (this.toastTimer > 0) {
+      this.toastTimer -= dt;
+      if (this.toastTimer <= 0) this.itemToastEl?.classList.remove('show');
     }
     const kmh = Math.round(d.speedKmh);
     this.speedEl.textContent = kmh;
@@ -191,6 +275,7 @@ export class HUD {
     }
     this.rankEl.textContent = d.rank;
     this.lapEl.textContent = d.lap;
+    if (d.stage != null && this.stageNum) this.stageNum.textContent = d.stage;
     this.timeEl.textContent = fmt(d.raceMs);
     if (this.lastRank !== d.rank) {
       this.lastRank = d.rank;
@@ -215,6 +300,8 @@ export class HUD {
     this.driftFill.style.width = (charge * 100).toFixed(1) + '%';
     this.driftWrap.dataset.level = d.driftLevel || 0;
     this.root.classList.toggle('offroad', !!d.offroad);
+    this.root.classList.toggle('stunned', !!d.stunned);
+    this.setShield(d.shield || 0);
 
     this.drawMinimap(d.karts, d.playerYaw);
     this.drawSpeedlines(d, kmh);
@@ -226,6 +313,19 @@ export class HUD {
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.clearRect(0, 0, S, S);
     ctx.drawImage(this.mapBg, 0, 0, S, S);
+    // item crates
+    if (this.track.itemBoxes) {
+      for (const box of this.track.itemBoxes) {
+        if (!box.active) continue;
+        const m = this.track.minimap.mapProject(box.center.x, box.center.z);
+        ctx.save();
+        ctx.translate(m.x * S, m.y * S);
+        ctx.rotate(Math.PI / 4);
+        ctx.fillStyle = '#ffd23f';
+        ctx.fillRect(-2.6, -2.6, 5.2, 5.2);
+        ctx.restore();
+      }
+    }
     if (!karts) return;
     for (const k of karts) {
       const m = this.track.minimap.mapProject(k.x, k.z);
@@ -295,21 +395,64 @@ export class HUD {
     }
   }
 
+  // ---------------------------------------------------------------- result
   showResult(data) {
+    const endless = data.endless;
     const place = data.place;
-    document.getElementById('result-place').textContent = place;
-    document.getElementById('result-place-name').textContent = PLACE_NAME[place - 1] || `第 ${place} 名`;
+    const kicker = document.getElementById('result-kicker');
+    if (kicker) {
+      kicker.textContent = endless
+        ? 'ENDLESS RUN COMPLETE'
+        : `STAGE ${String(data.levelIndex || 1).padStart(2, '0')} · RACE COMPLETE`;
+    }
+    document.getElementById('result-place').textContent = endless ? endless.stage : place;
+    document.getElementById('result-place-name').textContent = endless
+      ? `STAGE ${endless.stage}`
+      : (PLACE_NAME[place - 1] || `第 ${place} 名`);
+    const stars = this.starsEl;
+    if (stars) {
+      const n = endless ? 0 : (data.stars || 0);
+      [...stars.children].forEach((el, i) => el.classList.toggle('on', i < n));
+      stars.classList.toggle('hide', !!endless);
+    }
     document.getElementById('result-time').textContent = fmt(data.time);
     document.getElementById('result-best').textContent = data.best ? fmt(data.best) : '--:--.--';
     document.getElementById('result-coins').textContent = '+' + data.coins;
     document.getElementById('result-total').textContent = (data.totalCoins ?? 0).toLocaleString('zh-CN');
-    document.getElementById('result-history').textContent = data.historyBest ? fmt(data.historyBest) : '--:--.--';
+    document.getElementById('result-history').textContent = endless
+      ? (data.historyBest ? `STAGE ${data.historyBest}` : '--')
+      : (data.historyBest ? fmt(data.historyBest) : '--:--.--');
+    const historyLabel = document.getElementById('result-history-label');
+    if (historyLabel) historyLabel.textContent = endless ? '历史最佳阶段' : '历史最佳';
     document.getElementById('result-newbest').classList.toggle('on', !!data.newBest);
+    const trackEl = document.getElementById('result-track');
+    if (trackEl) trackEl.textContent = data.levelName || '极速赛道';
     const dbl = document.getElementById('result-double');
     if (dbl) dbl.textContent = `${data.doubleBoosts || 0} 次 · 氮气 ${data.nitroUses || 0} 次`;
+    const itm = document.getElementById('result-items');
+    if (itm) {
+      const s = data.itemStats || {};
+      itm.textContent = `${s.used || 0} 次 · 命中 ${s.hits || 0} 次`;
+    }
+    const unlock = document.getElementById('result-unlock');
+    if (unlock) {
+      unlock.textContent = data.unlocked ? `🔓 新赛道解锁：${data.unlocked}` : '';
+      unlock.classList.toggle('on', !!data.unlocked);
+    }
+    const stats = document.getElementById('result-stat-rows');
+    if (stats) stats.dataset.mode = endless ? 'endless' : 'campaign';
+    const again = document.getElementById('again-btn');
+    if (again) {
+      again.innerHTML = endless
+        ? '再次挑战 <span class="arrow">▶</span>'
+        : (data.canNext ? '下一关 <span class="arrow">▶</span>' : '再来一局 <span class="arrow">▶</span>');
+    }
+    const menuBtn = document.getElementById('menu-btn');
+    if (menuBtn) menuBtn.textContent = '返回选关';
     const panel = document.getElementById('result-screen');
     panel.classList.add('show');
-    panel.dataset.place = place;
+    panel.dataset.place = endless ? 0 : place;
+    panel.dataset.mode = endless ? 'endless' : 'campaign';
   }
 
   hideResult() {
@@ -330,5 +473,10 @@ export class HUD {
     this.result.classList.remove('show');
     this.pause.classList.remove('show');
     this.root.classList.remove('offroad');
+    this.root.classList.remove('stunned');
+    this.calloutTimer = 0;
+    if (this.itemToastEl) this.itemToastEl.classList.remove('show');
+    this.setItem(null);
+    this.setShield(0);
   }
 }

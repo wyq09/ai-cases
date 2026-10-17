@@ -336,6 +336,74 @@ export class RaceAudio {
     this.tone(1174.7, 0.22, 'triangle', 0.09, 0.1);
   }
 
+  itemPickup() {
+    this.tone(1046.5, 0.08, 'triangle', 0.08);
+    this.tone(1568, 0.12, 'triangle', 0.07, 0.05);
+    this.tone(2093, 0.16, 'sine', 0.05, 0.1);
+  }
+
+  itemUse(id) {
+    const base = id === 'shield' ? 660 : id === 'shock' ? 300 : id === 'missile' ? 520 : 760;
+    this.tone(base, 0.1, 'square', 0.08, 0, base * 1.5, 3200);
+    this.tone(base * 1.33, 0.14, 'triangle', 0.06, 0.05, base * 2);
+  }
+
+  missile() {
+    this.noiseBurst(0.4, 0.14, 'bandpass', 1200, 0, 3200, 1.8);
+    this.tone(300, 0.32, 'sawtooth', 0.08, 0, 860, 2400);
+    this.tone(900, 0.22, 'square', 0.05, 0.08, 1500);
+  }
+
+  mineDrop() {
+    this.tone(220, 0.12, 'square', 0.08, 0, 120, 900);
+    this.noiseBurst(0.14, 0.08, 'lowpass', 700, 0, 220, 1.2);
+  }
+
+  explosion() {
+    this.noiseBurst(0.42, 0.22, 'lowpass', 1400, 0, 140, 1.1);
+    this.tone(110, 0.34, 'square', 0.14, 0, 42, 700);
+    this.tone(62, 0.4, 'sine', 0.12, 0);
+  }
+
+  shield() {
+    this.tone(523.25, 0.2, 'triangle', 0.08);
+    this.tone(783.99, 0.24, 'triangle', 0.07, 0.07);
+    this.tone(1046.5, 0.36, 'sine', 0.06, 0.14, 1318.5);
+    this.noiseBurst(0.24, 0.05, 'highpass', 3200, 0, 6200, 0.8);
+  }
+
+  shieldBreak() {
+    this.noiseBurst(0.22, 0.12, 'highpass', 2600, 0, 1400, 1.1);
+    this.tone(1320, 0.16, 'triangle', 0.07, 0, 660);
+    this.tone(880, 0.2, 'sine', 0.06, 0.05, 440);
+  }
+
+  shock() {
+    this.noiseBurst(0.5, 0.16, 'bandpass', 2400, 0, 600, 2.4);
+    this.tone(180, 0.5, 'sawtooth', 0.1, 0, 60, 1800);
+    this.tone(1400, 0.22, 'square', 0.05, 0.1, 300);
+  }
+
+  stun() {
+    this.noiseBurst(0.3, 0.16, 'lowpass', 1000, 0, 200, 1.4);
+    this.tone(140, 0.4, 'sawtooth', 0.12, 0, 60, 900);
+    this.tone(520, 0.3, 'triangle', 0.05, 0.05, 260);
+  }
+
+  stageClear() {
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+      this.tone(f, 0.22, 'square', 0.09, i * 0.09, null, 3600);
+      this.tone(f * 0.5, 0.3, 'triangle', 0.06, i * 0.09);
+    });
+    this.noiseBurst(0.4, 0.08, 'highpass', 3000, 0.15, 6500);
+  }
+
+  stageStart() {
+    this.tone(392, 0.16, 'sawtooth', 0.07, 0, 784, 2600);
+    this.tone(587.33, 0.2, 'triangle', 0.07, 0.08, 1174.7);
+    this.noiseBurst(0.28, 0.08, 'bandpass', 900, 0, 2600, 1.4);
+  }
+
   finish() {
     const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
     notes.forEach((f, i) => {

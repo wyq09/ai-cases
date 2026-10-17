@@ -6,6 +6,9 @@ import { ParticlePool, SkidMarks } from './particles.js';
 import { RaceAudio } from './audio.js';
 import { HUD } from './hud.js';
 import { Input } from './input.js';
+import { SelectScreen } from './select.js';
+import { LEVELS, LEVEL_BY_ID, levelSpec, makeEndlessSpec } from './tracks.js';
+import { ItemSystem } from './items.js';
 
 const SAVE_KEY = 'qqspeed3d.save.v1';
 const params = new URLSearchParams(location.search);
@@ -13,12 +16,12 @@ if (params.get('reset') === '1') {
   try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
 }
 
-const LAPS = 3;
 const BASE_MAX = 46;
 const BOOST_MAX = 58;
 const NITRO_MAX = 64;
 const KMH = 3.6 * 1.55;
 const PERFECT_WINDOW = [2.0, 2.7];
+const PLACE_BONUS = [0, 280, 210, 160, 120, 90, 70];
 
 const QUALITY = {
   low: { dpr: 1.25, shadows: false, shadowSize: 1024, particles: 0.45, fog: 600 },
@@ -26,19 +29,33 @@ const QUALITY = {
   high: { dpr: 2.0, shadows: true, shadowSize: 2048, particles: 1.0, fog: 820 },
 };
 
-function loadSave() {
-  const def = {
+function defaultSave() {
+  return {
     coins: 0, bestTime: 0, bestLap: 0, races: 0,
     quality: null, muted: false,
+    levels: {},
+    endless: { bestStage: 0, coins: 0, runs: 0 },
+    lastLevel: LEVELS[0].id,
   };
+}
+
+function loadSave() {
+  const def = defaultSave();
   try {
     const raw = localStorage.getItem(SAVE_KEY);
-    if (raw) return { ...def, ...JSON.parse(raw) };
+    if (!raw) return def;
+    const parsed = JSON.parse(raw);
+    return {
+      ...def,
+      ...parsed,
+      levels: { ...(parsed.levels || {}) },
+      endless: { ...def.endless, ...(parsed.endless || {}) },
+    };
   } catch (e) {}
   return def;
 }
 
-function saveGame(save) {
+function saveGame() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
 }
 
@@ -51,6 +68,7 @@ function wrapAngle(a) {
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
 const save = loadSave();
+const debugUnlockAll = params.get('unlock') === '1';
 const autoQuality = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || window.innerWidth < 860
   ? 'medium' : 'high';
 let qualityName = params.get('quality') || save.quality || autoQuality;
@@ -61,6 +79,49 @@ const errors = [];
 window.__errs = errors;
 window.addEventListener('error', (e) => errors.push(String(e.message || e.error || e)));
 window.addEventListener('unhandledrejection', (e) => errors.push('unhandled: ' + String(e.reason)));
+
+// ===== progression helpers =====
+function isLevelUnlocked(id) {
+  if (debugUnlockAll) return true;
+  const idx = LEVELS.findIndex((l) => l.id === id);
+  if (idx <= 0) return true;
+  const prev = LEVELS[idx - 1];
+  return !!(save.levels[prev.id] && save.levels[prev.id].cleared);
+}
+
+function starsFor(place) {
+  return place === 1 ? 3 : place === 2 ? 2 : place === 3 ? 1 : 0;
+}
+
+function levelRecord(id) {
+  return save.levels[id] || null;
+}
+
+function selectInitialLevel() {
+  const q = params.get('level');
+  if (q && LEVEL_BY_ID[q] && isLevelUnlocked(q)) return q;
+  if (save.lastLevel && LEVEL_BY_ID[save.lastLevel] && isLevelUnlocked(save.lastLevel)) return save.lastLevel;
+  return LEVELS[0].id;
+}
+
+let selectedId = selectInitialLevel();
+let currentLevel = LEVEL_BY_ID[selectedId] || LEVELS[0];
+let currentSpec = levelSpec(currentLevel);
+let raceLaps = currentLevel.laps;
+let mode = 'campaign';
+let nextLevelId = null;
+let unlockNotice = '';
+let resultNextId = null;
+
+const endless = {
+  stage: 1,
+  seed: 1,
+  runCoins: 0,
+  lastPlace: 0,
+  pendingFail: false,
+  finishedRun: false,
+  clearedStage: 0,
+};
 
 // ===== renderer / scene =====
 const host = document.getElementById('stage');
@@ -105,9 +166,23 @@ const textures = createTextures(renderer);
 scene.environment = textures.envMap;
 scene.environmentIntensity = 0.72;
 
-const track = createTrack(scene, renderer, textures, {
-  shadows: QUALITY[qualityName].shadows,
-});
+function applyTheme(theme) {
+  scene.fog.color.setHex(theme.fog);
+  scene.fog.near = theme.fogNear;
+  scene.fog.far = Math.min(theme.fogFar, QUALITY[qualityName].fog);
+  hemi.color.setHex(theme.hemiSky);
+  hemi.groundColor.setHex(theme.hemiGround);
+  hemi.intensity = theme.hemiIntensity;
+  sun.color.setHex(theme.sunLight);
+  sun.intensity = theme.sunIntensity;
+  fill.color.setHex(theme.accent2);
+  fill.intensity = theme.id === 'neon' ? 0.36 : 0.55;
+  renderer.toneMappingExposure = theme.exposure;
+  scene.environmentIntensity = theme.envIntensity;
+}
+
+let track = createTrack(scene, textures, { shadows: QUALITY[qualityName].shadows }, currentSpec);
+applyTheme(currentSpec.theme);
 
 const hud = new HUD(track);
 const input = new Input();
@@ -115,7 +190,7 @@ const audio = new RaceAudio();
 audio.setEnabled(!muted);
 
 const addPool = new ParticlePool(scene, textures.glow, { max: 900, blending: THREE.AdditiveBlending });
-const dustPool = new ParticlePool(scene, textures.smoke, { max: 320, blending: THREE.NormalBlending });
+const dustPool = new ParticlePool(scene, textures.smoke, { max: 380, blending: THREE.NormalBlending });
 const skids = new SkidMarks(scene, textures.skid, 340);
 
 // ===== karts =====
@@ -166,10 +241,14 @@ const player = {
   doubleBoosts: 0,
   driftBoosts: 0,
   nitroUses: 0,
+  stun: 0,
+  stunSpin: 0,
+  shieldTime: 0,
 };
 
 const ais = [];
 const AI_GRID = [[-5, 2.4], [-5, -2.4], [-10, 2.4], [-10, -2.4], [-15, 2.4]];
+const AI_BASE_LANES = [-3.9, -1.95, 0, 1.95, 3.9];
 AI_GRID.forEach(([d, lane], i) => {
   const kart = createKart(AI_COLORS[i], { detail: true, flameTex: textures.flame });
   kart.group.rotation.order = 'YXZ';
@@ -179,7 +258,7 @@ AI_GRID.forEach(([d, lane], i) => {
     colors: AI_COLORS[i],
     dist: d,
     lane,
-    baseLane: [-3.9, -1.95, 0, 1.95, 3.9][i],
+    baseLane: AI_BASE_LANES[i],
     speed: 0,
     base: 45.2 + Math.random() * 2.8,
     phase: Math.random() * Math.PI * 2,
@@ -187,7 +266,20 @@ AI_GRID.forEach(([d, lane], i) => {
     finished: false,
     finishTime: 0,
     steerVisual: 0,
+    stun: 0,
+    stunSpin: 0,
+    lastFrame: null,
   });
+});
+
+// ===== items =====
+const items = new ItemSystem({
+  scene, textures, player, ais, track, addPool, dustPool, audio, hud,
+  fx: {
+    shake: (n) => { cameraShake = Math.max(cameraShake, n); },
+    hitstop: (t) => { hitstop = Math.max(hitstop, t); },
+    flash: () => {},
+  },
 });
 
 // ===== race state =====
@@ -199,6 +291,7 @@ let countdownShown = -1;
 let perfectStart = false;
 let goTimer = 0;
 let finishTimer = 0;
+let finishTimeMs = 0;
 let resultShown = false;
 let finishPlace = 6;
 let finishCoins = 0;
@@ -214,19 +307,34 @@ let dustAcc = 0;
 let flameAcc = 0;
 let skidAcc = 0;
 let introTime = 0;
+let stageClearTimer = 0;
+let warpTimer = 0;
 
 const camPos = new THREE.Vector3();
 const camLook = new THREE.Vector3();
 const tmpV = new THREE.Vector3();
 const tmpV2 = new THREE.Vector3();
 const tmpV3 = new THREE.Vector3();
-const tmpQ = new THREE.Quaternion();
 
 function setKartTransform(kart, frame, pos, heading) {
   kart.group.position.copy(pos);
   kart.group.rotation.y = heading;
   kart.group.rotation.x = -Math.asin(clamp(frame.tangent.y, -0.35, 0.35)) * 0.7;
   kart.group.updateMatrixWorld(true);
+}
+
+function tuneAI(spec) {
+  const laneLimit = Math.max(2.6, spec.half - 3.1);
+  ais.forEach((ai, i) => {
+    ai.base = spec.aiBase + 0.4 + i * 0.32 + (spec.endless ? (i % 2) * 0.25 : 0);
+    ai.baseLane = clamp(AI_BASE_LANES[i], -laneLimit, laneLimit);
+    ai.reaction = 0.12 + Math.random() * 0.34;
+    ai.finished = false;
+    ai.finishTime = 0;
+    ai.stun = 0;
+    ai.stunSpin = 0;
+    ai.speed = 0;
+  });
 }
 
 function placeAll() {
@@ -262,6 +370,9 @@ function placeAll() {
   player.doubleBoosts = 0;
   player.driftBoosts = 0;
   player.nitroUses = 0;
+  player.stun = 0;
+  player.stunSpin = 0;
+  player.shieldTime = 0;
   player.prevIndex = track.nearest(player.pos, -1).index;
   setKartTransform(player.kart, pf, player.pos, player.heading);
 
@@ -275,6 +386,8 @@ function placeAll() {
     ai.finished = false;
     ai.finishTime = 0;
     ai.steerVisual = 0;
+    ai.stun = 0;
+    ai.stunSpin = 0;
     const pos = f.p.clone().addScaledVector(f.right, lane);
     pos.y = f.p.y;
     setKartTransform(ai.kart, f, pos, Math.atan2(f.tangent.x, f.tangent.z));
@@ -282,13 +395,11 @@ function placeAll() {
   });
 }
 
-placeAll();
-
 function setState(next) {
   state = next;
-  document.body.classList.toggle('in-race',
-    next === 'countdown' || next === 'race' || next === 'finish' || next === 'result' || next === 'paused');
-  if (next === 'menu') document.body.classList.remove('in-race');
+  const racing = next === 'countdown' || next === 'race' || next === 'finish'
+    || next === 'result' || next === 'paused' || next === 'stageclear' || next === 'warp';
+  document.body.classList.toggle('in-race', racing);
 }
 
 function resetEffects() {
@@ -299,22 +410,30 @@ function resetEffects() {
   camSnap = true;
   cameraShake = 0;
   cameraRoll = 0;
+  camMicro = 0;
 }
 
-function startRace() {
-  audio.ensure();
-  audio.ui();
-  audio.startMusic();
-  audio.setEngineActive(true);
-  resetEffects();
+function buildTrack(spec) {
+  if (track) track.dispose();
+  currentSpec = spec;
+  track = createTrack(scene, textures, { shadows: QUALITY[qualityName].shadows }, spec);
+  applyTheme(spec.theme);
+  hud.setTrack(track);
+  items.setTrack(track);
+  addPool.clear();
+  dustPool.clear();
+  skids.clear();
+}
+
+function resetStageState({ keepStats = false } = {}) {
   placeAll();
+  resetEffects();
   hud.reset();
-  hud.showHUD(true);
-  hud.showTitle(false);
-  hud.setMenuStats({ coins: save.coins, best: save.bestLap, races: save.races });
-  hud.setStartTip(true);
   track.setStartLights(0, false);
-  raceMs = 0;
+  track.resetItemBoxes();
+  items.reset(keepStats);
+  input.reset();
+  hud.setItem(null);
   countdownTime = 0;
   countdownShown = -1;
   perfectStart = false;
@@ -322,13 +441,101 @@ function startRace() {
   finishTimer = 0;
   resultShown = false;
   paused = false;
-  input.reset();
-  setState('countdown');
-  setStartLights(0, false);
+  stageClearTimer = 0;
+  warpTimer = 0;
+  hitstop = 0;
+  cameraShake = 0;
+  camMicro = 0;
 }
 
-function setStartLights(active, go) {
-  track.setStartLights(active, go);
+function beginRace({ mode: nextMode = 'campaign', levelId = selectedId, endlessStage = 1, seed = null } = {}) {
+  document.getElementById('title-screen').classList.remove('help-open');
+  audio.ensure();
+  audio.ui();
+  audio.startMusic();
+  audio.setEngineActive(true);
+  paused = false;
+  unlockNotice = '';
+  nextLevelId = null;
+  resultNextId = null;
+  endless.finishedRun = false;
+  endless.pendingFail = false;
+  endless.clearedStage = 0;
+
+  if (nextMode === 'endless') {
+    mode = 'endless';
+    endless.stage = endlessStage;
+    endless.seed = seed ?? ((Date.now() ^ (Math.floor(Math.random() * 0x7fffffff))) >>> 0);
+    endless.runCoins = 0;
+    endless.lastPlace = 0;
+    const spec = makeEndlessSpec(endless.stage, endless.seed);
+    raceLaps = spec.laps;
+    buildTrack(spec);
+    tuneAI(spec);
+    hud.setMode({ mode, stage: endless.stage, name: spec.name, en: spec.en, laps: raceLaps });
+  } else {
+    mode = 'campaign';
+    const def = LEVEL_BY_ID[levelId] || currentLevel;
+    currentLevel = def;
+    selectedId = def.id;
+    save.lastLevel = def.id;
+    saveGame();
+    raceLaps = def.laps;
+    const spec = levelSpec(def);
+    buildTrack(spec);
+    tuneAI(spec);
+    hud.setMode({ mode, stage: 1, name: spec.name, en: spec.en, laps: raceLaps });
+  }
+
+  resetStageState({ keepStats: false });
+  raceMs = 0;
+  finishTimeMs = 0;
+  player.lapStart = 0;
+  hud.showHUD(true);
+  hud.showTitle(false);
+  hud.hideResult();
+  selectScreen.hide();
+  hud.setStartTip(true);
+  setState('countdown');
+  track.setStartLights(0, false);
+  updateSelectedLabel();
+}
+
+function startRace() {
+  beginRace({ mode: 'campaign', levelId: selectedId });
+}
+
+function startLevel(id, force = false) {
+  if (!LEVEL_BY_ID[id]) return false;
+  if (!force && !isLevelUnlocked(id)) return false;
+  selectedId = id;
+  save.lastLevel = id;
+  saveGame();
+  beginRace({ mode: 'campaign', levelId: id });
+  return true;
+}
+
+function startEndless() {
+  beginRace({ mode: 'endless', stage: 1 });
+}
+
+function goMenu() {
+  document.getElementById('title-screen').classList.remove('help-open');
+  paused = false;
+  resetEffects();
+  items.reset();
+  if (track) track.resetItemBoxes();
+  placeAll();
+  hud.hideResult();
+  hud.showPause(false);
+  hud.showHUD(false);
+  hud.showTitle(true);
+  hud.setCountdown('');
+  selectScreen.hide();
+  updateSelectedLabel();
+  setState('menu');
+  introTime = 0;
+  audio.setEngineActive(false);
 }
 
 function goRace() {
@@ -352,41 +559,7 @@ function goRace() {
   hud.setCountdown('GO!', 'go');
 }
 
-function goMenu() {
-  paused = false;
-  resetEffects();
-  placeAll();
-  hud.hideResult();
-  hud.showPause(false);
-  hud.showHUD(false);
-  hud.showTitle(true);
-  hud.setCountdown('');
-  hud.setMenuStats({ coins: save.coins, best: save.bestLap, races: save.races });
-  setState('menu');
-  introTime = 0;
-  audio.setEngineActive(false);
-}
-
-function finishRace() {
-  if (player.finished) return;
-  player.finished = true;
-  finishPlace = rankOfPlayer();
-  player.place = finishPlace;
-  finishCoins = [0, 300, 220, 160, 120, 90, 70][finishPlace] || 60;
-  finishNewBest = !save.bestTime || raceMs < save.bestTime;
-  save.coins += finishCoins;
-  save.races += 1;
-  if (finishNewBest) save.bestTime = raceMs;
-  if (player.bestLap && (!save.bestLap || player.bestLap < save.bestLap)) save.bestLap = player.bestLap;
-  saveGame(save);
-  finishTimer = 0;
-  setState('finish');
-  hud.showCallout('FINISH', `第 ${finishPlace} 名`, 'finish');
-  hud.setStartTip(false);
-  audio.finish();
-  audio.duck(0.3, 1.6);
-  hud.flashBoost('finish');
-  // confetti
+function spawnConfetti() {
   const colors = [0xffd23f, 0xff6a18, 0x27dcff, 0xffffff, 0xff5d8f, 0x6bff9e];
   for (let i = 0; i < 90; i++) {
     dustPool.spawn({
@@ -404,6 +577,126 @@ function finishRace() {
   }
 }
 
+// ===== campaign finish =====
+function finishRace() {
+  if (player.finished) return;
+  player.finished = true;
+  finishPlace = rankOfPlayer();
+  player.place = finishPlace;
+  finishTimeMs = raceMs;
+  const idx = LEVELS.findIndex((l) => l.id === currentLevel.id);
+  const rec = save.levels[currentLevel.id] || (save.levels[currentLevel.id] = {});
+  const prevBest = rec.bestTime || 0;
+  finishNewBest = !prevBest || raceMs < prevBest;
+  finishCoins = Math.round((currentLevel.coinBase || 120) + (PLACE_BONUS[finishPlace] || 60));
+  const nextDef = LEVELS[idx + 1] || null;
+  const nextWasUnlocked = nextDef ? !!(save.levels[nextDef.id] && save.levels[nextDef.id].cleared) : false;
+  rec.cleared = true;
+  rec.place = rec.place ? Math.min(rec.place, finishPlace) : finishPlace;
+  rec.stars = Math.max(rec.stars || 0, starsFor(finishPlace));
+  if (finishNewBest) rec.bestTime = raceMs;
+  if (player.bestLap && (!rec.bestLap || player.bestLap < rec.bestLap)) rec.bestLap = player.bestLap;
+  nextLevelId = nextDef ? nextDef.id : null;
+  resultNextId = nextLevelId && isLevelUnlocked(nextLevelId) ? nextLevelId : null;
+  if (nextDef && !nextWasUnlocked) {
+    unlockNotice = nextDef.name;
+    selectedId = nextDef.id;
+    save.lastLevel = nextDef.id;
+  }
+  save.coins += finishCoins;
+  save.races += 1;
+  if (player.bestLap && (!save.bestLap || player.bestLap < save.bestLap)) save.bestLap = player.bestLap;
+  if (!save.bestTime || raceMs < save.bestTime) save.bestTime = raceMs;
+  saveGame();
+  finishTimer = 0;
+  setState('finish');
+  hud.showCallout('FINISH', `第 ${finishPlace} 名 · +${finishCoins} 金币`, 'finish');
+  hud.setStartTip(false);
+  audio.finish();
+  audio.duck(0.3, 1.6);
+  hud.flashBoost('finish');
+  spawnConfetti();
+  updateSelectedLabel();
+}
+
+// ===== endless flow =====
+function endEndlessStage() {
+  if (endless.finishedRun) return;
+  player.finished = true;
+  const place = rankOfPlayer();
+  player.place = place;
+  endless.lastPlace = place;
+  const stage = endless.stage;
+  finishTimeMs = raceMs;
+  const stageCoins = Math.round((currentSpec.coinBase || 90) + stage * 8 + (place === 1 ? 120 : place === 2 ? 80 : place === 3 ? 50 : 20));
+  endless.clearedStage = Math.max(endless.clearedStage, stage);
+  endless.runCoins += stageCoins;
+  save.coins += stageCoins;
+  save.endless.bestStage = Math.max(save.endless.bestStage || 0, stage);
+  save.endless.coins = (save.endless.coins || 0) + stageCoins;
+  saveGame();
+  finishPlace = place;
+  finishCoins = endless.runCoins;
+  endless.pendingFail = place > 4;
+  audio.stageClear?.();
+  audio.duck(0.35, 1.4);
+  audio.setEngineActive(false);
+  if (endless.pendingFail) {
+    hud.showCallout('挑战结束', `第 ${place} 名 · 未能晋级`, 'finish');
+  } else {
+    hud.showCallout(`STAGE ${stage}`, `CLEAR · +${stageCoins} 金币`, 'finish');
+  }
+  hud.flashBoost('finish');
+  spawnConfetti();
+  setState('stageclear');
+  stageClearTimer = 0;
+}
+
+function finishEndlessRun() {
+  if (endless.finishedRun) return;
+  endless.finishedRun = true;
+  player.finished = true;
+  finishTimeMs = raceMs;
+  finishPlace = endless.pendingFail ? endless.lastPlace : rankOfPlayer();
+  finishCoins = endless.runCoins;
+  const bestBefore = save.endless.bestStage || 0;
+  const clearedStage = endless.clearedStage || 0;
+  finishNewBest = clearedStage > bestBefore;
+  save.endless.bestStage = Math.max(bestBefore, clearedStage);
+  save.endless.runs = (save.endless.runs || 0) + 1;
+  save.races += 1;
+  saveGame();
+  finishTimer = 0;
+  resultNextId = null;
+  setState('finish');
+  hud.showCallout('挑战结束', `STAGE ${endless.stage} · 累计 +${finishCoins} 金币`, 'finish');
+  hud.setStartTip(false);
+  audio.finish();
+  audio.setEngineActive(false);
+  hud.flashBoost('finish');
+  spawnConfetti();
+  updateSelectedLabel();
+}
+
+function advanceEndlessStage() {
+  endless.stage += 1;
+  const spec = makeEndlessSpec(endless.stage, endless.seed);
+  raceLaps = spec.laps;
+  buildTrack(spec);
+  tuneAI(spec);
+  resetStageState({ keepStats: true });
+  player.lapStart = raceMs;
+  hud.setMode({ mode: 'endless', stage: endless.stage, name: spec.name, en: spec.en, laps: raceLaps });
+  hud.setStartTip(false);
+  hud.setCountdown('');
+  hud.showCallout(`STAGE ${endless.stage}`, spec.name, 'lap');
+  audio.stageStart?.();
+  setState('warp');
+  warpTimer = 0;
+  introTime = 0;
+  camSnap = true;
+}
+
 function rankOfPlayer() {
   let r = 1;
   for (const ai of ais) {
@@ -418,30 +711,29 @@ function updateRank() {
 
 function onLapCross() {
   player.laps += 1;
-  if (player.laps >= 0 && player.laps < LAPS) {
-    if (player.laps > 0) {
-      const lapTime = raceMs - player.lapStart;
-      if (lapTime > 0) {
-        player.lapTimes.push(lapTime);
-        if (!player.bestLap || lapTime < player.bestLap) player.bestLap = lapTime;
-      }
-      player.lapStart = raceMs;
-      if (player.laps === LAPS - 1) {
-        hud.showCallout('最后一圈', 'FINAL LAP', 'lap');
-      } else {
-        hud.showCallout(`第 ${player.laps + 1} 圈`, `${LAPS - player.laps} LAPS TO GO`, 'lap');
-      }
-    } else {
-      player.lapStart = raceMs;
+  if (player.laps > 0) {
+    // record every completed lap, including the final one that ends the race
+    const lapTime = raceMs - player.lapStart;
+    if (lapTime > 0) {
+      player.lapTimes.push(lapTime);
+      if (!player.bestLap || lapTime < player.bestLap) player.bestLap = lapTime;
     }
-    if (player.laps > 0) audio.lap();
+    player.lapStart = raceMs;
+    audio.lap();
+  } else {
+    player.lapStart = raceMs;
   }
-  if (player.laps >= LAPS) finishRace();
-}
-
-// ===== input helpers =====
-function consumeStartInput() {
-  return input.consumeStartPress();
+  if (player.laps >= 0 && player.laps < raceLaps) {
+    if (player.laps === raceLaps - 1) {
+      hud.showCallout('最后一圈', 'FINAL LAP', 'lap');
+    } else if (player.laps > 0) {
+      hud.showCallout(`第 ${player.laps + 1} 圈`, `${raceLaps - player.laps} LAPS TO GO`, 'lap');
+    }
+  }
+  if (player.laps >= raceLaps) {
+    if (mode === 'endless') endEndlessStage();
+    else finishRace();
+  }
 }
 
 // ===== player physics =====
@@ -496,61 +788,90 @@ function spawnBoostBurst(power = 1) {
   });
 }
 
-function updatePlayer(dt) {
-  const L = track.length;
-  const driftPress = input.consumeDriftPress();
+function pickupItemBoxes() {
+  if (player.finished || items.held) return;
+  for (const box of track.itemBoxes) {
+    if (!box.active) continue;
+    const dx = player.pos.x - box.center.x;
+    const dz = player.pos.z - box.center.z;
+    if (dx * dx + dz * dz < 2.8 * 2.8) {
+      const item = items.pickup();
+      if (item) {
+        box.active = false;
+        box.cooldown = 3.4;
+        addPool.burst(box.center.clone(), 24, {
+          speed: 6, spread: 1.2, up: 0.9, life: 0.5, size: 0.34,
+          color: 0x5ef0ff, colorEnd: 0xffd23f, gravity: 2, drag: 1.8,
+        });
+        hud.flashBoost('pad');
+        audio.pad();
+      }
+      break;
+    }
+  }
+}
 
-  if (driftPress && player.doubleWindow > 0) {
+function updatePlayer(dt) {
+  const driftPress = input.consumeDriftPress();
+  const stunned = player.stun > 0;
+
+  if (!stunned && driftPress && player.doubleWindow > 0) {
     doDoubleBoost();
   }
   if (player.doubleWindow > 0) player.doubleWindow -= dt;
-
   if (player.nitroActive > 0) player.nitroActive -= dt;
   if (player.boostTime > 0) player.boostTime -= dt;
   if (player.collisionCooldown > 0) player.collisionCooldown -= dt;
   if (player.wallHit > 0) player.wallHit -= dt;
 
-  const steer = input.steer;
+  const steer = stunned ? 0 : input.steer;
   player.steer = steer;
-
   const speedNorm = clamp(player.speed / BASE_MAX, 0, 1.35);
 
-  // start drift
-  if (!player.drifting && input.drift && player.speed > 11 && Math.abs(steer) > 0.22 && !player.offroad) {
-    startDrift();
-  }
-  if (player.drifting && (!input.drift || player.speed < 7.5)) {
-    releaseDrift();
-  }
-
-  // steering
-  let turn = 0;
-  const speedFactor = clamp(player.speed / 14, 0, 1);
-  const highSpeedDamp = 1 - 0.24 * clamp(player.speed / 64, 0, 1);
-  if (player.drifting) {
-    player.driftCharge = Math.min(1,
-      player.driftCharge + dt * (0.46 + Math.abs(steer) * 0.42) * (0.72 + speedNorm * 0.5));
-    const prevLevel = player.driftLevel;
-    player.driftLevel = player.driftCharge >= 0.9 ? 3 : player.driftCharge >= 0.6 ? 2 : player.driftCharge >= 0.28 ? 1 : 0;
-    if (player.driftLevel > prevLevel && player.driftLevel > 0) {
-      audio.driftTick(player.driftLevel);
-      camMicro = Math.max(camMicro, 0.18 + player.driftLevel * 0.05);
-    }
-    turn = (steer * 1.02 + player.driftDir * 0.16) * speedFactor * highSpeedDamp;
-    player.speed -= 0.7 * dt;
+  if (stunned) {
+    input.consumeNitro();
+    player.heading += dt * 6;
+    player.moveYaw += wrapAngle(player.heading - player.moveYaw) * Math.min(1, dt * 4.5);
+    player.drifting = false;
+    player.driftCharge = 0;
+    player.driftLevel = 0;
+    player.doubleWindow = 0;
   } else {
-    turn = steer * 1.5 * speedFactor * highSpeedDamp;
+    if (!player.drifting && input.drift && player.speed > 11 && Math.abs(steer) > 0.22 && !player.offroad) {
+      startDrift();
+    }
+    if (player.drifting && (!input.drift || player.speed < 7.5)) {
+      releaseDrift();
+    }
   }
-  if (player.braking) turn *= 1.18;
-  player.heading += turn * dt;
 
-  // grip: movement direction follows heading
+  let turn = 0;
+  if (!stunned) {
+    const speedFactor = clamp(player.speed / 14, 0, 1);
+    const highSpeedDamp = 1 - 0.24 * clamp(player.speed / 64, 0, 1);
+    if (player.drifting) {
+      player.driftCharge = Math.min(1,
+        player.driftCharge + dt * (0.46 + Math.abs(steer) * 0.42) * (0.72 + speedNorm * 0.5));
+      const prevLevel = player.driftLevel;
+      player.driftLevel = player.driftCharge >= 0.9 ? 3 : player.driftCharge >= 0.6 ? 2 : player.driftCharge >= 0.28 ? 1 : 0;
+      if (player.driftLevel > prevLevel && player.driftLevel > 0) {
+        audio.driftTick(player.driftLevel);
+        camMicro = Math.max(camMicro, 0.18 + player.driftLevel * 0.05);
+      }
+      turn = (steer * 1.02 + player.driftDir * 0.16) * speedFactor * highSpeedDamp;
+      player.speed -= 0.7 * dt;
+    } else {
+      turn = steer * 1.5 * speedFactor * highSpeedDamp;
+    }
+    if (player.braking) turn *= 1.18;
+    player.heading += turn * dt;
+  }
+
   const diff = wrapAngle(player.heading - player.moveYaw);
-  const grip = player.drifting ? 3.2 : 12;
+  const grip = player.drifting ? 3.2 : (stunned ? 2.4 : 12);
   player.moveYaw += diff * Math.min(1, grip * dt);
 
-  // nitro
-  if (input.consumeNitro()) {
+  if (!stunned && input.consumeNitro()) {
     if (player.nitro >= 1 && player.nitroActive <= 0) {
       player.nitro -= 1;
       player.nitroActive = 1.9;
@@ -564,14 +885,14 @@ function updatePlayer(dt) {
     }
   }
 
-  // speed
-  player.braking = input.brake && !player.finished;
+  player.braking = !stunned && input.brake && !player.finished;
   let cap = BASE_MAX;
   if (player.boostTime > 0) cap = BOOST_MAX;
   if (player.nitroActive > 0) cap = NITRO_MAX;
   if (player.offroad) cap *= 0.64;
   if (player.braking) cap = 0;
   if (player.finished) cap = 0;
+  if (stunned) cap = Math.min(cap, 9);
   const accelRate = (player.boostTime > 0 || player.nitroActive > 0) ? 2.4 : 1.02;
   if (player.speed < cap) {
     player.speed += (cap - player.speed) * Math.min(1, accelRate * dt);
@@ -581,16 +902,11 @@ function updatePlayer(dt) {
   if (player.braking) player.speed -= 27 * dt;
   if (player.speed < 0) player.speed = 0;
 
-  // move
   player.pos.x += Math.sin(player.moveYaw) * player.speed * dt;
   player.pos.z += Math.cos(player.moveYaw) * player.speed * dt;
 
-  // track queries
   const near = track.nearest(player.pos, player.prevIndex);
   player.offroad = Math.abs(near.offset) > track.half + 0.15;
-  // Barrier centre is at half + 2.15 with 0.22 thickness -> inner face half + 2.04.
-  // Keep the car body (half width ~1.03) clear of that face instead of letting the
-  // chassis sink into the rail.
   const wallLimit = track.half + 0.7;
   if (Math.abs(near.offset) > wallLimit) {
     const sign = Math.sign(near.offset);
@@ -598,7 +914,6 @@ function updatePlayer(dt) {
     player.pos.x -= near.right.x * correction;
     player.pos.z -= near.right.z * correction;
     const tangentYaw = Math.atan2(near.tangent.x, near.tangent.z);
-    // slide along the wall instead of sticking to it
     player.moveYaw += wrapAngle(tangentYaw - player.moveYaw) * Math.min(1, dt * 10);
     player.heading += wrapAngle(tangentYaw - player.heading) * Math.min(1, dt * 6);
     if (player.wallHit <= 0) {
@@ -621,7 +936,6 @@ function updatePlayer(dt) {
       });
     }
   } else if (Math.abs(near.offset) > track.half + 5) {
-    // safety net: a bad nearest-frame must never leave the car outside the circuit
     const sign = Math.sign(near.offset);
     player.pos.copy(near.point).addScaledVector(near.right, sign * track.half);
     const tangentYaw = Math.atan2(near.tangent.x, near.tangent.z);
@@ -635,7 +949,6 @@ function updatePlayer(dt) {
   player.pos.y = near.y;
   player.offroad = Math.abs(near.offset) > track.half + 0.15;
 
-  // lap crossing
   const N = track.N;
   if (player.prevIndex >= 0) {
     if (player.prevIndex > N * 0.78 && near.index < N * 0.22) {
@@ -645,13 +958,11 @@ function updatePlayer(dt) {
     }
   }
   player.prevIndex = near.index;
-  player.progress = player.laps * L + near.u * L;
+  player.progress = player.laps * track.length + near.u * track.length;
 
-  // transform
   const frame = track.frameAt(near.u);
   setKartTransform(player.kart, frame, player.pos, player.heading);
 
-  // boost pads
   for (const pad of track.boostPads) {
     if (pad.cooldown > 0) continue;
     const dx = player.pos.x - pad.center.x;
@@ -671,7 +982,8 @@ function updatePlayer(dt) {
     }
   }
 
-  // kart collisions
+  pickupItemBoxes();
+
   for (const ai of ais) {
     const p = ai.kart.group.position;
     const dx = player.pos.x - p.x;
@@ -700,8 +1012,6 @@ function updatePlayer(dt) {
     }
   }
 
-  // kart pushbacks happen after the barrier clamp above; re-clamp so a shove can
-  // never leave the body inside the rail for a frame
   {
     const post = track.nearest(player.pos, player.prevIndex);
     const limit = track.half + 0.7;
@@ -716,11 +1026,9 @@ function updatePlayer(dt) {
     }
   }
 
-  // effects
   player.kart.group.updateMatrixWorld(true);
   emitPlayerEffects(dt, near);
 
-  // wall scrape sparks while sliding along the barrier
   if (Math.abs(near.offset) > wallLimit - 0.05 && player.speed > 8) {
     const scrapeAcc = dt * 55 * QUALITY[qualityName].particles;
     for (let i = 0; i < scrapeAcc; i++) {
@@ -849,7 +1157,8 @@ function emitPlayerEffects(dt, near) {
 function updateAI(dt) {
   const L = track.length;
   const elapsed = raceMs / 1000;
-  ais.forEach((ai, i) => {
+  ais.forEach((ai) => {
+    const stunned = (ai.stun || 0) > 0;
     const u = ((ai.dist / L) % 1 + 1) % 1;
     const f = track.frameAt(u);
     const ahead1 = track.frameAt(u + 0.012).tangent;
@@ -860,6 +1169,8 @@ function updateAI(dt) {
     let target;
     if (ai.finished) {
       target = 13;
+    } else if (stunned) {
+      target = 7;
     } else if (elapsed < ai.reaction) {
       target = 0;
     } else {
@@ -868,11 +1179,11 @@ function updateAI(dt) {
       target *= 1 + clamp(gap / 320, -0.055, 0.13);
       if (ai.speed < 3) target = Math.max(target, 22);
     }
-    const rate = target > ai.speed ? 1.25 : 2.1;
+    const rate = target > ai.speed ? (stunned ? 2.6 : 1.25) : 2.1;
     ai.speed += (target - ai.speed) * Math.min(1, rate * dt);
     ai.dist += ai.speed * dt;
 
-    if (!ai.finished && ai.dist >= L * LAPS) {
+    if (!ai.finished && ai.dist >= L * raceLaps) {
       ai.finished = true;
       ai.finishTime = raceMs;
     }
@@ -883,7 +1194,8 @@ function updateAI(dt) {
     ai.lane += (laneTarget - ai.lane) * Math.min(1, dt * 2.2);
     const pos = fr.p.clone().addScaledVector(fr.right, ai.lane);
     pos.y = fr.p.y;
-    const heading = Math.atan2(fr.tangent.x, fr.tangent.z);
+    const spin = stunned ? (ai.stunSpin || 0) : 0;
+    const heading = Math.atan2(fr.tangent.x, fr.tangent.z) + spin;
     setKartTransform(ai.kart, fr, pos, heading);
 
     const cornerSteer = clamp(-bend * 8, -0.9, 0.9) * (ahead1.x * fr.tangent.z - ahead1.z * fr.tangent.x > 0 ? 1 : -1);
@@ -891,7 +1203,7 @@ function updateAI(dt) {
     animateKart(ai.kart, dt, {
       speedNorm: ai.speed / BASE_MAX,
       steer: ai.steerVisual,
-      drifting: corner < 0.78 && ai.speed > 20,
+      drifting: !stunned && corner < 0.78 && ai.speed > 20,
       driftDir: Math.sign(ai.steerVisual || 1),
       flameLevel: ai.speed > 10 ? 0.55 : 0.25,
       accel: 0.4,
@@ -904,16 +1216,20 @@ function updateAI(dt) {
 // ===== camera =====
 function updateChaseCamera(dt) {
   const speedNorm = clamp(player.speed / BASE_MAX, 0, 1.3);
+  const portrait = camera.aspect < 0.85;
   const fwd = tmpV.set(Math.sin(player.heading), 0, Math.cos(player.heading));
-  const back = 5.9 + speedNorm * 1.7 + (player.nitroActive > 0 ? 1.7 : 0);
-  const height = 2.16 + speedNorm * 0.4;
+  // Faster spring at speed: keeps the kart readable instead of letting the
+  // camera trail a dozen metres behind at nitro / high speed.
+  const back = 5.6 + speedNorm * 0.7 + (player.nitroActive > 0 ? 0.9 : 0) + (portrait ? 1.8 : 0);
+  const height = 2.16 + speedNorm * 0.4 + (portrait ? 0.3 : 0);
   const right = tmpV2.set(fwd.z, 0, -fwd.x);
   const desired = tmpV3.copy(player.pos)
     .addScaledVector(fwd, -back)
     .addScaledVector(right, -player.steer * 0.52)
     .add(new THREE.Vector3(0, height, 0));
 
-  const lerp = camSnap ? 1 : 1 - Math.exp(-dt * 5.6);
+  const followRate = 5.6 + speedNorm * 9;
+  const lerp = camSnap ? 1 : 1 - Math.exp(-dt * followRate);
   camPos.lerp(desired, lerp);
   if (camSnap) camPos.copy(desired);
   const lookTarget = new THREE.Vector3(
@@ -938,7 +1254,6 @@ function updateChaseCamera(dt) {
     camera.position.z += (Math.random() - 0.5) * shake;
   }
   camera.lookAt(camLook);
-  // subtle bank/roll into the corner for speed drama
   const rollTarget = player.drifting
     ? player.driftDir * 0.05
     : player.steer * 0.022 * clamp(player.speed / BASE_MAX, 0, 1);
@@ -984,6 +1299,55 @@ function updateResultCamera(dt) {
   camera.lookAt(center.x, center.y + 0.9, center.z);
 }
 
+function updateWarpCamera(dt) {
+  introTime += dt;
+  const center = player.pos;
+  const t = introTime * 0.7;
+  const desired = new THREE.Vector3(
+    center.x + Math.sin(t) * 9.5,
+    center.y + 3.8,
+    center.z + Math.cos(t) * 9.5
+  );
+  camera.position.lerp(desired, 1 - Math.exp(-dt * 3.2));
+  camera.lookAt(center.x, center.y + 0.95, center.z);
+  if (Math.abs(camera.fov - 55) > 0.05) {
+    camera.fov += (55 - camera.fov) * Math.min(1, dt * 3);
+    camera.updateProjectionMatrix();
+  }
+}
+
+// ===== HUD payload =====
+function pushHud(dt, rank = player.place) {
+  hud.update(dt, {
+    speedKmh: player.speed * KMH,
+    rank,
+    lap: clamp(player.laps + 1, 1, raceLaps),
+    raceMs,
+    nitro: player.nitro,
+    drifting: player.drifting,
+    driftCharge: player.driftCharge,
+    driftLevel: player.driftLevel,
+    offroad: player.offroad,
+    nitroActive: player.nitroActive > 0,
+    dt,
+    playerYaw: player.heading,
+    mode,
+    stage: endless.stage,
+    shield: player.shieldTime || 0,
+    stunned: (player.stun || 0) > 0,
+    karts: [
+      { x: player.pos.x, z: player.pos.z, yaw: player.heading, color: '#ffd23f', isPlayer: true },
+      ...ais.map((a) => ({
+        x: a.kart.group.position.x,
+        z: a.kart.group.position.z,
+        yaw: a.kart.group.rotation.y,
+        color: '#' + a.colors.primary.toString(16).padStart(6, '0'),
+        isPlayer: false,
+      })),
+    ],
+  });
+}
+
 // ===== frame updates =====
 function updateCountdown(dt) {
   countdownTime += dt;
@@ -992,9 +1356,9 @@ function updateCountdown(dt) {
     countdownShown = idx;
     hud.setCountdown(String(3 - idx));
     audio.countdown(3 - idx);
-    setStartLights(idx + 1, false);
+    track.setStartLights(idx + 1, false);
   }
-  if (consumeStartInput() && countdownTime >= PERFECT_WINDOW[0] && countdownTime <= PERFECT_WINDOW[1]) {
+  if (input.consumeStartPress() && countdownTime >= PERFECT_WINDOW[0] && countdownTime <= PERFECT_WINDOW[1]) {
     perfectStart = true;
     hud.setStartTip(false);
     hud.showCallout('完美起步', 'PERFECT TIMING', 'perfect');
@@ -1010,6 +1374,16 @@ function updateCountdown(dt) {
 function updateRace(dt) {
   raceMs += dt * 1000;
   input.update(dt);
+  if (input.consumeItem()) {
+    if (player.stun > 0) {
+      hud.itemToast({ name: '被击中，无法使用道具', color: '#ff8a6a' });
+    } else if (items.held) {
+      items.use();
+    } else {
+      hud.itemToast({ name: '没有道具 · 穿过问号箱拾取', color: '#8fa9c4' });
+    }
+  }
+  items.update(dt);
   updatePlayer(dt);
   updateAI(dt);
   updateRank();
@@ -1026,31 +1400,7 @@ function updateRace(dt) {
     offroad: player.offroad,
   });
   updateChaseCamera(dt);
-
-  hud.update(dt, {
-    speedKmh: player.speed * KMH,
-    rank: player.place,
-    lap: clamp(player.laps + 1, 1, LAPS),
-    raceMs,
-    nitro: player.nitro,
-    drifting: player.drifting,
-    driftCharge: player.driftCharge,
-    driftLevel: player.driftLevel,
-    offroad: player.offroad,
-    nitroActive: player.nitroActive > 0,
-    dt,
-    playerYaw: player.heading,
-    karts: [
-      { x: player.pos.x, z: player.pos.z, yaw: player.heading, color: '#ffd23f', isPlayer: true },
-      ...ais.map((a) => ({
-        x: a.kart.group.position.x,
-        z: a.kart.group.position.z,
-        yaw: a.kart.group.rotation.y,
-        color: '#' + a.colors.primary.toString(16).padStart(6, '0'),
-        isPlayer: false,
-      })),
-    ],
-  });
+  pushHud(dt);
 
   if (goTimer > 0) {
     goTimer -= dt;
@@ -1059,7 +1409,6 @@ function updateRace(dt) {
 }
 
 function updateFinish(dt) {
-  raceMs += dt * 1000;
   player.speed *= Math.max(0, 1 - 1.4 * dt);
   player.pos.x += Math.sin(player.moveYaw) * player.speed * dt;
   player.pos.z += Math.cos(player.moveYaw) * player.speed * dt;
@@ -1079,52 +1428,86 @@ function updateFinish(dt) {
   });
   updateAI(dt);
   updateChaseCamera(dt);
-  hud.update(dt, {
-    speedKmh: player.speed * KMH,
-    rank: finishPlace,
-    lap: LAPS,
-    raceMs,
-    nitro: player.nitro,
-    drifting: false,
-    driftCharge: 0,
-    driftLevel: 0,
-    offroad: false,
-    nitroActive: false,
-    dt,
-    playerYaw: player.heading,
-    karts: [
-      { x: player.pos.x, z: player.pos.z, yaw: player.heading, color: '#ffd23f', isPlayer: true },
-      ...ais.map((a) => ({
-        x: a.kart.group.position.x,
-        z: a.kart.group.position.z,
-        yaw: a.kart.group.rotation.y,
-        color: '#' + a.colors.primary.toString(16).padStart(6, '0'),
-        isPlayer: false,
-      })),
-    ],
-  });
+  pushHud(dt, finishPlace);
   finishTimer += dt;
   if (finishTimer > 1.9 && !resultShown) {
     resultShown = true;
     setState('result');
-    hud.showResult({
-      place: finishPlace,
-      time: raceMs,
-      best: player.bestLap,
-      coins: finishCoins,
-      totalCoins: save.coins,
-      historyBest: save.bestTime,
-      newBest: finishNewBest,
-      doubleBoosts: player.doubleBoosts,
-      driftBoosts: player.driftBoosts,
-      nitroUses: player.nitroUses,
-    });
+    showResultScreen();
+  }
+}
+
+function showResultScreen() {
+  const endlessMode = mode === 'endless';
+  const rec = endlessMode ? null : levelRecord(currentLevel.id);
+  const levelIndex = endlessMode ? 0 : LEVELS.findIndex((l) => l.id === currentLevel.id) + 1;
+  hud.showResult({
+    mode,
+    place: finishPlace,
+    time: finishTimeMs || raceMs,
+    best: player.bestLap,
+    coins: finishCoins,
+    totalCoins: save.coins,
+    historyBest: endlessMode ? (save.endless.bestStage || 0) : (rec?.bestTime || 0),
+    newBest: finishNewBest,
+    doubleBoosts: player.doubleBoosts,
+    driftBoosts: player.driftBoosts,
+    nitroUses: player.nitroUses,
+    itemStats: items.stats,
+    levelName: endlessMode ? `无尽赛道 · ${currentSpec.theme.id.toUpperCase()}` : currentLevel.name,
+    levelIndex,
+    stars: endlessMode ? 0 : starsFor(finishPlace),
+    unlocked: endlessMode ? '' : unlockNotice,
+    canNext: !endlessMode && !!resultNextId && isLevelUnlocked(resultNextId),
+    endless: endlessMode ? { stage: endless.stage, bestStage: save.endless.bestStage } : null,
+  });
+}
+
+function updateStageClear(dt) {
+  player.speed *= Math.max(0, 1 - 1.2 * dt);
+  player.pos.x += Math.sin(player.moveYaw) * player.speed * dt;
+  player.pos.z += Math.cos(player.moveYaw) * player.speed * dt;
+  const near = track.nearest(player.pos, player.prevIndex);
+  player.prevIndex = near.index;
+  player.pos.y = near.y;
+  setKartTransform(player.kart, track.frameAt(near.u), player.pos, player.heading);
+  animateKart(player.kart, dt, {
+    speedNorm: player.speed / BASE_MAX,
+    steer: 0, drifting: false, flameLevel: 0.35, accel: 0,
+  });
+  updateAI(dt);
+  updateChaseCamera(dt);
+  pushHud(dt, endless.lastPlace || rankOfPlayer());
+  stageClearTimer += dt;
+  if (stageClearTimer > 1.35) {
+    if (endless.pendingFail) finishEndlessRun();
+    else advanceEndlessStage();
+  }
+}
+
+function updateWarp(dt) {
+  warpTimer += dt;
+  animateKart(player.kart, dt, {
+    speedNorm: 0.02, steer: 0, flameLevel: 0.5, rev: true, accel: 0.3,
+  });
+  ais.forEach((ai) => {
+    animateKart(ai.kart, dt, { speedNorm: 0.02, steer: 0, flameLevel: 0.25, rev: true });
+  });
+  updateWarpCamera(dt);
+  if (warpTimer > 1.35) {
+    setState('race');
+    camSnap = true;
+    goTimer = 1.0;
+    audio.setEngineActive(true);
+    audio.countdown(0);
+    track.setStartLights(0, true);
+    hud.setCountdown('GO!', 'go');
+    hud.setStartTip(false);
   }
 }
 
 function updateMenu(dt) {
   input.update(dt);
-  const f = track.frameAt(0.982);
   animateKart(player.kart, dt, {
     speedNorm: 0.02 + Math.sin(introTime * 2.2) * 0.008,
     steer: 0, flameLevel: 0.5, rev: true, accel: 0.3,
@@ -1146,7 +1529,7 @@ function updateResult(dt) {
 function setMuted(next) {
   muted = !!next;
   save.muted = muted;
-  saveGame(save);
+  saveGame();
   audio.setEnabled(!muted);
   document.querySelectorAll('[data-sound-label]').forEach((el) => {
     el.textContent = muted ? '音效 OFF' : '音效 ON';
@@ -1162,7 +1545,7 @@ function applyQuality(name) {
   if (!QUALITY[name]) return;
   qualityName = name;
   save.quality = name;
-  saveGame(save);
+  saveGame();
   const q = QUALITY[name];
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, q.dpr));
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -1175,16 +1558,38 @@ function applyQuality(name) {
   }
   sun.shadow.mapSize.set(q.shadowSize, q.shadowSize);
   sun.shadow.camera.updateProjectionMatrix();
-  scene.fog.far = q.fog;
+  scene.fog.far = Math.min(currentSpec.theme.fogFar, q.fog);
   document.querySelectorAll('.quality-btn').forEach((b) => {
     b.classList.toggle('active', b.dataset.q === name);
   });
+}
+
+function updateSelectedLabel() {
+  const def = LEVEL_BY_ID[selectedId] || LEVELS[0];
+  const idx = LEVELS.findIndex((l) => l.id === def.id);
+  const el = document.getElementById('selected-track');
+  if (el) el.innerHTML = `即将出战 · <b>${String(idx + 1).padStart(2, '0')} ${def.name}</b>`;
+  const cleared = LEVELS.filter((l) => save.levels[l.id]?.cleared).length;
+  hud.setMenuStats({
+    coins: save.coins,
+    best: save.bestLap,
+    races: save.races,
+    cleared,
+    total: LEVELS.length,
+    endlessBest: save.endless.bestStage || 0,
+  });
+}
+
+function syncPauseButtons() {
+  const btn = document.getElementById('pause-endless-btn');
+  if (btn) btn.classList.toggle('hide', !(mode === 'endless' && paused));
 }
 
 function togglePause() {
   if (state !== 'race' && state !== 'countdown' && state !== 'finish') return;
   paused = !paused;
   hud.showPause(paused);
+  syncPauseButtons();
   audio.setEngineActive(!paused);
   if (!paused) {
     audio.ensure();
@@ -1193,6 +1598,36 @@ function togglePause() {
     hud.setStartTip(false);
   }
 }
+
+function openSelect() {
+  if (state !== 'menu') return;
+  audio.ensure();
+  audio.ui();
+  selectScreen.show();
+}
+
+function closeSelect() {
+  selectScreen.hide();
+  if (state === 'menu') hud.showTitle(true);
+}
+
+const selectScreen = new SelectScreen({
+  isUnlocked: isLevelUnlocked,
+  getRecord: (id) => save.levels[id] || null,
+  getCoins: () => save.coins,
+  getEndlessBest: () => save.endless.bestStage || 0,
+  onPick: (id) => {
+    if (!isLevelUnlocked(id)) return;
+    selectedId = id;
+    save.lastLevel = id;
+    saveGame();
+    beginRace({ mode: 'campaign', levelId: id });
+  },
+  onEndless: () => {
+    beginRace({ mode: 'endless' });
+  },
+  onBack: () => closeSelect(),
+});
 
 document.querySelectorAll('[data-q]').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -1211,7 +1646,17 @@ document.querySelectorAll('.sound-btn').forEach((btn) => {
 });
 
 document.getElementById('start-btn').addEventListener('click', () => {
+  audio.ensure();
+  audio.ui();
   startRace();
+});
+document.getElementById('select-btn').addEventListener('click', () => {
+  openSelect();
+});
+document.getElementById('endless-btn').addEventListener('click', () => {
+  audio.ensure();
+  audio.ui();
+  startEndless();
 });
 document.getElementById('help-btn').addEventListener('click', () => {
   document.getElementById('title-screen').classList.toggle('help-open');
@@ -1221,11 +1666,19 @@ document.getElementById('help-btn').addEventListener('click', () => {
 document.getElementById('again-btn').addEventListener('click', () => {
   audio.ui();
   hud.hideResult();
-  startRace();
+  if (mode === 'endless') {
+    beginRace({ mode: 'endless' });
+  } else if (resultNextId && isLevelUnlocked(resultNextId)) {
+    selectedId = resultNextId;
+    beginRace({ mode: 'campaign', levelId: resultNextId });
+  } else {
+    beginRace({ mode: 'campaign', levelId: currentLevel.id });
+  }
 });
 document.getElementById('menu-btn').addEventListener('click', () => {
   audio.ui();
   goMenu();
+  openSelect();
 });
 document.getElementById('resume-btn').addEventListener('click', () => {
   audio.ui();
@@ -1235,11 +1688,20 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   audio.ui();
   hud.showPause(false);
   paused = false;
-  startRace();
+  if (mode === 'endless') beginRace({ mode: 'endless' });
+  else beginRace({ mode: 'campaign', levelId: currentLevel.id });
 });
 document.getElementById('pause-menu-btn').addEventListener('click', () => {
   audio.ui();
   goMenu();
+});
+document.getElementById('pause-endless-btn').addEventListener('click', () => {
+  if (mode !== 'endless') return;
+  audio.ui();
+  paused = false;
+  hud.showPause(false);
+  syncPauseButtons();
+  finishEndlessRun();
 });
 
 let hiddenTimer = null;
@@ -1258,12 +1720,15 @@ document.addEventListener('visibilitychange', () => {
 
 setMuted(muted);
 applyQuality(qualityName);
-hud.setMenuStats({ coins: save.coins, best: save.bestLap, races: save.races });
+updateSelectedLabel();
 hud.showHUD(false);
 hud.showTitle(true);
+hud.setMode({ mode: 'campaign', stage: 1, name: currentSpec.name, en: currentSpec.en, laps: raceLaps });
+placeAll();
+track.setStartLights(0, false);
+selectScreen.hide();
 
 // ===== main loop =====
-const clock = new THREE.Clock();
 let last = performance.now();
 let frameCount = 0;
 
@@ -1302,19 +1767,14 @@ function frame(now) {
       updateFinish(dt);
     } else if (state === 'result') {
       updateResult(dt);
-      if (input.consumePause()) {
-        // ignore in result
-      }
+    } else if (state === 'stageclear') {
+      updateStageClear(dt);
+    } else if (state === 'warp') {
+      updateWarp(dt);
     }
-    if (state !== 'paused') {
-      track.update(dt, camera);
-      addPool.update(dt);
-      dustPool.update(dt);
-      if (state !== 'result' && state !== 'menu') {
-        // camera/sun follow
-      }
-    }
-    // shadow follows player
+    track.update(dt, camera);
+    addPool.update(dt);
+    dustPool.update(dt);
     sun.position.set(player.pos.x + 62, player.pos.y + 98, player.pos.z - 38);
     sun.target.position.set(player.pos.x, player.pos.y, player.pos.z);
     sun.target.updateMatrixWorld();
@@ -1338,7 +1798,12 @@ function frame(now) {
   if (frameCount === 2) {
     window.__qq.ready = true;
     if (params.get('auto') === '1') {
-      setTimeout(() => { try { startRace(); } catch (e) {} }, 300);
+      setTimeout(() => {
+        try {
+          if (params.get('endless') === '1') startEndless();
+          else startRace();
+        } catch (e) {}
+      }, 300);
     }
   }
 }
@@ -1353,6 +1818,25 @@ window.addEventListener('resize', () => {
   hud.resize();
 });
 
+function tick(dt = 1 / 60, steps = 1) {
+  const d = Math.max(0.001, Math.min(0.05, dt));
+  for (let i = 0; i < steps; i++) {
+    if (paused) break;
+    if (state === 'menu') updateMenu(d);
+    else if (state === 'countdown') { input.update(d); updateCountdown(d); }
+    else if (state === 'race') updateRace(d);
+    else if (state === 'finish') updateFinish(d);
+    else if (state === 'result') updateResult(d);
+    else if (state === 'stageclear') updateStageClear(d);
+    else if (state === 'warp') updateWarp(d);
+    track.update(d, camera);
+    addPool.update(d);
+    dustPool.update(d);
+  }
+  renderer.render(scene, camera);
+  return { state, stage: endless.stage, raceMs, speed: player.speed, held: items.held };
+}
+
 // ===== testing hooks =====
 window.__qq = {
   ready: false,
@@ -1361,9 +1845,16 @@ window.__qq = {
   get raceMs() { return raceMs; },
   get quality() { return qualityName; },
   get muted() { return muted; },
+  get track() { return track; },
+  get items() { return items; },
+  get mode() { return mode; },
+  get endless() { return endless; },
+  get currentLevel() { return currentLevel; },
+  get currentSpec() { return currentSpec; },
+  get selectedId() { return selectedId; },
+  get raceLaps() { return raceLaps; },
   player,
   ais,
-  track,
   camera,
   renderer,
   scene,
@@ -1371,8 +1862,13 @@ window.__qq = {
   audio,
   hud,
   errors,
+  save,
   startRace,
+  startLevel,
+  startEndless,
   goMenu,
+  openSelect,
+  closeSelect,
   togglePause,
   setMuted,
   applyQuality,
@@ -1383,8 +1879,13 @@ window.__qq = {
     if (kind === 'drift') input.driftPresses++;
     if (kind === 'nitro') input.nitroQueued = true;
     if (kind === 'start') input.startPresses++;
+    if (kind === 'item') input.itemQueued = true;
   },
-  skipCountdown() { if (state === 'countdown') { countdownTime = 3.01; goRace(); } },
+  skipCountdown() {
+    if (state === 'countdown') { countdownTime = 3.01; goRace(); }
+    if (state === 'warp') { warpTimer = 1.36; }
+  },
+  tick,
   placeProgress(dist, lane = -2.4) {
     const L = track.length;
     const u = ((dist / L) % 1 + 1) % 1;
@@ -1398,7 +1899,33 @@ window.__qq = {
     player.prevIndex = track.nearest(player.pos, -1).index;
     setKartTransform(player.kart, f, player.pos, player.heading);
   },
-  getFrame() { return { state, paused, raceMs, speed: player.speed, nitro: player.nitro, laps: player.laps, place: player.place, drift: player.drifting, charge: player.driftCharge }; },
+  giveItem(id) { return items.give(id); },
+  useItem() { return items.use(); },
+  forceFinish() {
+    if (mode === 'campaign') finishRace();
+    else endEndlessStage();
+  },
+  forceStageClear() {
+    if (mode !== 'endless') return false;
+    endEndlessStage();
+    return true;
+  },
+  unlockAll() {
+    LEVELS.forEach((l) => {
+      save.levels[l.id] = { ...(save.levels[l.id] || {}), cleared: true };
+    });
+    saveGame();
+    updateSelectedLabel();
+    selectScreen.render();
+  },
+  getFrame() {
+    return {
+      state, paused, raceMs, speed: player.speed, nitro: player.nitro, laps: player.laps,
+      place: player.place, drift: player.drifting, charge: player.driftCharge,
+      mode, stage: endless.stage, item: items.held, shield: player.shieldTime,
+      trackId: currentSpec.id,
+    };
+  },
   debug() {
     const near = track.nearest(player.pos, player.prevIndex);
     return {
@@ -1409,7 +1936,11 @@ window.__qq = {
       finished: player.finished, steer: player.steer, inputBrake: input.brake,
       drifting: player.drifting, driftCharge: player.driftCharge, driftLevel: player.driftLevel,
       doubleWindow: player.doubleWindow, doubleBoosts: player.doubleBoosts, driftBoosts: player.driftBoosts, nitroUses: player.nitroUses,
-      ai: ais.map(a => ({ dist: a.dist, speed: a.speed, lane: a.lane })),
+      ai: ais.map((a) => ({ dist: a.dist, speed: a.speed, lane: a.lane, stun: a.stun || 0 })),
+      mode, stage: endless.stage, trackId: currentSpec.id, trackName: currentSpec.name,
+      item: items.held, shield: player.shieldTime, stun: player.stun,
+      itemStats: { ...items.stats }, mines: items.mines.length, missiles: items.missiles.length,
+      raceLaps, selectedId,
     };
   },
 };

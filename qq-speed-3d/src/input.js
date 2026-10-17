@@ -8,6 +8,7 @@ export class Input {
     this.brake = false;
     this.drift = false;
     this.nitroQueued = false;
+    this.itemQueued = false;
     this.driftPresses = 0;
     this.startPresses = 0;
     this.pauseQueued = false;
@@ -99,6 +100,15 @@ export class Input {
       this._touchPointers.clear();
     });
 
+    const itemBtn = document.getElementById('item-slot');
+    if (itemBtn) {
+      itemBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.itemQueued = true;
+      });
+    }
+
     const pauseBtn = document.getElementById('pause-btn');
     if (pauseBtn) {
       pauseBtn.addEventListener('click', () => {
@@ -129,6 +139,12 @@ export class Input {
       else this.keys.delete(code);
       return;
     }
+    if (code === 'KeyE') {
+      if (down && !this.keys.has(code)) this.itemQueued = true;
+      if (down) this.keys.add(code);
+      else this.keys.delete(code);
+      return;
+    }
     if (down) {
       if (!this.keys.has(code)) {
         if (code === 'ShiftLeft' || code === 'ShiftRight') this.driftPresses++;
@@ -153,6 +169,12 @@ export class Input {
   consumeNitro() {
     const v = this.nitroQueued;
     this.nitroQueued = false;
+    return v;
+  }
+
+  consumeItem() {
+    const v = this.itemQueued;
+    this.itemQueued = false;
     return v;
   }
 
@@ -199,6 +221,10 @@ export class Input {
         this.startPresses++;
         this.manual.start = false;
       }
+      if (this.manual.item) {
+        this.itemQueued = true;
+        this.manual.item = false;
+      }
       return;
     }
     const k = this.keys;
@@ -220,6 +246,7 @@ export class Input {
     this.drift = false;
     this.brake = false;
     this.nitroQueued = false;
+    this.itemQueued = false;
     this.driftPresses = 0;
     this.startPresses = 0;
     document.querySelectorAll('[data-drive]').forEach((b) => b.classList.remove('active'));

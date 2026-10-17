@@ -5,15 +5,29 @@
 
 const URL = process.env.QQ_URL || "http://127.0.0.1:8791/";
 const task = await taskSpace("QQ飞车 转向与护栏回归");
-const page = task.page("p1");
-try { await page.cdp("Network.setCacheDisabled", { cacheDisabled: true }); } catch (e) {}
-
+const page = (await task.pages()).find((p) => p.label === "p1") || await task.newPage();
 const results = [];
 const check = (name, pass, detail) => results.push({ name, pass: !!pass, detail: detail ?? "" });
 const sleep = (ms) => page.waitForTimeout(ms);
 
 await page.goto(URL + "?reset=1&v=" + Date.now());
-await page.waitForFunction(() => window.__qq && window.__qq.ready, undefined, { timeout: 45000 });
+let booted = false;
+for (let attempt = 0; attempt < 3 && !booted; attempt++) {
+  try {
+    await page.waitForFunction(() => window.__qq && window.__qq.ready, undefined, { timeout: 18000 });
+    booted = true;
+  } catch (e) {
+    console.log("BOOT-RETRY", attempt);
+    await page.reload().catch(() => {});
+    await page.waitForTimeout(700);
+  }
+}
+if (!booted) {
+  console.log("BOOT-FAILED");
+  await task.finish({ keep: [] });
+  process.exitCode = 1;
+  throw new Error("boot failed");
+}
 await page.click("#start-btn");
 await page.waitForFunction(() => window.__qq.state === "race", undefined, { timeout: 8000 });
 await sleep(900);
@@ -95,6 +109,10 @@ for (const u of [0.035, 0.19, 0.34, 0.5, 0.66, 0.82, 0.94]) {
       q.input.manual = null;
       q.player.drifting = false;
       q.player.driftCharge = 0;
+      q.player.stun = 0;
+      q.items.clearProjectiles();
+      q.ais.forEach((a) => { a.stun = 0; });
+      q.items.aiMineTimers = q.items.aiMineTimers.map(() => 9999);
       q.placeProgress(u * q.track.length, 0);
       q.player.heading += side * 0.85;
       q.player.moveYaw = q.player.heading;

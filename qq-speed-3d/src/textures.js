@@ -317,6 +317,33 @@ export function createTextures(renderer) {
     ctx.fillText('THREE.JS 3D ARCADE RACING · SEASIDE CIRCUIT', w / 2, h - 40);
   }, { aniso });
 
+  const trackBanner = (title, sub, c1, c2, dark) => canvasTexture(1024, 192, (ctx, w, h) => {
+    const g = ctx.createLinearGradient(0, 0, w, 0);
+    g.addColorStop(0, c1);
+    g.addColorStop(0.5, c2);
+    g.addColorStop(1, c1);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = dark;
+    ctx.fillRect(0, 0, w, 12);
+    ctx.fillRect(0, h - 12, w, 12);
+    for (let x = 0; x < w; x += 64) {
+      ctx.fillStyle = (x / 64) % 2 ? dark : '#f6fbff';
+      ctx.fillRect(x, 0, 32, 12);
+      ctx.fillRect(x + 32, h - 12, 32, 12);
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'italic 900 84px "Arial Black","PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillStyle = 'rgba(4,16,30,.38)';
+    ctx.fillText(title, w / 2 + 6, h / 2 + 8);
+    ctx.fillStyle = dark;
+    ctx.fillText(title, w / 2, h / 2);
+    ctx.font = '700 22px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillStyle = 'rgba(10,26,44,.72)';
+    ctx.fillText(sub, w / 2, h - 38);
+  }, { aniso });
+
   const flag = canvasTexture(256, 160, (ctx, w, h) => {
     ctx.fillStyle = '#ff7518';
     ctx.fillRect(0, 0, w, h);
@@ -344,6 +371,133 @@ export function createTextures(renderer) {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
   }, { linear: true, clamp: true });
+
+  // Item crates: glowing "?" cube faces, tinted per biome by the material colour.
+  const itemBox = canvasTexture(256, 256, (ctx, w, h) => {
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#1a5c86');
+    g.addColorStop(0.5, '#0d2c4e');
+    g.addColorStop(1, '#071a30');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    // diagonal shine + scanlines
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 12;
+    for (let i = -h; i < w + h; i += 46) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i + h, h);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(147,247,255,.95)';
+    ctx.lineWidth = 12;
+    ctx.strokeRect(12, 12, w - 24, h - 24);
+    ctx.strokeStyle = 'rgba(255,255,255,.35)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(26, 26, w - 52, h - 52);
+    // corner brackets
+    ctx.strokeStyle = '#eafcff';
+    ctx.lineWidth = 9;
+    for (const [x, y, sx, sy] of [[24, 24, 1, 1], [w - 24, 24, -1, 1], [24, h - 24, 1, -1], [w - 24, h - 24, -1, -1]]) {
+      ctx.beginPath();
+      ctx.moveTo(x, y + sy * 34);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x + sx * 34, y);
+      ctx.stroke();
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '900 150px "Arial Black","PingFang SC",sans-serif';
+    ctx.shadowColor = '#5ef0ff';
+    ctx.shadowBlur = 32;
+    ctx.fillStyle = '#eafcff';
+    ctx.fillText('?', w / 2, h / 2 + 8);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(94,240,255,.55)';
+    ctx.font = '700 16px "Arial Black",sans-serif';
+    ctx.fillText('ITEM', w / 2, h - 40);
+  }, { aniso });
+
+  // Procedural terrain by biome, cached so endless stage rebuilds never leak canvases.
+  const terrainCache = new Map();
+  const terrainFor = (theme) => {
+    const t = theme.terrain;
+    const key = `${theme.id}:${t.kind}:${t.base}`;
+    if (terrainCache.has(key)) return terrainCache.get(key);
+    const tex = canvasTexture(256, 256, (ctx, w, h) => {
+      ctx.fillStyle = t.base;
+      ctx.fillRect(0, 0, w, h);
+      noise(ctx, w, h, 6200, t.tones, 0.12, 2.2);
+      if (t.kind === 'grass') {
+        for (let i = 0; i < 900; i++) {
+          ctx.strokeStyle = t.tones[(Math.random() * t.tones.length) | 0];
+          ctx.globalAlpha = 0.12 + Math.random() * 0.3;
+          ctx.lineWidth = 1 + Math.random();
+          const x = Math.random() * w;
+          const y = Math.random() * h;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + (Math.random() - 0.5) * 5, y - 3 - Math.random() * 7);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        for (let i = 0; i < 42; i++) {
+          ctx.globalAlpha = 0.05 + Math.random() * 0.06;
+          ctx.fillStyle = Math.random() > 0.5 ? t.tones[0] : t.accent;
+          ctx.beginPath();
+          ctx.ellipse(Math.random() * w, Math.random() * h, 8 + Math.random() * 26, 5 + Math.random() * 13, Math.random() * 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      } else if (t.kind === 'snow') {
+        for (let i = 0; i < 40; i++) {
+          ctx.globalAlpha = 0.05 + Math.random() * 0.09;
+          ctx.fillStyle = i % 2 ? '#ffffff' : t.accent;
+          ctx.beginPath();
+          ctx.ellipse(Math.random() * w, Math.random() * h, 14 + Math.random() * 40, 7 + Math.random() * 16, Math.random() * 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = '#ffffff';
+        for (let i = 0; i < 240; i++) ctx.fillRect(Math.random() * w, Math.random() * h, 1.4, 1.4);
+        ctx.globalAlpha = 1;
+      } else if (t.kind === 'crack') {
+        ctx.globalAlpha = 0.85;
+        for (let i = 0; i < 22; i++) {
+          let x = Math.random() * w;
+          let y = Math.random() * h;
+          ctx.strokeStyle = t.accent;
+          ctx.shadowColor = t.accent;
+          ctx.shadowBlur = 8;
+          ctx.lineWidth = 1.4 + Math.random() * 2.6;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          for (let k = 0; k < 4; k++) {
+            x += (Math.random() - 0.5) * 34;
+            y += (Math.random() - 0.5) * 34;
+            ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      } else {
+        for (let i = 0; i < 54; i++) {
+          ctx.globalAlpha = 0.06 + Math.random() * 0.1;
+          ctx.fillStyle = t.tones[(Math.random() * t.tones.length) | 0];
+          ctx.beginPath();
+          ctx.ellipse(Math.random() * w, Math.random() * h, 10 + Math.random() * 34, 5 + Math.random() * 14, Math.random() * 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+    }, { repeat: [1, 1], aniso });
+    terrainCache.set(key, tex);
+    return tex;
+  };
 
   const flame = canvasTexture(64, 128, (ctx, w, h) => {
     ctx.clearRect(0, 0, w, h);
@@ -375,7 +529,8 @@ export function createTextures(renderer) {
 
   return {
     asphalt, arrowPad, checker, crowd, cloud, glow, smoke, grass, sand,
-    windows, envMap, startBanner, flag, skid, aniso, flame,
+    windows, envMap, startBanner, flag, skid, aniso, flame, itemBox,
+    terrainFor, trackBanner,
     billboard,
     billboards: [
       billboard('氮气加速', 'NITRO BOOST', '#0b2b56', '#0a6f9e', '#2ee6ff'),

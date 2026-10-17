@@ -42,7 +42,7 @@ async function runDesktop(page) {
   await page.screenshot({ path: shot("ego-desktop-race.png") });
   checks.push(report("race_running", (await page.evaluate(() => window.__qq.state)) === "race"));
 
-  // ego 窗口被遮挡时 rAF 会被系统降频，这里只验证比赛时钟在推进（真实 GPU 帧率见 test/full.py）
+  // ego 窗口被遮挡时 rAF 会被系统降频，这里只验证比赛时钟在推进（逐帧逻辑由 ego-levels-items.js 的 tick 覆盖）
   const t0 = await page.evaluate(() => window.__qq.raceMs);
   await page.waitForTimeout(900);
   const t1 = await page.evaluate(() => window.__qq.raceMs);
@@ -194,7 +194,7 @@ async function runMobile(task) {
   return checks;
 }
 
-const desktopPage = task.page("p1");
+const desktopPage = (await task.pages()).find((p) => p.label === "p1") || await task.newPage();
 const desktop = await runDesktop(desktopPage);
 const mobile = await runMobile(task);
 
