@@ -64,6 +64,7 @@ test/full.py          Playwright 双视口功能验收
 test/viewports.py     四视口布局检查
 test/shot.py          单视口快速截图
 test/ego-acceptance.js  ego-browser 验收脚本
+test/regression.js     转向方向 + 护栏包络回归
 ```
 
 ## 验收
