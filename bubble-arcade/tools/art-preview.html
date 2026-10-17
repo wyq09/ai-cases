@@ -1,0 +1,42 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>BA ART</title>
+<style>body{margin:0;background:#111;color:#ccc;font:12px monospace}
+.row{display:flex;flex-wrap:wrap;gap:6px;padding:8px}
+img{background:#222;image-rendering:pixelated}
+h3{margin:8px;color:#8cf}</style></head>
+<body><div id="out"></div>
+<script src="../src/core.js"></script>
+<script src="../src/art.js"></script>
+<script>
+const out=document.getElementById('out');
+function row(title, list){
+  const h=document.createElement('h3'); h.textContent=title; out.appendChild(h);
+  const d=document.createElement('div'); d.className='row';
+  list.forEach(([url,label])=>{ const w=document.createElement('div');
+    const i=document.createElement('img'); i.src=url; i.width=96; i.height=96; i.title=label;
+    const t=document.createElement('div'); t.textContent=label;
+    w.appendChild(i); w.appendChild(t); d.appendChild(w); });
+  out.appendChild(d);
+}
+BA.ART.init();
+Object.keys(BA.ART.THEMES).forEach(th=>{
+  const list=[];
+  for(let v=0;v<2;v++){
+    list.push([BA.ART.tile(0,th,v).toDataURL(),th+' floor'+v]);
+    list.push([BA.ART.tile(1,th,v).toDataURL(),th+' wall'+v]);
+    list.push([BA.ART.tile(2,th,v).toDataURL(),th+' box'+v]);
+  }
+  row('TILES '+th, list);
+});
+BA.ART.CHARS.forEach(ch=>{
+  const list=[];
+  ['down','up','left','right'].forEach(dir=>{
+    list.push([BA.ART.player(ch.id,dir,0).toDataURL(), ch.id+' '+dir]);
+  });
+  list.push([BA.ART.trapped(ch.id,0).toDataURL(), ch.id+' trapped']);
+  list.push([BA.ART.avatar(ch.id), ch.id+' avatar']);
+  row('CHAR '+ch.name, list);
+});
+row('ITEMS', BA.ART.ITEM_TYPES.map(t=>[BA.ART.itemURL(t), t]));
+row('BUBBLE', [0,1,2,3,4,5,6,7].map(f=>[BA.ART.bubble(f).toDataURL(),'f'+f]));
+window.__ready = true;
+</script></body></html>

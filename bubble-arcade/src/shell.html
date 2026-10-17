@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>泡泡堂 · BUBBLE ARCADE</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="description" content="泡泡堂 H5 复刻 · 15×13 棋盘 · 放泡水柱十字爆破 · 混战与 2v2 · 本地双人 + AI">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='26' fill='%236ec8ff' opacity='.85'/%3E%3Ccircle cx='23' cy='23' r='8' fill='%23fff' opacity='.9'/%3E%3C/svg%3E">
+<style>/*STYLE_INLINE*/</style>
+</head>
+<body>
+<script>/*RESET_INLINE*/</script>
+<div id="app">
+  <div id="stage">
+    <canvas id="game" width="960" height="832"></canvas>
+    <div id="overlay"></div>
+    <div id="hud">
+      <div id="scoreStrip"></div>
+      <div id="topRight">
+        <div id="timer">2:30</div>
+        <div id="roundTag">第 1 局</div>
+      </div>
+    </div>
+    <div id="hints"></div>
+    <div id="countdown"></div>
+    <div id="toast"></div>
+    <div id="fps"></div>
+    <div id="screenTitle" class="screen"></div>
+    <div id="screenSettings" class="screen"></div>
+    <div id="screenHelp" class="screen"></div>
+    <div id="screenStats" class="screen"></div>
+    <div id="screenPause" class="screen"></div>
+    <div id="screenRound" class="screen"></div>
+    <div id="screenMatch" class="screen"></div>
+  </div>
+  <div id="desktopOnly">
+    <div class="do-card">
+      <div class="do-emoji">🖥️</div>
+      <h2>请用电脑打开</h2>
+      <p>《泡泡堂 · BUBBLE ARCADE》是键盘操作的双人对战游戏，需要电脑浏览器与实体键盘。</p>
+      <p class="do-sub">在电脑上访问本页面即可开始。</p>
+    </div>
+  </div>
+</div>
+<div id="mobileProbe"></div>
+<script>/*MODULE_SCRIPTS*/</script>
+</body>
+</html>
