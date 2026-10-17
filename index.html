@@ -40,9 +40,9 @@ img{display:block;max-width:100%}
 .nav a{pointer-events:auto;transition:color .3s}
 .nav a:hover{color:var(--amber)}
 .nav .brand{color:var(--amber);font-weight:600;letter-spacing:.32em}
-.nav .right{display:flex;gap:34px;align-items:center}
+.nav .right{display:flex;gap:22px;align-items:center}
 .nav .dot{color:var(--muted)}
-.nav .nav-new{display:inline-flex;align-items:center;gap:8px;color:var(--amber);border:1px solid rgba(226,162,74,.45);padding:7px 14px;border-radius:2px}
+.nav .nav-new{display:inline-flex;align-items:center;gap:8px;color:var(--amber);border:1px solid rgba(226,162,74,.45);padding:7px 13px;border-radius:2px;white-space:nowrap;flex-shrink:0}
 .nav .nav-new:hover{border-color:var(--amber);background:rgba(226,162,74,.08)}
 .nav .nav-new .new-dot{font-size:8px;animation:newpulse 2.2s ease-in-out infinite}
 @keyframes newpulse{0%,100%{opacity:.35}50%{opacity:1}}
@@ -144,6 +144,10 @@ img{display:block;max-width:100%}
   .feature .body{padding:24px;flex-direction:column;align-items:flex-start}
   .about{grid-template-columns:1fr;gap:30px}
 }
+@media (max-width:1560px){
+  .nav .right{gap:16px}
+  .nav .nav-new.secondary{display:none}
+}
 </style>
 </head>
 <body>
@@ -153,12 +157,13 @@ img{display:block;max-width:100%}
 <nav class="nav">
   <a href="#top" class="brand">CASE<span class="dot">·</span>LIB</a>
   <div class="right">
+    <a href="qq-speed-3d/index.html" target="_blank" class="nav-new">QQ飞车 3D<span class="new-dot">●</span>NEW</a>
     <a href="fluffy-fox/index.html" target="_blank" class="nav-new">毛茸茸小狐<span class="new-dot">●</span>NEW</a>
     <a href="zombie-defense/index.html" target="_blank" class="nav-new">僵尸防线<span class="new-dot">●</span>NEW</a>
-    <a href="member-ops-dashboard/index.html" target="_blank" class="nav-new">会员运营大屏<span class="new-dot">●</span>NEW</a>
-    <a href="chengyu-cross/index.html" target="_blank" class="nav-new">填成语<span class="new-dot">●</span>NEW</a>
-    <a href="alice-promo/delivery/Alice_Promo_1080p.mp4" target="_blank" class="nav-new">白艾莉 宣传片<span class="new-dot">●</span>NEW</a>
-    <a href="exit-zero/index.html" target="_blank" class="nav-new">EXIT 0<span class="new-dot">●</span>NEW</a>
+    <a href="member-ops-dashboard/index.html" target="_blank" class="nav-new secondary">会员运营大屏<span class="new-dot">●</span>NEW</a>
+    <a href="chengyu-cross/index.html" target="_blank" class="nav-new secondary">填成语<span class="new-dot">●</span>NEW</a>
+    <a href="alice-promo/delivery/Alice_Promo_1080p.mp4" target="_blank" class="nav-new secondary">白艾莉 宣传片<span class="new-dot">●</span>NEW</a>
+    <a href="exit-zero/index.html" target="_blank" class="nav-new secondary">EXIT 0<span class="new-dot">●</span>NEW</a>
     <a href="#cases">案例库</a>
     <a href="#about">关于</a>
     <a href="#top" class="dot">TOP</a>
@@ -179,7 +184,7 @@ img{display:block;max-width:100%}
       <span class="tag ghost">持续更新</span>
     </div>
     <div class="stats">
-      <div class="stat"><div class="v">44<span class="u">个</span></div><div class="l">已收录案例</div></div>
+      <div class="stat"><div class="v">45<span class="u">个</span></div><div class="l">已收录案例</div></div>
       <div class="stat"><div class="v">23<span class="u">页</span></div><div class="l">单案例最多</div></div>
       <div class="stat"><div class="v">H5<span class="u">PPT</span></div><div class="l">交付形态</div></div>
       <div class="stat"><div class="v">100<span class="u">%</span></div><div class="l">离线可用</div></div>
@@ -218,6 +223,18 @@ img{display:block;max-width:100%}
     <button class="filter" data-filter="品牌表达">品牌表达</button>
   </div>
   <div class="grid">
+    <a class="case-card" data-cat="web应用" href="qq-speed-3d/index.html" target="_blank" rel="noopener">
+      <div class="bg" style="background-image:linear-gradient(160deg,#0a1a2c 0%,#1b5f8a 42%,#ff8a2a 100%)"></div>
+      <div class="in">
+        <div class="cat" style="color:#ffd23f">3D · THREE.JS 竞速</div>
+        <h3>QQ飞车 · 极速海岸</h3>
+        <div class="meta">Three.js 3D 卡丁车竞速致敬作 · 海岸环岛赛道 3 圈 6 车 · 漂移三段蓄力（青紫橙火花）+ 松手喷 + 双喷 · 三格氮气 · 9 条加速带 · 撞墙顿帧震屏刮擦火花 · 尾焰/胎烟/速度线 · WebAudio 全合成引擎声与 128BPM BGM · 触屏双指漂移 · 手机/桌面自适应 · 零外部素材</div>
+        <div class="foot">
+          <span class="view">开跑 <span class="arr">→</span></span>
+          <span class="view" style="color:var(--muted)">3D · QQ Speed</span>
+        </div>
+      </div>
+    </a>
     <a class="case-card" data-cat="web应用" href="fluffy-fox/index.html" target="_blank" rel="noopener">
       <div class="bg" style="background-image:linear-gradient(165deg,#f3ead9 0%,#ecc98f 60%,#c9702e 130%)"></div>
       <div class="in">
