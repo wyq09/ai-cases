@@ -196,7 +196,10 @@ export function createTrack(scene, renderer, textures, quality) {
 
   // barriers
   {
-    const segStep = Math.max(2, Math.round(6.4 / stepLen));
+    // Short segments (2 samples) keep the chord sag on tight corners far below the
+    // car's collision clearance, so the chassis can never visually enter the rail.
+    const segStep = 2;
+    const segLen = stepLen * segStep * 0.97;
     const insts = [];
     for (let i = 0; i < N; i += segStep) {
       const s = samples[i];
@@ -211,7 +214,7 @@ export function createTrack(scene, renderer, textures, quality) {
         });
       }
     }
-    const geo = new THREE.BoxGeometry(0.22, 0.6, 6.2);
+    const geo = new THREE.BoxGeometry(0.22, 0.6, segLen);
     const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, metalness: 0.1 });
     const mesh = new THREE.InstancedMesh(geo, mat, insts.length);
     const m = new THREE.Matrix4();
@@ -230,7 +233,7 @@ export function createTrack(scene, renderer, textures, quality) {
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     group.add(mesh);
 
-    const railGeo = new THREE.BoxGeometry(0.16, 0.09, 6.2);
+    const railGeo = new THREE.BoxGeometry(0.16, 0.09, segLen);
     const railMat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
     const rail = new THREE.InstancedMesh(railGeo, railMat, insts.length);
     insts.forEach((it, i) => {
@@ -804,21 +807,21 @@ export function createTrack(scene, renderer, textures, quality) {
     const accentMat = new THREE.MeshStandardMaterial({ color: 0xff6a18, roughness: 0.4, metalness: 0.3 });
     for (const side of [-1, 1]) {
       const pil = new THREE.Mesh(new THREE.BoxGeometry(0.85, 8.2, 0.85), pillarMat);
-      pil.position.set(side * 9.2, 4.1, 0);
+      pil.position.set(side * 10.45, 4.1, 0);
       pil.castShadow = true;
       g.add(pil);
       for (let k = 0; k < 3; k++) {
         const band = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.45, 0.92), k % 2 ? accentMat : pillarMat);
-        band.position.set(side * 9.2, 1.1 + k * 1.15, 0);
+        band.position.set(side * 10.45, 1.1 + k * 1.15, 0);
         g.add(band);
       }
     }
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(19.2, 0.7, 1.0), accentMat);
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(21.8, 0.7, 1.0), accentMat);
     beam.position.set(0, 8.2, 0);
     beam.castShadow = true;
     g.add(beam);
     const banner = new THREE.Mesh(
-      new THREE.PlaneGeometry(18.2, 2.35),
+      new THREE.PlaneGeometry(20.6, 2.35),
       new THREE.MeshStandardMaterial({
         map: textures.startBanner, roughness: 0.55, metalness: 0.05,
         emissive: 0xffffff, emissiveMap: textures.startBanner, emissiveIntensity: 0.28,

@@ -588,7 +588,10 @@ function updatePlayer(dt) {
   // track queries
   const near = track.nearest(player.pos, player.prevIndex);
   player.offroad = Math.abs(near.offset) > track.half + 0.15;
-  const wallLimit = track.half + 2.0;
+  // Barrier centre is at half + 2.15 with 0.22 thickness -> inner face half + 2.04.
+  // Keep the car body (half width ~1.03) clear of that face instead of letting the
+  // chassis sink into the rail.
+  const wallLimit = track.half + 0.7;
   if (Math.abs(near.offset) > wallLimit) {
     const sign = Math.sign(near.offset);
     const correction = near.offset - sign * wallLimit;
@@ -617,6 +620,17 @@ function updatePlayer(dt) {
         color: 0xffd166, colorEnd: 0xff4b1a, gravity: 9, drag: 1.3, jitter: 0.5,
       });
     }
+  } else if (Math.abs(near.offset) > track.half + 5) {
+    // safety net: a bad nearest-frame must never leave the car outside the circuit
+    const sign = Math.sign(near.offset);
+    player.pos.copy(near.point).addScaledVector(near.right, sign * track.half);
+    const tangentYaw = Math.atan2(near.tangent.x, near.tangent.z);
+    player.heading = tangentYaw;
+    player.moveYaw = tangentYaw;
+    player.speed *= 0.3;
+    player.drifting = false;
+    player.driftCharge = 0;
+    player.driftLevel = 0;
   }
   player.pos.y = near.y;
   player.offroad = Math.abs(near.offset) > track.half + 0.15;
@@ -683,6 +697,22 @@ function updatePlayer(dt) {
           color: 0xfff0a8, colorEnd: 0xff7a1a, gravity: 7, drag: 1.4,
         });
       }
+    }
+  }
+
+  // kart pushbacks happen after the barrier clamp above; re-clamp so a shove can
+  // never leave the body inside the rail for a frame
+  {
+    const post = track.nearest(player.pos, player.prevIndex);
+    const limit = track.half + 0.7;
+    if (Math.abs(post.offset) > limit) {
+      const sign = Math.sign(post.offset);
+      const excess = post.offset - sign * limit;
+      player.pos.x -= post.right.x * excess;
+      player.pos.z -= post.right.z * excess;
+      player.pos.y = post.y;
+      player.prevIndex = post.index;
+      setKartTransform(player.kart, track.frameAt(post.u), player.pos, player.heading);
     }
   }
 
@@ -880,7 +910,7 @@ function updateChaseCamera(dt) {
   const right = tmpV2.set(fwd.z, 0, -fwd.x);
   const desired = tmpV3.copy(player.pos)
     .addScaledVector(fwd, -back)
-    .addScaledVector(right, player.steer * 0.52)
+    .addScaledVector(right, -player.steer * 0.52)
     .add(new THREE.Vector3(0, height, 0));
 
   const lerp = camSnap ? 1 : 1 - Math.exp(-dt * 5.6);

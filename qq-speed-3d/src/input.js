@@ -204,7 +204,9 @@ export class Input {
     const k = this.keys;
     const left = k.has('ArrowLeft') || k.has('KeyA') || this.touch.left;
     const right = k.has('ArrowRight') || k.has('KeyD') || this.touch.right;
-    const target = (right ? 1 : 0) - (left ? 1 : 0);
+    // positive steer turns the car toward its left (heading increases);
+    // left input must win here so screen-left button/arrow turns left.
+    const target = (left ? 1 : 0) - (right ? 1 : 0);
     const rate = target === 0 ? 12 : 9;
     this.steer += (target - this.steer) * Math.min(1, dt * rate);
     this.brake = k.has('ArrowDown') || k.has('KeyS') || this.touch.brake;
