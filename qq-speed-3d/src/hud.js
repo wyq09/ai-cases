@@ -1,4 +1,4 @@
-import { ITEMS } from './items.js';
+import { ITEMS } from './items.js?v=20261018a';
 
 const fmt = (ms) => {
   if (!Number.isFinite(ms) || ms < 0) ms = 0;

@@ -92,6 +92,8 @@ cd qq-speed-3d && python3 -m http.server 8791
 # 打开 http://localhost:8791  手机访问 http://<局域网IP>:8791
 ```
 
+> 维护提示：更新 JS 后请同步递增 `index.html` 的 importmap / module `?v=` 与 `src/*.js` 相对 import 的版本号（当前 `20261018a`），避免 7 天静态缓存读到旧模块。
+
 调试参数：
 
 - `?auto=1` 自动开局

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>QQ飞车 · 极速海岸 3D | 七大赛道 · 道具赛 · 无限赛道</title>
 <meta name="description" content="Three.js 3D 卡丁车竞速：7 条主题赛道 + 程序化无限赛道，漂移蓄力、双喷、氮气、追踪导弹 / 地雷 / 护盾 / 电磁风暴道具，AI 对手、程序化音效与粒子特效。">
-<script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js?v=20261018a"}}</script>
 <style>
 :root{
   --orange:#ff6a18;
@@ -934,6 +934,7 @@ if (('ontouchstart' in window) || navigator.maxTouchPoints > 0 || matchMedia('(p
   document.body.classList.add('touch');
 }
 </script>
-<script type="module" src="./src/main.js"></script>
+<!-- 静态资源版本：改了 JS 后同步递增这里的 ?v=，避免 7 天静态缓存读到旧模块 -->
+<script type="module" src="./src/main.js?v=20261018a"></script>
 </body>
 </html>

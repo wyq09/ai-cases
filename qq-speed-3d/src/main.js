@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { createTextures } from './textures.js';
-import { createTrack } from './track.js';
-import { createKart, animateKart, kartWheelWorld } from './kart.js';
-import { ParticlePool, SkidMarks } from './particles.js';
-import { RaceAudio } from './audio.js';
-import { HUD } from './hud.js';
-import { Input } from './input.js';
-import { SelectScreen } from './select.js';
-import { LEVELS, LEVEL_BY_ID, levelSpec, makeEndlessSpec } from './tracks.js';
-import { ItemSystem } from './items.js';
+import { createTextures } from './textures.js?v=20261018a';
+import { createTrack } from './track.js?v=20261018a';
+import { createKart, animateKart, kartWheelWorld } from './kart.js?v=20261018a';
+import { ParticlePool, SkidMarks } from './particles.js?v=20261018a';
+import { RaceAudio } from './audio.js?v=20261018a';
+import { HUD } from './hud.js?v=20261018a';
+import { Input } from './input.js?v=20261018a';
+import { SelectScreen } from './select.js?v=20261018a';
+import { LEVELS, LEVEL_BY_ID, levelSpec, makeEndlessSpec } from './tracks.js?v=20261018a';
+import { ItemSystem } from './items.js?v=20261018a';
 
 const SAVE_KEY = 'qqspeed3d.save.v1';
 const params = new URLSearchParams(location.search);
