@@ -199,6 +199,33 @@
       if (e.code === p.keys.bomb) mashEscape(p);
     });
   }
+
+  /* ---- 触屏输入桥：虚拟摇杆 / 放泡键 → 第一个人类玩家（复用键盘原语） ---- */
+  var touchDirState = null;
+  function firstHuman() {
+    for (var i = 0; i < S.players.length; i++) if (S.players[i].isHuman) return S.players[i];
+    return null;
+  }
+  function touchDir(d) {
+    var p = firstHuman(); if (!p) return;
+    if (d === touchDirState) return;
+    if (touchDirState) {
+      keys[dirKeyCode(p, touchDirState)] = false;
+      var st = dirStack[p.id];
+      if (st) { var i = st.indexOf(touchDirState); if (i >= 0) st.splice(i, 1); }
+    }
+    touchDirState = d;
+    if (d) {
+      keys[dirKeyCode(p, d)] = true;
+      (dirStack[p.id] || (dirStack[p.id] = [])).push(d);
+      if (p.trapped) mashEscape(p);
+    }
+  }
+  function touchBomb(down) {
+    var p = firstHuman(); if (!p) return;
+    if (down) { if (p.trapped) mashEscape(p); else p.bombPressed = true; }
+    /* 抬起不清 bombPressed：快速点按可能短于一个逻辑帧，交给游戏消费时清除 */
+  }
   function mashEscape(p) {
     if (performance.now() - (p.lastMash || 0) < 85) return;
     p.lastMash = performance.now();
@@ -231,6 +258,7 @@
     S.speedMul = opts.speedMul || 1;
     keys = {};
     dirStack = {};
+    touchDirState = null;
     S.players = makePlayers(opts);
     S.matchOpts = opts;
     S.phase = 'idle';
@@ -1369,6 +1397,7 @@
     pause: pause,
     resume: resume,
     quit: quit,
+    touch: { dir: touchDir, bomb: touchBomb },
     render: render,
     expose: expose,
     setBotOnly: function (b) { S.botOnly = !!b; },

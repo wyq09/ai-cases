@@ -4,7 +4,7 @@ import os, sys
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(ROOT, 'src')
-ORDER = ['core.js', 'art.js', 'audio.js', 'fx.js', 'maps.js', 'ai.js', 'game.js', 'ui.js', 'boot.js']
+ORDER = ['core.js', 'art.js', 'audio.js', 'fx.js', 'maps.js', 'ai.js', 'game.js', 'ui.js', 'touch.js', 'boot.js']
 
 def read(p):
     with open(p, encoding='utf-8') as f:

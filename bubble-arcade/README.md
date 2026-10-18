@@ -1,10 +1,11 @@
 # 泡泡堂 · BUBBLE ARCADE
 
-经典《泡泡堂 / Crazy Arcade》的 H5 复刻：15×13 棋盘，放泡泡、水柱十字爆破、炸箱吃道具、困泡自救与队友救援，1–2 人本地对战 + AI。**PC 键盘专用**，单文件零外部资源。
+经典《泡泡堂 / Crazy Arcade》的 H5 复刻：15×13 棋盘，放泡泡、水柱十字爆破、炸箱吃道具、困泡自救与队友救援，1–2 人本地对战 + AI。**PC 键盘 + 手机触屏**双操作，单文件零外部资源。
 
 ## 玩法
 
-- **移动 / 放泡**：P1 `WASD` + `Space`；P2 `↑←↓→` + `Enter`；`Esc`/`P` 暂停，`M` 静音。
+- **键盘**：P1 `WASD` + `Space`；P2 `↑←↓→` + `Enter`；`Esc`/`P` 暂停，`M` 静音。
+- **触屏**：左下热区按住滑动移动（按下处即摇杆原点，4 向吸附 + 轴间迟滞防抖，死区内原地站定）；右下大按钮放泡（被困时快速连点自救，摇杆来回变向同样计入）；右上按钮暂停/继续。竖屏棋盘居上、横屏棋盘居中，控制区自动避让 + 安全区适配；`?touch=1` 桌面强制开启调试，`?touch=0` 关闭。
 - **泡泡**：脚下放泡，2.4 秒后十字水柱炸开（可调 1.4–3.2s）。遇硬墙停止，炸掉软箱后停止，碰到其它泡泡链式引爆。
 - **困泡**：被水柱命中不会立刻死，而是被裹进泡泡 3.6 秒。期间狂按方向键/放泡键可提前挣脱（约 11 下）；队友贴身站住即可救援。倒计时结束泡泡破裂淘汰，困泡状态再被水柱打中立即淘汰。
 - **道具**：泡泡+1（上限 8）· 威力+1（上限 8）· 速度+1（上限 6.2 格/s）· 踢靴（走向泡泡把它踢出去，撞到玩家直接困住）· 护盾（抵挡一次水柱 + 1.3s 无敌）。软箱按概率掉落，地上道具会被水柱冲毁。
@@ -23,13 +24,15 @@
 - **物理与手感**：120 Hz 固定步长 + 车道锁定（移动前对齐行/列中心，永不卡在格子缝里）、放泡者离开格子前可自由穿过自己的泡泡、踢泡直线滑行撞人困泡、转角辅助微调。
 - **渲染**：静态层（地板/硬墙）预渲染到离屏 Canvas，每帧只重绘软箱/道具/泡泡/水柱/角色；`rAF` + `setInterval` 双驱动防后台节流冻结，实测 120 FPS。
 - **AI**：危险图（每颗泡泡的爆炸范围 + 引信时间）+ BFS 寻路 + `canEscape()` 放泡前逃逸校验（步数 × 步时 < 引信），26 Hz 决策节流。
-- **测试钩子**：`window.__ba` 暴露 `state / phase / players / board / cfg / fps / errors`、`start / fastForward / winNow / teleport / give / placeBomb / trap / forceEnd / setSpeed`；URL 参数 `?auto=1`（机器人演示）、`?reset=1`（清档）、`?muted=1`、`?fps=1`、`?map=`、`?speed=`。
+- **触屏操作**：`touch.js` 动态虚拟摇杆 + 放泡/暂停键，纯 DOM 多点触控（touch identifier 跟踪，摇杆/放泡互不干扰），输入桥接复用键盘的 `dirStack`/`bombPressed`/`mashEscape` 原语，键盘逻辑零改动；被困时摇杆变向计入自救；放泡采用「按下置位、游戏消费清除」防快速点按丢拍。
+- **测试钩子**：`window.__ba` 暴露 `state / phase / players / board / cfg / fps / errors`、`start / fastForward / winNow / teleport / give / placeBomb / trap / forceEnd / setSpeed`、`touch.dir / touch.bomb`（触屏桥状态）；URL 参数 `?auto=1`（机器人演示）、`?reset=1`（清档）、`?muted=1`、`?fps=1`、`?map=`、`?speed=`、`?touch=1|0`。
 
 ## 开发
 
 ```sh
 python3 build.py                 # src/ → index.html 单文件
 python3 test/serve.py 8771       # 本地预览 http://127.0.0.1:8771
+node test/touch-test.mjs         # 触屏回归（Playwright iPhone 竖/横屏 + 桌面回退，24 项）
 ```
 
-调试参数：`?reset=1` 清存档 · `?auto=1` 机器人自动演示 · `?map=ice|arena|cross|pillars|maze` · `?fps=1` 显示帧率。
+调试参数：`?reset=1` 清存档 · `?auto=1` 机器人自动演示 · `?map=ice|arena|cross|pillars|maze` · `?fps=1` 显示帧率 · `?touch=1` 桌面强制触屏模式。

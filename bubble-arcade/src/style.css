@@ -290,14 +290,101 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
 .toggle.on i { background: rgba(95,216,255,.5); border-color: rgba(95,216,255,.7); }
 .toggle.on i::after { transform: translateX(18px); background: #fff; }
 
-/* ---------------- 桌面提示 ---------------- */
-#desktopOnly { display: none; position: fixed; inset: 0; z-index: 999; place-items: center; background: #070b14; padding: 24px; }
-#desktopOnly.on { display: grid; }
-.do-card { max-width: 460px; text-align: center; }
-.do-emoji { font-size: 54px; margin-bottom: 14px; }
-.do-card h2 { font-size: 24px; margin: 0 0 12px; letter-spacing: .04em; }
-.do-card p { font-size: 14px; line-height: 1.8; color: #a8b9d9; margin: 0 0 10px; }
-.do-card .do-sub { font-family: var(--mono); font-size: 11.5px; color: #6f86b0; letter-spacing: .06em; }
+/* ---------------- 触屏操作层 ---------------- */
+#touchLayer {
+  position: fixed; inset: 0; z-index: 40;
+  display: none; pointer-events: none;
+  touch-action: none;
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#touchLayer.on { display: block; }
+/* 摇杆热区：左手拇指自然落点，按下处即摇杆原点 */
+.tl-zone {
+  position: absolute; left: 0; bottom: 0;
+  width: 58%; height: 56%;
+  pointer-events: auto;
+}
+/* 菜单/暂停时收起操作控件，暂停键保持可点 */
+#touchLayer.paused .tl-zone,
+#touchLayer.paused .tl-bomb,
+#touchLayer.paused .tl-ghost { display: none; }
+/* 摇杆本体（视觉层，不接事件） */
+.tl-base {
+  position: fixed; left: -999px; top: -999px;
+  width: 118px; height: 118px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1.5px solid rgba(150,200,255,.32);
+  background: rgba(10,18,32,.30);
+  opacity: 0; transition: opacity .12s;
+  pointer-events: none;
+}
+.tl-base.on { opacity: 1; }
+.tl-knob {
+  position: absolute; left: 50%; top: 50%;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: rgba(232,242,255,.88);
+  box-shadow: 0 2px 10px rgba(4,10,22,.45), inset 0 -3px 6px rgba(110,170,240,.35);
+  transform: translate(-50%, -50%);
+}
+/* 首次进入的落点提示：淡入淡出的呼吸圈 */
+.tl-ghost {
+  position: absolute;
+  left: calc(96px + env(safe-area-inset-left));
+  bottom: calc(118px + env(safe-area-inset-bottom));
+  width: 104px; height: 104px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(150,200,255,.30);
+  pointer-events: none;
+  animation: tlBreath 2.6s ease-in-out infinite;
+}
+.tl-ghost i {
+  position: absolute; left: 50%; top: 50%;
+  width: 40px; height: 40px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(180,215,255,.14);
+}
+.tl-ghost.gone { animation: tlFade .4s forwards; }
+@keyframes tlBreath { 0%, 100% { opacity: .38; } 50% { opacity: .8; } }
+@keyframes tlFade { to { opacity: 0; visibility: hidden; } }
+/* 放泡大按钮 */
+.tl-bomb {
+  position: absolute;
+  right: calc(26px + env(safe-area-inset-right));
+  bottom: calc(38px + env(safe-area-inset-bottom));
+  width: 86px; height: 86px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(140,190,255,.42);
+  background: rgba(10,18,32,.44);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: auto;
+  transition: transform .08s, background .08s, border-color .08s;
+}
+.tl-bomb.press {
+  transform: scale(.9);
+  background: rgba(24,48,84,.62);
+  border-color: rgba(190,225,255,.8);
+}
+/* 暂停键（暂停屏打开时仍可点，用于恢复） */
+.tl-pause {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top));
+  right: calc(14px + env(safe-area-inset-right));
+  width: 44px; height: 44px;
+  border-radius: 11px;
+  border: 1.5px solid rgba(140,190,255,.35);
+  background: rgba(10,18,32,.44);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: auto;
+  padding: 0;
+  cursor: pointer;
+  transition: background .12s;
+}
+.tl-pause:active { background: rgba(24,48,84,.62); }
 
 /* ---------------- 矮屏（笔记本 720p/768p）紧凑排版 ---------------- */
 @media (max-height: 1020px) {

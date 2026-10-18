@@ -92,8 +92,10 @@
         '<button class="btn ghost" data-act="stats">战绩</button>' +
       '</div>' +
       '<div class="tips" style="margin-top:20px">' +
-        '<b>P1</b> <span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span> 移动 · <span class="kbd">Space</span> 放泡 &nbsp;|&nbsp; ' +
-        '<b>P2</b> <span class="kbd">↑</span><span class="kbd">←</span><span class="kbd">↓</span><span class="kbd">→</span> 移动 · <span class="kbd">Enter</span> 放泡' +
+        (BA.TOUCH && BA.TOUCH.enabled
+          ? '<b>触屏</b> 左下区域按住滑动移动 · 右下按钮放泡 · 右上按钮暂停（插键盘仍可双人）'
+          : '<b>P1</b> <span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span> 移动 · <span class="kbd">Space</span> 放泡 &nbsp;|&nbsp; ' +
+            '<b>P2</b> <span class="kbd">↑</span><span class="kbd">←</span><span class="kbd">↓</span><span class="kbd">→</span> 移动 · <span class="kbd">Enter</span> 放泡') +
       '</div>';
     sc.appendChild(card);
     renderChips(sc);
@@ -392,6 +394,14 @@
           '<div class="row"><span class="kbd">Esc</span> / <span class="kbd">P</span> 暂停</div>' +
           '<div class="row"><span class="kbd">M</span> 静音开关</div>' +
         '</div>' +
+        (BA.TOUCH && BA.TOUCH.enabled
+          ? '<div class="keys-box"><h4>触屏操作</h4>' +
+            '<div class="row">左下区域按住滑动移动，按下处即摇杆原点</div>' +
+            '<div class="row">右下按钮放置泡泡 / 被困时快速连点自救</div>' +
+            '<div class="row">被困时来回拨动摇杆变向，同样计入自救</div>' +
+            '<div class="row">右上按钮暂停，暂停时再点一次继续</div>' +
+            '</div>'
+          : '') +
         '<div class="keys-box"><h4>规则要点</h4>' +
           '<div class="row">先到 <b>3 胜</b> 赢下比赛（可调）</div>' +
           '<div class="row">超时进入 <b>死亡模式</b>，随机落泡</div>' +

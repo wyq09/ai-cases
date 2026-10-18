@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>泡泡堂 · BUBBLE ARCADE</title>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="description" content="泡泡堂 H5 复刻 · 15×13 棋盘 · 放泡水柱十字爆破 · 混战与 2v2 · 本地双人 + AI">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='26' fill='%236ec8ff' opacity='.85'/%3E%3Ccircle cx='23' cy='23' r='8' fill='%23fff' opacity='.9'/%3E%3C/svg%3E">
 <style>/* ============================================================
@@ -298,14 +298,101 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
 .toggle.on i { background: rgba(95,216,255,.5); border-color: rgba(95,216,255,.7); }
 .toggle.on i::after { transform: translateX(18px); background: #fff; }
 
-/* ---------------- 桌面提示 ---------------- */
-#desktopOnly { display: none; position: fixed; inset: 0; z-index: 999; place-items: center; background: #070b14; padding: 24px; }
-#desktopOnly.on { display: grid; }
-.do-card { max-width: 460px; text-align: center; }
-.do-emoji { font-size: 54px; margin-bottom: 14px; }
-.do-card h2 { font-size: 24px; margin: 0 0 12px; letter-spacing: .04em; }
-.do-card p { font-size: 14px; line-height: 1.8; color: #a8b9d9; margin: 0 0 10px; }
-.do-card .do-sub { font-family: var(--mono); font-size: 11.5px; color: #6f86b0; letter-spacing: .06em; }
+/* ---------------- 触屏操作层 ---------------- */
+#touchLayer {
+  position: fixed; inset: 0; z-index: 40;
+  display: none; pointer-events: none;
+  touch-action: none;
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#touchLayer.on { display: block; }
+/* 摇杆热区：左手拇指自然落点，按下处即摇杆原点 */
+.tl-zone {
+  position: absolute; left: 0; bottom: 0;
+  width: 58%; height: 56%;
+  pointer-events: auto;
+}
+/* 菜单/暂停时收起操作控件，暂停键保持可点 */
+#touchLayer.paused .tl-zone,
+#touchLayer.paused .tl-bomb,
+#touchLayer.paused .tl-ghost { display: none; }
+/* 摇杆本体（视觉层，不接事件） */
+.tl-base {
+  position: fixed; left: -999px; top: -999px;
+  width: 118px; height: 118px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1.5px solid rgba(150,200,255,.32);
+  background: rgba(10,18,32,.30);
+  opacity: 0; transition: opacity .12s;
+  pointer-events: none;
+}
+.tl-base.on { opacity: 1; }
+.tl-knob {
+  position: absolute; left: 50%; top: 50%;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: rgba(232,242,255,.88);
+  box-shadow: 0 2px 10px rgba(4,10,22,.45), inset 0 -3px 6px rgba(110,170,240,.35);
+  transform: translate(-50%, -50%);
+}
+/* 首次进入的落点提示：淡入淡出的呼吸圈 */
+.tl-ghost {
+  position: absolute;
+  left: calc(96px + env(safe-area-inset-left));
+  bottom: calc(118px + env(safe-area-inset-bottom));
+  width: 104px; height: 104px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(150,200,255,.30);
+  pointer-events: none;
+  animation: tlBreath 2.6s ease-in-out infinite;
+}
+.tl-ghost i {
+  position: absolute; left: 50%; top: 50%;
+  width: 40px; height: 40px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(180,215,255,.14);
+}
+.tl-ghost.gone { animation: tlFade .4s forwards; }
+@keyframes tlBreath { 0%, 100% { opacity: .38; } 50% { opacity: .8; } }
+@keyframes tlFade { to { opacity: 0; visibility: hidden; } }
+/* 放泡大按钮 */
+.tl-bomb {
+  position: absolute;
+  right: calc(26px + env(safe-area-inset-right));
+  bottom: calc(38px + env(safe-area-inset-bottom));
+  width: 86px; height: 86px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(140,190,255,.42);
+  background: rgba(10,18,32,.44);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: auto;
+  transition: transform .08s, background .08s, border-color .08s;
+}
+.tl-bomb.press {
+  transform: scale(.9);
+  background: rgba(24,48,84,.62);
+  border-color: rgba(190,225,255,.8);
+}
+/* 暂停键（暂停屏打开时仍可点，用于恢复） */
+.tl-pause {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top));
+  right: calc(14px + env(safe-area-inset-right));
+  width: 44px; height: 44px;
+  border-radius: 11px;
+  border: 1.5px solid rgba(140,190,255,.35);
+  background: rgba(10,18,32,.44);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: auto;
+  padding: 0;
+  cursor: pointer;
+  transition: background .12s;
+}
+.tl-pause:active { background: rgba(24,48,84,.62); }
 
 /* ---------------- 矮屏（笔记本 720p/768p）紧凑排版 ---------------- */
 @media (max-height: 1020px) {
@@ -371,16 +458,8 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
     <div id="screenRound" class="screen"></div>
     <div id="screenMatch" class="screen"></div>
   </div>
-  <div id="desktopOnly">
-    <div class="do-card">
-      <div class="do-emoji">🖥️</div>
-      <h2>请用电脑打开</h2>
-      <p>《泡泡堂 · BUBBLE ARCADE》是键盘操作的双人对战游戏，需要电脑浏览器与实体键盘。</p>
-      <p class="do-sub">在电脑上访问本页面即可开始。</p>
-    </div>
-  </div>
+  <div id="touchLayer"></div>
 </div>
-<div id="mobileProbe"></div>
 <script>/* ==== core.js ==== */
 /* ============================================================
  * 泡泡堂 · src/core.js —— 命名空间 / 工具 / 配置 / 存档
@@ -2604,6 +2683,33 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
       if (e.code === p.keys.bomb) mashEscape(p);
     });
   }
+
+  /* ---- 触屏输入桥：虚拟摇杆 / 放泡键 → 第一个人类玩家（复用键盘原语） ---- */
+  var touchDirState = null;
+  function firstHuman() {
+    for (var i = 0; i < S.players.length; i++) if (S.players[i].isHuman) return S.players[i];
+    return null;
+  }
+  function touchDir(d) {
+    var p = firstHuman(); if (!p) return;
+    if (d === touchDirState) return;
+    if (touchDirState) {
+      keys[dirKeyCode(p, touchDirState)] = false;
+      var st = dirStack[p.id];
+      if (st) { var i = st.indexOf(touchDirState); if (i >= 0) st.splice(i, 1); }
+    }
+    touchDirState = d;
+    if (d) {
+      keys[dirKeyCode(p, d)] = true;
+      (dirStack[p.id] || (dirStack[p.id] = [])).push(d);
+      if (p.trapped) mashEscape(p);
+    }
+  }
+  function touchBomb(down) {
+    var p = firstHuman(); if (!p) return;
+    if (down) { if (p.trapped) mashEscape(p); else p.bombPressed = true; }
+    /* 抬起不清 bombPressed：快速点按可能短于一个逻辑帧，交给游戏消费时清除 */
+  }
   function mashEscape(p) {
     if (performance.now() - (p.lastMash || 0) < 85) return;
     p.lastMash = performance.now();
@@ -2636,6 +2742,7 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
     S.speedMul = opts.speedMul || 1;
     keys = {};
     dirStack = {};
+    touchDirState = null;
     S.players = makePlayers(opts);
     S.matchOpts = opts;
     S.phase = 'idle';
@@ -3774,6 +3881,7 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
     pause: pause,
     resume: resume,
     quit: quit,
+    touch: { dir: touchDir, bomb: touchBomb },
     render: render,
     expose: expose,
     setBotOnly: function (b) { S.botOnly = !!b; },
@@ -3880,8 +3988,10 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
         '<button class="btn ghost" data-act="stats">战绩</button>' +
       '</div>' +
       '<div class="tips" style="margin-top:20px">' +
-        '<b>P1</b> <span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span> 移动 · <span class="kbd">Space</span> 放泡 &nbsp;|&nbsp; ' +
-        '<b>P2</b> <span class="kbd">↑</span><span class="kbd">←</span><span class="kbd">↓</span><span class="kbd">→</span> 移动 · <span class="kbd">Enter</span> 放泡' +
+        (BA.TOUCH && BA.TOUCH.enabled
+          ? '<b>触屏</b> 左下区域按住滑动移动 · 右下按钮放泡 · 右上按钮暂停（插键盘仍可双人）'
+          : '<b>P1</b> <span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span> 移动 · <span class="kbd">Space</span> 放泡 &nbsp;|&nbsp; ' +
+            '<b>P2</b> <span class="kbd">↑</span><span class="kbd">←</span><span class="kbd">↓</span><span class="kbd">→</span> 移动 · <span class="kbd">Enter</span> 放泡') +
       '</div>';
     sc.appendChild(card);
     renderChips(sc);
@@ -4180,6 +4290,14 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
           '<div class="row"><span class="kbd">Esc</span> / <span class="kbd">P</span> 暂停</div>' +
           '<div class="row"><span class="kbd">M</span> 静音开关</div>' +
         '</div>' +
+        (BA.TOUCH && BA.TOUCH.enabled
+          ? '<div class="keys-box"><h4>触屏操作</h4>' +
+            '<div class="row">左下区域按住滑动移动，按下处即摇杆原点</div>' +
+            '<div class="row">右下按钮放置泡泡 / 被困时快速连点自救</div>' +
+            '<div class="row">被困时来回拨动摇杆变向，同样计入自救</div>' +
+            '<div class="row">右上按钮暂停，暂停时再点一次继续</div>' +
+            '</div>'
+          : '') +
         '<div class="keys-box"><h4>规则要点</h4>' +
           '<div class="row">先到 <b>3 胜</b> 赢下比赛（可调）</div>' +
           '<div class="row">超时进入 <b>死亡模式</b>，随机落泡</div>' +
@@ -4453,58 +4571,271 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
 })(window);
 
 
+/* ==== touch.js ==== */
+/* ============================================================
+ * 泡泡堂 · src/touch.js —— 触屏操作层
+ * 动态虚拟摇杆（左手热区）+ 放泡大按钮（右手）+ 暂停按钮
+ * 手感：按下处为摇杆原点；4 向吸附 + 轴间迟滞防抖；
+ *       死区内原地站定；被困时摇杆变向 / 连点放泡键均可计入自救
+ * ============================================================ */
+(function (global) {
+  'use strict';
+  var BA = global.BA;
+
+  var layer = null, zone = null, base = null, knob = null;
+  var bombBtn = null, pauseBtn = null, ghost = null;
+  var joyId = null;        // 占用摇杆的 touch identifier
+  var ox = 0, oy = 0;      // 摇杆原点（视口坐标）
+  var outDir = null;       // 当前输出给游戏的四向
+  var bombDown = false;
+  var usedOnce = false;
+  var enabled = false;
+  var syncTimer = 0;
+
+  var R = 56;              // 摇杆最大半径（CSS px）
+  var DEAD = 12;           // 死区：视为原地站定
+  var K_AXIS = 1.35;       // 轴间切换迟滞：新轴分量需 > 当前轴分量 × K
+  var M_AXIS = 10;         // 轴间切换迟滞：且需超出 M px
+
+  var ICON_BOMB =
+    '<svg viewBox="0 0 48 48" width="42" height="42" aria-hidden="true">' +
+    '<circle cx="21" cy="28" r="13" fill="#6ec8ff" opacity=".92"/>' +
+    '<circle cx="16.5" cy="23.5" r="4.4" fill="#fff" opacity=".9"/>' +
+    '<path d="M28 18 q2.5-7 9.5-8" stroke="#ffd27a" stroke-width="3.2" fill="none" stroke-linecap="round"/>' +
+    '<circle cx="39" cy="9" r="3.2" fill="#ffcf5e"/>' +
+    '</svg>';
+  var ICON_PAUSE =
+    '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">' +
+    '<rect x="6" y="4" width="4.2" height="16" rx="1.6" fill="#cfe0f8"/>' +
+    '<rect x="13.8" y="4" width="4.2" height="16" rx="1.6" fill="#cfe0f8"/>' +
+    '</svg>';
+
+  function inPlay() {
+    var S = BA.GAME && BA.GAME.S;
+    return !!S && (S.phase === 'play' || S.phase === 'countdown');
+  }
+
+  function markUsed() {
+    if (usedOnce) return;
+    usedOnce = true;
+    if (ghost) ghost.classList.add('gone');
+  }
+
+  /* 4 向吸附 + 迟滞：当前横轴时，纵轴分量需明显占优才切换，防 45° 抖动 */
+  function pickDir(dx, dy) {
+    var mag = Math.hypot(dx, dy);
+    if (mag < DEAD) return null;
+    var ax = Math.abs(dx), ay = Math.abs(dy);
+    if (outDir === 'left' || outDir === 'right') {
+      if (ay > ax * K_AXIS && ay > ax + M_AXIS) return dy < 0 ? 'up' : 'down';
+      return dx >= 0 ? 'right' : 'left';
+    }
+    if (outDir === 'up' || outDir === 'down') {
+      if (ax > ay * K_AXIS && ax > ay + M_AXIS) return dx < 0 ? 'left' : 'right';
+      return dy >= 0 ? 'down' : 'up';
+    }
+    return ax >= ay ? (dx >= 0 ? 'right' : 'left') : (dy >= 0 ? 'down' : 'up');
+  }
+
+  function showBase(x, y) {
+    base.style.left = x + 'px';
+    base.style.top = y + 'px';
+    base.classList.add('on');
+    moveKnob(0, 0);
+  }
+  function moveKnob(dx, dy) {
+    var mag = Math.hypot(dx, dy);
+    if (mag > R) { dx = dx / mag * R; dy = dy / mag * R; }
+    knob.style.transform = 'translate(calc(-50% + ' + dx.toFixed(1) + 'px), calc(-50% + ' + dy.toFixed(1) + 'px))';
+  }
+  function hideBase() {
+    base.classList.remove('on');
+    joyId = null;
+  }
+
+  function joystickStart(t) {
+    joyId = t.identifier;
+    ox = t.clientX; oy = t.clientY;
+    outDir = null;
+    showBase(ox, oy);
+    markUsed();
+  }
+  function joystickMove(t) {
+    var dx = t.clientX - ox, dy = t.clientY - oy;
+    moveKnob(dx, dy);
+    var d = pickDir(dx, dy);
+    if (d !== outDir) {
+      outDir = d;
+      if (BA.GAME.touch) BA.GAME.touch.dir(d);
+    }
+  }
+  function joystickEnd() {
+    if (outDir && BA.GAME.touch) BA.GAME.touch.dir(null);
+    outDir = null;
+    hideBase();
+  }
+
+  function setBomb(down) {
+    if (bombDown === down) return;
+    bombDown = down;
+    bombBtn.classList.toggle('press', down);
+    if (BA.GAME.touch) BA.GAME.touch.bomb(down);
+  }
+
+  function syncVisible() {
+    if (!layer || !enabled) return;
+    var S = BA.GAME && BA.GAME.S;
+    var on = inPlay() && !(S && S.botOnly);
+    layer.classList.toggle('on', on);
+    layer.classList.toggle('paused', !!(on && S.paused));
+  }
+
+  function init() {
+    if (enabled) return;
+    layer = document.getElementById('touchLayer');
+    if (!layer) return;
+    enabled = true;
+
+    layer.innerHTML =
+      '<div class="tl-zone"></div>' +
+      '<div class="tl-ghost"><i></i></div>' +
+      '<div class="tl-base"><div class="tl-knob"></div></div>' +
+      '<div class="tl-bomb">' + ICON_BOMB + '</div>' +
+      '<button class="tl-pause" type="button" aria-label="暂停">' + ICON_PAUSE + '</button>';
+
+    zone = layer.querySelector('.tl-zone');
+    ghost = layer.querySelector('.tl-ghost');
+    base = layer.querySelector('.tl-base');
+    knob = layer.querySelector('.tl-knob');
+    bombBtn = layer.querySelector('.tl-bomb');
+    pauseBtn = layer.querySelector('.tl-pause');
+
+    zone.addEventListener('touchstart', function (e) {
+      e.preventDefault();
+      for (var i = 0; i < e.changedTouches.length; i++) {
+        if (joyId === null) joystickStart(e.changedTouches[i]);
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', function (e) {
+      for (var i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joyId) {
+          e.preventDefault();
+          joystickMove(e.changedTouches[i]);
+        }
+      }
+    }, { passive: false });
+
+    var release = function (e) {
+      for (var i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joyId) joystickEnd();
+      }
+    };
+    window.addEventListener('touchend', release);
+    window.addEventListener('touchcancel', release);
+
+    bombBtn.addEventListener('touchstart', function (e) {
+      e.preventDefault(); e.stopPropagation(); setBomb(true);
+    }, { passive: false });
+    bombBtn.addEventListener('touchend', function (e) { e.preventDefault(); setBomb(false); }, { passive: false });
+    bombBtn.addEventListener('touchcancel', function () { setBomb(false); });
+    bombBtn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    /* ?touch=1 桌面调试用 */
+    bombBtn.addEventListener('mousedown', function () { setBomb(true); });
+    window.addEventListener('mouseup', function () { if (bombDown) setBomb(false); });
+
+    pauseBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      var S = BA.GAME && BA.GAME.S;
+      if (!S) return;
+      if (S.paused) BA.GAME.resume();
+      else if (inPlay()) BA.GAME.pause();
+    });
+
+    layer.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+    if (syncTimer) clearInterval(syncTimer);
+    syncTimer = setInterval(syncVisible, 300);
+    syncVisible();
+
+    if (window.__ba) {
+      window.__ba.touch = {
+        get dir() { return outDir; },
+        get bomb() { return bombDown; }
+      };
+    }
+  }
+
+  BA.TOUCH = {
+    init: init,
+    get enabled() { return enabled; }
+  };
+})(window);
+
+
 /* ==== boot.js ==== */
 /* ============================================================
  * 泡泡堂 · src/boot.js —— 启动引导
- * 缩放舞台 / 移动端拦截 / 初始化各模块 / URL 调试参数
+ * 缩放舞台 / 触屏模式 / 初始化各模块 / URL 调试参数
  * ============================================================ */
 (function (global) {
   'use strict';
   var BA = global.BA;
   var stage = null;
 
-  function isMobile() {
-    var ua = navigator.userAgent || '';
-    var touch = (navigator.maxTouchPoints || 0) > 1;
-    var mobileUa = /Android|iPhone|iPad|iPod|Windows Phone|Mobile|BlackBerry|Opera Mini/i.test(ua);
-    var small = Math.min(window.innerWidth, window.innerHeight) < 620 && touch;
-    return mobileUa || small;
+  /* 触屏设备判定：?touch=1 强制开启 / ?touch=0 强制关闭 */
+  function preferTouch() {
+    var Q = global.__BAQ || {};
+    if (Q.touch === '0') return false;
+    if (Q.touch === '1') return true;
+    var touch = (navigator.maxTouchPoints || 0) > 0;
+    var coarse = false;
+    try { coarse = global.matchMedia('(pointer: coarse)').matches; } catch (e) {}
+    var ua = /Android|iPhone|iPad|iPod|Windows Phone|Mobile/i.test(navigator.userAgent || '');
+    return (touch && coarse) || (touch && ua);
   }
 
-  function fitStage() {
+  /* 竖屏给底部操作区多留白，横屏少留白 */
+  function reserveFor(vw, vh) { return vh > vw ? 186 : 118; }
+
+  function fitStage(reserveBottom) {
     if (!stage) stage = document.getElementById('stage');
     if (!stage) return;
-    var pad = 24;
+    var pad = reserveBottom > 0 ? 10 : 24;
     var vw = window.innerWidth, vh = window.innerHeight;
-    var s = Math.min((vw - pad * 2) / 960, (vh - pad * 2) / 832);
+    var s = Math.min((vw - pad * 2) / 960, (vh - pad * 2 - reserveBottom) / 832);
     s = Math.min(s, 1.28);
+    stage.style.left = '50%';
+    stage.style.top = reserveBottom > 0 ? Math.round((vh - reserveBottom) / 2) + 'px' : '50%';
     stage.style.transform = 'translate(-50%, -50%) scale(' + s.toFixed(4) + ')';
     if (BA.FX) BA.FX.resize();
   }
 
   function boot() {
-    if (isMobile()) {
-      document.getElementById('desktopOnly').classList.add('on');
-      // 仍然初始化，防止后台报错（不渲染）
-      try { BA.GAME.init(document.getElementById('game')); } catch (e) {}
-      return;
-    }
+    var touchMode = preferTouch();
     stage = document.getElementById('stage');
-    fitStage();
-    window.addEventListener('resize', function () {
-      fitStage();
+    fitStage(touchMode ? reserveFor(window.innerWidth, window.innerHeight) : 0);
+    var onResize = function () {
+      fitStage(touchMode ? reserveFor(window.innerWidth, window.innerHeight) : 0);
       if (BA.FX) BA.FX.resize();
-    });
+    };
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', function () { setTimeout(onResize, 120); });
 
     BA.FX.setEnabled(!!BA.CORE.CFG.get().particles);
-    BA.UI.init();
     BA.GAME.init(document.getElementById('game'));
+    /* TOUCH 先于 UI：标题/帮助屏按触屏模式生成提示文案 */
+    if (touchMode && BA.TOUCH) BA.TOUCH.init();
+    BA.UI.init();
+
     var hints = document.getElementById('hints');
     if (hints) {
-      hints.innerHTML = '<span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span>' +
-        '<span class="sep">·</span><span><kbd>Space</kbd> 放泡</span>' +
-        '<span class="sep">·</span><span><kbd>Esc</kbd> 暂停</span>' +
-        '<span class="sep">·</span><span><kbd>M</kbd> 静音</span>';
+      hints.innerHTML = touchMode
+        ? '<span>左侧滑动移动</span><span class="sep">·</span><span>右下按钮放泡</span><span class="sep">·</span><span>右上按钮暂停</span>'
+        : '<span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span>' +
+          '<span class="sep">·</span><span><kbd>Space</kbd> 放泡</span>' +
+          '<span class="sep">·</span><span><kbd>Esc</kbd> 暂停</span>' +
+          '<span class="sep">·</span><span><kbd>M</kbd> 静音</span>';
     }
     BA.UI.hud(BA.GAME.S);
     BA.UI.show('title');
