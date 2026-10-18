@@ -1,0 +1,32 @@
+[Unit]
+Description=math-race 口算竞速场 (Node HTTP + SSE + SQLite)
+Documentation=https://github.com/wyq09/ai-cases/tree/main/math-race
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/data/ai-cases/math-race
+Environment=NODE_ENV=production
+Environment=PORT=8787
+Environment=BASE_PATH=/math-race
+Environment=DB_PATH=/var/lib/math-race/rooms.db
+Environment=MAX_ROOMS=200
+ExecStart=/usr/bin/node /data/ai-cases/math-race/server.js
+Restart=always
+RestartSec=3
+# 只读保护：代码目录由 rsync 覆盖，进程只需要写 /var/lib/math-race
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/var/lib/math-race
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=math-race
+
+[Install]
+WantedBy=multi-user.target

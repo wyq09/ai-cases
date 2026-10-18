@@ -23,15 +23,30 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H 175.178.188.217 >> ~/.ssh/known_hosts
 
+      - name: Build math-race client
+        run: python3 math-race/build.py
+
       - name: Deploy via rsync
         run: |
           rsync -az --delete \
             --exclude='.git/' \
             --exclude='.github/' \
             --exclude='.DS_Store' \
+            --exclude='math-race/data/' \
             ./ ubuntu@175.178.188.217:/data/ai-cases/
+
+      - name: Restart math-race service
+        run: |
+          # 服务可能尚未安装（首次部署由 deploy/install.sh 完成）
+          if ssh ubuntu@175.178.188.217 'systemctl list-unit-files math-race.service >/dev/null 2>&1'; then
+            ssh ubuntu@175.178.188.217 'sudo -n systemctl restart math-race && sleep 1'
+            ssh ubuntu@175.178.188.217 'curl -fsS http://127.0.0.1:8787/math-race/api/health'
+          else
+            echo "math-race.service 未安装，跳过重启（首次请手动执行 deploy/install.sh）"
+          fi
 
       - name: Verify
         run: |
           sleep 2
           curl -fsSI "https://case.youyongai.com/tibet-wild/ppt/" | head -1
+          curl -fsS "https://case.youyongai.com/math-race/api/health"; echo
