@@ -13,7 +13,7 @@ export const ITEMS = {
   missile: {
     id: 'missile', name: '追踪导弹', en: 'HOMING MISSILE', short: 'MISSILE',
     color: '#ff5a4a', glow: 0xff5a4a, weight: 20,
-    desc: '锁定前方最近的对手',
+    desc: '自动锁定第一名，跨圈追击',
   },
   mine: {
     id: 'mine', name: '燃油地雷', en: 'OIL MINE', short: 'MINE',
@@ -54,6 +54,9 @@ export class ItemSystem {
     this.missiles = [];
     this.stats = { picked: 0, used: 0, hits: 0, gotHit: 0 };
     this.aiMineTimers = ais.map(() => 7 + Math.random() * 9);
+    this.mineRate = 1;
+    this.missileSpeedMul = 1;
+    this.missileDamageMul = 1;
     this.flashTime = 0;
     this.shieldPulse = 0;
 
@@ -87,6 +90,15 @@ export class ItemSystem {
     this.missileCone = new THREE.ConeGeometry(0.2, 0.5, 8);
     this.missileFinGeo = new THREE.BoxGeometry(0.52, 0.04, 0.26);
     this.missileFinMat = new THREE.MeshStandardMaterial({ color: 0xff5a3a, roughness: 0.5 });
+
+    // lock-on reticle that hovers over the marked kart while the missile flies
+    this.lockGeo = new THREE.TorusGeometry(1.05, 0.075, 8, 26);
+    this.lockMat = new THREE.MeshBasicMaterial({
+      color: 0xff5a4a, transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
+    });
+    this.lockMatLeader = this.lockMat.clone();
+    this.lockMatLeader.color.setHex(0xffd23f);
   }
 
   buildShield() {
@@ -122,6 +134,14 @@ export class ItemSystem {
     this.aiMineTimers = this.ais.map(() => 8 + Math.random() * 10);
   }
 
+  // 改装 / 难度 hook：导弹速度与伤害、AI 布雷频率
+  setModifiers({ mineRate = 1, missileSpeed = 1, missileDamage = 1, luck = 1 } = {}) {
+    this.mineRate = mineRate;
+    this.missileSpeedMul = missileSpeed;
+    this.missileDamageMul = missileDamage;
+    this.luck = luck;
+  }
+
   reset(keepStats = false) {
     this.clearProjectiles();
     this.held = null;
@@ -140,7 +160,10 @@ export class ItemSystem {
 
   clearProjectiles() {
     for (const mine of this.mines) this.scene.remove(mine.group);
-    for (const m of this.missiles) this.scene.remove(m.group);
+    for (const m of this.missiles) {
+      this.scene.remove(m.group);
+      if (m.lock && m.lock.parent) m.lock.parent.remove(m.lock);
+    }
     this.mines.length = 0;
     this.missiles.length = 0;
   }
@@ -168,6 +191,13 @@ export class ItemSystem {
       weights.mine += 6;
       weights.shield += 6;
       weights.missile = Math.max(4, weights.missile - 4);
+    }
+    // 涂装改装：幸运值越高，进攻道具越容易抽到
+    const luck = this.luck || 1;
+    if (luck !== 1) {
+      weights.missile *= luck;
+      weights.boost *= luck;
+      weights.shock *= 1 + (luck - 1) * 0.5;
     }
     let total = 0;
     for (const id of ITEM_IDS) total += weights[id];
@@ -253,13 +283,32 @@ export class ItemSystem {
   }
 
   // ------------------------------------------------------------------ attacks
-  fireMissile() {
+  // 目标选择：永远优先锁“第一名”（含跨圈领先的对手），玩家自己就是第一时
+  // 退而求其次打最前面的追兵，保证导弹不空放。
+  pickMissileTarget() {
     const p = this.player;
     const alive = this.ais.filter((a) => !a.finished);
-    const ahead = alive.filter((a) => a.dist > p.progress + 6).sort((a, b) => a.dist - b.dist);
-    // 领跑时也把导弹丢给最近的追兵，避免抽到导弹却完全空放
-    const behind = alive.filter((a) => a.dist <= p.progress + 6).sort((a, b) => b.dist - a.dist);
-    const target = ahead[0] || behind[0] || null;
+    if (!alive.length) return { target: null, leader: false };
+    // ai.dist 是累计里程，player.progress 也是累计里程 → 可直接比较出全场第一
+    let leader = null;
+    for (const ai of alive) {
+      if (!leader || ai.dist > leader.dist) leader = ai;
+    }
+    const playerIsLeader = !leader || p.progress > leader.dist + 0.5;
+    if (!playerIsLeader) return { target: leader, leader: true };
+    // 玩家领跑：打最近的追兵（后面最靠前的那台）
+    let chaser = null;
+    for (const ai of alive) {
+      if (ai.dist <= p.progress) {
+        if (!chaser || ai.dist > chaser.dist) chaser = ai;
+      }
+    }
+    return { target: chaser || leader, leader: false };
+  }
+
+  fireMissile() {
+    const p = this.player;
+    const { target, leader } = this.pickMissileTarget();
 
     const group = new THREE.Group();
     const body = new THREE.Mesh(this.missileBodyGeo, this.missileBodyMat);
@@ -289,18 +338,29 @@ export class ItemSystem {
     group.lookAt(group.position.clone().add(aim));
     this.scene.add(group);
     this.missiles.push({
-      group, target, life: 4.2, speed: 62, trail: 0,
-      dir: aim.clone(),
+      group, target, life: 6.5, speed: 62 * (this.missileSpeedMul || 1), trail: 0, curSpeed: 0,
+      dir: aim.clone(), leader,
     });
-    if (target) this.sendMissileToTargetName(target);
-    else this.hud.itemToast({ name: '前方没有目标 · 导弹空放', color: '#8fa9c4' });
+    if (target) {
+      const lock = new THREE.Mesh(this.lockGeo, leader ? this.lockMatLeader : this.lockMat);
+      lock.position.set(0, 2.5, 0);
+      lock.rotation.x = Math.PI / 2;
+      target.kart.group.add(lock);
+      this.missiles[this.missiles.length - 1].lock = lock;
+      this.sendMissileToTargetName(target, leader);
+    } else {
+      this.hud.itemToast({ name: '前方没有目标 · 导弹空放', color: '#8fa9c4' });
+    }
   }
 
-  sendMissileToTargetName(target) {
+  sendMissileToTargetName(target, leader = false) {
     if (!target) return;
-    // tiny HUD nudge so the player knows who is being locked
     const idx = this.ais.indexOf(target);
-    if (idx >= 0) this.hud.itemToast({ name: '锁定前方对手', color: '#ff5a4a' });
+    if (idx >= 0) {
+      const tag = leader ? '锁定第一名' : '锁定追兵';
+      const color = leader ? '#ff5a4a' : '#ffb02e';
+      this.hud.itemToast({ name: `${tag} · P${idx + 1}`, color });
+    }
   }
 
   dropMineFromKart(kart, owner, distance = 3.0) {
@@ -473,9 +533,9 @@ export class ItemSystem {
         const ai = this.ais[i];
         this.aiMineTimers[i] -= dt;
         if (this.aiMineTimers[i] > 0 || ai.finished || ai.stun > 0) continue;
-        this.aiMineTimers[i] = 11 + Math.random() * 12;
+        this.aiMineTimers[i] = (11 + Math.random() * 12) / (this.mineRate || 1);
         const gap = ai.dist - p.progress;
-        if (gap > 2 && gap < 70 && Math.random() < 0.6) {
+        if (gap > 2 && gap < 70 && Math.random() < 0.6 * (this.mineRate || 1)) {
           this.dropMineFromKart(ai.kart.group, 'ai', 2.8);
         }
       }
@@ -537,6 +597,11 @@ export class ItemSystem {
         targetPos = m.target.kart.group.position.clone();
         targetPos.y += 0.85;
       }
+      if (m.lock) {
+        m.lock.rotation.z += dt * 5.5;
+        const s = 1 + Math.sin(performance.now() * 0.012) * 0.14;
+        m.lock.scale.setScalar(s);
+      }
       if (targetPos) {
         const dir = targetPos.sub(m.group.position);
         const dist = dir.length();
@@ -545,12 +610,15 @@ export class ItemSystem {
         }
         dir.normalize();
         m.dir.lerp(dir, Math.min(1, dt * 10)).normalize();
-        m.group.position.addScaledVector(m.dir, m.speed * dt);
+        // 追赶加速：目标越远飞得越快，保证锁第一名时导弹真的能追上（甚至跨圈）
+        const catchUp = 1 + clamp((dist - 26) / 110, 0, 2.4);
+        m.curSpeed = m.speed * catchUp;
+        m.group.position.addScaledVector(m.dir, m.curSpeed * dt);
         const near = this.track.nearest(m.group.position, -1);
         if (m.group.position.y < near.y + 0.7) m.group.position.y = near.y + 0.7;
         m.group.lookAt(tmpV.copy(m.group.position).add(m.dir));
         if (m.group.position.distanceTo(m.target.kart.group.position) < 3) {
-          this.stunAI(m.target, 1.35);
+          this.stunAI(m.target, 1.35 * (this.missileDamageMul || 1));
           this.stats.hits += 1;
           this.audio.explosion?.();
           this.fx.shake?.(0.55);
@@ -561,6 +629,7 @@ export class ItemSystem {
           m.life = 0;
         }
       } else {
+        m.curSpeed = m.speed;
         m.group.position.addScaledVector(m.dir, m.speed * dt);
         m.group.lookAt(tmpV.copy(m.group.position).add(m.dir));
       }
@@ -575,6 +644,8 @@ export class ItemSystem {
         });
       }
       if (m.life <= 0) {
+        if (m.lock && m.lock.parent) m.lock.parent.remove(m.lock);
+        m.lock = null;
         {
           this.addPool.burst(m.group.position.clone(), 10, {
             speed: 4, spread: 1, up: 0.6, life: 0.35, size: 0.24,

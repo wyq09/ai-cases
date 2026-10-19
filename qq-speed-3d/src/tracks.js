@@ -199,6 +199,39 @@ export const THEMES = {
 };
 
 // ---------------------------------------------------------------------------
+// Difficulty: three presets shared by campaign + endless. They scale the AI
+// pace, the player's speed caps, how fast nitro / drift charge builds up and
+// how much gold a race pays out.
+// ---------------------------------------------------------------------------
+
+export const DIFFICULTIES = [
+  {
+    id: 'easy', name: '低', en: 'EASY', short: 'LOW',
+    desc: '对手慢 9% · 你的极速 +8% · 氮气更耐用',
+    aiMul: 0.91, aiSpread: 0.2, rush: 0.09, capMul: 1.08, nitroGain: 1.3,
+    coinMul: 0.75, mineRate: 0.6,
+  },
+  {
+    id: 'normal', name: '中', en: 'NORMAL', short: 'MID',
+    desc: '标准节奏 · 原版手感',
+    aiMul: 1, aiSpread: 0.32, rush: 0.13, capMul: 1, nitroGain: 1,
+    coinMul: 1, mineRate: 1,
+  },
+  {
+    id: 'hard', name: '高', en: 'HARD', short: 'HIGH',
+    desc: '对手快 9% · 你的极速 -3% · 金币 ×1.6',
+    aiMul: 1.09, aiSpread: 0.44, rush: 0.19, capMul: 0.97, nitroGain: 0.82,
+    coinMul: 1.6, mineRate: 1.35,
+  },
+];
+
+export const DIFFICULTY_BY_ID = Object.fromEntries(DIFFICULTIES.map((d) => [d.id, d]));
+
+export function difficultyOf(id) {
+  return DIFFICULTY_BY_ID[id] || DIFFICULTY_BY_ID.normal;
+}
+
+// ---------------------------------------------------------------------------
 // Course shapes
 // ---------------------------------------------------------------------------
 

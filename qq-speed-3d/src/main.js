@@ -1,14 +1,20 @@
 import * as THREE from 'three';
-import { createTextures } from './textures.js?v=20261018a';
-import { createTrack } from './track.js?v=20261018a';
-import { createKart, animateKart, kartWheelWorld } from './kart.js?v=20261018a';
-import { ParticlePool, SkidMarks } from './particles.js?v=20261018a';
-import { RaceAudio } from './audio.js?v=20261018a';
-import { HUD } from './hud.js?v=20261018a';
-import { Input } from './input.js?v=20261018a';
-import { SelectScreen } from './select.js?v=20261018a';
-import { LEVELS, LEVEL_BY_ID, levelSpec, makeEndlessSpec } from './tracks.js?v=20261018a';
-import { ItemSystem } from './items.js?v=20261018a';
+import { createTextures } from './textures.js?v=20261019a';
+import { createTrack } from './track.js?v=20261019a';
+import { createKart, animateKart, kartWheelWorld, applyKartTuning } from './kart.js?v=20261019a';
+import { ParticlePool, SkidMarks } from './particles.js?v=20261019a';
+import { RaceAudio } from './audio.js?v=20261019a';
+import { HUD } from './hud.js?v=20261019a';
+import { Input } from './input.js?v=20261019a';
+import { SelectScreen } from './select.js?v=20261019a';
+import {
+  LEVELS, LEVEL_BY_ID, levelSpec, makeEndlessSpec, DIFFICULTIES, difficultyOf,
+} from './tracks.js?v=20261019a';
+import { ItemSystem } from './items.js?v=20261019a';
+import { Garage } from './garage.js?v=20261019a';
+import {
+  PARTS, MAX_LEVEL, defaultTuning, sanitizeTuning, tuningStats, upgradeCost,
+} from './tuning.js?v=20261019a';
 
 const SAVE_KEY = 'qqspeed3d.save.v1';
 const params = new URLSearchParams(location.search);
@@ -19,6 +25,36 @@ if (params.get('reset') === '1') {
 const BASE_MAX = 46;
 const BOOST_MAX = 58;
 const NITRO_MAX = 64;
+
+// ===== difficulty + garage (改装) =====
+// `mods` is the single place the driving code reads its multipliers from.
+// Rebuilt by applyLoadout() whenever the player changes difficulty or buys a
+// part, so the physics never has to know about saves.
+const mods = {
+  difficulty: difficultyOf('normal'),
+  tuning: tuningStats(defaultTuning()),
+  baseMax: BASE_MAX,
+  boostMax: BOOST_MAX,
+  nitroMax: NITRO_MAX,
+};
+
+function applyLoadout() {
+  const diff = difficultyOf(save.difficulty);
+  const tune = tuningStats(save.tuning);
+  mods.difficulty = diff;
+  mods.tuning = tune;
+  mods.baseMax = BASE_MAX * diff.capMul * tune.cap;
+  mods.boostMax = BOOST_MAX * diff.capMul * tune.cap;
+  mods.nitroMax = NITRO_MAX * diff.capMul * tune.cap;
+  applyKartTuning(player.kart, tune);
+  items.setModifiers({
+    mineRate: diff.mineRate,
+    missileSpeed: tune.missileSpeed,
+    missileDamage: tune.missileDamage,
+    luck: tune.luck,
+  });
+  return mods;
+}
 const KMH = 3.6 * 1.55;
 const PERFECT_WINDOW = [2.0, 2.7];
 const PLACE_BONUS = [0, 280, 210, 160, 120, 90, 70];
@@ -36,6 +72,8 @@ function defaultSave() {
     levels: {},
     endless: { bestStage: 0, coins: 0, runs: 0 },
     lastLevel: LEVELS[0].id,
+    difficulty: 'normal',
+    tuning: defaultTuning(),
   };
 }
 
@@ -50,6 +88,8 @@ function loadSave() {
       ...parsed,
       levels: { ...(parsed.levels || {}) },
       endless: { ...def.endless, ...(parsed.endless || {}) },
+      difficulty: difficultyOf(parsed.difficulty).id,
+      tuning: sanitizeTuning(parsed.tuning),
     };
   } catch (e) {}
   return def;
@@ -68,6 +108,9 @@ function wrapAngle(a) {
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
 const save = loadSave();
+// ?diff=easy|normal|hard 覆盖本次会话的难度（调试 / 分享用）
+const diffParam = params.get('diff');
+if (diffParam && ['easy', 'normal', 'hard'].includes(diffParam)) save.difficulty = diffParam;
 const debugUnlockAll = params.get('unlock') === '1';
 const autoQuality = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || window.innerWidth < 860
   ? 'medium' : 'high';
@@ -89,8 +132,21 @@ function isLevelUnlocked(id) {
   return !!(save.levels[prev.id] && save.levels[prev.id].cleared);
 }
 
+// 星级规则随难度变：低难度前 3 名都算满星，中难度冠亚季 = 3/2/1，
+// 高难度只有冠军拿 3 星、亚军 1 星、季军以下不给星。
+const STAR_TABLE = {
+  easy: [0, 3, 3, 3, 0, 0, 0],
+  normal: [0, 3, 2, 1, 0, 0, 0],
+  hard: [0, 3, 1, 0, 0, 0, 0],
+};
+
 function starsFor(place) {
-  return place === 1 ? 3 : place === 2 ? 2 : place === 3 ? 1 : 0;
+  const table = STAR_TABLE[save.difficulty] || STAR_TABLE.normal;
+  return table[place] || 0;
+}
+
+function coinMul() {
+  return difficultyOf(save.difficulty).coinMul || 1;
 }
 
 function levelRecord(id) {
@@ -282,6 +338,52 @@ const items = new ItemSystem({
   },
 });
 
+// ===== garage / difficulty =====
+const garage = new Garage({
+  save,
+  onSetDifficulty: (id) => setDifficulty(id),
+  onUpgrade: (partId) => buyUpgrade(partId),
+  onChange: () => {
+    updateSelectedLabel();
+    applyLoadout();
+  },
+});
+
+function setDifficulty(id) {
+  const next = difficultyOf(id);
+  if (save.difficulty === next.id) return;
+  save.difficulty = next.id;
+  saveGame();
+  applyLoadout();
+  garage.render();
+  audio.ensure();
+  audio.ui();
+  hud.itemToast({ name: `难度 · ${next.name}（${next.en}）`, color: '#9ff4ff' });
+  if (state === 'menu') updateSelectedLabel();
+}
+
+function buyUpgrade(partId) {
+  const part = PARTS.find((p) => p.id === partId);
+  if (!part) return false;
+  const lv = save.tuning[partId] || 0;
+  if (lv >= MAX_LEVEL) return false;
+  const cost = upgradeCost(partId, lv);
+  if ((save.coins || 0) < cost) {
+    audio.ensure();
+    hud.itemToast({ name: `金币不足 · 还需 ${cost - (save.coins || 0)}`, color: '#ff8a6a' });
+    return false;
+  }
+  save.coins -= cost;
+  save.tuning[partId] = lv + 1;
+  saveGame();
+  applyLoadout();
+  garage.render();
+  audio.ensure();
+  audio.boost(2);
+  hud.itemToast({ name: `${part.name} 升级到 Lv.${lv + 1}`, color: part.color });
+  return true;
+}
+
 // ===== race state =====
 let state = 'menu';
 let paused = false;
@@ -325,8 +427,10 @@ function setKartTransform(kart, frame, pos, heading) {
 
 function tuneAI(spec) {
   const laneLimit = Math.max(2.6, spec.half - 3.1);
+  const diff = difficultyOf(save.difficulty);
+  const spread = diff.aiSpread ?? 0.32;
   ais.forEach((ai, i) => {
-    ai.base = spec.aiBase + 0.4 + i * 0.32 + (spec.endless ? (i % 2) * 0.25 : 0);
+    ai.base = (spec.aiBase + 0.4 + i * spread + (spec.endless ? (i % 2) * 0.25 : 0)) * diff.aiMul;
     ai.baseLane = clamp(AI_BASE_LANES[i], -laneLimit, laneLimit);
     ai.reaction = 0.12 + Math.random() * 0.34;
     ai.finished = false;
@@ -473,6 +577,7 @@ function beginRace({ mode: nextMode = 'campaign', levelId = selectedId, endlessS
     buildTrack(spec);
     tuneAI(spec);
     hud.setMode({ mode, stage: endless.stage, name: spec.name, en: spec.en, laps: raceLaps });
+    syncLoadoutHud();
   } else {
     mode = 'campaign';
     const def = LEVEL_BY_ID[levelId] || currentLevel;
@@ -485,6 +590,7 @@ function beginRace({ mode: nextMode = 'campaign', levelId = selectedId, endlessS
     buildTrack(spec);
     tuneAI(spec);
     hud.setMode({ mode, stage: 1, name: spec.name, en: spec.en, laps: raceLaps });
+    syncLoadoutHud();
   }
 
   resetStageState({ keepStats: false });
@@ -546,8 +652,8 @@ function goRace() {
   track.setStartLights(0, true);
   audio.countdown(0);
   if (perfectStart) {
-    player.boostTime = 1.5;
-    player.speed = 18;
+    player.boostTime = 1.5 * mods.tuning.boostMul;
+    player.speed = 18 * mods.tuning.start;
     hud.showCallout('完美起步', 'PERFECT START', 'perfect');
     hud.flashBoost('perfect');
     audio.startBoost();
@@ -588,7 +694,7 @@ function finishRace() {
   const rec = save.levels[currentLevel.id] || (save.levels[currentLevel.id] = {});
   const prevBest = rec.bestTime || 0;
   finishNewBest = !prevBest || raceMs < prevBest;
-  finishCoins = Math.round((currentLevel.coinBase || 120) + (PLACE_BONUS[finishPlace] || 60));
+  finishCoins = Math.round(((currentLevel.coinBase || 120) + (PLACE_BONUS[finishPlace] || 60)) * coinMul());
   const nextDef = LEVELS[idx + 1] || null;
   const nextWasUnlocked = nextDef ? !!(save.levels[nextDef.id] && save.levels[nextDef.id].cleared) : false;
   rec.cleared = true;
@@ -628,7 +734,7 @@ function endEndlessStage() {
   endless.lastPlace = place;
   const stage = endless.stage;
   finishTimeMs = raceMs;
-  const stageCoins = Math.round((currentSpec.coinBase || 90) + stage * 8 + (place === 1 ? 120 : place === 2 ? 80 : place === 3 ? 50 : 20));
+  const stageCoins = Math.round(((currentSpec.coinBase || 90) + stage * 8 + (place === 1 ? 120 : place === 2 ? 80 : place === 3 ? 50 : 20)) * coinMul());
   endless.clearedStage = Math.max(endless.clearedStage, stage);
   endless.runCoins += stageCoins;
   save.coins += stageCoins;
@@ -751,10 +857,11 @@ function releaseDrift() {
   player.drifting = false;
   player.driftCharge = 0;
   player.driftLevel = 0;
-  player.nitro = Math.min(3, player.nitro + 0.13 + charge * 0.32);
+  const nitroGain = mods.difficulty.nitroGain * mods.tuning.nitroMul;
+  player.nitro = Math.min(3, player.nitro + (0.13 + charge * 0.32) * nitroGain);
   if (level > 0) {
     player.driftBoosts += 1;
-    player.boostTime = Math.max(player.boostTime, [0, 0.55, 0.85, 1.15][level]);
+    player.boostTime = Math.max(player.boostTime, [0, 0.55, 0.85, 1.15][level] * mods.tuning.boostMul);
     player.speed += [0, 4.5, 7.5, 10.5][level];
     player.doubleWindow = 0.7;
     hud.showCallout(['', '小喷', '大喷', '强化喷'][level], 'DRIFT BOOST', 'boost' + level);
@@ -769,7 +876,7 @@ function releaseDrift() {
 function doDoubleBoost() {
   player.doubleWindow = 0;
   player.doubleBoosts += 1;
-  player.boostTime = Math.max(player.boostTime, 0.55);
+  player.boostTime = Math.max(player.boostTime, 0.55 * mods.tuning.boostMul);
   player.speed += 7;
   hud.showCallout('双喷！', 'DOUBLE BOOST', 'double');
   hud.flashBoost('double');
@@ -826,7 +933,8 @@ function updatePlayer(dt) {
 
   const steer = stunned ? 0 : input.steer;
   player.steer = steer;
-  const speedNorm = clamp(player.speed / BASE_MAX, 0, 1.35);
+  const tune = mods.tuning;
+  const speedNorm = clamp(player.speed / mods.baseMax, 0, 1.35);
 
   if (stunned) {
     input.consumeNitro();
@@ -851,30 +959,30 @@ function updatePlayer(dt) {
     const highSpeedDamp = 1 - 0.24 * clamp(player.speed / 64, 0, 1);
     if (player.drifting) {
       player.driftCharge = Math.min(1,
-        player.driftCharge + dt * (0.46 + Math.abs(steer) * 0.42) * (0.72 + speedNorm * 0.5));
+        player.driftCharge + dt * (0.46 + Math.abs(steer) * 0.42) * (0.72 + speedNorm * 0.5) * tune.drift);
       const prevLevel = player.driftLevel;
       player.driftLevel = player.driftCharge >= 0.9 ? 3 : player.driftCharge >= 0.6 ? 2 : player.driftCharge >= 0.28 ? 1 : 0;
       if (player.driftLevel > prevLevel && player.driftLevel > 0) {
         audio.driftTick(player.driftLevel);
         camMicro = Math.max(camMicro, 0.18 + player.driftLevel * 0.05);
       }
-      turn = (steer * 1.02 + player.driftDir * 0.16) * speedFactor * highSpeedDamp;
+      turn = (steer * 1.02 + player.driftDir * 0.16) * speedFactor * highSpeedDamp * tune.turn;
       player.speed -= 0.7 * dt;
     } else {
-      turn = steer * 1.5 * speedFactor * highSpeedDamp;
+      turn = steer * 1.5 * speedFactor * highSpeedDamp * tune.turn;
     }
     if (player.braking) turn *= 1.18;
     player.heading += turn * dt;
   }
 
   const diff = wrapAngle(player.heading - player.moveYaw);
-  const grip = player.drifting ? 3.2 : (stunned ? 2.4 : 12);
+  const grip = (player.drifting ? 3.2 : (stunned ? 2.4 : 12)) * (player.drifting ? tune.grip : 1);
   player.moveYaw += diff * Math.min(1, grip * dt);
 
   if (!stunned && input.consumeNitro()) {
     if (player.nitro >= 1 && player.nitroActive <= 0) {
       player.nitro -= 1;
-      player.nitroActive = 1.9;
+      player.nitroActive = 1.9 * mods.tuning.nitroMul;
       player.nitroUses += 1;
       player.speed += 9;
       hud.showCallout('氮气加速', 'NITRO BOOST', 'nitro');
@@ -886,14 +994,14 @@ function updatePlayer(dt) {
   }
 
   player.braking = !stunned && input.brake && !player.finished;
-  let cap = BASE_MAX;
-  if (player.boostTime > 0) cap = BOOST_MAX;
-  if (player.nitroActive > 0) cap = NITRO_MAX;
+  let cap = mods.baseMax;
+  if (player.boostTime > 0) cap = mods.boostMax;
+  if (player.nitroActive > 0) cap = mods.nitroMax;
   if (player.offroad) cap *= 0.64;
   if (player.braking) cap = 0;
   if (player.finished) cap = 0;
   if (stunned) cap = Math.min(cap, 9);
-  const accelRate = (player.boostTime > 0 || player.nitroActive > 0) ? 2.4 : 1.02;
+  const accelRate = ((player.boostTime > 0 || player.nitroActive > 0) ? 2.4 : 1.02) * tune.accel;
   if (player.speed < cap) {
     player.speed += (cap - player.speed) * Math.min(1, accelRate * dt);
   } else {
@@ -917,9 +1025,9 @@ function updatePlayer(dt) {
     player.moveYaw += wrapAngle(tangentYaw - player.moveYaw) * Math.min(1, dt * 10);
     player.heading += wrapAngle(tangentYaw - player.heading) * Math.min(1, dt * 6);
     if (player.wallHit <= 0) {
-      const impact = clamp(player.speed / BASE_MAX, 0.2, 1);
+      const impact = clamp(player.speed / mods.baseMax, 0.2, 1);
       player.wallHit = 0.45;
-      player.speed *= 0.78;
+      player.speed *= tune.wallKeep;
       player.drifting = false;
       player.driftCharge = 0;
       player.driftLevel = 0;
@@ -969,7 +1077,7 @@ function updatePlayer(dt) {
     const dz = player.pos.z - pad.center.z;
     if (dx * dx + dz * dz < 3.6 * 3.6) {
       pad.cooldown = 1.0;
-      player.nitro = Math.min(3, player.nitro + 0.42);
+      player.nitro = Math.min(3, player.nitro + 0.42 * mods.difficulty.nitroGain);
       player.boostTime = Math.max(player.boostTime, 0.5);
       player.speed += 5;
       hud.showCallout('加速带', '+ NITRO', 'pad');
@@ -1157,6 +1265,8 @@ function emitPlayerEffects(dt, near) {
 function updateAI(dt) {
   const L = track.length;
   const elapsed = raceMs / 1000;
+  const diff = mods.difficulty;
+  const rush = diff.rush ?? 0.13;
   ais.forEach((ai) => {
     const stunned = (ai.stun || 0) > 0;
     const u = ((ai.dist / L) % 1 + 1) % 1;
@@ -1176,7 +1286,7 @@ function updateAI(dt) {
     } else {
       target = ai.base * corner;
       const gap = player.progress - ai.dist;
-      target *= 1 + clamp(gap / 320, -0.055, 0.13);
+      target *= 1 + clamp(gap / 320, -0.055, rush);
       if (ai.speed < 3) target = Math.max(target, 22);
     }
     const rate = target > ai.speed ? (stunned ? 2.6 : 1.25) : 2.1;
@@ -1201,7 +1311,7 @@ function updateAI(dt) {
     const cornerSteer = clamp(-bend * 8, -0.9, 0.9) * (ahead1.x * fr.tangent.z - ahead1.z * fr.tangent.x > 0 ? 1 : -1);
     ai.steerVisual += (cornerSteer - ai.steerVisual) * Math.min(1, dt * 4);
     animateKart(ai.kart, dt, {
-      speedNorm: ai.speed / BASE_MAX,
+      speedNorm: ai.speed / mods.baseMax,
       steer: ai.steerVisual,
       drifting: !stunned && corner < 0.78 && ai.speed > 20,
       driftDir: Math.sign(ai.steerVisual || 1),
@@ -1215,7 +1325,7 @@ function updateAI(dt) {
 
 // ===== camera =====
 function updateChaseCamera(dt) {
-  const speedNorm = clamp(player.speed / BASE_MAX, 0, 1.3);
+  const speedNorm = clamp(player.speed / mods.baseMax, 0, 1.3);
   const portrait = camera.aspect < 0.85;
   const fwd = tmpV.set(Math.sin(player.heading), 0, Math.cos(player.heading));
   // Faster spring at speed: keeps the kart readable instead of letting the
@@ -1256,7 +1366,7 @@ function updateChaseCamera(dt) {
   camera.lookAt(camLook);
   const rollTarget = player.drifting
     ? player.driftDir * 0.05
-    : player.steer * 0.022 * clamp(player.speed / BASE_MAX, 0, 1);
+    : player.steer * 0.022 * clamp(player.speed / mods.baseMax, 0, 1);
   cameraRoll += (rollTarget - cameraRoll) * Math.min(1, dt * 5);
   camera.rotateZ(cameraRoll);
 
@@ -1333,6 +1443,9 @@ function pushHud(dt, rank = player.place) {
     playerYaw: player.heading,
     mode,
     stage: endless.stage,
+    difficulty: save.difficulty,
+    baseMax: mods.baseMax,
+    tuneTotal: mods.tuning.total,
     shield: player.shieldTime || 0,
     stunned: (player.stun || 0) > 0,
     karts: [
@@ -1389,13 +1502,13 @@ function updateRace(dt) {
   updateRank();
   player.kart.group.updateMatrixWorld(true);
   animateKart(player.kart, dt, {
-    speedNorm: player.speed / BASE_MAX,
+    speedNorm: player.speed / mods.baseMax,
     steer: player.steer,
     drifting: player.drifting,
     driftDir: player.driftDir,
     flameLevel: (player.nitroActive > 0 ? 3 : 0) + (player.boostTime > 0 ? 1.4 : 0) + 0.45,
     nitro: player.nitroActive > 0,
-    accel: player.speed < (player.boostTime > 0 ? BOOST_MAX : BASE_MAX) ? 1 : 0,
+    accel: player.speed < (player.boostTime > 0 ? mods.boostMax : mods.baseMax) ? 1 : 0,
     braking: player.braking,
     offroad: player.offroad,
   });
@@ -1418,7 +1531,7 @@ function updateFinish(dt) {
   const frame = track.frameAt(near.u);
   setKartTransform(player.kart, frame, player.pos, player.heading);
   animateKart(player.kart, dt, {
-    speedNorm: player.speed / BASE_MAX,
+    speedNorm: player.speed / mods.baseMax,
     steer: 0,
     drifting: false,
     flameLevel: player.speed > 3 ? 0.4 : 0.1,
@@ -1457,6 +1570,8 @@ function showResultScreen() {
     levelName: endlessMode ? `无尽赛道 · ${currentSpec.theme.id.toUpperCase()}` : currentLevel.name,
     levelIndex,
     stars: endlessMode ? 0 : starsFor(finishPlace),
+    difficulty: difficultyOf(save.difficulty),
+    tuneTotal: mods.tuning.total,
     unlocked: endlessMode ? '' : unlockNotice,
     canNext: !endlessMode && !!resultNextId && isLevelUnlocked(resultNextId),
     endless: endlessMode ? { stage: endless.stage, bestStage: save.endless.bestStage } : null,
@@ -1472,7 +1587,7 @@ function updateStageClear(dt) {
   player.pos.y = near.y;
   setKartTransform(player.kart, track.frameAt(near.u), player.pos, player.heading);
   animateKart(player.kart, dt, {
-    speedNorm: player.speed / BASE_MAX,
+    speedNorm: player.speed / mods.baseMax,
     steer: 0, drifting: false, flameLevel: 0.35, accel: 0,
   });
   updateAI(dt);
@@ -1564,11 +1679,21 @@ function applyQuality(name) {
   });
 }
 
+function syncLoadoutHud() {
+  const diff = difficultyOf(save.difficulty);
+  hud.setLoadout({ difficulty: diff.id, name: diff.name, tuneTotal: tuningStats(save.tuning).total });
+}
+
 function updateSelectedLabel() {
   const def = LEVEL_BY_ID[selectedId] || LEVELS[0];
   const idx = LEVELS.findIndex((l) => l.id === def.id);
+  const diff = difficultyOf(save.difficulty);
   const el = document.getElementById('selected-track');
-  if (el) el.innerHTML = `即将出战 · <b>${String(idx + 1).padStart(2, '0')} ${def.name}</b>`;
+  if (el) {
+    el.innerHTML = `即将出战 · <b>${String(idx + 1).padStart(2, '0')} ${def.name}</b>`
+      + `　<span class="sel-diff" data-diff="${diff.id}">难度 ${diff.name}</span>`
+      + `　<span class="sel-tune">改装 Lv.${tuningStats(save.tuning).total}</span>`;
+  }
   const cleared = LEVELS.filter((l) => save.levels[l.id]?.cleared).length;
   hud.setMenuStats({
     coins: save.coins,
@@ -1720,6 +1845,8 @@ document.addEventListener('visibilitychange', () => {
 
 setMuted(muted);
 applyQuality(qualityName);
+applyLoadout();
+garage.render();
 updateSelectedLabel();
 hud.showHUD(false);
 hud.showTitle(true);
@@ -1747,11 +1874,15 @@ function frame(now) {
     return;
   }
 
-  if (input.consumeMute()) {
+  if (garage.isOpen) {
+    // Esc / P / M 在工坊里只负责关面板，不会把比赛暂停
+    if (input.consumePause() || input.consumeMute()) garage.hide();
+  } else if (input.consumeMute()) {
     audio.ensure();
     setMuted(!muted);
   }
-  if (input.consumePause() && (state === 'race' || state === 'countdown' || state === 'finish')) {
+  if (!garage.isOpen && input.consumePause()
+    && (state === 'race' || state === 'countdown' || state === 'finish')) {
     togglePause();
   }
 
@@ -1782,7 +1913,7 @@ function frame(now) {
 
   if (!paused && (state === 'race' || state === 'countdown' || state === 'finish')) {
     audio.update(dt, {
-      speed: player.speed / BASE_MAX,
+      speed: player.speed / mods.baseMax,
       drifting: player.drifting,
       steer: player.steer,
       boost: player.boostTime > 0 || player.nitroActive > 0,
@@ -1795,17 +1926,7 @@ function frame(now) {
 
   renderer.render(scene, camera);
   frameCount++;
-  if (frameCount === 2) {
-    window.__qq.ready = true;
-    if (params.get('auto') === '1') {
-      setTimeout(() => {
-        try {
-          if (params.get('endless') === '1') startEndless();
-          else startRace();
-        } catch (e) {}
-      }, 300);
-    }
-  }
+  if (frameCount === 2) maybeAutoStart();
 }
 
 requestAnimationFrame(frame);
@@ -1817,6 +1938,19 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   hud.resize();
 });
+
+let autoStarted = false;
+function maybeAutoStart() {
+  if (autoStarted) return;
+  autoStarted = true;
+  if (params.get('auto') !== '1') return;
+  setTimeout(() => {
+    try {
+      if (params.get('endless') === '1') startEndless();
+      else startRace();
+    } catch (e) {}
+  }, 300);
+}
 
 function tick(dt = 1 / 60, steps = 1) {
   const d = Math.max(0.001, Math.min(0.05, dt));
@@ -1865,6 +1999,16 @@ window.__qq = {
   save,
   startRace,
   startLevel,
+  garage,
+  mods,
+  get difficulty() { return save.difficulty; },
+  setDifficulty,
+  buyUpgrade,
+  applyLoadout,
+  get tuning() { return save.tuning; },
+  setCoins(n) { save.coins = Math.max(0, Math.round(n)); saveGame(); garage.render(); updateSelectedLabel(); },
+  openGarage() { garage.show(); },
+  closeGarage() { garage.hide(); },
   startEndless,
   goMenu,
   openSelect,
@@ -1923,7 +2067,8 @@ window.__qq = {
       state, paused, raceMs, speed: player.speed, nitro: player.nitro, laps: player.laps,
       place: player.place, drift: player.drifting, charge: player.driftCharge,
       mode, stage: endless.stage, item: items.held, shield: player.shieldTime,
-      trackId: currentSpec.id,
+      trackId: currentSpec.id, difficulty: save.difficulty,
+      baseMax: mods.baseMax, tuneTotal: mods.tuning.total,
     };
   },
   debug() {
@@ -1944,3 +2089,9 @@ window.__qq = {
     };
   },
 };
+
+// First frame is rendered synchronously so `__qq.ready` never depends on rAF
+// scheduling (a background window gets throttled, which used to hang the tests).
+renderer.render(scene, camera);
+window.__qq.ready = true;
+maybeAutoStart();

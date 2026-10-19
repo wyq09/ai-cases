@@ -1,4 +1,4 @@
-import { ITEMS } from './items.js?v=20261018a';
+import { ITEMS } from './items.js?v=20261019a';
 
 const fmt = (ms) => {
   if (!Number.isFinite(ms) || ms < 0) ms = 0;
@@ -77,6 +77,7 @@ export class HUD {
     this.shieldText = document.getElementById('shield-time');
     this.shieldFill = document.getElementById('shield-fill');
     this.starsEl = document.getElementById('result-stars');
+    this.loadoutEl = document.getElementById('hud-loadout');
 
     this.drawMapBackground();
     this.resize();
@@ -104,6 +105,12 @@ export class HUD {
 
   setStage(stage) {
     if (this.stageNum) this.stageNum.textContent = stage;
+  }
+
+  setLoadout({ difficulty, name, tuneTotal } = {}) {
+    if (!this.loadoutEl) return;
+    this.loadoutEl.dataset.diff = difficulty || 'normal';
+    this.loadoutEl.textContent = `难度 ${name || '中'} · 改装 Lv.${tuneTotal || 0}`;
   }
 
   resize() {
@@ -266,7 +273,9 @@ export class HUD {
     }
     const kmh = Math.round(d.speedKmh);
     this.speedEl.textContent = kmh;
-    const speedPct = Math.min(1, kmh / 360);
+    // 速度条按“当前调校极速”归一化，改装/难度变化时不会一直顶格
+    const topKmh = (d.baseMax || 46) * 3.6 * 1.55;
+    const speedPct = Math.min(1, kmh / Math.max(200, topKmh * 1.05));
     if (this.hudSpeedBar) this.hudSpeedBar.style.width = (speedPct * 100).toFixed(1) + '%';
     this.speedo.classList.toggle('boosting', kmh > 230 || !!d.nitro);
     if (this.nitroLabel) {
@@ -427,6 +436,14 @@ export class HUD {
     document.getElementById('result-newbest').classList.toggle('on', !!data.newBest);
     const trackEl = document.getElementById('result-track');
     if (trackEl) trackEl.textContent = data.levelName || '极速赛道';
+    const diffEl = document.getElementById('result-difficulty');
+    if (diffEl) {
+      const diff = data.difficulty;
+      diffEl.textContent = diff
+        ? `${diff.name}（${diff.en}）· 改装 Lv.${data.tuneTotal || 0}`
+        : '—';
+      diffEl.dataset.diff = diff ? diff.id : 'normal';
+    }
     const dbl = document.getElementById('result-double');
     if (dbl) dbl.textContent = `${data.doubleBoosts || 0} 次 · 氮气 ${data.nitroUses || 0} 次`;
     const itm = document.getElementById('result-items');

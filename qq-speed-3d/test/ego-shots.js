@@ -1,8 +1,20 @@
 // 生成 shots/ 文档截图：ego-browser nodejs < test/ego-shots.js
 const URL = process.env.QQ_URL || "http://127.0.0.1:8791/";
 const OUT = process.env.QQ_OUT || "/Users/yiqunwu/wuyiqun/power_project/ai-x/ai_coding/ai-cases/qq-speed-3d/shots";
-const task = await taskSpace("QQ飞车 截图 " + Date.now());
-let page = (await task.pages()).find((p) => p.label === "p1") || await task.newPage();
+const task = await taskSpace("QQ飞车 3D 测试");
+// 常驻测试台：复用 p1，不整片清空；只关闭本脚本自己新开的额外页面
+const extraPages = [];
+async function cleanup() {
+  for (const p of extraPages) { try { await p.close(); } catch (e) {} }
+  extraPages.length = 0;
+}
+process.on("uncaughtException", async (e) => {
+  console.log("UNCAUGHT", e.message);
+  await cleanup();
+  process.exit(1);
+});
+// 复用空间里已有的常驻页面（不按标签名硬编码，空间重建后标签会变）
+let page = (await task.pages())[0] || await task.newPage();
 const sleep = (ms) => page.waitForTimeout(ms);
 
 async function boot(p) {
@@ -34,7 +46,7 @@ async function disableTransitions(p) {
 
 if (!await boot(page)) {
   console.log("BOOT FAILED");
-  await task.finish({ keep: [] });
+  await cleanup();
   throw new Error("boot failed");
 }
 await disableTransitions(page);
@@ -45,6 +57,24 @@ await sleep(700);
 await shot("select-desktop");
 await page.evaluate(() => window.__qq.closeSelect());
 await sleep(500);
+
+// garage + difficulty
+await page.evaluate(() => {
+  const q = window.__qq;
+  q.setCoins(2400);
+  q.setDifficulty("hard");
+  q.openGarage();
+});
+await sleep(800);
+await shot("garage-desktop");
+await page.evaluate(() => {
+  const q = window.__qq;
+  ["engine", "turbo", "grip", "aero", "paint"].forEach((p) => q.buyUpgrade(p));
+});
+await sleep(500);
+await shot("garage-upgraded");
+await page.evaluate(() => { window.__qq.closeGarage(); window.__qq.setDifficulty("normal"); });
+await sleep(400);
 
 const levels = ["coast", "canyon", "neon", "frost", "jungle", "volcano", "sky"];
 for (const id of levels) {
@@ -175,10 +205,8 @@ await page.evaluate(() => {
 });
 await sleep(350);
 await shot("result-desktop");
-await page.close();
 
-// mobile
-page = await task.newPage();
+// mobile —— 复用同一个 p1，只切换模拟器参数，不再新开页面
 try { await page.cdp("Page.bringToFront"); } catch (e) {}
 try { await page.cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true }); } catch (e) {}
 try { await page.cdp("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 }); } catch (e) {}
@@ -218,6 +246,16 @@ if (!await boot(page)) {
   await shot("item-mobile");
   await page.evaluate(() => {
     const q = window.__qq;
+    q.setCoins(600);
+    q.openGarage();
+  });
+  await sleep(700);
+  await page.screenshot({ path: `${OUT}/garage-mobile.png` });
+  console.log("shot garage-mobile");
+  await page.evaluate(() => window.__qq.closeGarage());
+  await sleep(300);
+  await page.evaluate(() => {
+    const q = window.__qq;
     q.startLevel("coast", true);
     q.skipCountdown();
     q.tick(1 / 60, 30);
@@ -231,6 +269,5 @@ if (!await boot(page)) {
   });
   await sleep(350);
   await shot("result-mobile");
-  await page.close();
 }
-await task.finish({ keep: [] });
+await cleanup();

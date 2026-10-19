@@ -175,11 +175,15 @@ export function createKart(colors, opts = {}) {
   const spoiler = add(new THREE.Mesh(roundedBox(1.72, 0.065, 0.38, 0.02, 1), accent));
   spoiler.position.set(0, 1.12, -1.13);
   spoiler.rotation.x = -0.06;
+  const struts = [];
+  const endplates = [];
   for (const side of [-1, 1]) {
     const strut = add(new THREE.Mesh(roundedBox(0.07, 0.36, 0.09, 0.02, 1), dark));
     strut.position.set(side * 0.52, 0.92, -1.1);
+    struts.push(strut);
     const endplate = add(new THREE.Mesh(roundedBox(0.05, 0.24, 0.42, 0.02, 1), paint));
     endplate.position.set(side * 0.88, 1.11, -1.13);
+    endplates.push(endplate);
   }
 
   for (const side of [-1, 1]) {
@@ -192,10 +196,12 @@ export function createKart(colors, opts = {}) {
   }
 
   // exhaust pipes
+  const pipes = [];
   for (const side of [-1, 1]) {
     const pipe = add(new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.075, 0.34, 10), hub));
     pipe.rotation.x = Math.PI / 2;
     pipe.position.set(side * 0.38, 0.44, -1.13);
+    pipes.push(pipe);
   }
 
   if (detail) {
@@ -289,6 +295,9 @@ export function createKart(colors, opts = {}) {
 
   return {
     group, lean, wheels, flames, shadow,
+    parts: { spoiler, struts, endplates, pipes, paint, accent, rim, tire, noseTip, frontWing },
+    glow: null,
+    flameBoost: 1,
     colors,
     steerVisual: 0,
     leanZ: 0,
@@ -297,6 +306,73 @@ export function createKart(colors, opts = {}) {
     flameLevel: 0,
     nitro: false,
   };
+}
+
+// ---------------------------------------------------------------------------
+// 改装可视化 — the player's tuning levels are mirrored on the model: taller
+// wing, fatter pipes, brighter rims, wider rear tyres and a neon underglow.
+// AI karts never call this, so the garage reads as a personal upgrade.
+// ---------------------------------------------------------------------------
+export function applyKartTuning(kart, tuning) {
+  if (!kart || !kart.parts) return;
+  const t = tuning || {};
+  const P = kart.parts;
+  const spoilerK = THREE.MathUtils.clamp(t.spoiler || 0, 0, 1);
+  const pipeK = THREE.MathUtils.clamp(t.pipe || 0, 0, 1);
+  const rimK = THREE.MathUtils.clamp(t.rim || 0, 0, 1);
+  const tyreK = THREE.MathUtils.clamp(t.tyre || 0, 0, 1);
+  const glowK = THREE.MathUtils.clamp(t.glow || 0, 0, 1);
+  const wingK = THREE.MathUtils.clamp(t.wing || 0, 0, 1);
+
+  // wing: wider + taller + a second stacked plane on the last level
+  const w = 1 + spoilerK * 0.22 + wingK * 0.08;
+  P.spoiler.scale.set(w, 1 + spoilerK * 0.9, 1 + spoilerK * 0.5);
+  P.spoiler.position.y = 1.12 + spoilerK * 0.1;
+  P.struts.forEach((m) => { m.scale.y = 1 + spoilerK * 0.7; m.position.y = 0.92 + spoilerK * 0.1; });
+  P.endplates.forEach((m) => {
+    m.scale.set(1, 1 + spoilerK * 0.55, 1 + spoilerK * 0.3);
+    m.position.set(m.position.x, 1.11 + spoilerK * 0.12, m.position.z);
+  });
+
+  // pipes: fatter and longer
+  P.pipes.forEach((m) => {
+    m.scale.set(1 + pipeK * 0.5, 1 + pipeK * 0.35, 1 + pipeK * 0.6);
+    m.position.z = -1.13 - pipeK * 0.12;
+  });
+
+  // wheels: brighter rims + fatter rear tyres
+  for (const wheel of kart.wheels) {
+    wheel.steerGroup.scale.setScalar(1 + tyreK * 0.09);
+  }
+  if (P.rim) {
+    P.rim.emissive = P.rim.emissive || new THREE.Color(0x000000);
+    P.rim.emissive.setHex(0x2b6bff);
+    P.rim.emissiveIntensity = rimK * 1.5;
+  }
+
+  // paint: neon underglow that rides with the chassis
+  if (!kart.glow && glowK > 0) {
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0x27dcff, transparent: true, opacity: 0.5,
+      blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
+    });
+    const geo = new THREE.PlaneGeometry(3.4, 4.2);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.y = 0.02;
+    mesh.renderOrder = 3;
+    kart.group.add(mesh);
+    kart.glow = mesh;
+  }
+  if (kart.glow) {
+    kart.glow.visible = glowK > 0;
+    kart.glow.material.opacity = 0.16 + glowK * 0.34;
+    const col = kart.colors.accent || 0x27dcff;
+    kart.glow.material.color.setHex(glowK > 0.85 ? 0xff5ecd : col);
+  }
+
+  // turbo flame tint (turbo level makes the exhaust burn brighter)
+  kart.flameBoost = 1 + (t.flame || 0) * 0.45;
 }
 
 export function animateKart(kart, dt, s) {
@@ -331,7 +407,7 @@ export function animateKart(kart, dt, s) {
   kart.lean.position.x = shake;
 
   const flameBase = speedNorm > 0.02 || s.rev ? 0.34 + speedNorm * 0.22 : 0;
-  const flameTarget = Math.max(flameBase, boost > 0 ? 1.15 + boost * 0.34 : 0);
+  const flameTarget = Math.max(flameBase, boost > 0 ? 1.15 + boost * 0.34 : 0) * (kart.flameBoost || 1);
   kart.flameLevel += (flameTarget - kart.flameLevel) * Math.min(1, dt * 12);
   const nitro = !!s.nitro;
   for (let i = 0; i < kart.flames.length; i++) {

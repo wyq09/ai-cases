@@ -4,7 +4,18 @@
 const URL = process.env.QQ_URL || "http://127.0.0.1:8791/";
 const OUT = process.env.QQ_OUT || "/Users/yiqunwu/wuyiqun/power_project/ai-x/ai_coding/ai-cases/qq-speed-3d/test";
 const shot = (name) => `${OUT}/${name}`;
-const task = await taskSpace("QQ飞车 3D 验收");
+const task = await taskSpace("QQ飞车 3D 测试");
+// 常驻测试台：复用 p1，不整片清空；只关闭本脚本自己新开的额外页面
+const extraPages = [];
+async function cleanup() {
+  for (const p of extraPages) { try { await p.close(); } catch (e) {} }
+  extraPages.length = 0;
+}
+process.on("uncaughtException", async (e) => {
+  console.log("UNCAUGHT", e.message);
+  await cleanup();
+  process.exit(1);
+});
 
 function report(name, pass, detail) {
   return { name, pass: !!pass, detail: detail ?? "" };
@@ -122,6 +133,7 @@ async function runDesktop(page) {
 async function runMobile(task) {
   const checks = [];
   const page = await task.newPage();
+  extraPages.push(page);
   await page.cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   await page.cdp("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
   await page.goto(URL + "?reset=1&v=" + Date.now());
@@ -194,7 +206,7 @@ async function runMobile(task) {
   return checks;
 }
 
-const desktopPage = (await task.pages()).find((p) => p.label === "p1") || await task.newPage();
+const desktopPage = (await task.pages())[0] || await task.newPage();
 const desktop = await runDesktop(desktopPage);
 const mobile = await runMobile(task);
 
@@ -202,5 +214,5 @@ const out = { desktop, mobile };
 const failed = Object.entries(out).flatMap(([k, v]) => v.filter((c) => !c.pass).map((c) => `${k}:${c.name}`));
 console.log(JSON.stringify(out, null, 2));
 console.log("FAILED:", failed.length ? failed : "none");
-await task.finish({ keep: [] });
+await cleanup();
 if (failed.length) process.exitCode = 1;

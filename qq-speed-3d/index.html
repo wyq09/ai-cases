@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>QQ飞车 · 极速海岸 3D | 七大赛道 · 道具赛 · 无限赛道</title>
 <meta name="description" content="Three.js 3D 卡丁车竞速：7 条主题赛道 + 程序化无限赛道，漂移蓄力、双喷、氮气、追踪导弹 / 地雷 / 护盾 / 电磁风暴道具，AI 对手、程序化音效与粒子特效。">
-<script type="importmap">{"imports":{"three":"./vendor/three.module.js?v=20261018a"}}</script>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js?v=20261019a"}}</script>
 <style>
 :root{
   --orange:#ff6a18;
@@ -400,6 +400,8 @@ body.touch #shield-pill{left:auto;right:calc(14px + var(--safe-r));bottom:calc(2
 @keyframes unlockIn{0%{opacity:0;transform:translateY(6px) scale(.96)}100%{opacity:1;transform:none}}
 .result-card{max-height:calc(100dvh - 36px);overflow-y:auto}
 .result-stats .v.small{font-size:13.5px}
+#result-difficulty[data-diff="easy"]{color:#8dffc4}
+#result-difficulty[data-diff="hard"]{color:#ffb08a}
 #pause-endless-btn.hide{display:none}
 
 @media (max-width:640px){
@@ -529,9 +531,10 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
 .help-inner .row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed rgba(159,244,255,.12);padding:6px 0}
 .help-inner .row span:last-child{color:#dff6ff;text-align:right}
 @media (max-width:980px){
-  #title-screen{grid-template-columns:1fr;align-content:end;padding:0 5vw calc(4vh + var(--safe-b));gap:0}
+  #title-screen{grid-template-columns:minmax(0,1fr);align-content:end;padding:0 5vw calc(4vh + var(--safe-b));gap:0}
   .menu-side{display:none}
-  .brand-block{max-width:none}
+  .brand-block{max-width:none;min-width:0}
+  .brand-kicker{flex-wrap:wrap;letter-spacing:.24em}
   h1.logo{font-size:clamp(54px,15vw,96px)}
   .tagline{margin-top:14px;font-size:12.5px;line-height:1.75}
   .menu-actions{margin-top:22px}
@@ -690,6 +693,115 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
   #race-top .v{font-size:16px}
   #start-tip{display:none}
 }
+
+/* ===== difficulty / garage ===== */
+.diff-row{flex-wrap:wrap;margin-top:10px}
+.diff-btn[data-diff="easy"].active{background:linear-gradient(135deg,#b6ffd8,#4fe8a0);border-color:#b6ffd8}
+.diff-btn[data-diff="normal"].active{background:linear-gradient(135deg,#bff4ff,#4fd8ff);border-color:#bff4ff}
+.diff-btn[data-diff="hard"].active{background:linear-gradient(135deg,#ffd0b0,#ff7a3a);border-color:#ffd0b0}
+.diff-desc{font-family:var(--font-display);font-size:9px;letter-spacing:.12em;color:rgba(247,251,255,.4)}
+.garage-btn{margin-left:6px;border-color:rgba(255,210,63,.42);color:var(--amber)}
+.garage-btn:hover{color:#fff;border-color:var(--amber);background:rgba(60,40,4,.6)}
+.garage-btn b{font-family:var(--font-display);font-size:11px;letter-spacing:.06em}
+.sel-diff{font-family:var(--font-display);font-size:9.5px;letter-spacing:.12em;color:var(--cyan-soft)}
+.sel-diff[data-diff="easy"]{color:#8dffc4}
+.sel-diff[data-diff="hard"]{color:#ffb08a}
+.sel-tune{font-family:var(--font-display);font-size:9.5px;letter-spacing:.12em;color:rgba(255,210,63,.8)}
+.select-side{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex:0 0 auto}
+.select-side .select-coins{white-space:nowrap}
+.diff-inline{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.diff-inline .lab{font-family:var(--font-display);font-size:9px;letter-spacing:.24em;color:rgba(247,251,255,.42)}
+.diff-inline .quality-btn,.diff-inline .sound-btn{padding:6px 12px;font-size:9.5px}
+#hud-loadout{margin-top:6px;padding-top:5px;border-top:1px dashed rgba(159,244,255,.16);
+  font-family:var(--font-display);font-size:8.5px;letter-spacing:.12em;
+  color:rgba(247,251,255,.55);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hud-loadout[data-diff="easy"]{color:#8dffc4}
+#hud-loadout[data-diff="hard"]{color:#ffb08a}
+
+/* garage overlay */
+#garage-screen{position:fixed;inset:0;z-index:34;display:flex;align-items:center;justify-content:center;
+  padding:clamp(12px,3vh,30px) clamp(12px,4vw,48px);
+  background:radial-gradient(ellipse at 50% 0%,rgba(20,70,120,.55),transparent 60%),rgba(3,9,18,.86);
+  opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s;backdrop-filter:blur(6px)}
+#garage-screen.show{opacity:1;visibility:visible}
+.garage-card-wrap{width:min(1120px,100%);max-height:calc(100dvh - 24px);overflow-y:auto;
+  padding:clamp(14px,2.4vw,26px);
+  background:linear-gradient(160deg,rgba(10,32,56,.95),rgba(4,14,28,.92));
+  border:1px solid rgba(159,244,255,.22);
+  clip-path:polygon(0 0,calc(100% - 24px) 0,100% 24px,100% 100%,24px 100%,0 calc(100% - 24px))}
+.garage-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
+  padding-bottom:14px;border-bottom:1px solid rgba(159,244,255,.16)}
+.garage-head h2{margin:6px 0 0;font-family:var(--font-display);font-style:italic;font-size:clamp(22px,3vw,34px);
+  color:#fff;text-shadow:0 0 28px rgba(255,210,63,.28)}
+.garage-sub{margin:6px 0 0;font-size:11px;letter-spacing:.06em;color:rgba(247,251,255,.45)}
+.garage-head-right{display:flex;align-items:center;gap:12px}
+.garage-coins{font-family:var(--font-display);font-size:10px;letter-spacing:.2em;color:rgba(247,251,255,.5);text-align:right}
+.garage-coins b{display:block;font-size:22px;color:var(--amber);letter-spacing:.02em}
+.garage-body{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin-top:16px}
+.garage-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;align-content:start}
+.garage-card{padding:11px 12px;border:1px solid rgba(159,244,255,.16);
+  background:linear-gradient(155deg,rgba(12,34,58,.9),rgba(5,14,27,.82));
+  clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));
+  position:relative;overflow:hidden}
+.garage-card::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(120deg,var(--pc,#ff8a2a),transparent 52%);opacity:.08}
+.gc-head{display:flex;align-items:center;gap:7px}
+.gc-ico{flex:0 0 30px;width:30px;height:30px;display:grid;place-items:center;color:var(--pc);
+  border:1px solid color-mix(in srgb,var(--pc) 45%,transparent);background:rgba(4,14,26,.5)}
+.gc-ico svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.gc-title{flex:1 1 0;min-width:0;overflow:hidden}
+.gc-title b{display:block;font-size:13px;letter-spacing:.04em;color:#f2fbff}
+.gc-title span{display:block;font-family:var(--font-display);font-size:7.5px;letter-spacing:.16em;color:rgba(247,251,255,.42);margin-top:2px}
+.gc-pips{display:flex;gap:3px;flex:0 0 auto}
+.gc-pips i{width:6px;height:6px;transform:rotate(45deg);border:1px solid rgba(159,244,255,.4)}
+.gc-pips i.on{background:var(--pc);border-color:var(--pc);box-shadow:0 0 8px color-mix(in srgb,var(--pc) 70%,transparent)}
+.gc-desc{margin-top:8px;font-size:10px;line-height:1.5;color:rgba(247,251,255,.5)}
+.gc-bar{height:3px;margin-top:8px;background:rgba(159,244,255,.14);overflow:hidden}
+.gc-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--pc),#fff);
+  box-shadow:0 0 10px color-mix(in srgb,var(--pc) 60%,transparent);transition:width .25s}
+.gc-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px}
+.gc-state{font-family:var(--font-display);font-size:8.5px;letter-spacing:.14em;color:var(--pc)}
+.gc-buy{font-family:var(--font-display);font-size:9.5px;letter-spacing:.12em;padding:6px 11px;
+  color:#241000;background:linear-gradient(135deg,#ffd23f,#ff8a2a);
+  clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);transition:filter .16s,transform .16s}
+.gc-buy em{font-style:normal;font-weight:700}
+.gc-buy:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.gc-buy.poor{color:rgba(247,251,255,.42);background:rgba(159,244,255,.12);cursor:not-allowed}
+.gc-buy.maxed{color:rgba(247,251,255,.35);background:rgba(159,244,255,.08);cursor:default}
+.garage-side{padding:12px 14px;border:1px solid rgba(159,244,255,.14);
+  background:linear-gradient(135deg,rgba(10,32,54,.72),rgba(4,14,26,.6));
+  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+  align-self:start}
+.gs-head b{display:block;font-family:var(--font-display);font-size:10px;letter-spacing:.24em;color:var(--cyan-soft)}
+.gs-head span{display:block;font-size:9px;letter-spacing:.05em;color:rgba(247,251,255,.38);margin-top:3px}
+.garage-stats{margin-top:12px;display:flex;flex-direction:column;gap:9px}
+.gs-row{display:grid;grid-template-columns:60px 1fr 54px;align-items:center;gap:8px}
+.gs-row .k{font-size:9.5px;letter-spacing:.06em;color:rgba(247,251,255,.55)}
+.gs-row .bar{height:4px;background:rgba(159,244,255,.13);overflow:hidden}
+.gs-row .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--amber));box-shadow:0 0 8px rgba(39,220,255,.5)}
+.gs-row .v{font-family:var(--font-display);font-size:9.5px;letter-spacing:.04em;color:var(--cyan-soft);text-align:right}
+.gs-note{margin-top:14px;padding-top:10px;border-top:1px dashed rgba(159,244,255,.14);
+  font-size:9.5px;line-height:1.65;color:rgba(247,251,255,.4)}
+@media (max-width:860px){
+  .garage-body{grid-template-columns:1fr}
+  .garage-list{grid-template-columns:1fr 1fr}
+  .garage-side{order:2}
+  .diff-desc{display:none}
+}
+@media (max-width:640px){
+  .garage-list{grid-template-columns:1fr}
+  .garage-head{flex-direction:column;gap:10px}
+  .garage-head-right{width:100%;justify-content:space-between}
+  #hud-loadout{font-size:7.5px;letter-spacing:.08em;margin-top:5px;padding-top:4px}
+  .diff-inline .quality-btn,.diff-inline .sound-btn{padding:5px 9px;font-size:8.5px}
+  .select-head{flex-direction:column;align-items:stretch;gap:10px}
+  .select-side{flex-direction:row;align-items:center;justify-content:space-between}
+  .garage-card-wrap{padding:12px}
+}
+@media (orientation:landscape) and (max-height:440px){
+  .garage-list{grid-template-columns:1fr 1fr}
+  .gc-desc{display:none}
+}
 </style>
 </head>
 <body>
@@ -711,6 +823,7 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
     <div class="head"><b id="map-name">极速海岸</b><span id="map-en">CIRCUIT</span></div>
     <canvas id="minimap"></canvas>
     <div class="scheme"><i></i>你<span>·</span><i class="ai"></i>对手</div>
+    <div id="hud-loadout" data-diff="normal">难度 中 · 改装 Lv.0</div>
   </div>
 
   <div id="race-top">
@@ -819,6 +932,14 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
       <button class="quality-btn" data-q="high">高</button>
       <button class="sound-btn" id="title-sound"><span data-sound-label>音效 ON</span></button>
     </div>
+    <div class="quality-row diff-row">
+      <span class="lab">难度</span>
+      <button class="quality-btn diff-btn" data-diff="easy">低</button>
+      <button class="quality-btn diff-btn" data-diff="normal">中</button>
+      <button class="quality-btn diff-btn" data-diff="hard">高</button>
+      <button class="sound-btn garage-btn" data-garage>改装 <b id="garage-badge">Lv.0</b></button>
+      <span class="diff-desc" id="diff-desc">NORMAL · 标准节奏 · 原版手感</span>
+    </div>
     <div class="help-drawer"><div><div class="help-inner">
       <div class="row"><span>转向 / 刹车</span><span>← → / ↓（或 A D S）· 卡丁车自动油门</span></div>
       <div class="row"><span>漂移</span><span>Shift（转向时按住）</span></div>
@@ -826,6 +947,8 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
       <div class="row"><span>双喷</span><span>漂移松手后 0.7 秒内再按 Shift</span></div>
       <div class="row"><span>道具</span><span>E（或点道具格）· 穿过问号箱拾取</span></div>
       <div class="row"><span>完美起步</span><span>倒数到 1 时按 Shift / 空格</span></div>
+      <div class="row"><span>难度</span><span>低 / 中 / 高 · 影响 AI 速度、极速上限、金币与星级</span></div>
+      <div class="row"><span>改装</span><span>金币升级引擎 / 涡轮 / 轮胎 / 尾翼 / 涂装，性能与外观同步变强</span></div>
       <div class="row"><span>关卡 / 无限</span><span>7 张主题赛道 · 无限赛道每阶段前 4 晋级</span></div>
       <div class="row"><span>暂停 / 静音</span><span>Esc / P · M</span></div>
     </div></div></div>
@@ -840,7 +963,7 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
     </div>
     <div class="feat">
       <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 2c3 3 4.5 6.5 4.5 10L12 22l-4.5-10C7.1 8.5 9 5 12 2z"/><circle cx="12" cy="9" r="1.7"/></svg></div>
-      <div class="tx"><b>五种道具攻防</b><span>涡轮、追踪导弹、燃油地雷、能量护盾、电磁风暴。</span></div>
+      <div class="tx"><b>导弹锁第一名</b><span>追踪导弹自动锁定全场第一，跨圈追击，追不上就加速。</span></div>
     </div>
     <div class="feat">
       <div class="ico"><svg viewBox="0 0 24 24"><path d="M4 19h16"/><path d="M6 19V9l6-5 6 5v10"/><path d="M10 19v-5h4v5"/></svg></div>
@@ -848,13 +971,38 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
     </div>
     <div class="feat">
       <div class="ico"><svg viewBox="0 0 24 24"><path d="M8 12a4 4 0 018 0 4 4 0 01-8 0z"/><path d="M4 12c0 4.4 3.6 8 8 8s8-3.6 8-8"/></svg></div>
-      <div class="tx"><b>无限赛道</b><span>每阶段程序生成新赛道与主题，前 4 名晋级下一关。</span></div>
+      <div class="tx"><b>难度 × 改装</b><span>低 / 中 / 高三档难度，五个部件三级改装，性能和外观一起变。</span></div>
     </div>
     <div class="keys">
       <div><kbd>←</kbd><kbd>→</kbd> 转向　<kbd>↓</kbd> 刹车　自动油门</div>
       <div><kbd>Shift</kbd> 漂移　<kbd>空格</kbd> 氮气　<kbd>E</kbd> 道具　<kbd>Esc</kbd> 暂停</div>
     </div>
   </aside>
+</div>
+
+<!-- ================= GARAGE ================= -->
+<div id="garage-screen">
+  <div class="garage-card-wrap">
+    <div class="garage-head">
+      <div>
+        <div class="result-kicker">TUNING GARAGE</div>
+        <h2>改装工坊</h2>
+        <p class="garage-sub">用金币升级五个部件，性能和外观一起变强</p>
+      </div>
+      <div class="garage-head-right">
+        <div class="garage-coins">金币 <b id="garage-coins">0</b></div>
+        <button class="btn-ghost" id="garage-close">关闭</button>
+      </div>
+    </div>
+    <div class="garage-body">
+      <div class="garage-list" id="garage-list"></div>
+      <aside class="garage-side">
+        <div class="gs-head"><b>当前性能</b><span>随难度与改装实时变化</span></div>
+        <div class="garage-stats" id="garage-stats"></div>
+        <div class="gs-note">难度在标题页 / 选关页切换 · 高难度金币 ×1.6，但只有冠军拿满星</div>
+      </aside>
+    </div>
+  </div>
 </div>
 
 <!-- ================= RESULT ================= -->
@@ -874,6 +1022,7 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
       <div class="r"><span class="k">赛道</span><span class="v small" id="result-track">极速海岸</span></div>
       <div class="r"><span class="k">总用时</span><span class="v" id="result-time">00:00.00</span></div>
       <div class="r"><span class="k">最佳单圈</span><span class="v" id="result-best">00:00.00</span></div>
+      <div class="r"><span class="k">难度 / 改装</span><span class="v small" id="result-difficulty" data-diff="normal">中（NORMAL）· 改装 Lv.0</span></div>
       <div class="r"><span class="k">本局金币</span><span class="v gold" id="result-coins">+0</span></div>
       <div class="r"><span class="k">双喷 / 氮气</span><span class="v small" id="result-double">0 次 · 氮气 0 次</span></div>
       <div class="r"><span class="k">道具使用</span><span class="v small" id="result-items">0 次 · 命中 0 次</span></div>
@@ -910,7 +1059,16 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
       <div class="result-kicker">CIRCUIT SELECT</div>
       <h2>选择赛道</h2>
     </div>
-    <div class="select-coins">金币 <b id="select-coins">0</b></div>
+    <div class="select-side">
+      <div class="diff-inline">
+        <span class="lab">难度</span>
+        <button class="quality-btn diff-btn" data-diff="easy">低</button>
+        <button class="quality-btn diff-btn" data-diff="normal">中</button>
+        <button class="quality-btn diff-btn" data-diff="hard">高</button>
+        <button class="sound-btn garage-btn" data-garage>改装工坊</button>
+      </div>
+      <div class="select-coins">金币 <b id="select-coins">0</b></div>
+    </div>
   </div>
   <div class="select-grid" id="select-grid"></div>
   <div class="select-codex">
@@ -925,7 +1083,7 @@ h1.logo .speed{display:block;margin-top:10px;font-size:.34em;letter-spacing:.2em
   </div>
   <div class="select-foot">
     <button class="btn-ghost" id="select-back">返回主菜单</button>
-    <span class="select-hint">完成任意关卡解锁下一关 · 前 3 名获得星级 · 挑战「无限赛道」刷新最佳阶段</span>
+    <span class="select-hint">完成任意关卡解锁下一关 · 前 3 名获得星级 · 难度越高金币越多 · 改装工坊花金币升级部件</span>
   </div>
 </div>
 
@@ -935,6 +1093,6 @@ if (('ontouchstart' in window) || navigator.maxTouchPoints > 0 || matchMedia('(p
 }
 </script>
 <!-- 静态资源版本：改了 JS 后同步递增这里的 ?v=，避免 7 天静态缓存读到旧模块 -->
-<script type="module" src="./src/main.js?v=20261018a"></script>
+<script type="module" src="./src/main.js?v=20261019a"></script>
 </body>
 </html>

@@ -4,8 +4,20 @@
 // 注意：ego 窗口被遮挡时 rAF 会被暂停，这里全部用定时器采样。
 
 const URL = process.env.QQ_URL || "http://127.0.0.1:8791/";
-const task = await taskSpace("QQ飞车 转向与护栏回归");
-const page = (await task.pages()).find((p) => p.label === "p1") || await task.newPage();
+const task = await taskSpace("QQ飞车 3D 测试");
+// 常驻测试台：复用 p1，不整片清空；只关闭本脚本自己新开的额外页面
+const extraPages = [];
+async function cleanup() {
+  for (const p of extraPages) { try { await p.close(); } catch (e) {} }
+  extraPages.length = 0;
+}
+process.on("uncaughtException", async (e) => {
+  console.log("UNCAUGHT", e.message);
+  await cleanup();
+  process.exit(1);
+});
+// 复用空间里已有的常驻页面（不按标签名硬编码，空间重建后标签会变）
+const page = (await task.pages())[0] || await task.newPage();
 const results = [];
 const check = (name, pass, detail) => results.push({ name, pass: !!pass, detail: detail ?? "" });
 const sleep = (ms) => page.waitForTimeout(ms);
@@ -24,7 +36,7 @@ for (let attempt = 0; attempt < 3 && !booted; attempt++) {
 }
 if (!booted) {
   console.log("BOOT-FAILED");
-  await task.finish({ keep: [] });
+  await cleanup();
   process.exitCode = 1;
   throw new Error("boot failed");
 }
@@ -165,5 +177,5 @@ check("no_console_errors", errs.length === 0, JSON.stringify(errs));
 console.log(JSON.stringify({ results, ramResults }, null, 2));
 const failed = results.filter((r) => !r.pass).map((r) => r.name);
 console.log("FAILED:", failed.length ? failed : "none");
-await task.finish({ keep: [] });
+await cleanup();
 if (failed.length) process.exitCode = 1;

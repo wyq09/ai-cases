@@ -1,4 +1,4 @@
-import { LEVELS, levelSpec, themeCss, trackPath } from './tracks.js?v=20261018a';
+import { LEVELS, levelSpec, themeCss, trackPath } from './tracks.js?v=20261019a';
 
 const fmt = (ms) => {
   if (!Number.isFinite(ms) || ms <= 0) return '--:--.--';

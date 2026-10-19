@@ -6,12 +6,24 @@
 
 const URL = process.env.QQ_URL || "http://127.0.0.1:8791/";
 const OUT = process.env.QQ_OUT || "/Users/yiqunwu/wuyiqun/power_project/ai-x/ai_coding/ai-cases/qq-speed-3d/test";
-const task = await taskSpace("QQ飞车 关卡道具无限赛道 验收");
+const task = await taskSpace("QQ飞车 3D 测试");
+// 常驻测试台：复用 p1，不整片清空；只关闭本脚本自己新开的额外页面
+const extraPages = [];
+async function cleanup() {
+  for (const p of extraPages) { try { await p.close(); } catch (e) {} }
+  extraPages.length = 0;
+}
+process.on("uncaughtException", async (e) => {
+  console.log("UNCAUGHT", e.message);
+  await cleanup();
+  process.exit(1);
+});
 const checks = [];
 const report = (name, pass, detail = "") => checks.push({ name, pass: !!pass, detail: detail ?? "" });
 const sleep = (ms) => pageWait(ms);
 
-let page = (await task.pages()).find((p) => p.label === "p1") || await task.newPage();
+// 复用空间里已有的常驻页面（不按标签名硬编码，空间重建后标签会变）
+let page = (await task.pages())[0] || await task.newPage();
 async function pageWait(ms) { return page.waitForTimeout(ms); }
 
 async function boot(p) {
@@ -43,7 +55,7 @@ async function state() {
 
 if (!await boot(page)) {
   console.log("BOOT FAILED");
-  await task.finish({ keep: [] });
+  await cleanup();
   process.exitCode = 1;
   throw new Error("boot failed");
 }
@@ -342,6 +354,7 @@ await sleep(300);
 
 // ---------- mobile ----------
 const mobile = await task.newPage();
+  extraPages.push(mobile);
 try { await mobile.cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true }); } catch (e) {}
 try { await mobile.cdp("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 }); } catch (e) {}
 page = mobile;
@@ -441,5 +454,5 @@ if (!await boot(page)) {
 const failed = checks.filter((c) => !c.pass);
 console.log(JSON.stringify(checks, null, 2));
 console.log("FAILED:", failed.length ? failed.map((f) => f.name) : "none");
-await task.finish({ keep: [] });
+await cleanup();
 if (failed.length) process.exitCode = 1;
