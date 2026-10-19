@@ -31,6 +31,7 @@
   const FIXED_DT = 1 / 60;
   const VIEW_W_PORTRAIT = 520;
   const VIEW_W_LANDSCAPE = 960;
+  const VIEW_H_PORTRAIT = 700;
   const GROUND_Y = 460;
   const STYLE_KINDS = ['dash', 'stomp', 'slam', 'slide', 'djump', 'hardland', 'graze', 'air'];
   const STYLE_ORDER = ['D', 'C', 'B', 'A', 'S', 'SS'];
@@ -850,9 +851,18 @@
     if (F().resize) F().resize(cw, ch);
 
     const portrait = isPortrait();
-    G.viewW = portrait ? VIEW_W_PORTRAIT : VIEW_W_LANDSCAPE;
-    G.scale = cw / G.viewW;
-    G.viewH = ch / G.scale;
+    if (portrait) {
+      // 竖屏：按「世界可视高度」定标，避免高瘦屏把可视世界拉到上千单位、
+      // 导致画面空旷且主角过小；世界宽度由屏幕宽高比反推
+      G.viewH = VIEW_H_PORTRAIT;
+      G.scale = ch / G.viewH;
+      G.viewW = cw / G.scale;
+    } else {
+      // 横屏：按可视宽度定标
+      G.viewW = VIEW_W_LANDSCAPE;
+      G.scale = cw / G.viewW;
+      G.viewH = ch / G.scale;
+    }
     if (U().onResize) U().onResize();
   }
 
