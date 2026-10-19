@@ -182,6 +182,14 @@
       tone({ type: 'sawtooth', f0: 110, f1: 55, dur: 0.8, vol: 0.14 });
       noise({ f0: 300, f1: 1200, dur: 0.7, vol: 0.1, q: 0.8 });
     },
+    grab: function () {
+      tone({ type: 'triangle', f0: 300, f1: 620, dur: 0.12, vol: 0.16 });
+      tone({ type: 'sine', f0: 900, dur: 0.08, vol: 0.07, delay: 0.05 });
+    },
+    throw: function () {
+      tone({ type: 'sawtooth', f0: 180, f1: 520, dur: 0.16, vol: 0.14 });
+      noise({ f0: 1800, f1: 600, dur: 0.14, vol: 0.1, q: 1.2 });
+    },
     tick: function () { tone({ type: 'sine', f0: 1400, dur: 0.025, vol: 0.04 }); }
   };
 

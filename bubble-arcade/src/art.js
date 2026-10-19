@@ -466,13 +466,19 @@
   }
 
   /* ================= 道具 ================= */
-  var ITEM_TYPES = ['bomb', 'power', 'speed', 'kick', 'shield'];
+  // weight 用于软箱掉落权重；tier 2 = 稀有（额外金色描边）
+  var ITEM_TYPES = ['bomb', 'power', 'speed', 'kick', 'shield', 'needle', 'bombpass', 'pierce', 'magnet', 'glove'];
   var ITEM_META = {
-    bomb:   { label: '泡泡 +1', short: '泡泡', color: '#5fd8ff', icon: 'bomb' },
-    power:  { label: '威力 +1', short: '威力', color: '#ff9d2f', icon: 'power' },
-    speed:  { label: '速度 +1', short: '速度', color: '#a6f06a', icon: 'speed' },
-    kick:   { label: '踢靴', short: '踢靴', color: '#ff6fa5', icon: 'kick' },
-    shield: { label: '护盾', short: '护盾', color: '#a98bff', icon: 'shield' }
+    bomb:     { label: '泡泡 +1', short: '泡泡', color: '#5fd8ff', w: 18, tier: 1 },
+    power:    { label: '威力 +1', short: '威力', color: '#ff9d2f', w: 18, tier: 1 },
+    speed:    { label: '速度 +1', short: '速度', color: '#a6f06a', w: 14, tier: 1 },
+    kick:     { label: '踢靴', short: '踢靴', color: '#ff6fa5', w: 10, tier: 1 },
+    shield:   { label: '护盾', short: '护盾', color: '#a98bff', w: 10, tier: 1 },
+    needle:   { label: '银针 · 自动脱困', short: '银针', color: '#cfe4ff', w: 10, tier: 1 },
+    bombpass: { label: '泡泡靴 · 穿过泡泡', short: '穿泡', color: '#7fe3ff', w: 8, tier: 2 },
+    pierce:   { label: '钻头 · 水柱穿透', short: '穿透', color: '#8ef0c8', w: 7, tier: 2 },
+    magnet:   { label: '磁铁 · 吸取道具', short: '磁铁', color: '#ff5f6d', w: 5, tier: 2 },
+    glove:    { label: '手套 · 举起泡泡', short: '手套', color: '#ffd166', w: 4, tier: 2 }
   };
 
   function itemSprite(type) {
@@ -488,6 +494,19 @@
     x.globalAlpha = .55; x.fillStyle = g0;
     x.beginPath(); x.arc(cx, cy, W * .46, 0, 7); x.fill();
     x.globalAlpha = 1;
+    // 稀有道具：金色外环
+    if (meta.tier >= 2) {
+      x.strokeStyle = 'rgba(255,214,102,.9)';
+      x.lineWidth = 3 * S;
+      x.beginPath(); x.arc(cx, cy, W * .40, 0, 7); x.stroke();
+      x.fillStyle = 'rgba(255,214,102,.95)';
+      for (var st = 0; st < 4; st++) {
+        var sa = st * Math.PI / 2 + Math.PI / 4;
+        x.beginPath();
+        x.arc(cx + Math.cos(sa) * W * .40, cy + Math.sin(sa) * W * .40, 3.2 * S, 0, 7);
+        x.fill();
+      }
+    }
 
     x.save();
     x.translate(cx, cy);
@@ -551,8 +570,111 @@
       // 踢击动效
       x.strokeStyle = 'rgba(255,208,228,.8)'; x.lineWidth = 2 * S; x.lineCap = 'round';
       x.beginPath(); x.arc(0, -2 * S, 15 * S, -.9, .5); x.stroke();
+    } else if (type === 'needle') {
+      // 银针：针身 + 针眼 + 线
+      x.save();
+      x.rotate(-0.5);
+      var gn = x.createLinearGradient(-16 * S, 0, 16 * S, 0);
+      gn.addColorStop(0, '#ffffff'); gn.addColorStop(.5, '#cfe4ff'); gn.addColorStop(1, '#8fa8c8');
+      x.fillStyle = gn;
+      x.beginPath();
+      x.moveTo(17 * S, 0);
+      x.lineTo(4 * S, -3.2 * S); x.lineTo(-13 * S, -2.6 * S);
+      x.lineTo(-13 * S, 2.6 * S); x.lineTo(4 * S, 3.2 * S);
+      x.closePath(); x.fill();
+      x.strokeStyle = '#6f88a8'; x.lineWidth = 1.6 * S; x.stroke();
+      // 针眼
+      x.strokeStyle = '#7f9ec4'; x.lineWidth = 1.8 * S;
+      x.beginPath(); x.ellipse(-14.5 * S, 0, 3 * S, 1.5 * S, 0, 0, 7); x.stroke();
+      // 线
+      x.strokeStyle = '#ffd166'; x.lineWidth = 2.2 * S; x.lineCap = 'round';
+      x.beginPath();
+      x.moveTo(-16 * S, 0);
+      x.quadraticCurveTo(-22 * S, -9 * S, -17 * S, -15 * S);
+      x.stroke();
+      x.restore();
+      // 脱困光芒
+      x.strokeStyle = 'rgba(255,255,255,.8)'; x.lineWidth = 2 * S;
+      [0.4, 1.6, 2.8, 4.0].forEach(function (a) {
+        x.beginPath();
+        x.moveTo(Math.cos(a) * 15 * S, Math.sin(a) * 15 * S);
+        x.lineTo(Math.cos(a) * 21 * S, Math.sin(a) * 21 * S);
+        x.stroke();
+      });
+    } else if (type === 'bombpass') {
+      // 泡泡靴：青色靴 + 泡泡环
+      x.fillStyle = '#7fe3ff';
+      x.beginPath();
+      x.moveTo(-7 * S, -17 * S); x.lineTo(5 * S, -17 * S); x.lineTo(5 * S, 2 * S);
+      x.lineTo(15 * S, 2 * S); x.lineTo(15 * S, 11 * S); x.lineTo(-7 * S, 11 * S);
+      x.closePath(); x.fill();
+      x.fillStyle = '#3fb8dd';
+      rr(x, -8 * S, 9 * S, 25 * S, 5 * S, 2.5 * S); x.fill();
+      x.fillStyle = '#e8fbff';
+      rr(x, -5 * S, -14 * S, 7 * S, 3.6 * S, 1.8 * S); x.fill();
+      // 泡泡
+      x.strokeStyle = 'rgba(255,255,255,.9)'; x.lineWidth = 1.8 * S;
+      x.beginPath(); x.arc(-15 * S, -4 * S, 5.5 * S, 0, 7); x.stroke();
+      x.beginPath(); x.arc(13 * S, -13 * S, 3.6 * S, 0, 7); x.stroke();
+    } else if (type === 'pierce') {
+      // 钻头：螺旋锥体
+      var gp = x.createLinearGradient(-10 * S, -12 * S, 12 * S, 12 * S);
+      gp.addColorStop(0, '#e8fff6'); gp.addColorStop(.5, '#8ef0c8'); gp.addColorStop(1, '#38a882');
+      x.fillStyle = gp;
+      x.beginPath();
+      x.moveTo(0, -20 * S);
+      x.lineTo(12 * S, 2 * S);
+      x.quadraticCurveTo(0, 16 * S, -12 * S, 2 * S);
+      x.closePath(); x.fill();
+      x.strokeStyle = 'rgba(20,70,58,.55)'; x.lineWidth = 2 * S;
+      [-11, -4, 3].forEach(function (yy, i) {
+        x.beginPath();
+        x.moveTo(-10 * S + i * 2.2 * S, yy * S);
+        x.quadraticCurveTo(0, yy * S + 5 * S, 10 * S - i * 2.2 * S, yy * S);
+        x.stroke();
+      });
+      // 穿透箭头
+      x.strokeStyle = 'rgba(255,255,255,.85)'; x.lineWidth = 2.2 * S; x.lineCap = 'round';
+      x.beginPath(); x.moveTo(0, 14 * S); x.lineTo(0, 21 * S); x.stroke();
+    } else if (type === 'magnet') {
+      // 磁铁：红色马蹄 + 银极
+      x.strokeStyle = '#ff5f6d'; x.lineWidth = 7 * S; x.lineCap = 'butt';
+      x.beginPath(); x.arc(0, -1 * S, 11 * S, Math.PI, 0); x.stroke();
+      x.beginPath(); x.moveTo(-11 * S, -1 * S); x.lineTo(-11 * S, 11 * S); x.stroke();
+      x.beginPath(); x.moveTo(11 * S, -1 * S); x.lineTo(11 * S, 11 * S); x.stroke();
+      x.fillStyle = '#e8eef8';
+      rr(x, -15 * S, 8 * S, 8 * S, 7 * S, 1.5 * S); x.fill();
+      rr(x, 7 * S, 8 * S, 8 * S, 7 * S, 1.5 * S); x.fill();
+      x.fillStyle = '#9fb0c8';
+      rr(x, -15 * S, 8 * S, 8 * S, 2.4 * S, 1.2 * S); x.fill();
+      rr(x, 7 * S, 8 * S, 8 * S, 2.4 * S, 1.2 * S); x.fill();
+      // 吸引弧线
+      x.strokeStyle = 'rgba(255,160,170,.85)'; x.lineWidth = 1.8 * S;
+      x.beginPath(); x.arc(0, -1 * S, 19 * S, -2.5, -0.6); x.stroke();
+      x.beginPath(); x.arc(0, -1 * S, 19 * S, 0.6, 2.5); x.stroke();
+    } else if (type === 'glove') {
+      // 手套：拳套
+      var gg = x.createLinearGradient(0, -16 * S, 0, 14 * S);
+      gg.addColorStop(0, '#fff0c2'); gg.addColorStop(.5, '#ffd166'); gg.addColorStop(1, '#e0a41f');
+      x.fillStyle = gg;
+      rr(x, -13 * S, -16 * S, 26 * S, 20 * S, 9 * S); x.fill();
+      x.strokeStyle = 'rgba(120,80,10,.55)'; x.lineWidth = 2 * S; x.stroke();
+      // 拇指
+      x.fillStyle = '#ffd166';
+      x.beginPath(); x.ellipse(-13 * S, 1 * S, 5 * S, 7 * S, 0.3, 0, 7); x.fill();
+      // 袖口
+      x.fillStyle = '#f2f6ff';
+      rr(x, -10 * S, 4 * S, 20 * S, 8 * S, 3 * S); x.fill();
+      x.strokeStyle = '#b9c6dd'; x.lineWidth = 1.6 * S; x.stroke();
+      // 高光
+      x.fillStyle = 'rgba(255,255,255,.7)';
+      x.beginPath(); x.ellipse(-4 * S, -10 * S, 6 * S, 3.4 * S, -0.3, 0, 7); x.fill();
+      // 抓取箭头
+      x.strokeStyle = 'rgba(255,255,255,.85)'; x.lineWidth = 2.2 * S; x.lineCap = 'round';
+      x.beginPath(); x.moveTo(14 * S, -14 * S); x.lineTo(20 * S, -20 * S); x.stroke();
+      x.beginPath(); x.moveTo(20 * S, -20 * S); x.lineTo(20 * S, -14 * S); x.stroke();
+      x.beginPath(); x.moveTo(20 * S, -20 * S); x.lineTo(14 * S, -20 * S); x.stroke();
     } else {
-      // 护盾
       var g3 = x.createLinearGradient(0, -18 * S, 0, 16 * S);
       g3.addColorStop(0, '#e2d5ff'); g3.addColorStop(.5, '#a98bff'); g3.addColorStop(1, '#6a48c8');
       x.fillStyle = g3;

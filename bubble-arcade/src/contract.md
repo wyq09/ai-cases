@@ -24,10 +24,14 @@
 - 瓦片：0 地板 / 1 硬墙 / 2 软箱。四角出生点 (1,1)(13,1)(1,11)(13,11)，出生 L 形 3 格清空。
 - 泡泡：默认引信 2.4s，十字水柱，威力 = 起始 1 格；遇硬墙停、炸软箱停、遇泡泡引爆（链式 0.09s）。
 - 玩家：起始 1 泡泡 / 1 威力 / 速度 3.4 格/秒；上限 8 泡泡 / 8 威力 / 6.2 速度。
-- 被水柱命中 → 困泡 3.6s：队友贴身 0.75 格救援；自己狂按方向/放泡键可缩短；到时爆泡死亡。困泡再被水柱命中立即死亡。
+- 移动：自由移动（可在格内任意位置行走，无车道锁定）；仅当被阻挡时自动对格绕过箱角，避免卡死。
+- 被水柱命中 → 困泡 3.6s：队友贴身 0.75 格救援；自己狂按方向/放泡键可缩短；到时爆泡死亡。困泡再被**他人**水柱命中立即死亡（自家水柱不误伤）。
+- 戳泡：非队友走到困泡 0.74 格内 → 0.16s 后爆泡淘汰（可被银针/救援打断）。
 - 护盾道具抵挡一次水柱（1.6s 无敌）。
 - 踢泡泡：有靴子时走向泡泡把它踢出，滑到障碍/泡泡/玩家处停下（撞到玩家使其困泡）。
-- 道具：泡泡+1 / 威力+1 / 速度+1 / 踢靴 / 护盾；软箱摧毁按概率掉落（默认 30%），水柱会冲毁地上道具。
+- 道具 10 种，按权重掉落（`BA.ART.ITEM_META[type].w`）：泡泡+1 / 威力+1 / 速度+1 / 踢靴 / 护盾（基础），银针 / 泡泡靴 / 钻头 / 磁铁 / 手套（稀有 tier=2）。
+  - 银针：抵消一次困泡；泡泡靴：泡泡不阻挡；钻头：水柱穿透软箱 +1 格；磁铁：吸 4.2 格内道具；手套：走向泡泡举起，按放泡键投掷 3 格。
+- 软箱摧毁按概率掉落（默认 30%），水柱会冲毁地上道具。
 - 回合：最后存活者/队伍获胜；默认 150s 后进入"死亡模式"随机落泡直到分出胜负。
 - 比赛：先到 `winsNeeded`（默认 3）局者/队获胜。混战按人计分，组队按队计分。
 
@@ -50,7 +54,8 @@ BA.CORE = { U:{clamp,lerp,rand,randInt,choice,shuffle,rng,deepMerge,clone,el,esc
             CFG:{get,save,patch,reset,on}, SAVE:{get,save,patch,reset}, PARAMS };
 BA.ART = { init(), tile(type,theme,variant), soft(theme,variant), player(themeId,dir,kind,frame),
            avatar(themeId)->dataURL, item(type)->canvas, itemURL(type)->dataURL,
-           bubbleSprite, trappedSprite, geyser(frames)->canvas[], themeColor(theme), THEMES };
+           bubbleSprite, trappedSprite, geyser(frames)->canvas[], themeColor(theme), THEMES,
+           ITEM_TYPES(10 种), ITEM_META(type->{label,short,color,w,tier}) };
 BA.AUDIO = { init(), unlock(), play(name,opts), bgm(on), duck(ms), setSfx(v), setMusic(v), muted(bool) };
 BA.FX = { init(), splash(x,y,n,opt), burst(x,y,color,n,opt), dust(x,y,n), text(x,y,str,color),
           confetti(n), ring(x,y,color), shake(a), update(dt), draw(ctx), clear() };
@@ -69,7 +74,8 @@ BA.UI = { init(), show(name), hide(), hud(S), toast(msg), setHints(S) };
 
 `state/phase/players/board/cfg/fps/errors`、`start(opts)`、`quit()`、`pause/resume()`、`nextRound()`、
 `fastForward(sec)`、`setBotOnly(bool)`、`give(id,type,n)`、`teleport(id,tx,ty)`、`placeBomb(id)`、
-`forceEnd(id)`、`seed(n)`、`setSpeed(x)`、`winNow(id)`。
+`forceEnd(id)`、`seed(n)`、`setSpeed(x)`、`winNow(id)`、`held(id)`、`bombAt(x,y)`、`itemCount()`、
+`dropItemAt(x,y,type)`、`dropItems(n,type)`。
 
 ## 主线负责（勿动他人模块）
 

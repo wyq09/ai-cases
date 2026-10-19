@@ -72,7 +72,8 @@
   function itemAt(x, y) {
     for (var i = 0; i < S.items.length; i++) {
       var it = S.items[i];
-      if (it.x === x && it.y === y) return it;
+      // 磁铁会让道具坐标变成浮点，用格中心距离判定
+      if (Math.abs(it.x + 0.5 - (x + 0.5)) < 0.45 && Math.abs(it.y + 0.5 - (y + 0.5)) < 0.45) return it;
     }
     return null;
   }
@@ -302,6 +303,14 @@
         power: cfg.startPower || 1,
         kick: false,
         shield: false,
+        needle: false,
+        bombPass: false,
+        pierce: false,
+        magnet: false,
+        glove: false,
+        held: null,
+        popT: 0,
+        popper: null,
         invuln: 0,
         activeBombs: 0,
         bombPressed: false,
@@ -345,11 +354,19 @@
       p.trapped = false;
       p.trapT = 0;
       p.trapPress = 0;
+      p.popT = 0;
+      p.popper = null;
       p.speed = p.baseSpeed;
       p.maxBombs = cfg.startBombs || 1;
       p.power = cfg.startPower || 1;
       p.kick = false;
       p.shield = false;
+      p.needle = false;
+      p.bombPass = false;
+      p.pierce = false;
+      p.magnet = false;
+      p.glove = false;
+      p.held = null;
       p.invuln = 1.2;
       p.activeBombs = 0;
       p.bombPressed = false;
@@ -551,6 +568,11 @@
       if (p.trapped) {
         p.trapT -= dt;
         p.walkT += dt * 2;
+        // 被敌人戳泡：短暂延迟后爆泡淘汰（期间仍可自救/被救）
+        if (p.popT > 0) {
+          p.popT -= dt;
+          if (p.popT <= 0) { killPlayer(p, 'pop'); continue; }
+        }
         // 机器人也会自救：难度越高按得越快（简单档基本放弃）
         if (p.ai && !p.botGaveUp) {
           var mashRate = p.ai.diff.mashRate || 0;
@@ -638,19 +660,41 @@
       var it = itemAt(Math.floor(p.x), Math.floor(p.y));
       if (it) pickItem(p, it);
 
+      // 戳破敌人的困泡
+      touchTrapped(p, dt);
+
       // 出界保护
       p.x = U.clamp(p.x, 0.3, W - 0.3);
       p.y = U.clamp(p.y, 0.3, H - 0.3);
     }
   }
+  // 走到敌人的困泡上 → 把泡泡戳破（短暂延迟，给对手自救窗口）
+  var POP_DELAY = 0.16;
+  function touchTrapped(p, dt) {
+    for (var i = 0; i < S.players.length; i++) {
+      var q = S.players[i];
+      if (q === p || !q.alive || !q.trapped) continue;
+      if (teamOf(q) === teamOf(p)) continue;            // 队友走贴身救援逻辑
+      if (q.popT > 0) continue;
+      var dx = q.x - p.x, dy = q.y - p.y;
+      if (dx * dx + dy * dy > 0.74 * 0.74) continue;
+      q.popT = POP_DELAY;
+      q.popper = p.id;
+      A().play('pop', { pitch: 1.25 });
+      F().ring(q.x * T, q.y * T, '#ffe08a', { r0: 18, r1: 52, ttl: 0.28, lw: 4 });
+      F().text(q.x * T, q.y * T - 34, '戳破！', '#ffd166');
+    }
+  }
+
   function dirKeyCode(p, dir) {
     return dir === 'up' ? p.keys.up : dir === 'down' ? p.keys.down : dir === 'left' ? p.keys.left : p.keys.right;
   }
   function snapCenter(p, dt) {
+    // 只抹掉浮点误差，不做“回中线”吸附——玩家停在格子哪里就停在哪里
     var cx = Math.floor(p.x) + .5, cy = Math.floor(p.y) + .5;
-    var k = Math.min(1, dt * 14);
-    if (Math.abs(p.x - cx) < 0.42) p.x += (cx - p.x) * k;
-    if (Math.abs(p.y - cy) < 0.42) p.y += (cy - p.y) * k;
+    var k = Math.min(1, dt * 8);
+    if (Math.abs(p.x - cx) < 0.045) p.x += (cx - p.x) * k;
+    if (Math.abs(p.y - cy) < 0.045) p.y += (cy - p.y) * k;
   }
 
   var RADIUS = 0.30;
@@ -660,7 +704,9 @@
     return S.grid[y][x] !== 0;
   }
   // 玩家所站格（以中心判定）：站在自己泡泡上的那颗泡泡不阻挡，允许走开
+  // 手套优先：拿着手套时泡泡重新变成实体，才能“走向它把它举起”
   function bombBlocks(p, x, y) {
+    if (p && p.bombPass && !p.glove) return null;   // 泡泡靴：泡泡不阻挡
     var r = RADIUS - 0.02 - REPS;
     var x0 = Math.floor(x - r), x1 = Math.floor(x + r);
     var y0 = Math.floor(y - r), y1 = Math.floor(y + r);
@@ -668,6 +714,7 @@
     for (var i = 0; i < S.bombs.length; i++) {
       var b = S.bombs[i];
       if (b.moving) continue;
+      if (b.heldBy) continue;                        // 被举在头顶，不阻挡
       if (b.tx === ptx && b.ty === pty) continue;   // 中心在脚下
       if (b.ownerInside && b.owner === p) continue;  // 放泡者尚未完全离开
       for (var yy = y0; yy <= y1; yy++) {
@@ -692,30 +739,33 @@
   }
 
   function tryMove(p, dx, dy, dist) {
-    // 车道锁定：横向移动前先把 y 对齐到最近的行中心，纵向同理。
-    // 这样玩家永远不会停在两行之间（否则会被相邻行的箱子卡死）。
-    if (dx !== 0) {
-      var laneY = Math.round(p.y - 0.5) + 0.5;
-      var offY = laneY - p.y;
-      if (Math.abs(offY) > 0.004) {
-        var stepY = Math.sign(offY) * Math.min(Math.abs(offY), dist * 1.35);
-        if (canStand(p, p.x, p.y + stepY)) { p.y += stepY; return true; }
-        return false;
-      }
-      p.y = laneY;
-    } else if (dy !== 0) {
-      var laneX = Math.round(p.x - 0.5) + 0.5;
-      var offX = laneX - p.x;
-      if (Math.abs(offX) > 0.004) {
-        var stepX = Math.sign(offX) * Math.min(Math.abs(offX), dist * 1.35);
-        if (canStand(p, p.x + stepX, p.y)) { p.x += stepX; return true; }
-        return false;
-      }
-      p.x = laneX;
+    // 自由移动：不再强制对齐到行/列中心，玩家可以在格子里任意位置行走。
+    // 只在「正好卡在墙角」时用滑移/微调帮一把，避免手感发涩。
+    var nx = p.x + dx * dist, ny = p.y + dy * dist;
+    if (canStand(p, nx, ny)) {
+      p.x = nx; p.y = ny;
+      return true;
     }
 
-    var nx = p.x + dx * dist, ny = p.y + dy * dist;
-    if (canStand(p, nx, ny)) { p.x = nx; p.y = ny; return true; }
+    // 举泡投掷
+    if (p.held && p.glove) {
+      throwBomb(p, dx, dy);
+      return false;
+    }
+
+    // 手套：朝泡泡走 → 举起它
+    if (p.glove && !p.held) {
+      var front = bombBlocks(p, nx, ny);
+      if (front && !front.moving && !front.exploded && !front.heldBy) {
+        var fx = front.tx + .5 - p.x, fy = front.ty + .5 - p.y;
+        var aligned = dx !== 0 ? Math.abs(fy) < 0.45 : Math.abs(fx) < 0.45;
+        var ahead2 = dx !== 0 ? Math.sign(fx) === Math.sign(dx) : Math.sign(fy) === Math.sign(dy);
+        if (aligned && ahead2) {
+          grabBomb(p, front);
+          return false;
+        }
+      }
+    }
 
     // 踢泡泡
     if (p.kick) {
@@ -731,28 +781,33 @@
       }
     }
 
-    // 转角辅助：横向被挡时，若偏移很小可沿纵向微调对齐
+    // 被挡住时的“自动对格”兜底：正常行走完全不干预（自由移动），
+    // 只有走不动了才把自己摆到本行/本列的中心线，避免卡在格子缝里动不了。
+    // 对格速度比正常走路快，所以手感上是“擦一下墙角就顺过去了”。
+    // 当前已经站在非法位置（被箱子挤住）时，允许无条件往中心线挪，
+    // 否则每一小步都仍然“重叠”，永远走不出去。
+    var illegal = !canStand(p, p.x, p.y);
     if (dx !== 0) {
       var cy = Math.floor(p.y) + .5;
-      var diff = cy - p.y;
-      if (Math.abs(diff) > 0.008) {
-        var nudge = Math.sign(diff) * Math.min(Math.abs(diff), dist * 1.4);
-        if (canStand(p, p.x, p.y + nudge) && canStand(p, nx, p.y + nudge)) {
-          p.y += nudge;
-          p.x = nx;
+      var offY = cy - p.y;
+      if (Math.abs(offY) > 0.004) {
+        var stepY = Math.sign(offY) * Math.min(Math.abs(offY), dist * 2.6);
+        if (canStand(p, p.x, p.y + stepY) && canStand(p, p.x + dx * dist, p.y + stepY)) {
+          p.y += stepY; p.x += dx * dist;
           return true;
         }
+        if (illegal || canStand(p, p.x, p.y + stepY)) { p.y += stepY; return true; }
       }
     } else if (dy !== 0) {
       var cx = Math.floor(p.x) + .5;
-      var diff2 = cx - p.x;
-      if (Math.abs(diff2) > 0.008) {
-        var nudge2 = Math.sign(diff2) * Math.min(Math.abs(diff2), dist * 1.4);
-        if (canStand(p, p.x + nudge2, p.y) && canStand(p, p.x + nudge2, ny)) {
-          p.x += nudge2;
-          p.y = ny;
+      var offX = cx - p.x;
+      if (Math.abs(offX) > 0.004) {
+        var stepX = Math.sign(offX) * Math.min(Math.abs(offX), dist * 2.6);
+        if (canStand(p, p.x + stepX, p.y) && canStand(p, p.x + stepX, p.y + dy * dist)) {
+          p.x += stepX; p.y += dy * dist;
           return true;
         }
+        if (illegal || canStand(p, p.x + stepX, p.y)) { p.x += stepX; return true; }
       }
     }
     return false;
@@ -760,6 +815,7 @@
 
   /* ---------------- 泡泡 ---------------- */
   function placeBomb(p) {
+    if (p.held) { throwHeld(p); return false; }
     if (p.activeBombs >= p.maxBombs) return false;
     var tx = Math.floor(p.x), ty = Math.floor(p.y);
     if (bombAt(tx, ty)) return false;
@@ -772,11 +828,13 @@
       fuse: Math.max(0.5, cfg.fuse || P.FUSE),
       maxFuse: Math.max(0.5, cfg.fuse || P.FUSE),
       owner: p,
+      ownerTeam: teamOf(p),
       exploded: false,
       moving: false,
       dir: null,
       t: 0,
-      ownerInside: !!p
+      ownerInside: !!p,
+      pierce: !!p.pierce
     };
     S.bombs.push(b);
     p.activeBombs++;
@@ -786,9 +844,51 @@
     return true;
   }
 
+  /* ---------------- 手套：举泡 / 投掷 ---------------- */
+  function grabBomb(p, b) {
+    if (!b || b.moving || b.exploded || b.heldBy) return false;
+    b.heldBy = p;
+    b.moving = false;
+    p.held = b;
+    A().play('grab');
+    F().ring(p.x * T, p.y * T, '#ffd166', { r0: 10, r1: 44, ttl: 0.26, lw: 3 });
+    F().text(p.x * T, p.y * T - 32, '举起！', '#ffd166');
+    return true;
+  }
+  // 举着泡泡时按放泡键：向前扔 3 格（撞到障碍停）
+  function throwHeld(p) {
+    var b = p.held;
+    if (!b) return;
+    var v = DIR_VEC[p.dir] || [0, 1];
+    b.heldBy = null;
+    p.held = null;
+    b.moving = true;
+    b.kdx = v[0]; b.kdy = v[1];
+    b.throwTiles = 3;
+    b.speedKick = P.KICK_SPEED * 1.35;
+    b.dir = p.dir;
+    A().play('throw');
+    F().dust(b.x * T, b.y * T, 8);
+  }
+  function throwBomb(p, dx, dy) {
+    var b = p.held;
+    if (!b) return;
+    b.heldBy = null;
+    p.held = null;
+    b.moving = true;
+    b.kdx = dx; b.kdy = dy;
+    b.throwTiles = 3;
+    b.speedKick = P.KICK_SPEED * 1.35;
+    b.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';
+    A().play('throw');
+    F().dust(b.x * T, b.y * T, 8);
+  }
+
   function kickBomb(b, dx, dy) {
     b.moving = true;
     b.kdx = dx; b.kdy = dy;
+    b.throwTiles = null;               // 踢：一直滑到障碍
+    b.speedKick = P.KICK_SPEED;
     b.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';
     A().play('kick');
     F().dust(b.x * T, b.y * T, 6);
@@ -798,29 +898,47 @@
     for (var i = S.bombs.length - 1; i >= 0; i--) {
       var b = S.bombs[i];
       b.t += dt;
+      if (b.heldBy) {
+        var hp = b.heldBy;
+        b.x = hp.x;
+        b.y = hp.y - 0.46;
+        b.tx = Math.floor(hp.x); b.ty = Math.floor(hp.y);
+        b.fuse -= dt;
+        if (b.fuse <= 0 && !b.exploded) explodeBomb(b);
+        continue;
+      }
       if (b.moving) {
         var tx = b.tx + .5, ty = b.ty + .5;
         var dx = tx - b.x, dy = ty - b.y;
         var d = Math.hypot(dx, dy);
-        var stepLen = P.KICK_SPEED * dt;
+        var stepLen = (b.speedKick || P.KICK_SPEED) * dt;
         if (d <= stepLen) {
           b.x = tx; b.y = ty;
-          // 下一格
+          // 下一格（throwTiles 为 null = 无限滑行（踢），>0 = 剩余可走格数）
           var nx = b.tx + b.kdx, ny = b.ty + b.kdy;
-          if (solidAt(nx, ny) || bombAt(nx, ny) || !inb(nx, ny)) {
+          var limited = b.throwTiles != null && b.throwTiles > 0;
+          if (limited && b.throwTiles <= 0) {
+            b.moving = false;
+            A().play('bump');
+          } else if (solidAt(nx, ny) || bombAt(nx, ny) || !inb(nx, ny)) {
             b.moving = false;
             A().play('bump');
           } else {
             b.tx = nx; b.ty = ny;
+            if (limited) {
+              b.throwTiles--;
+              if (b.throwTiles <= 0) b.moving = false;
+            }
           }
         } else {
           b.x += dx / d * stepLen;
           b.y += dy / d * stepLen;
         }
-        // 撞人 → 困住
+        // 撞人 → 困住（投掷/踢出的泡泡只对别人生效）
         for (var j = 0; j < S.players.length; j++) {
           var p = S.players[j];
           if (!p.alive || p.trapped) continue;
+          if (b.owner && p === b.owner) continue;
           var ddx = p.x - b.x, ddy = p.y - b.y;
           if (ddx * ddx + ddy * ddy < 0.42 * 0.42) {
             b.moving = false;
@@ -850,20 +968,23 @@
     if (b.owner) b.owner.activeBombs = Math.max(0, b.owner.activeBombs - 1);
 
     var cells = [{ x: b.tx, y: b.ty, kind: 'center', axis: null, dir: 0 }];
+    // 钻头：水柱穿透软箱，并多延伸 1 格
+    var power = b.power + (b.pierce ? 1 : 0);
     for (var di = 0; di < 4; di++) {
       var dx = DIRS[di][0], dy = DIRS[di][1];
       var axis = dx !== 0 ? 'h' : 'v';
       var arm = [];
-      for (var r = 1; r <= b.power; r++) {
+      for (var r = 1; r <= power; r++) {
         var nx = b.tx + dx * r, ny = b.ty + dy * r;
         if (!inb(nx, ny)) break;
         var cell = S.grid[ny][nx];
         if (cell === 1) break;
         if (cell === 2) {
           arm.push({ x: nx, y: ny, kind: 'end', axis: axis, dir: dx || dy });
-          break;
+          if (!b.pierce) break;
+          continue;
         }
-        arm.push({ x: nx, y: ny, kind: r === b.power ? 'end' : 'mid', axis: axis, dir: dx || dy });
+        arm.push({ x: nx, y: ny, kind: r === power ? 'end' : 'mid', axis: axis, dir: dx || dy });
         var other = bombAt(nx, ny);
         if (other && !other.exploded) {
           other.fuse = Math.min(other.fuse, 0.09);
@@ -905,7 +1026,7 @@
         if (ptx === cc.x && pty === cc.y) {
           if (hitSet[p.id]) continue;
           hitSet[p.id] = true;
-          hitPlayer(p);
+          hitPlayer(p, b);
         }
       }
     }
@@ -925,10 +1046,22 @@
     F().dust(x * T + T / 2, y * T + T / 2, 8);
     var cfg = CFG.get();
     if (Math.random() < (cfg.itemChance == null ? 0.3 : cfg.itemChance)) {
-      var r = Math.random();
-      var type = r < 0.34 ? 'bomb' : r < 0.6 ? 'power' : r < 0.82 ? 'speed' : r < 0.92 ? 'kick' : 'shield';
+      var type = rollItemType();
       S.items.push({ x: x, y: y, type: type, t: 0, ttl: P.ITEM_TTL, spawnT: 0 });
     }
+  }
+
+  // 掉落权重表（泡泡/威力最常见，稀有能力道具较少）
+  function rollItemType() {
+    var types = BA.ART.ITEM_TYPES, meta = BA.ART.ITEM_META;
+    var total = 0, i;
+    for (i = 0; i < types.length; i++) total += (meta[types[i]].w || 1);
+    var r = Math.random() * total;
+    for (i = 0; i < types.length; i++) {
+      r -= (meta[types[i]].w || 1);
+      if (r <= 0) return types[i];
+    }
+    return 'bomb';
   }
 
   function updateGeysers(dt) {
@@ -946,6 +1079,23 @@
       it.spawnT = Math.min(1, (it.spawnT || 0) + dt * 4);
       if (it.t >= it.ttl) { removeItem(it, true); }
     }
+    // 磁铁：把附近道具吸向自己（不会被水柱冲毁）
+    for (var pi = 0; pi < S.players.length; pi++) {
+      var p = S.players[pi];
+      if (!p.alive || !p.magnet || p.trapped) continue;
+      for (var k = S.items.length - 1; k >= 0; k--) {
+        var item = S.items[k];
+        var ix = item.x + .5, iy = item.y + .5;
+        var dx = p.x - ix, dy = p.y - iy;
+        var d2 = dx * dx + dy * dy;
+        if (d2 > 4.2 * 4.2 || d2 < 0.001) continue;
+        var d = Math.sqrt(d2);
+        var step = Math.min(d, 7.5 * dt);
+        item.x += dx / d * step;
+        item.y += dy / d * step;
+        if (d < 0.34) { pickItem(p, item); }
+      }
+    }
   }
   function removeItem(it, silent) {
     var i = S.items.indexOf(it);
@@ -957,24 +1107,39 @@
     var i = S.items.indexOf(it);
     if (i < 0) return;
     S.items.splice(i, 1);
-    var type = it.type;
-    if (type === 'bomb') p.maxBombs = Math.min(P.BOMB_MAX, p.maxBombs + 1);
-    else if (type === 'power') p.power = Math.min(P.POWER_MAX, p.power + 1);
-    else if (type === 'speed') p.speed = Math.min(P.SPEED_MAX, p.speed + 0.42);
-    else if (type === 'kick') p.kick = true;
-    else if (type === 'shield') p.shield = true;
+    applyItem(p, it.type);
     S.stats.items++;
     A().play('item');
-    var meta = BA.ART.ITEM_META[type];
+    var meta = BA.ART.ITEM_META[it.type];
     F().burst(it.x * T + T / 2, it.y * T + T / 2, meta.color, 16, { speed: 190 });
     F().text(p.x * T, p.y * T - 30, meta.label, meta.color);
     if (BA.UI) BA.UI.hud(S);
   }
 
+  // 道具效果：拾取与测试钩子共用
+  function applyItem(p, type) {
+    if (type === 'bomb') p.maxBombs = Math.min(P.BOMB_MAX, p.maxBombs + 1);
+    else if (type === 'power') p.power = Math.min(P.POWER_MAX, p.power + 1);
+    else if (type === 'speed') p.speed = Math.min(P.SPEED_MAX, p.speed + 0.42);
+    else if (type === 'kick') p.kick = true;
+    else if (type === 'shield') p.shield = true;
+    else if (type === 'needle') p.needle = true;
+    else if (type === 'bombpass') p.bombPass = true;
+    else if (type === 'pierce') p.pierce = true;
+    else if (type === 'magnet') p.magnet = true;
+    else if (type === 'glove') p.glove = true;
+    return p;
+  }
+
   /* ---------------- 伤害 / 困泡 / 死亡 ---------------- */
-  function hitPlayer(p) {
+  function hitPlayer(p, src) {
     if (!p.alive || p.invuln > 0) return;
-    if (p.trapped) { killPlayer(p, 'water'); return; }
+    if (p.trapped) {
+      // 困泡再被“别人的”水柱打中 → 立即淘汰；自家水柱不误伤
+      if (src && src.owner && src.owner === p) return;
+      killPlayer(p, 'water');
+      return;
+    }
     if (p.shield) {
       p.shield = false;
       p.invuln = 1.3;
@@ -988,10 +1153,22 @@
 
   function trapPlayer(p) {
     if (!p.alive || p.trapped) return;
+    // 银针：自动抵消一次困泡
+    if (p.needle) {
+      p.needle = false;
+      p.invuln = Math.max(p.invuln, 0.9);
+      A().play('rescue');
+      F().ring(p.x * T, p.y * T, '#cfe4ff', { r0: 22, r1: 74, ttl: 0.5, lw: 6 });
+      F().text(p.x * T, p.y * T - 36, '银针脱困！', '#cfe4ff');
+      if (BA.UI) BA.UI.hud(S);
+      return;
+    }
     p.trapped = true;
     p.trapT = P.TRAP_TIME;
     p.trapPress = 0;
     p.trapRescued = false;
+    p.popT = 0;
+    p.popper = null;
     p.dir = 'down';
     S.stats.traps++;
     A().play('trap');
@@ -1004,6 +1181,8 @@
     if (!p.trapped) return;
     p.trapped = false;
     p.trapT = 0;
+    p.popT = 0;
+    p.popper = null;
     p.invuln = 1.0;
     p.trapRescued = true;
     S.stats.rescues++;
@@ -1023,7 +1202,7 @@
     A().play('death');
     F().splash(p.x * T, p.y * T, 30, { color: '#bfefff' });
     F().burst(p.x * T, p.y * T, p.color, 26, { speed: 260 });
-    F().text(p.x * T, p.y * T - 34, cause === 'water' ? '爆泡淘汰' : '泡泡破了', '#ff9db4');
+    F().text(p.x * T, p.y * T - 34, cause === 'water' ? '爆泡淘汰' : cause === 'pop' ? '被戳破！' : '泡泡破了', '#ff9db4');
     F().shake(7);
     if (BA.UI) BA.UI.hud(S);
   }
@@ -1132,11 +1311,21 @@
       var sprB = BA.ART.bubble(frame);
       var scale = 1 + Math.sin(b.t * 10) * 0.02;
       if (b.fuse < 0.5) scale *= 1 + (0.5 - b.fuse) * 0.32;
+      if (b.heldBy) scale *= 0.86;
       c.save();
       c.translate(b.x * T, b.y * T);
       c.scale(scale, scale);
+      c.globalAlpha = b.heldBy ? 0.9 : 1;
       c.drawImage(sprB, -T / 2, -T / 2, T, T);
       c.restore();
+      // 举泡标记
+      if (b.heldBy) {
+        c.save();
+        c.globalAlpha = 0.75 + Math.sin(b.t * 12) * 0.2;
+        c.strokeStyle = '#ffd166'; c.lineWidth = 3;
+        c.beginPath(); c.arc(b.x * T, b.y * T, T * 0.40, 0, 7); c.stroke();
+        c.restore();
+      }
       // 引信环
       if (b.fuse < b.maxFuse * 0.72) {
         var ang = -Math.PI / 2 + Math.PI * 2 * frac;
@@ -1229,6 +1418,14 @@
       c.beginPath();
       c.arc(0, 0, T * 0.46, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
       c.stroke();
+      // 被戳破：金色警示环 + 抖动
+      if (p.popT > 0) {
+        c.strokeStyle = 'rgba(255,214,102,.95)';
+        c.lineWidth = 5;
+        c.beginPath();
+        c.arc(0, 0, T * 0.52 + Math.sin(performance.now() / 40) * 3, 0, 7);
+        c.stroke();
+      }
       c.restore();
       // 自救进度
       if (p.trapPress > 0) {
@@ -1337,13 +1534,7 @@
         var p = S.players.filter(function (q) { return q.id === id; })[0];
         if (!p) return false;
         n = n || 1;
-        for (var i = 0; i < n; i++) {
-          if (type === 'bomb') p.maxBombs = Math.min(P.BOMB_MAX, p.maxBombs + 1);
-          else if (type === 'power') p.power = Math.min(P.POWER_MAX, p.power + 1);
-          else if (type === 'speed') p.speed = Math.min(P.SPEED_MAX, p.speed + 0.42);
-          else if (type === 'kick') p.kick = true;
-          else if (type === 'shield') p.shield = true;
-        }
+        for (var i = 0; i < n; i++) applyItem(p, type);
         if (BA.UI) BA.UI.hud(S);
         return true;
       },
@@ -1374,15 +1565,29 @@
       },
       seed: function (n) { S.seed = n >>> 0; },
       setFuse: function (v) { CFG.patch({ fuse: v }); },
-      dropItems: function (n) {
+      dropItems: function (n, type) {
+        var types = BA.ART.ITEM_TYPES;
         for (var i = 0; i < n; i++) {
           var x = 1 + Math.floor(Math.random() * (W - 2));
           var y = 1 + Math.floor(Math.random() * (H - 2));
           if (S.grid[y][x] !== 0) continue;
-          var types = BA.ART.ITEM_TYPES;
-          S.items.push({ x: x, y: y, type: types[i % types.length], t: 0, ttl: P.ITEM_TTL, spawnT: 1 });
+          S.items.push({
+            x: x, y: y,
+            type: type || types[i % types.length],
+            t: 0, ttl: P.ITEM_TTL, spawnT: 1
+          });
         }
       },
+      dropItemAt: function (x, y, type) {
+        S.items.push({ x: x, y: y, type: type, t: 0, ttl: P.ITEM_TTL, spawnT: 1 });
+        return true;
+      },
+      held: function (id) {
+        var p = S.players.filter(function (q) { return q.id === id; })[0];
+        return !!(p && p.held);
+      },
+      bombAt: function (x, y) { return bombAt(x, y); },
+      itemCount: function () { return S.items.length; },
       bombCount: function () { return S.bombs.length; },
       geyserCount: function () { return S.geysers.length; },
       render: render

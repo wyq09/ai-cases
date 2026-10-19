@@ -405,14 +405,18 @@
         '<div class="keys-box"><h4>规则要点</h4>' +
           '<div class="row">先到 <b>3 胜</b> 赢下比赛（可调）</div>' +
           '<div class="row">超时进入 <b>死亡模式</b>，随机落泡</div>' +
+          '<div class="row">碰到敌人的困泡可 <b>戳破</b> 淘汰他</div>' +
+          '<div class="row">10 种道具，<b>金边</b>为稀有能力道具</div>' +
         '</div>' +
       '</div>' +
       '<div class="tips" style="margin-top:18px">' +
         '<b>核心循环</b>：放泡 → 水柱十字炸开 → 炸掉软箱 → 捡道具变强 → 用水柱困住对手。<br>' +
         '<b>泡泡</b>：脚下放泡后 <span class="hl">2.4 秒</span>爆炸，水柱沿上下左右延伸，遇硬墙停止、炸掉软箱后停止、碰到其它泡泡会连锁引爆。<br>' +
-        '<b>困泡</b>：被水柱打中不会立刻死，而是被裹进泡泡里 <span class="hl">3.6 秒</span>。期间狂按方向键或放泡键可以提前挣脱；队友贴身站住就能救你。倒计时结束泡泡破裂即淘汰。<br>' +
-        '<b>道具</b>：<span class="hl">泡泡+1</span> 增加同时可放数量 · <span class="hl">威力+1</span> 水柱更远 · <span class="hl">速度+1</span> 跑得更快 · <span class="hl">踢靴</span> 走向泡泡可把它踢出去 · <span class="hl">护盾</span> 抵挡一次水柱。<br>' +
-        '<b>踢泡泡</b>：踢出的泡泡会直线滑行，撞到障碍停下；撞到玩家会直接把他困住。<br>' +
+        '<b>困泡</b>：被水柱打中不会立刻死，而是被裹进泡泡里 <span class="hl">3.6 秒</span>。期间狂按方向键或放泡键可以提前挣脱；队友贴身站住就能救你。<br>' +
+        '<b>戳泡</b>：走过去碰到敌人的困泡会把它 <span class="hl">戳破</span>（0.16 秒延迟），敌人直接淘汰——不用等水柱。<br>' +
+        '<b>基础道具</b>：<span class="hl">泡泡+1</span> 同时可放数量 · <span class="hl">威力+1</span> 水柱更远 · <span class="hl">速度+1</span> 跑得更快 · <span class="hl">踢靴</span> 走向泡泡把它踢出去 · <span class="hl">护盾</span> 抵挡一次水柱。<br>' +
+        '<b>稀有道具（金边）</b>：<span class="hl">银针</span> 自动抵消一次困泡 · <span class="hl">泡泡靴</span> 可以直接穿过泡泡 · <span class="hl">钻头</span> 水柱穿透软箱并多延伸 1 格 · <span class="hl">磁铁</span> 自动吸取附近道具 · <span class="hl">手套</span> 走向泡泡举起它，再按放泡键向前扔 3 格（同时持有手套时泡泡会重新变成实体，才能举起来）。<br>' +
+        '<b>踢泡泡</b>：踢出的泡泡会直线滑行，撞到障碍停下；撞到玩家会直接把他困住（不会误伤自己）。<br>' +
         '<b>组队 2v2</b>：队友同色，队友被困时要贴身救援，全队存活到最后即获胜。' +
       '</div>' +
       '<div class="btnrow"><button class="btn" data-act="back">返回</button></div>';
@@ -554,7 +558,7 @@
       el.style.setProperty('--c', p.color);
       var teamTag = S.mode === 'team' ? (p.team === 0 ? '蓝队' : '粉队') : '';
       var nm = p.isHuman ? (p.id === 'p1' ? '你 P1' : 'P2') : p.name;
-      var state = p.trapped ? '被困 ' + p.trapT.toFixed(1) + 's' : (p.alive ? '' : '淘汰');
+      var state = p.trapped ? (p.popT > 0 ? '被戳破 ' + p.popT.toFixed(1) + 's' : '被困 ' + p.trapT.toFixed(1) + 's') : (p.alive ? '' : '淘汰');
       el.innerHTML =
         '<div class="av"><img src="' + BA.ART.avatar(p.theme) + '" alt=""></div>' +
         '<div>' +
@@ -562,8 +566,15 @@
           '<div class="st">' +
             '<span>💧<b>' + p.maxBombs + '</b></span>' +
             '<span>🔥<b>' + p.power + '</b></span>' +
-            (p.kick ? '<span>👢</span>' : '') +
-            (p.shield ? '<span>🛡</span>' : '') +
+            '<span>👟<b>' + p.speed.toFixed(1) + '</b></span>' +
+            (p.kick ? '<span title="踢靴">👢</span>' : '') +
+            (p.shield ? '<span title="护盾">🛡</span>' : '') +
+            (p.needle ? '<span title="银针：自动脱困">🪡</span>' : '') +
+            (p.bombPass ? '<span title="泡泡靴：可穿过泡泡">🧊</span>' : '') +
+            (p.pierce ? '<span title="钻头：水柱穿透软箱">🔩</span>' : '') +
+            (p.magnet ? '<span title="磁铁：吸取道具">🧲</span>' : '') +
+            (p.glove ? '<span title="手套：举泡投掷">🧤</span>' : '') +
+            (p.held ? '<span style="color:#ffd166">举泡</span>' : '') +
             (state ? '<span style="color:#ff9db4">' + state + '</span>' : '') +
           '</div>' +
         '</div>' +

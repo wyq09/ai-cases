@@ -90,7 +90,8 @@
     TRAP_SELF_RESCUE: 11,      // 自救需要按的次数
     TRAP_TEAM_RESCUE: 0.75,    // 队友贴身救援半径（格）
     KICK_SPEED: 8.5,
-    ITEM_TTL: 16
+    ITEM_TTL: 16,
+    CORNER_SLACK: 0.48          // 被挡住时的转角辅助半径（格）
   };
 
   /* ---------------- 配置 ---------------- */
