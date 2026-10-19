@@ -3,14 +3,18 @@
  * 覆盖：触屏层初始化 / 虚拟摇杆 / 45° 迟滞 / 放泡键 / 困泡自救 / 暂停 / 新道具
  */
 const BASE = process.env.BA_URL || 'http://127.0.0.1:8771';
-const task = await taskSpace('泡泡堂 触屏回归 ' + new Date().toISOString().slice(0,19));
+const task = await taskSpace('泡泡堂 触屏回归');
 const page = task.page('p1');
 const results = [];
 let pass = 0, fail = 0;
 const ok = (n, c, e) => { if (c) { pass++; results.push('  ✓ ' + n); } else { fail++; results.push('  ✗ ' + n + (e ? ' —— ' + e : '')); } };
 
 await page.goto(`${BASE}/?reset=1&touch=1&v=` + Date.now());
+// 标签页提到前台：后台标签被浏览器节流，rAF 几乎不跑
+try { await page.cdp('Page.bringToFront'); } catch (e) {}
 await page.waitForFunction(() => window.__ba && window.__ba.phase === 'idle', undefined, { timeout: 20000 });
+// 用 fastForward 确定性推进物理，避免依赖真实帧率造成随机失败
+const ff = (sec) => page.evaluate((s) => window.__ba.fastForward(s), sec);
 
 // 触屏层与元素
 const t0 = await page.evaluate(() => ({
@@ -28,7 +32,7 @@ ok('零报错', t0.errs.length === 0, t0.errs.join('|'));
 // 开局
 await page.click('[data-act="start"]');
 await page.waitForFunction(() => window.__ba.phase === 'play', undefined, { timeout: 20000 });
-await page.waitForTimeout(300);
+await page.waitForTimeout(200);
 ok('对局中触屏层激活', await page.evaluate(() => document.querySelector('#touchLayer').classList.contains('on')));
 ok('落点提示圈可见', await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('.tl-ghost')).opacity) > 0.1));
 
@@ -57,9 +61,9 @@ async function touch(type, x, y) {
 const p0 = await page.evaluate(() => ({ x: window.__ba.players[0].x, y: window.__ba.players[0].y }));
 await touch('touchstart', box.x, box.y);
 await touch('touchmove', box.x, box.y - 60);
-await page.waitForTimeout(120);
+await ff(0.12);
 ok('摇杆输出方向 = up', await page.evaluate(() => window.__ba.touch.dir) === 'up');
-await page.waitForTimeout(420);
+await ff(0.42);
 const p1 = await page.evaluate(() => ({ x: window.__ba.players[0].x, y: window.__ba.players[0].y }));
 ok('角色实际向上移动', p1.y < p0.y - 0.15, `dy=${(p1.y - p0.y).toFixed(2)}`);
 
@@ -79,13 +83,13 @@ await touch('touchend', box.x, box.y);
 await page.evaluate(() => window.__ba.teleport(window.__ba.players[0].id, 7, 6));
 const b0 = await page.evaluate(() => window.__ba.bombCount());
 await page.click('.tl-bomb');
-await page.waitForTimeout(250);
+await ff(0.25);
 const b1 = await page.evaluate(() => window.__ba.bombCount());
 ok('点放泡键生成泡泡', b1 > b0, `${b0}→${b1}`);
 
 // 自救：摇杆来回变向
 await page.evaluate(() => window.__ba.trap(window.__ba.players[0].id));
-await page.waitForTimeout(100);
+await ff(0.1);
 ok('trap 后处于被困状态', await page.evaluate(() => window.__ba.players[0].trapped) === true);
 const pr0 = await page.evaluate(() => window.__ba.players[0].trapPress || 0);
 for (let i = 0; i < 8; i++) {
@@ -93,17 +97,17 @@ for (let i = 0; i < 8; i++) {
   await touch('touchmove', box.x - 55, box.y);
   await touch('touchmove', box.x + 60, box.y);
   await touch('touchend', box.x, box.y);
-  await page.waitForTimeout(100);
+  await ff(0.1);
 }
 const pr1 = await page.evaluate(() => window.__ba.players[0].trapPress || 0);
 ok('摇杆变向累计自救次数', pr1 > pr0 + 3, `${pr0}→${pr1}`);
 
 // 暂停
 await page.click('.tl-pause');
-await page.waitForTimeout(250);
+await ff(0.25);
 ok('暂停键打开暂停屏', await page.evaluate(() => window.__ba.state.paused) === true);
 await page.click('.tl-pause');
-await page.waitForTimeout(250);
+await ff(0.25);
 ok('再点暂停键恢复', await page.evaluate(() => window.__ba.state.paused) === false);
 
 // 触屏下新道具仍然可用（用真实点击 + 钩子组合）
@@ -121,4 +125,4 @@ const errs = await page.evaluate(() => window.__ba.errors);
 ok('触屏全程零报错', errs.length === 0, errs.join(' | '));
 console.log(results.join('\n'));
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`);
-await task.finish({ keep: 'all' });
+await task.finish({ keep: [] });

@@ -6,10 +6,11 @@
 const BASE = process.env.BA_URL || 'http://127.0.0.1:8771';
 const OUT = process.env.BA_OUT || '/tmp/ba-logic';
 
-const RUN = new Date().toISOString().slice(0, 19);
-const task = await taskSpace('泡泡堂 逻辑回归J ' + RUN);
+const task = await taskSpace('泡泡堂 逻辑回归');
 const page = task.page('p1');
 await page.goto(`${BASE}/?reset=1&v=${Date.now()}`);
+// 把标签页提到前台：后台标签会被浏览器节流，rAF 几乎不跑
+try { await page.cdp('Page.bringToFront'); } catch (e) {}
 await page.waitForFunction(() => window.__ba && window.__ba.phase === 'idle', undefined, { timeout: 20000 });
 
 let pass = 0, fail = 0;
@@ -61,6 +62,45 @@ async function parkAI() {
 await start();
 await parkAI();
 
+/* 浏览器偶发丢 keydown（页面卡顿时按键事件可能没进游戏）。
+ * 这里记录页面收到的 keydown 次数，断言前先确认"游戏确实收到了这次按键"，
+ * 没收到就重按一次——只重试输入丢失，不掩盖真实的移动问题。 */
+await page.evaluate(() => {
+  window.__keydownCount = 0;
+  window.addEventListener('keydown', () => { window.__keydownCount++; }, true);
+});
+async function keydownCount() {
+  return page.evaluate(() => window.__keydownCount);
+}
+/** 按住某个键 ms 毫秒；若游戏没收到 keydown，最多重试 3 次
+ *  用 fastForward 确定性推进物理：ego 标签页在后台会被浏览器节流，
+ *  靠真实帧率计时会出现"按键窗口内没有物理帧"的随机失败。 */
+async function pressKey(key, ms) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const before = await keydownCount();
+    await page.keyboard.down(key);
+    await page.evaluate((s) => window.__ba.fastForward(s), ms / 1000);
+    await page.keyboard.up(key);
+    await page.waitForTimeout(30);
+    if ((await keydownCount()) > before) return true;
+  }
+  return false;
+}
+/** 按住某个键并在按住期间取一次状态（同样带输入丢失重试） */
+async function pressKeyAndProbe(key, ms, probe) {
+  let out = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const before = await keydownCount();
+    await page.keyboard.down(key);
+    await page.evaluate((s) => window.__ba.fastForward(s), ms / 1000);
+    out = await page.evaluate(probe);
+    await page.keyboard.up(key);
+    await page.waitForTimeout(30);
+    if ((await keydownCount()) > before) return out;
+  }
+  return out;
+}
+
 /* ================= 1. 自由移动：不再吸附车道 ================= */
 {
   const room = await openRoom();
@@ -75,10 +115,7 @@ await parkAI();
   await page.waitForTimeout(60);
 
   const startPos = await page.evaluate(() => ({ x: window.__ba.players[0].x, y: window.__ba.players[0].y }));
-  await page.keyboard.down('KeyD');
-  await page.waitForTimeout(320);
-  await page.keyboard.up('KeyD');
-  await page.waitForTimeout(60);
+  await pressKey('KeyD', 320);
   const mid = await page.evaluate(() => ({ x: window.__ba.players[0].x, y: window.__ba.players[0].y }));
   ok('横向移动时不再被强制拉回行中心', Math.abs(mid.y - startPos.y) < 0.06,
     `y ${startPos.y.toFixed(3)} → ${mid.y.toFixed(3)}`);
@@ -93,10 +130,7 @@ await parkAI();
       p.x = a.x + 0.5; p.y = a.y + 0.34; p.speed = 3.4;
     }, room);
     const p0 = await page.evaluate(() => ({ x: window.__ba.players[0].x, y: window.__ba.players[0].y }));
-    await page.keyboard.down(key);
-    await page.waitForTimeout(260);
-    await page.keyboard.up(key);
-    await page.waitForTimeout(50);
+    await pressKey(key, 260);
     const p1 = await page.evaluate(() => ({ x: window.__ba.players[0].x, y: window.__ba.players[0].y }));
     const along = (p1[axis] - p0[axis]) * sign;
     const drift = Math.abs(axis === 'x' ? p1.y - p0.y : p1.x - p0.x);
@@ -317,10 +351,7 @@ await parkAI();
     B.placeBomb(me.id);
     me.x = 8.5; me.y = 6.5; me.dir = 'left';
   });
-  await page.keyboard.down('KeyA');
-  await page.waitForTimeout(300);
-  const held = await page.evaluate(() => window.__ba.held(window.__ba.players[0].id));
-  await page.keyboard.up('KeyA');
+  const held = await pressKeyAndProbe('KeyA', 300, () => window.__ba.held(window.__ba.players[0].id));
   ok('走向泡泡并按方向即可举起泡泡', held === true, `held=${held}`);
 
   const thrown = await page.evaluate(() => {
@@ -360,5 +391,5 @@ await parkAI();
 
 console.log(results.join('\n'));
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`);
-await task.finish({ keep: 'all' });
+await task.finish({ keep: [] });
 process.exit(fail ? 1 : 0);

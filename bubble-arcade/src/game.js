@@ -50,6 +50,10 @@
   });
   var keys = {};
   var dirStack = {};   // playerId -> [dir,...]
+  // 输入缓冲：按下后至少保持 MIN_HOLD 秒，避免掉帧/卡顿时"按下+松开"被同一批事件吞掉
+  var MIN_HOLD = 0.09;
+  var keyHold = {};        // code -> 到期时间戳
+  var pendingRelease = {}; // code -> true（等游戏消费过再从方向栈摘掉）
   var staticLayer = null;
   var acc = 0, lastTs = 0, rafId = 0, fallbackTimer = null, lastFrameAt = 0;
   var fpsSamples = [], fps = 60;
@@ -119,6 +123,11 @@
   function bindKeys() {
     window.addEventListener('keydown', function (e) {
       if (e.repeat) {
+        // 重复事件：按键仍是"按下"状态。补一次状态同步——
+        // 万一首次 keydown 丢了（浏览器/系统卡顿），后续 repeat 也能把方向补回来。
+        keys[e.code] = true;
+        keyHold[e.code] = performance.now() + MIN_HOLD * 1000;
+        syncDirStack(e.code);
         handleRepeat(e);
         return;
       }
@@ -132,9 +141,27 @@
     });
   }
 
+  // 把某个键对应的方向补进方向栈（不改变已有顺序）
+  function syncDirStack(code) {
+    S.players.forEach(function (p) {
+      if (!p.isHuman) return;
+      var k = p.keys;
+      var dir = null;
+      if (code === k.up) dir = 'up';
+      else if (code === k.down) dir = 'down';
+      else if (code === k.left) dir = 'left';
+      else if (code === k.right) dir = 'right';
+      if (!dir) return;
+      var st = dirStack[p.id] || (dirStack[p.id] = []);
+      if (st.indexOf(dir) < 0) st.push(dir);
+    });
+  }
+
   var PREVENT = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Tab', 'KeyP', 'Escape'];
   function onKeyDown(e) {
     if (PREVENT.indexOf(e.code) >= 0) e.preventDefault();
+    // 输入缓冲：保证这次按下至少被游戏看到 MIN_HOLD 秒
+    keyHold[e.code] = performance.now() + MIN_HOLD * 1000;
     if ((e.code === 'Space' || e.code === 'Enter') && (S.phase === 'play' || S.phase === 'countdown')) {
       var ael = document.activeElement;
       if (ael && ael.tagName === 'BUTTON') ael.blur();
@@ -178,20 +205,52 @@
     });
   }
   function onKeyUp(e) {
+    keys[e.code] = false;
+    // 还在输入缓冲窗口内 → 先留着方向/放泡状态，等游戏消费过再撤
+    if ((keyHold[e.code] || 0) > performance.now()) { pendingRelease[e.code] = true; return; }
+    releaseKey(e.code);
+  }
+  // 真正松开一个键：方向栈摘除 + 放泡标记清除
+  function releaseKey(code) {
     S.players.forEach(function (p) {
       if (!p.isHuman) return;
-      var k = p.keys, dir = null;
-      if (e.code === k.up) dir = 'up';
-      else if (e.code === k.down) dir = 'down';
-      else if (e.code === k.left) dir = 'left';
-      else if (e.code === k.right) dir = 'right';
+      var k = p.keys;
+      var dir = null;
+      if (code === k.up) dir = 'up';
+      else if (code === k.down) dir = 'down';
+      else if (code === k.left) dir = 'left';
+      else if (code === k.right) dir = 'right';
       if (dir) {
         var st = dirStack[p.id] || [];
         var i = st.indexOf(dir);
         if (i >= 0) st.splice(i, 1);
       }
-      if (e.code === k.bomb) p.bombPressed = false;
+      if (code === k.bomb) p.bombPressed = false;
     });
+  }
+  // 每个逻辑帧回收：缓冲窗口过后再把键从栈里摘掉
+  function flushPendingRelease() {
+    var now = performance.now();
+    for (var code in pendingRelease) {
+      if (!pendingRelease[code]) continue;
+      if ((keyHold[code] || 0) > now) continue;
+      pendingRelease[code] = false;
+      releaseKey(code);
+    }
+    // 兜底：清掉"卡住"的方向（keyup 丢失时角色会一直朝一个方向漂）
+    S.players.forEach(function (p) {
+      if (!p.isHuman) return;
+      var st = dirStack[p.id];
+      if (!st || !st.length) return;
+      for (var i = st.length - 1; i >= 0; i--) {
+        var c = dirKeyCode(p, st[i]);
+        if (!keys[c] && (keyHold[c] || 0) <= now) st.splice(i, 1);
+      }
+    });
+  }
+  // 键是否"按下中"（含输入缓冲窗口）
+  function keyDown(code) {
+    return keys[code] || (keyHold[code] || 0) > performance.now();
   }
   function handleRepeat(e) {
     if (S.phase !== 'play') return;
@@ -228,8 +287,10 @@
     /* 抬起不清 bombPressed：快速点按可能短于一个逻辑帧，交给游戏消费时清除 */
   }
   function mashEscape(p) {
-    if (performance.now() - (p.lastMash || 0) < 85) return;
-    p.lastMash = performance.now();
+    // 用游戏时钟做冷却：与逻辑帧同步，帧率/后台节流都不影响手感
+    var now = S.time;
+    if (now - (p.lastMash || 0) < 0.085) return;
+    p.lastMash = now;
     p.trapPress++;
     F().ring(p.x * T, p.y * T, '#8fe6ff', { r0: 12, r1: 40, ttl: 0.3, lw: 3 });
     if (p.trapPress >= P.TRAP_SELF_RESCUE) rescuePlayer(p, 'self');
@@ -330,6 +391,8 @@
     var mapId = (S.matchOpts && S.matchOpts.map) || cfg.lastMap || 'garden';
     var seed = (S.seed + S.round * 7919) >>> 0;
     S.map = BA.MAPS.build(mapId, seed);
+    // 局内事件流（掉落/道具/死亡模式）：同种子可完整重放，便于回归对比
+    S.rng = BA.CORE.U.rng((seed + 4242) >>> 0);
     S.grid = S.map.grid.map(function (r) { return r.slice(); });
     S.bombs = [];
     S.items = [];
@@ -377,7 +440,17 @@
       p.wantBomb = false;
       p.mashAcc = 0;
       p.botGaveUp = false;
-      if (p.ai) { p.ai.path = null; p.ai.replan = 0; p.ai.bombCd = 0.6; p.ai.stuck = 0; }
+      p.lastMash = 0;
+      p.deathCause = null; p.deathById = null; p.deathSelf = false;
+      p.trapOwnerId = null; p.trapSelf = false;
+      p.statBombs = 0; p.statBlocks = 0; p.statKills = 0;
+      if (p.ai) {
+        // 确定性随机源：同一局重放，AI 行为完全一致
+        p.ai.rng = BA.CORE.U.rng((S.seed + S.round * 7919 + p.idx * 131 + 7) >>> 0);
+        p.ai.path = null; p.ai.replan = 0; p.ai.bombCd = 0.6; p.ai.stuck = 0;
+        p.ai.lx = null; p.ai.ly = null; p.ai.goal = null; p.ai.goalKind = 'idle';
+        p.ai.boxGoal = null; p.ai.escapeSafe = false; p.ai.mode = 'safe';
+      }
     });
     buildStaticLayer();
     BA.FX && BA.FX.clear();
@@ -550,6 +623,7 @@
 
     S.time += dt;
     updatePlayers(dt);
+    flushPendingRelease();
     updateBombs(dt);
     updateGeysers(dt);
     updateItems(dt);
@@ -624,7 +698,7 @@
       if (p.isHuman) {
         var st = dirStack[p.id] || [];
         for (var k = st.length - 1; k >= 0; k--) {
-          if (keys[dirKeyCode(p, st[k])]) { want = st[k]; break; }
+          if (keyDown(dirKeyCode(p, st[k]))) { want = st[k]; break; }
         }
         if (!want && st.length) want = st[st.length - 1];
       } else {
@@ -636,6 +710,7 @@
       var bombWant = p.isHuman ? p.bombPressed : p.wantBomb;
       if (bombWant) {
         if (p.isHuman) p.bombPressed = false;
+        else p.wantBomb = false;      // 机器人：一次决策只放一颗，避免连放
         if (placeBomb(p)) placed = true;
       }
 
@@ -711,12 +786,20 @@
     var x0 = Math.floor(x - r), x1 = Math.floor(x + r);
     var y0 = Math.floor(y - r), y1 = Math.floor(y + r);
     var ptx = p ? Math.floor(p.x) : -99, pty = p ? Math.floor(p.y) : -99;
+    // 身体已经压住的格子：这些格子上的泡泡不再阻挡。
+    // 否则自由移动下身体常横跨两格，敌人把泡泡丢到旁边就会把人永久冻死。
+    var cx0 = -1, cx1 = -1, cy0 = -1, cy1 = -1;
+    if (p) {
+      cx0 = Math.floor(p.x - r); cx1 = Math.floor(p.x + r);
+      cy0 = Math.floor(p.y - r); cy1 = Math.floor(p.y + r);
+    }
     for (var i = 0; i < S.bombs.length; i++) {
       var b = S.bombs[i];
       if (b.moving) continue;
       if (b.heldBy) continue;                        // 被举在头顶，不阻挡
       if (b.tx === ptx && b.ty === pty) continue;   // 中心在脚下
       if (b.ownerInside && b.owner === p) continue;  // 放泡者尚未完全离开
+      if (b.tx >= cx0 && b.tx <= cx1 && b.ty >= cy0 && b.ty <= cy1) continue;  // 已经压着它
       for (var yy = y0; yy <= y1; yy++) {
         for (var xx = x0; xx <= x1; xx++) {
           if (b.tx === xx && b.ty === yy) return b;
@@ -838,6 +921,7 @@
     };
     S.bombs.push(b);
     p.activeBombs++;
+    p.statBombs = (p.statBombs || 0) + 1;
     S.stats.bombs++;
     A().play('place');
     F().ring(p.x * T, p.y * T, '#bfefff', { r0: 6, r1: 46, ttl: 0.32, lw: 4 });
@@ -1006,6 +1090,7 @@
       // 摧毁箱子（箱子吸收水柱，刚掉出的道具不会被同一次爆炸冲毁）
       if (S.grid[cl.y][cl.x] === 2) {
         brokeHere[cl.x + ',' + cl.y] = true;
+        if (b.owner) b.owner.statBlocks = (b.owner.statBlocks || 0) + 1;
         destroyBox(cl.x, cl.y);
       }
       // 冲毁地上已有道具
@@ -1045,7 +1130,7 @@
     F().burst(x * T + T / 2, y * T + T / 2, '#e0b070', 16, { speed: 210, grav: 480 });
     F().dust(x * T + T / 2, y * T + T / 2, 8);
     var cfg = CFG.get();
-    if (Math.random() < (cfg.itemChance == null ? 0.3 : cfg.itemChance)) {
+    if (S.rng() < (cfg.itemChance == null ? 0.3 : cfg.itemChance)) {
       var type = rollItemType();
       S.items.push({ x: x, y: y, type: type, t: 0, ttl: P.ITEM_TTL, spawnT: 0 });
     }
@@ -1056,7 +1141,7 @@
     var types = BA.ART.ITEM_TYPES, meta = BA.ART.ITEM_META;
     var total = 0, i;
     for (i = 0; i < types.length; i++) total += (meta[types[i]].w || 1);
-    var r = Math.random() * total;
+    var r = S.rng() * total;
     for (i = 0; i < types.length; i++) {
       r -= (meta[types[i]].w || 1);
       if (r <= 0) return types[i];
@@ -1137,7 +1222,7 @@
     if (p.trapped) {
       // 困泡再被“别人的”水柱打中 → 立即淘汰；自家水柱不误伤
       if (src && src.owner && src.owner === p) return;
-      killPlayer(p, 'water');
+      killPlayer(p, 'water', src);
       return;
     }
     if (p.shield) {
@@ -1148,11 +1233,14 @@
       F().text(p.x * T, p.y * T - 34, '护盾抵挡', '#c9b6ff');
       return;
     }
-    trapPlayer(p);
+    trapPlayer(p, src);
   }
 
-  function trapPlayer(p) {
+  function trapPlayer(p, src) {
     if (!p.alive || p.trapped) return;
+    // 归因：记录是谁的泡泡把人困住的（AI 调优 / 回归统计用）
+    p.trapOwnerId = src && src.owner ? src.owner.id : null;
+    p.trapSelf = !!(src && src.owner === p);
     // 银针：自动抵消一次困泡
     if (p.needle) {
       p.needle = false;
@@ -1193,11 +1281,25 @@
     if (BA.UI) BA.UI.hud(S);
   }
 
-  function killPlayer(p, cause) {
+  function killPlayer(p, cause, src) {
     if (!p.alive) return;
     p.alive = false;
     p.trapped = false;
     p.deathT = 0;
+    // 归因：死因 + 凶手（AI 调优 / 回归统计用）
+    p.deathCause = cause;
+    // 击杀归因：炸别人算在炸弹主人头上，戳破算在戳破者头上
+    var killer = null;
+    if (cause === 'water' && src && src.owner) killer = src.owner;
+    else if (cause === 'pop' && p.popper) killer = S.players.filter(function (q) { return q.id === p.popper; })[0];
+    else if (p.trapOwnerId) killer = S.players.filter(function (q) { return q.id === p.trapOwnerId; })[0];
+    if (killer) killer.statKills = (killer.statKills || 0) + 1;
+    p.deathById = killer ? killer.id : (p.trapOwnerId || null);
+    // "自炸"要按真正的凶手算：被自己泡泡炸到 / 泡泡超时，才算自己把自己害了；
+    // 被敌人戳破或被别人的水柱补刀，不算自炸。
+    if (cause === 'water') p.deathSelf = !!(src && src.owner === p);
+    else if (cause === 'pop') p.deathSelf = false;
+    else p.deathSelf = !!p.trapSelf;
     S.stats.kills++;
     A().play('death');
     F().splash(p.x * T, p.y * T, 30, { color: '#bfefff' });
@@ -1251,7 +1353,7 @@
         }
       }
       if (cands.length) {
-        var c = cands[Math.floor(Math.random() * cands.length)];
+        var c = cands[Math.floor(S.rng() * cands.length)];
         var b = {
           tx: c[0], ty: c[1], x: c[0] + .5, y: c[1] + .5,
           power: 2, fuse: 1.25, maxFuse: 1.25, owner: null,
@@ -1517,6 +1619,8 @@
       get cfg() { return CFG.get(); },
       get fps() { return Math.round(fps); },
       get errors() { return (window.__errs || []).slice(); },
+      get dirStack() { return dirStack; },
+      get keyState() { return { keys: keys, hold: keyHold, pending: pendingRelease }; },
       start: function (opts) { startMatch(opts || {}); },
       quit: quit,
       pause: pause,
