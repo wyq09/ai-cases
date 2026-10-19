@@ -471,6 +471,20 @@ button, input, textarea, select { font-family: inherit; color: inherit; }
   border: 1px solid rgba(255, 255, 255, 0.08);
   white-space: nowrap;
 }
+/* 游戏速度指示：仅在非 1× 时亮起 */
+.hud-speed {
+  align-self: flex-end;
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--cyan);
+  background: rgba(10, 16, 30, 0.5);
+  border: 1px solid rgba(53, 224, 200, 0.45);
+  white-space: nowrap;
+  display: none;
+}
+.hud-speed.on { display: block; }
 .mega {
   margin-left: auto;
   min-height: 26px;
@@ -4633,20 +4647,56 @@ return {
       return { x: xx, y: L.groundY - 22 };
     }
 
-    /* 25 种拾取物每关至少各出现 1 个（均匀铺开） */
-    var count = ITEM_IDS.length;
-    for (i = 0; i < count; i++) {
-      x = 140 + (i + 0.5) * (L.len - 280) / count;
-      pos = place(x);
-      picks.push({ x: Math.round(pos.x), y: Math.round(pos.y), id: ITEM_IDS[i], r: 16, type: 'pickup' });
+    /* ---- 收集类：奶酪 / 金币 ----
+       按关卡目标数分层均匀铺开（带抖动，避免扎堆也避免过密）。
+       旧版每关额外撒 (len/300) 个随机道具，密集处一个道具只隔 0.3 秒，
+       既刷屏又抢跑酷节奏；现在总量固定、间距可控。 */
+    var target = levelTargets(L.n).cheese;
+    // 奶酪数必须 ≥ 星级目标（留 3 个余量），否则高关卡拿不到二星
+    var cheeseN = Math.min(target + 3, 32);
+    var coinN = Math.min(4 + Math.floor(L.n / 4), 10);
+
+    /* ---- 能力道具：23 种（除奶酪/金币外），每关 5 种 ----
+       取池子里的「连续 5 个」窗口，窗口起点按关卡步进 5（23 与 5 互质）：
+       第 1~5 关恰好覆盖全部 23 种，第 6 关起窗口继续轮转、不会重复扎堆。 */
+    var powerPool = ITEM_IDS.filter(function (id) { return id !== 'cheese' && id !== 'coin'; });
+    var powerIds = [];
+    var pStart = ((L.n - 1) * 5) % powerPool.length;
+    for (i = 0; i < 5; i++) {
+      powerIds.push(powerPool[(pStart + i) % powerPool.length]);
     }
-    /* 额外的奶酪 / 金币 */
-    var extra = Math.max(8, Math.round((L.len / 300) * (1 + Math.min(L.n, 12) * 0.06)));
-    for (i = 0; i < extra; i++) {
-      x = 100 + rng() * (L.len - 200);
-      pos = place(x);
-      var id = rng() < 0.55 ? 'cheese' : 'coin';
-      picks.push({ x: Math.round(pos.x), y: Math.round(pos.y), id: id, r: 16, type: 'pickup' });
+
+    function layOut(ids, from, to) {
+      if (!ids.length) return;
+      var span = Math.max(120, to - from);
+      var gap = span / ids.length;
+      for (var j = 0; j < ids.length; j++) {
+        var base = from + (j + 0.5) * gap;
+        var jit = (rng() - 0.5) * gap * 0.35;   // 抖动控制在 35% 以内，保证不扎堆
+        x = clamp(base + jit, from + 30, to - 30);
+        pos = place(x);
+        picks.push({ x: Math.round(pos.x), y: Math.round(pos.y), id: ids[j], r: 16, type: 'pickup' });
+      }
+    }
+
+    /* 收集类与能力道具交错排布（避免奶酪/金币连成一片、也避免能力道具扎堆） */
+    var mixed = [];
+    var ci = 0, oi = 0;
+    var coll = [];
+    for (i = 0; i < cheeseN; i++) coll.push('cheese');
+    for (i = 0; i < coinN; i++) coll.push('coin');
+    while (ci < coll.length || oi < powerIds.length) {
+      if (ci < coll.length) mixed.push(coll[ci++]);
+      if (oi < powerIds.length) mixed.push(powerIds[oi++]);
+    }
+    layOut(mixed, 170, L.len - 200);
+
+    /* 最小间距整理：不同分组万一仍挨太近，强制拉开 */
+    picks.sort(function (a, b) { return a.x - b.x; });
+    var MIN_GAP = 70;
+    for (i = 1; i < picks.length; i++) {
+      var minX = picks[i - 1].x + MIN_GAP;
+      if (picks[i].x < minX) picks[i].x = Math.round(minX);
     }
     return picks;
   }
@@ -4833,7 +4883,8 @@ return {
   /* 关卡目标：奶酪 target = 6 + floor(n/2) */
   function levelTargets(level) {
     var n = Math.max(1, Math.floor(level) || 1);
-    return { cheese: 6 + Math.floor(n / 2) };
+    /* 关卡长度在 9600 单位封顶，奶酪目标同步封顶（否则超高关卡永远拿不到二星） */
+    return { cheese: Math.min(6 + Math.floor(n / 2), 28) };
   }
 
   /* ======================================================================
@@ -5422,7 +5473,8 @@ return {
   var prevScreen = null;
   var settingsReturn = null;
   var orientMode = 'auto';
-  var cfg = { bgm: 0.5, sfx: 0.7, vibrate: true, quality: 'high', orient: 'auto', touchUI: null };
+  var cfg = { bgm: 0.5, sfx: 0.7, vibrate: true, quality: 'high', orient: 'auto', touchUI: null, speed: 1 };
+  var SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5];
   var touchUIEls = null;
   var hud = {};
   var buffNodes = [];
@@ -5607,6 +5659,7 @@ return {
       cfg.quality = c.quality === 'low' ? 'low' : 'high';
       cfg.orient = ['auto', 'portrait', 'landscape'].indexOf(c.orient) >= 0 ? c.orient : 'auto';
       cfg.touchUI = typeof c.touchUI === 'boolean' ? c.touchUI : null;
+      if (SPEED_STEPS.indexOf(c.speed) >= 0) cfg.speed = c.speed;
     }
   }
 
@@ -5620,6 +5673,7 @@ return {
     out.quality = cfg.quality;
     out.orient = cfg.orient;
     out.touchUI = cfg.touchUI;
+    out.speed = cfg.speed;
     store(KEY_CFG, out);
   }
 
@@ -5736,6 +5790,7 @@ return {
       '<div class="bar bar-energy" id="hud-energy-bar"><i id="hud-energy-fill"></i></div>' +
       '</div>' +
       '<div class="hud-biome" id="hud-biome">厨房</div>' +
+      '<div class="hud-speed" id="hud-speed" title="游戏速度">1×</div>' +
       '</div>' +
       '<div class="hud-buffs" id="hud-buffs"></div>';
     hud.screen = sc;
@@ -5753,6 +5808,7 @@ return {
     hud.energyBar = $('hud-energy-bar');
     hud.mega = $('hud-mega');
     hud.biome = $('hud-biome');
+    hud.speed = $('hud-speed');
     hud.buffs = $('hud-buffs');
   }
 
@@ -5955,6 +6011,10 @@ return {
     list.appendChild(chipRow('横竖屏', 'orient', [
       { v: 'auto', t: '自动' }, { v: 'portrait', t: '强制竖屏' }, { v: 'landscape', t: '强制横屏' }
     ]));
+    list.appendChild(chipRow('游戏速度', 'speed', [
+      { v: '0.5', t: '0.5×' }, { v: '0.75', t: '0.75×' }, { v: '1', t: '1×' },
+      { v: '1.25', t: '1.25×' }, { v: '1.5', t: '1.5×' }
+    ]));
     list.appendChild(chipRow('触屏控件', 'touchUI', [
       { v: 'auto', t: '自动' }, { v: 'true', t: '开' }, { v: 'false', t: '关' }
     ]));
@@ -6006,7 +6066,8 @@ return {
       c.setAttribute('type', 'button');
       c.setAttribute('data-action', group === 'vibrate' ? 'setVibrate'
         : group === 'quality' ? 'setQuality'
-          : group === 'orient' ? 'setOrient' : 'setTouchUI');
+          : group === 'orient' ? 'setOrient'
+            : group === 'speed' ? 'setSpeed' : 'setTouchUI');
       c.setAttribute('data-value', opts[i].v);
       ctl.appendChild(c);
     }
@@ -6018,6 +6079,7 @@ return {
     if (name === 'vibrate') return cfg.vibrate ? 'true' : 'false';
     if (name === 'quality') return cfg.quality;
     if (name === 'orient') return orientMode;
+    if (name === 'speed') return String(cfg.speed === undefined ? 1 : cfg.speed);
     if (name === 'touchUI') return cfg.touchUI === null ? 'auto' : (cfg.touchUI ? 'true' : 'false');
     return '';
   }
@@ -6337,6 +6399,15 @@ return {
         refreshSettings();
         break;
       }
+      case 'setSpeed': {
+        var sp = Number(btn.getAttribute('data-value'));
+        if (SPEED_STEPS.indexOf(sp) < 0) sp = 1;
+        cfg.speed = sp;
+        act('setSpeed', { value: sp });
+        writeCfg();
+        refreshSettings();
+        break;
+      }
       case 'exportSave': {
         act('exportSave', { el: $('save-box') });
         break;
@@ -6468,6 +6539,14 @@ return {
       hud.lives.textContent = str;
     }
     if (s.level !== last.level) { last.level = s.level; hud.level.textContent = fmtNum(s.level); }
+    if (s.speed !== last.speed) {
+      last.speed = s.speed;
+      var sp = s.speed === undefined ? 1 : s.speed;
+      if (hud.speed) {
+        hud.speed.textContent = (sp === 1 ? '' : sp + '×');
+        hud.speed.classList.toggle('on', sp !== 1);
+      }
+    }
     if (s.biomeName !== last.biomeName) { last.biomeName = s.biomeName; hud.biome.textContent = s.biomeName || ''; }
     updateBuffs(s.buffs || []);
   }
@@ -6684,6 +6763,7 @@ return {
   U.applyOrientation = applyOrientation;
   U.onResize = onResize;
   U.vibrate = vibrate;
+  U.refreshSettings = refreshSettings;
 
   window.MP.UI = U;
 })();
@@ -6727,6 +6807,8 @@ return {
   const GROUND_Y = 460;
   const STYLE_KINDS = ['dash', 'stomp', 'slam', 'slide', 'djump', 'hardland', 'graze', 'air'];
   const STYLE_ORDER = ['D', 'C', 'B', 'A', 'S', 'SS'];
+  /* 全局游戏速度档位（设置面板可切）：整体时间缩放，物理/粒子/机关同步变慢变快 */
+  const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5];
 
   const KEY_SAVE = 'mr.save.v1';
   const KEY_CFG = 'mr.cfg.v1';
@@ -6761,7 +6843,7 @@ return {
     stick: { active: false, id: -1, ox: 0, oy: 0, dx: 0, dy: 0 },
     cfg: {
       bgm: 0.5, sfx: 0.7, vibrate: true, quality: 'high',
-      orient: 'auto', touchUI: null
+      orient: 'auto', touchUI: null, speed: 1
     },
     records: { bestScore: 0, bestLevel: 0, bestCombo: 0, bestStyle: 'D', bestStylePts: 0 },
     lastResult: null,
@@ -6802,6 +6884,7 @@ return {
       G.cfg.quality = c.quality === 'low' ? 'low' : 'high';
       G.cfg.orient = ['auto', 'portrait', 'landscape'].indexOf(c.orient) >= 0 ? c.orient : 'auto';
       G.cfg.touchUI = typeof c.touchUI === 'boolean' ? c.touchUI : null;
+      G.cfg.speed = SPEED_STEPS.indexOf(c.speed) >= 0 ? c.speed : 1;
     }
   }
   function saveCfg() { store(KEY_CFG, G.cfg); }
@@ -6864,6 +6947,7 @@ return {
     run.bestStylePts = 0;
     run.flawless = true;
     run.levelDeaths = 0;
+    run.levelCheese = 0;
     run.distUnits = 0;
     run.mk = { distance: 0, pickup: 0, style: 0, kill: 0, clear: 0 };
     run.stats = { kills: 0, items: 0, jumps: 0, djumps: 0, dashes: 0, deaths: 0, stomp: 0, slides: 0, hardLand: 0, graze: 0 };
@@ -6945,6 +7029,7 @@ return {
     lastStyleLevel = 'D';
     g.flawless = true;
     g.levelDeaths = 0;
+    g.levelCheese = 0;
 
     G.state = 'playing';
     G.hitstop = 0;
@@ -7107,7 +7192,8 @@ return {
     const g = G.g, p = G.player, level = G.level;
     if (!g || !level) return;
     const target = (L().levelTargets ? L().levelTargets(g.level) : { cheese: 6 }) || { cheese: 6 };
-    const cheeseGot = g.cheese || 0;
+    const cheeseGot = g.levelCheese || 0;      // 本关收集（星级按本关判定）
+    const cheeseTotal = g.cheese || 0;         // 本局累计
     const flawless = g.flawless !== false;
     const res = (L().scoreLevelClear ? L().scoreLevelClear(g, g.level, {
       flawless: flawless, cheese: cheeseGot, lives: Math.max(0, p.lives || 0)
@@ -7143,6 +7229,7 @@ return {
       base: res.base || 0,
       flawless: flawless,
       cheese: cheeseGot,
+      cheeseTotal: cheeseTotal,
       targetCheese: target.cheese,
       stars: stars,
       styleLevel: p.styleLevel,
@@ -7338,6 +7425,7 @@ return {
         addScore('pickup', gain, it.x, it.y, '#ffd23f');
         g.items = (g.items || 0) + 1;
         if (g.stats) g.stats.items++;
+        if (it.id === 'cheese') g.levelCheese = (g.levelCheese || 0) + 1;
         if (F().burst) F().burst(it.x, it.y, { kind: 'star', n: 10, colors: ['#ffd23f', '#fff8d6'], spd: 180, size: 5, life: 0.5, grav: 300 });
         if (F().ring) F().ring(it.x, it.y, { r0: 4, r1: 44, life: 0.35, color: '#ffd23f', width: 3 });
         if (F().floatText) F().floatText(it.x, it.y - 18, res && res.text ? res.text : (def.name || it.id), { color: (res && res.color) || '#ffd23f', size: 16 });
@@ -7561,16 +7649,35 @@ return {
   function updateCam(dt, snap) {
     const p = G.player, level = G.level;
     if (!p) return;
-    const targetX = clamp(p.x - G.viewW * 0.38, 0, Math.max(0, (level ? level.length : G.viewW) - G.viewW));
-    G.cam.x = snap ? targetX : lerp(G.cam.x, targetX, Math.min(1, dt * 8));
-    const groundCam = GROUND_Y - G.viewH * 0.78;
+    const viewW = G.viewW, viewH = G.viewH;
+    const levelLen = level ? level.length : viewW;
+    const minX = 0;
+    const maxX = Math.max(0, levelLen - viewW);
+
+    /* 横向：目标把玩家放在视口 45% 处，再用「安全带」硬约束兜底。
+       安全带 = 玩家必须始终落在视口 35%~55% 的区间内（受关卡边界收窄）。
+       纯 lerp 追赶在竖屏（可视宽仅 ~320 单位）下缓冲不足，冲刺会把角色甩出画面；
+       加了硬约束后，无论多快、无论什么屏，角色都不会丢失焦点。 */
+    const targetX = clamp(p.x - viewW * 0.45, minX, maxX);
+    const bandLo = Math.max(minX, p.x - viewW * 0.55);
+    const bandHi = Math.min(maxX, p.x - viewW * 0.35);
+    let camX = snap ? targetX : lerp(G.cam.x, targetX, Math.min(1, dt * 12));
+    camX = (bandLo <= bandHi) ? clamp(camX, bandLo, bandHi) : clamp(targetX, minX, maxX);
+    G.cam.x = camX;
+
+    /* 纵向：地面锚定 + 玩家跳跃时上移；再加一条「不出画布」兜底 */
+    const groundCam = GROUND_Y - viewH * 0.78;
     let targetY = groundCam;
-    if (p.y < GROUND_Y - 140) targetY = Math.min(groundCam, p.y - G.viewH * 0.5);
+    if (p.y < GROUND_Y - 140) targetY = Math.min(groundCam, p.y - viewH * 0.5);
     if (level && level.groundY) {
-      const gc = level.groundY - G.viewH * 0.78;
-      targetY = Math.min(gc, p.y - G.viewH * 0.5);
+      const gc = level.groundY - viewH * 0.78;
+      targetY = Math.min(gc, p.y - viewH * 0.5);
     }
-    G.cam.y = snap ? targetY : lerp(G.cam.y, targetY, Math.min(1, dt * 5));
+    let camY = snap ? targetY : lerp(G.cam.y, targetY, Math.min(1, dt * 6));
+    // 兜底：角色任何时候都不能完全跑出画面上下边界
+    camY = clamp(camY, p.y - viewH * 0.95, p.y - viewH * 0.05);
+    G.cam.y = camY;
+
     // 冲击缩放
     if (G.cam.zoomT > 0) {
       G.cam.zoomT = Math.max(0, G.cam.zoomT - dt);
@@ -7947,7 +8054,8 @@ return {
     G.frame++;
 
     const scale = F().timeScale ? F().timeScale() : 1;
-    const sdt = dt * scale;
+    // 全局游戏速度（设置项）× 特效慢动作（命中停顿/必杀）= 实际推进时间
+    const sdt = dt * scale * (G.cfg.speed || 1);
 
     if (G.state === 'playing') {
       if (G.hitstop > 0) {
@@ -7998,7 +8106,8 @@ return {
       state: G.state,
       score: g ? g.score : 0,
       coin: g ? g.coin : 0,
-      cheese: g ? g.cheese : 0,
+      cheese: g ? (g.levelCheese || 0) : 0,
+      cheeseTotal: g ? (g.cheese || 0) : 0,
       targetCheese: target.cheese,
       stylePts: p ? Math.round(p.stylePts || 0) : 0,
       styleLevel: p ? (p.styleLevel || 'D') : 'D',
@@ -8012,6 +8121,7 @@ return {
       buffs: buffs,
       distance: g ? Math.round(g.distUnits || 0) * 12 : 0,
       best: G.records.bestScore,
+      speed: G.cfg.speed || 1,
       megaReady: g ? (g.energy || 0) >= 100 : false
     };
   }
@@ -8153,7 +8263,14 @@ return {
         saveCfg();
         if (U().applyOrientation) U().applyOrientation();
         break;
-      case 'exportSave': {
+      case 'setSpeed': {
+        const v = payload && payload.value !== undefined ? Number(payload.value) : 1;
+        G.cfg.speed = SPEED_STEPS.indexOf(v) >= 0 ? v : 1;
+        saveCfg();
+        if (U().refreshSettings) U().refreshSettings();
+        if (U().toast) U().toast('游戏速度 ' + G.cfg.speed + '×', 'info');
+        break;
+      }      case 'exportSave': {
         const raw = JSON.stringify(load(KEY_SAVE, {}));
         if (payload && payload.el) payload.el.value = btoa(unescape(encodeURIComponent(raw)));
         if (U().toast) U().toast('已生成存档文本', 'good');
@@ -8260,12 +8377,22 @@ return {
     applyForceOrientation: applyForceOrientation,
     getG: function () { return G.g; },
 
-    /* ---- 测试钩子（ego-lite 回归用，确定性推进不依赖真实帧率） ---- */
+    /* ---- 测试钩子（ego-lite 回归用，确定性推进不依赖真实帧率） ----
+       fastForward(sec) 推进「真实时间 sec」：与主循环一致地套用全局速度倍率，
+       因此在 0.5× 档位下同样的调用量只会推进一半的游戏时间。 */
     fastForward: function (sec) {
       const n = Math.round((sec || 0) / FIXED_DT);
+      const sp = G.cfg.speed || 1;
       for (let i = 0; i < n; i++) {
-        if (G.state === 'playing') { step(FIXED_DT); updateCam(FIXED_DT); }
-        if (F().update) F().update(FIXED_DT);
+        const sdt = FIXED_DT * sp;
+        if (G.state === 'playing') {
+          G.acc += sdt;
+          let guard = 0;
+          while (G.acc >= FIXED_DT && guard < 5) { step(FIXED_DT); G.acc -= FIXED_DT; guard++; }
+          if (guard >= 5) G.acc = 0;
+          updateCam(sdt);
+        }
+        if (F().update) F().update(sdt);
       }
       return snapshot();
     },
@@ -8273,7 +8400,21 @@ return {
     testState: function () { return G.state; },
     testResult: function () { return G.lastResult; },
     testLevel: function () { return G.level; },
-    testPlayer: function () { return G.player; }
+    testPlayer: function () { return G.player; },
+    /* 相机与玩家的相对位置（用于验证「角色始终在画面 35%~55%」这条硬约束） */
+    testCam: function () {
+      return { x: G.cam.x, y: G.cam.y, viewW: G.viewW, viewH: G.viewH, scale: G.scale };
+    },
+    testRel: function () {
+      const p = G.player;
+      if (!p) return null;
+      return {
+        rel: (p.x - G.cam.x) / G.viewW,          // 0=左边缘 1=右边缘
+        relY: (p.y - G.cam.y) / G.viewH,
+        x: p.x, y: p.y, vx: p.vx, onScreen: (p.x >= G.cam.x && p.x <= G.cam.x + G.viewW)
+      };
+    },
+    testSpeed: function () { return G.cfg.speed; }
   };
   window.__mp = MP.game;
 

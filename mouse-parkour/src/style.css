@@ -462,6 +462,20 @@ button, input, textarea, select { font-family: inherit; color: inherit; }
   border: 1px solid rgba(255, 255, 255, 0.08);
   white-space: nowrap;
 }
+/* 游戏速度指示：仅在非 1× 时亮起 */
+.hud-speed {
+  align-self: flex-end;
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--cyan);
+  background: rgba(10, 16, 30, 0.5);
+  border: 1px solid rgba(53, 224, 200, 0.45);
+  white-space: nowrap;
+  display: none;
+}
+.hud-speed.on { display: block; }
 .mega {
   margin-left: auto;
   min-height: 26px;

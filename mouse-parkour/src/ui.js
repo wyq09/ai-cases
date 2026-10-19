@@ -19,7 +19,8 @@
   var prevScreen = null;
   var settingsReturn = null;
   var orientMode = 'auto';
-  var cfg = { bgm: 0.5, sfx: 0.7, vibrate: true, quality: 'high', orient: 'auto', touchUI: null };
+  var cfg = { bgm: 0.5, sfx: 0.7, vibrate: true, quality: 'high', orient: 'auto', touchUI: null, speed: 1 };
+  var SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5];
   var touchUIEls = null;
   var hud = {};
   var buffNodes = [];
@@ -204,6 +205,7 @@
       cfg.quality = c.quality === 'low' ? 'low' : 'high';
       cfg.orient = ['auto', 'portrait', 'landscape'].indexOf(c.orient) >= 0 ? c.orient : 'auto';
       cfg.touchUI = typeof c.touchUI === 'boolean' ? c.touchUI : null;
+      if (SPEED_STEPS.indexOf(c.speed) >= 0) cfg.speed = c.speed;
     }
   }
 
@@ -217,6 +219,7 @@
     out.quality = cfg.quality;
     out.orient = cfg.orient;
     out.touchUI = cfg.touchUI;
+    out.speed = cfg.speed;
     store(KEY_CFG, out);
   }
 
@@ -333,6 +336,7 @@
       '<div class="bar bar-energy" id="hud-energy-bar"><i id="hud-energy-fill"></i></div>' +
       '</div>' +
       '<div class="hud-biome" id="hud-biome">厨房</div>' +
+      '<div class="hud-speed" id="hud-speed" title="游戏速度">1×</div>' +
       '</div>' +
       '<div class="hud-buffs" id="hud-buffs"></div>';
     hud.screen = sc;
@@ -350,6 +354,7 @@
     hud.energyBar = $('hud-energy-bar');
     hud.mega = $('hud-mega');
     hud.biome = $('hud-biome');
+    hud.speed = $('hud-speed');
     hud.buffs = $('hud-buffs');
   }
 
@@ -552,6 +557,10 @@
     list.appendChild(chipRow('横竖屏', 'orient', [
       { v: 'auto', t: '自动' }, { v: 'portrait', t: '强制竖屏' }, { v: 'landscape', t: '强制横屏' }
     ]));
+    list.appendChild(chipRow('游戏速度', 'speed', [
+      { v: '0.5', t: '0.5×' }, { v: '0.75', t: '0.75×' }, { v: '1', t: '1×' },
+      { v: '1.25', t: '1.25×' }, { v: '1.5', t: '1.5×' }
+    ]));
     list.appendChild(chipRow('触屏控件', 'touchUI', [
       { v: 'auto', t: '自动' }, { v: 'true', t: '开' }, { v: 'false', t: '关' }
     ]));
@@ -603,7 +612,8 @@
       c.setAttribute('type', 'button');
       c.setAttribute('data-action', group === 'vibrate' ? 'setVibrate'
         : group === 'quality' ? 'setQuality'
-          : group === 'orient' ? 'setOrient' : 'setTouchUI');
+          : group === 'orient' ? 'setOrient'
+            : group === 'speed' ? 'setSpeed' : 'setTouchUI');
       c.setAttribute('data-value', opts[i].v);
       ctl.appendChild(c);
     }
@@ -615,6 +625,7 @@
     if (name === 'vibrate') return cfg.vibrate ? 'true' : 'false';
     if (name === 'quality') return cfg.quality;
     if (name === 'orient') return orientMode;
+    if (name === 'speed') return String(cfg.speed === undefined ? 1 : cfg.speed);
     if (name === 'touchUI') return cfg.touchUI === null ? 'auto' : (cfg.touchUI ? 'true' : 'false');
     return '';
   }
@@ -934,6 +945,15 @@
         refreshSettings();
         break;
       }
+      case 'setSpeed': {
+        var sp = Number(btn.getAttribute('data-value'));
+        if (SPEED_STEPS.indexOf(sp) < 0) sp = 1;
+        cfg.speed = sp;
+        act('setSpeed', { value: sp });
+        writeCfg();
+        refreshSettings();
+        break;
+      }
       case 'exportSave': {
         act('exportSave', { el: $('save-box') });
         break;
@@ -1065,6 +1085,14 @@
       hud.lives.textContent = str;
     }
     if (s.level !== last.level) { last.level = s.level; hud.level.textContent = fmtNum(s.level); }
+    if (s.speed !== last.speed) {
+      last.speed = s.speed;
+      var sp = s.speed === undefined ? 1 : s.speed;
+      if (hud.speed) {
+        hud.speed.textContent = (sp === 1 ? '' : sp + '×');
+        hud.speed.classList.toggle('on', sp !== 1);
+      }
+    }
     if (s.biomeName !== last.biomeName) { last.biomeName = s.biomeName; hud.biome.textContent = s.biomeName || ''; }
     updateBuffs(s.buffs || []);
   }
@@ -1281,6 +1309,7 @@
   U.applyOrientation = applyOrientation;
   U.onResize = onResize;
   U.vibrate = vibrate;
+  U.refreshSettings = refreshSettings;
 
   window.MP.UI = U;
 })();

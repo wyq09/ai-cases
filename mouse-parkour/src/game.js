@@ -35,6 +35,8 @@
   const GROUND_Y = 460;
   const STYLE_KINDS = ['dash', 'stomp', 'slam', 'slide', 'djump', 'hardland', 'graze', 'air'];
   const STYLE_ORDER = ['D', 'C', 'B', 'A', 'S', 'SS'];
+  /* 全局游戏速度档位（设置面板可切）：整体时间缩放，物理/粒子/机关同步变慢变快 */
+  const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5];
 
   const KEY_SAVE = 'mr.save.v1';
   const KEY_CFG = 'mr.cfg.v1';
@@ -69,7 +71,7 @@
     stick: { active: false, id: -1, ox: 0, oy: 0, dx: 0, dy: 0 },
     cfg: {
       bgm: 0.5, sfx: 0.7, vibrate: true, quality: 'high',
-      orient: 'auto', touchUI: null
+      orient: 'auto', touchUI: null, speed: 1
     },
     records: { bestScore: 0, bestLevel: 0, bestCombo: 0, bestStyle: 'D', bestStylePts: 0 },
     lastResult: null,
@@ -110,6 +112,7 @@
       G.cfg.quality = c.quality === 'low' ? 'low' : 'high';
       G.cfg.orient = ['auto', 'portrait', 'landscape'].indexOf(c.orient) >= 0 ? c.orient : 'auto';
       G.cfg.touchUI = typeof c.touchUI === 'boolean' ? c.touchUI : null;
+      G.cfg.speed = SPEED_STEPS.indexOf(c.speed) >= 0 ? c.speed : 1;
     }
   }
   function saveCfg() { store(KEY_CFG, G.cfg); }
@@ -172,6 +175,7 @@
     run.bestStylePts = 0;
     run.flawless = true;
     run.levelDeaths = 0;
+    run.levelCheese = 0;
     run.distUnits = 0;
     run.mk = { distance: 0, pickup: 0, style: 0, kill: 0, clear: 0 };
     run.stats = { kills: 0, items: 0, jumps: 0, djumps: 0, dashes: 0, deaths: 0, stomp: 0, slides: 0, hardLand: 0, graze: 0 };
@@ -253,6 +257,7 @@
     lastStyleLevel = 'D';
     g.flawless = true;
     g.levelDeaths = 0;
+    g.levelCheese = 0;
 
     G.state = 'playing';
     G.hitstop = 0;
@@ -415,7 +420,8 @@
     const g = G.g, p = G.player, level = G.level;
     if (!g || !level) return;
     const target = (L().levelTargets ? L().levelTargets(g.level) : { cheese: 6 }) || { cheese: 6 };
-    const cheeseGot = g.cheese || 0;
+    const cheeseGot = g.levelCheese || 0;      // 本关收集（星级按本关判定）
+    const cheeseTotal = g.cheese || 0;         // 本局累计
     const flawless = g.flawless !== false;
     const res = (L().scoreLevelClear ? L().scoreLevelClear(g, g.level, {
       flawless: flawless, cheese: cheeseGot, lives: Math.max(0, p.lives || 0)
@@ -451,6 +457,7 @@
       base: res.base || 0,
       flawless: flawless,
       cheese: cheeseGot,
+      cheeseTotal: cheeseTotal,
       targetCheese: target.cheese,
       stars: stars,
       styleLevel: p.styleLevel,
@@ -646,6 +653,7 @@
         addScore('pickup', gain, it.x, it.y, '#ffd23f');
         g.items = (g.items || 0) + 1;
         if (g.stats) g.stats.items++;
+        if (it.id === 'cheese') g.levelCheese = (g.levelCheese || 0) + 1;
         if (F().burst) F().burst(it.x, it.y, { kind: 'star', n: 10, colors: ['#ffd23f', '#fff8d6'], spd: 180, size: 5, life: 0.5, grav: 300 });
         if (F().ring) F().ring(it.x, it.y, { r0: 4, r1: 44, life: 0.35, color: '#ffd23f', width: 3 });
         if (F().floatText) F().floatText(it.x, it.y - 18, res && res.text ? res.text : (def.name || it.id), { color: (res && res.color) || '#ffd23f', size: 16 });
@@ -869,16 +877,35 @@
   function updateCam(dt, snap) {
     const p = G.player, level = G.level;
     if (!p) return;
-    const targetX = clamp(p.x - G.viewW * 0.38, 0, Math.max(0, (level ? level.length : G.viewW) - G.viewW));
-    G.cam.x = snap ? targetX : lerp(G.cam.x, targetX, Math.min(1, dt * 8));
-    const groundCam = GROUND_Y - G.viewH * 0.78;
+    const viewW = G.viewW, viewH = G.viewH;
+    const levelLen = level ? level.length : viewW;
+    const minX = 0;
+    const maxX = Math.max(0, levelLen - viewW);
+
+    /* 横向：目标把玩家放在视口 45% 处，再用「安全带」硬约束兜底。
+       安全带 = 玩家必须始终落在视口 35%~55% 的区间内（受关卡边界收窄）。
+       纯 lerp 追赶在竖屏（可视宽仅 ~320 单位）下缓冲不足，冲刺会把角色甩出画面；
+       加了硬约束后，无论多快、无论什么屏，角色都不会丢失焦点。 */
+    const targetX = clamp(p.x - viewW * 0.45, minX, maxX);
+    const bandLo = Math.max(minX, p.x - viewW * 0.55);
+    const bandHi = Math.min(maxX, p.x - viewW * 0.35);
+    let camX = snap ? targetX : lerp(G.cam.x, targetX, Math.min(1, dt * 12));
+    camX = (bandLo <= bandHi) ? clamp(camX, bandLo, bandHi) : clamp(targetX, minX, maxX);
+    G.cam.x = camX;
+
+    /* 纵向：地面锚定 + 玩家跳跃时上移；再加一条「不出画布」兜底 */
+    const groundCam = GROUND_Y - viewH * 0.78;
     let targetY = groundCam;
-    if (p.y < GROUND_Y - 140) targetY = Math.min(groundCam, p.y - G.viewH * 0.5);
+    if (p.y < GROUND_Y - 140) targetY = Math.min(groundCam, p.y - viewH * 0.5);
     if (level && level.groundY) {
-      const gc = level.groundY - G.viewH * 0.78;
-      targetY = Math.min(gc, p.y - G.viewH * 0.5);
+      const gc = level.groundY - viewH * 0.78;
+      targetY = Math.min(gc, p.y - viewH * 0.5);
     }
-    G.cam.y = snap ? targetY : lerp(G.cam.y, targetY, Math.min(1, dt * 5));
+    let camY = snap ? targetY : lerp(G.cam.y, targetY, Math.min(1, dt * 6));
+    // 兜底：角色任何时候都不能完全跑出画面上下边界
+    camY = clamp(camY, p.y - viewH * 0.95, p.y - viewH * 0.05);
+    G.cam.y = camY;
+
     // 冲击缩放
     if (G.cam.zoomT > 0) {
       G.cam.zoomT = Math.max(0, G.cam.zoomT - dt);
@@ -1255,7 +1282,8 @@
     G.frame++;
 
     const scale = F().timeScale ? F().timeScale() : 1;
-    const sdt = dt * scale;
+    // 全局游戏速度（设置项）× 特效慢动作（命中停顿/必杀）= 实际推进时间
+    const sdt = dt * scale * (G.cfg.speed || 1);
 
     if (G.state === 'playing') {
       if (G.hitstop > 0) {
@@ -1306,7 +1334,8 @@
       state: G.state,
       score: g ? g.score : 0,
       coin: g ? g.coin : 0,
-      cheese: g ? g.cheese : 0,
+      cheese: g ? (g.levelCheese || 0) : 0,
+      cheeseTotal: g ? (g.cheese || 0) : 0,
       targetCheese: target.cheese,
       stylePts: p ? Math.round(p.stylePts || 0) : 0,
       styleLevel: p ? (p.styleLevel || 'D') : 'D',
@@ -1320,6 +1349,7 @@
       buffs: buffs,
       distance: g ? Math.round(g.distUnits || 0) * 12 : 0,
       best: G.records.bestScore,
+      speed: G.cfg.speed || 1,
       megaReady: g ? (g.energy || 0) >= 100 : false
     };
   }
@@ -1461,7 +1491,14 @@
         saveCfg();
         if (U().applyOrientation) U().applyOrientation();
         break;
-      case 'exportSave': {
+      case 'setSpeed': {
+        const v = payload && payload.value !== undefined ? Number(payload.value) : 1;
+        G.cfg.speed = SPEED_STEPS.indexOf(v) >= 0 ? v : 1;
+        saveCfg();
+        if (U().refreshSettings) U().refreshSettings();
+        if (U().toast) U().toast('游戏速度 ' + G.cfg.speed + '×', 'info');
+        break;
+      }      case 'exportSave': {
         const raw = JSON.stringify(load(KEY_SAVE, {}));
         if (payload && payload.el) payload.el.value = btoa(unescape(encodeURIComponent(raw)));
         if (U().toast) U().toast('已生成存档文本', 'good');
@@ -1568,12 +1605,22 @@
     applyForceOrientation: applyForceOrientation,
     getG: function () { return G.g; },
 
-    /* ---- 测试钩子（ego-lite 回归用，确定性推进不依赖真实帧率） ---- */
+    /* ---- 测试钩子（ego-lite 回归用，确定性推进不依赖真实帧率） ----
+       fastForward(sec) 推进「真实时间 sec」：与主循环一致地套用全局速度倍率，
+       因此在 0.5× 档位下同样的调用量只会推进一半的游戏时间。 */
     fastForward: function (sec) {
       const n = Math.round((sec || 0) / FIXED_DT);
+      const sp = G.cfg.speed || 1;
       for (let i = 0; i < n; i++) {
-        if (G.state === 'playing') { step(FIXED_DT); updateCam(FIXED_DT); }
-        if (F().update) F().update(FIXED_DT);
+        const sdt = FIXED_DT * sp;
+        if (G.state === 'playing') {
+          G.acc += sdt;
+          let guard = 0;
+          while (G.acc >= FIXED_DT && guard < 5) { step(FIXED_DT); G.acc -= FIXED_DT; guard++; }
+          if (guard >= 5) G.acc = 0;
+          updateCam(sdt);
+        }
+        if (F().update) F().update(sdt);
       }
       return snapshot();
     },
@@ -1581,7 +1628,21 @@
     testState: function () { return G.state; },
     testResult: function () { return G.lastResult; },
     testLevel: function () { return G.level; },
-    testPlayer: function () { return G.player; }
+    testPlayer: function () { return G.player; },
+    /* 相机与玩家的相对位置（用于验证「角色始终在画面 35%~55%」这条硬约束） */
+    testCam: function () {
+      return { x: G.cam.x, y: G.cam.y, viewW: G.viewW, viewH: G.viewH, scale: G.scale };
+    },
+    testRel: function () {
+      const p = G.player;
+      if (!p) return null;
+      return {
+        rel: (p.x - G.cam.x) / G.viewW,          // 0=左边缘 1=右边缘
+        relY: (p.y - G.cam.y) / G.viewH,
+        x: p.x, y: p.y, vx: p.vx, onScreen: (p.x >= G.cam.x && p.x <= G.cam.x + G.viewW)
+      };
+    },
+    testSpeed: function () { return G.cfg.speed; }
   };
   window.__mp = MP.game;
 

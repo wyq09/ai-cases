@@ -816,20 +816,56 @@
       return { x: xx, y: L.groundY - 22 };
     }
 
-    /* 25 种拾取物每关至少各出现 1 个（均匀铺开） */
-    var count = ITEM_IDS.length;
-    for (i = 0; i < count; i++) {
-      x = 140 + (i + 0.5) * (L.len - 280) / count;
-      pos = place(x);
-      picks.push({ x: Math.round(pos.x), y: Math.round(pos.y), id: ITEM_IDS[i], r: 16, type: 'pickup' });
+    /* ---- 收集类：奶酪 / 金币 ----
+       按关卡目标数分层均匀铺开（带抖动，避免扎堆也避免过密）。
+       旧版每关额外撒 (len/300) 个随机道具，密集处一个道具只隔 0.3 秒，
+       既刷屏又抢跑酷节奏；现在总量固定、间距可控。 */
+    var target = levelTargets(L.n).cheese;
+    // 奶酪数必须 ≥ 星级目标（留 3 个余量），否则高关卡拿不到二星
+    var cheeseN = Math.min(target + 3, 32);
+    var coinN = Math.min(4 + Math.floor(L.n / 4), 10);
+
+    /* ---- 能力道具：23 种（除奶酪/金币外），每关 5 种 ----
+       取池子里的「连续 5 个」窗口，窗口起点按关卡步进 5（23 与 5 互质）：
+       第 1~5 关恰好覆盖全部 23 种，第 6 关起窗口继续轮转、不会重复扎堆。 */
+    var powerPool = ITEM_IDS.filter(function (id) { return id !== 'cheese' && id !== 'coin'; });
+    var powerIds = [];
+    var pStart = ((L.n - 1) * 5) % powerPool.length;
+    for (i = 0; i < 5; i++) {
+      powerIds.push(powerPool[(pStart + i) % powerPool.length]);
     }
-    /* 额外的奶酪 / 金币 */
-    var extra = Math.max(8, Math.round((L.len / 300) * (1 + Math.min(L.n, 12) * 0.06)));
-    for (i = 0; i < extra; i++) {
-      x = 100 + rng() * (L.len - 200);
-      pos = place(x);
-      var id = rng() < 0.55 ? 'cheese' : 'coin';
-      picks.push({ x: Math.round(pos.x), y: Math.round(pos.y), id: id, r: 16, type: 'pickup' });
+
+    function layOut(ids, from, to) {
+      if (!ids.length) return;
+      var span = Math.max(120, to - from);
+      var gap = span / ids.length;
+      for (var j = 0; j < ids.length; j++) {
+        var base = from + (j + 0.5) * gap;
+        var jit = (rng() - 0.5) * gap * 0.35;   // 抖动控制在 35% 以内，保证不扎堆
+        x = clamp(base + jit, from + 30, to - 30);
+        pos = place(x);
+        picks.push({ x: Math.round(pos.x), y: Math.round(pos.y), id: ids[j], r: 16, type: 'pickup' });
+      }
+    }
+
+    /* 收集类与能力道具交错排布（避免奶酪/金币连成一片、也避免能力道具扎堆） */
+    var mixed = [];
+    var ci = 0, oi = 0;
+    var coll = [];
+    for (i = 0; i < cheeseN; i++) coll.push('cheese');
+    for (i = 0; i < coinN; i++) coll.push('coin');
+    while (ci < coll.length || oi < powerIds.length) {
+      if (ci < coll.length) mixed.push(coll[ci++]);
+      if (oi < powerIds.length) mixed.push(powerIds[oi++]);
+    }
+    layOut(mixed, 170, L.len - 200);
+
+    /* 最小间距整理：不同分组万一仍挨太近，强制拉开 */
+    picks.sort(function (a, b) { return a.x - b.x; });
+    var MIN_GAP = 70;
+    for (i = 1; i < picks.length; i++) {
+      var minX = picks[i - 1].x + MIN_GAP;
+      if (picks[i].x < minX) picks[i].x = Math.round(minX);
     }
     return picks;
   }
@@ -1016,7 +1052,8 @@
   /* 关卡目标：奶酪 target = 6 + floor(n/2) */
   function levelTargets(level) {
     var n = Math.max(1, Math.floor(level) || 1);
-    return { cheese: 6 + Math.floor(n / 2) };
+    /* 关卡长度在 9600 单位封顶，奶酪目标同步封顶（否则超高关卡永远拿不到二星） */
+    return { cheese: Math.min(6 + Math.floor(n / 2), 28) };
   }
 
   /* ======================================================================
