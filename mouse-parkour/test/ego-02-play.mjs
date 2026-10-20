@@ -223,7 +223,10 @@ ok('存在横屏切换动作', settings.orientBtns.length > 0, settings.acts.joi
 await page.cdp('Emulation.setDeviceMetricsOverride', {
   width: 390, height: 844, deviceScaleFactor: 2, mobile: true
 });
-await page.waitForTimeout(500);
+// 视口仿真正生效需要一点时间（偶发不生效 → 后面量到还是桌面尺寸），等它真生效
+await page.waitForFunction(() => window.innerWidth === 390 && window.innerHeight === 844,
+  undefined, { timeout: 10000 });
+await page.waitForTimeout(300);
 const portrait = await page.evaluate(() => {
   const c = document.getElementById('stage');
   const r = c.getBoundingClientRect();

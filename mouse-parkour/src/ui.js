@@ -286,10 +286,15 @@
       '<div class="title-en">MOUSE RUSH</div>' +
       '<div class="title-sub">背奶酪的灰色小鼠 · 无尽横版跑酷</div>' +
       '<div class="title-keys">' +
-      '<div class="krow"><b>键盘</b><span class="kbd">←</span><span class="kbd">→</span> 或 <span class="kbd">A</span><span class="kbd">D</span> 移动 · ' +
-      '<span class="kbd">空格</span> 跳（长按更高）· <span class="kbd">Shift</span> 冲刺 · <span class="kbd">↓</span> 滑铲 / 跳劈</div>' +
-      '<div class="krow"><b>其它</b><span class="kbd">P</span> 暂停 · <span class="kbd">R</span> 重开本关 · <span class="kbd">M</span> 必杀</div>' +
-      '<div class="krow"><b>触屏</b>左半屏按住拖动 = 动态摇杆，右半屏三键 = 跳 / 冲刺 / 滑铲</div>' +
+      // 用 touchUIEnabled() 而非 isTouch()：触屏设备上若手动关掉触摸 UI（?touch=0
+      // 或设置里关），应该显示键盘说明而不是触屏说明
+      (touchUIEnabled()
+        ? '<div class="krow"><b>触屏</b>左半屏按住拖动 = 动态摇杆，右半屏三键 = 跳 / 冲刺 / 滑铲</div>' +
+          '<div class="krow"><b>长按</b>跳得更高 · 冲刺耗体力 · 滑铲能钻矮道</div>'
+        : '<div class="krow"><b>键盘</b><span class="kbd">←</span><span class="kbd">→</span> 或 <span class="kbd">A</span><span class="kbd">D</span> 移动 · ' +
+          '<span class="kbd">空格</span> 跳（长按更高）· <span class="kbd">Shift</span> 冲刺 · <span class="kbd">↓</span> 滑铲 / 跳劈</div>' +
+          '<div class="krow"><b>其它</b><span class="kbd">P</span> 暂停 · <span class="kbd">R</span> 重开本关 · <span class="kbd">M</span> 必杀</div>' +
+          '<div class="krow"><b>触屏</b>左半屏按住拖动 = 动态摇杆，右半屏三键 = 跳 / 冲刺 / 滑铲</div>') +
       '</div>' +
       '<div class="btn-row">' +
       '<button type="button" class="btn pri" data-action="start">开始游戏</button>' +
@@ -298,6 +303,13 @@
       '<button type="button" class="btn" data-action="records">最高分</button>' +
       '<button type="button" class="btn" data-action="howto">玩法说明</button>' +
       '</div>' +
+      (isTouch() && orientMode !== 'landscape' && isPortraitNow()
+        ? '<div class="land-tip">' +
+            '<span class="land-tip-h">横屏体验好 3 倍</span>' +
+            '<span class="land-tip-d">竖屏前方只有 1 秒视野，横屏是 3 秒</span>' +
+            '<button type="button" class="btn-land" data-action="forceLandscape">切到横屏</button>' +
+          '</div>'
+        : '') +
       '<div class="title-foot">无限关卡 · 六套计分 · 25 种道具 + 11 种危险物</div>';
     wrap.appendChild(card);
     sc.appendChild(wrap);
@@ -967,6 +979,10 @@
         act('clearSave', null);
         break;
       }
+      case 'forceLandscape': {
+        act('forceLandscape', { value: true });
+        break;
+      }
       case 'closeSettings': {
         act('closeSettings', null);
         show(settingsReturn || 'menu');
@@ -1230,6 +1246,12 @@
   }
 
   function touchUIEnabled() {
+    // URL 参数优先：?touch=1 / ?touch 强制开（桌面预览手机 UI / 自动化测试），
+    // ?touch=0 强制关（触屏笔记本上只玩键盘）。
+    // build.py 的 RESET_JS 把无值参数解析成布尔 true，有值参数解析成字符串。
+    var q = (typeof window !== 'undefined' && window.__q) || {};
+    if (q.touch === '1' || q.touch === 1 || q.touch === true) return true;
+    if (q.touch === '0' || q.touch === 0 || q.touch === 'false') return false;
     if (cfg.touchUI === true) return true;
     if (cfg.touchUI === false) return false;
     return isTouch();

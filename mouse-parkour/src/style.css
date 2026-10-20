@@ -567,10 +567,13 @@ button, input, textarea, select { font-family: inherit; color: inherit; }
   pointer-events: auto;
   touch-action: none;
 }
+/* 摇杆底座：静止时停在「左下角拇指落点」，而不是热区正中。
+   之前取 50%/50%（横屏时落在屏幕中左侧、视觉上压在角色和场景上），
+   竖屏时又离拇指太远。触屏时底座会跟随手指，这里只是操作提示。 */
 #stick-base {
   position: absolute;
-  left: 50%;
-  top: 50%;
+  left: 84px;
+  top: calc(100% - 88px);
   width: 132px;
   height: 132px;
   border-radius: 50%;
@@ -902,8 +905,10 @@ body[data-orient="landscape"] {
 }
 body[data-orient="landscape"] .hud-row { align-items: center; }
 body[data-orient="landscape"] .hud-chips { flex-direction: row; align-items: center; }
-body[data-orient="landscape"] .hud-row-2 { align-items: center; }
+body[data-orient="landscape"] .hud-row-2 { align-items: center; justify-content: flex-start; }
 body[data-orient="landscape"] .hud-biome { align-self: center; }
+/* 横屏时两条进度条若 flex:1 会各占半屏，看着笨重又吃视野；限宽后群系标签也跟得近些 */
+body[data-orient="landscape"] .hud-bar-box { flex: 0 1 200px; }
 body[data-orient="landscape"] #btn-jump {
   right: calc(env(safe-area-inset-right, 0px) + 12px);
   bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
@@ -944,8 +949,9 @@ body[data-orient="landscape"] .title-keys { margin: 10px 0 2px; padding: 8px 10p
   }
   body:not([data-orient]) .hud-chips { flex-direction: row; align-items: center; }
   body:not([data-orient]) .hud-row { align-items: center; }
-  body:not([data-orient]) .hud-row-2 { align-items: center; }
+  body:not([data-orient]) .hud-row-2 { align-items: center; justify-content: flex-start; }
   body:not([data-orient]) .hud-biome { align-self: center; }
+  body:not([data-orient]) .hud-bar-box { flex: 0 1 200px; }
   body:not([data-orient]) #btn-jump {
     right: calc(env(safe-area-inset-right, 0px) + 12px);
     bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
@@ -988,3 +994,47 @@ body[data-orient="landscape"] .title-keys { margin: 10px 0 2px; padding: 8px 10p
   .panel { padding: 12px 12px 12px; }
   .panel-tt { font-size: 18px; margin-bottom: 8px; }
 }
+
+/* ---------------- 13. 竖屏横屏引导 ----------------
+   竖屏可视宽 323 世界单位（跑速 320/秒 → 只有 1 秒视野），
+   横屏可视宽 960（3 秒视野）——差 3 倍，所以竖屏时主动提示转屏。 */
+.land-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 14px 0 2px;
+  padding: 11px 12px 12px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(53, 224, 200, .14), rgba(63, 180, 255, .10));
+  border: 1px solid rgba(53, 224, 200, .34);
+}
+.land-tip-h {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--cyan);
+  letter-spacing: .02em;
+}
+.land-tip-d {
+  font-size: 12px;
+  color: var(--dim);
+  text-align: center;
+  line-height: 1.5;
+}
+.btn-land {
+  margin-top: 6px;
+  min-height: 42px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(53, 224, 200, .5);
+  background: linear-gradient(135deg, var(--cyan), #3fb4ff);
+  color: #04211d;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  box-shadow: 0 0 18px rgba(53, 224, 200, .4);
+}
+.btn-land:active { transform: scale(.96); }

@@ -192,31 +192,62 @@ ok('道具不再扎堆（最小间距 ≥ 80 单位）', density.every((d) => d.
 ok('道具平均间隔 ≥ 0.6 秒', density.every((d) => d.perSec >= 0.6), JSON.stringify(density));
 ok('单关道具总数收敛（≤ 40）', density.every((d) => d.count <= 40), JSON.stringify(density));
 
-/* ---------- 5. 速度控制 ---------- */
+/* ---------- 5. 速度控制 ----------
+ * 位移比必须与地形无关，否则测的是「掉进坑里被卡住」而不是倍速。
+ * 三个关键处理：
+ *   1) 取当前关卡「最长的连续平地」（同 y、首尾相接的地面段合并），避免中途踩空；
+ *   2) 初速直接给到最大速度（RUN_SPEED=320），排除起步加速段——
+ *      带加速段时 1 秒窗口内倍速越高加速段占比越小，比值会系统性偏大（实测 1.69）；
+ *   3) 窗口截到「第一个道具」之前，避开 catnip 之类会改最大速度的 buff（+30%）。
+ * 这样位移 = 320 × 窗口 × 倍速，位移比应严格等于倍速。 */
 const speed = await page.evaluate(() => {
+  const MAXV = 320;                       // PHYS.RUN_SPEED
+  const flatOf = (lv) => {
+    const gs = lv.solids.filter((s) => s.kind === 'ground')
+      .map((s) => ({ x: s.x, w: s.w, y: s.y })).sort((a, b) => a.x - b.x);
+    const flats = [];
+    for (const g of gs) {
+      const last = flats[flats.length - 1];
+      if (last && last.y === g.y && Math.abs(g.x - (last.x + last.w)) < 4) {
+        last.w = g.x + g.w - last.x;
+      } else flats.push({ x: g.x, w: g.w, y: g.y });
+    }
+    flats.sort((a, b) => b.w - a.w);
+    return flats[0];
+  };
+  // 窗口：最快档（1.5×）也不能越过平地上第一个道具
+  // 注意：必须先切到 level 1 再取地形（measure 里也是 level 1），
+  // 同一 runSeed 下 genLevel 结果确定，平地坐标可复用
+  window.__mp.startLevel(1);
+  const lv0 = window.__mp.testLevel();
+  const flat = flatOf(lv0);
+  const pu = lv0.pickups.filter((p) => p.x > flat.x).sort((a, b) => a.x - b.x)[0];
+  const startX = flat.x + 20;
+  const spanLimit = pu ? pu.x - startX : Infinity;
+  let frames = Math.floor(spanLimit / (MAXV * 1.5 / 60)) - 2;
+  frames = Math.max(20, Math.min(90, frames));
+
   const measure = (sp) => {
     window.__mp.onAction('setSpeed', { value: sp });
     window.__mp.startLevel(1);
-    const p0 = window.__mp.testPlayer(), lv = window.__mp.testLevel();
-    const gnd = lv.solids.find((s) => s.kind === 'ground' && s.x > 200 && s.w > 400);
-    if (gnd) { p0.x = gnd.x + 40; p0.y = gnd.y - p0.h - 2; }
-    p0.vx = 0; p0.vy = 0; p0.dead = false; p0.invuln = 5;
+    const p0 = window.__mp.testPlayer();
+    p0.x = startX; p0.y = flat.y - p0.h - 2;
+    p0.vx = MAXV; p0.vy = 0; p0.dead = false; p0.invuln = 9;
     const x0 = p0.x;
-    // 固定推进 1 秒「游戏内时间」
     window.__mp.setTestInput({ axis: 1 });
-    for (let i = 0; i < 60; i++) window.__mp.fastForward(1 / 60);
+    for (let i = 0; i < frames; i++) window.__mp.fastForward(1 / 60);
     const p1 = window.__mp.testPlayer();
-    return { speed: sp, moved: Math.round(p1.x - x0) };
+    return { speed: sp, moved: Math.round(p1.x - x0), vx: Math.round(p1.vx), onG: p1.onGround };
   };
   const a = measure(0.5), b = measure(1), c = measure(1.5);
   window.__mp.onAction('setSpeed', { value: 1 });
-  return { a, b, c, cfg: window.__mp.testSpeed() };
+  return { a, b, c, cfg: window.__mp.testSpeed(), frames, flatW: Math.round(flat.w) };
 });
-ok('0.5× 速度生效（位移约为 1× 的一半）',
+ok('0.5× 速度生效（位移约为 1× 的 0.5 倍）',
   speed.a.moved > 0 && speed.b.moved > 0 && Math.abs(speed.a.moved / speed.b.moved - 0.5) < 0.12,
   JSON.stringify(speed));
 ok('1.5× 速度生效（位移约为 1× 的 1.5 倍）',
-  Math.abs(speed.c.moved / speed.b.moved - 1.5) < 0.15, JSON.stringify(speed));
+  Math.abs(speed.c.moved / speed.b.moved - 1.5) < 0.12, JSON.stringify(speed));
 ok('速度倍率可读回', speed.cfg === 1, JSON.stringify(speed.cfg));
 
 /* ---------- 6. 设置面板有游戏速度档位 ---------- */
@@ -233,7 +264,11 @@ const setPanel = await page.evaluate(() => {
 ok('设置面板含「游戏速度」', setPanel.hasLabel, setPanel.text);
 ok('速度档位为 5 档', setPanel.chips.length === 5, JSON.stringify(setPanel.chips));
 await page.click('[data-action="setSpeed"][data-value="1.5"]');
-await page.waitForTimeout(300);
+// HUD 由 rAF 主循环刷新，ego-lite 标签页在后台会被节流 → 等它真的刷新出来
+await page.waitForFunction(() => {
+  const e = document.getElementById('hud-speed');
+  return !!(e && /1\.5/.test(e.textContent || ''));
+}, undefined, { timeout: 10000 });
 const applied = await page.evaluate(() => ({
   speed: window.__mp.testSpeed(),
   tag: (document.getElementById('hud-speed') || {}).textContent,
