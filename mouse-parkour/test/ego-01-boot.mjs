@@ -107,6 +107,36 @@ ok('距离分增长', adv.score > 0, JSON.stringify(adv));
 
 const shot2 = await page.screenshot({ path: '/tmp/mp-02-play.png' });
 
+/* ---------- URL 参数直开：主循环必须已启动 ----------
+ * 旧版 bug：boot() 在 ?level / ?seed 分支里直接 return，
+ * requestAnimationFrame(frame) 根本没跑 → 进了关卡但画面全黑、物理不推进、
+ * HUD 冻结，看着像卡死。 */
+for (const q of ['level=20', 'seed=4242']) {
+  await page.goto(`${BASE}/index.html?${q}&t=${Date.now()}`);
+  try { await page.cdp('Page.bringToFront'); } catch (e) {}
+  await page.waitForTimeout(1500);
+  const r = await page.evaluate(() => {
+    const c = document.getElementById('stage');
+    const g = c.getContext('2d');
+    const d = g.getImageData(0, 0, c.width, c.height).data;
+    let nonBg = 0;
+    for (let i = 0; i < d.length; i += 4 * 97) {
+      if (Math.abs(d[i] - 11) > 8 || Math.abs(d[i + 1] - 14) > 8 || Math.abs(d[i + 2] - 24) > 8) nonBg++;
+    }
+    const lv = window.__mp.testLevel();
+    return {
+      state: window.__mp.testState(),
+      level: lv ? lv.level : -1,
+      biome: lv && lv.biome ? lv.biome.name : '',
+      nonBg,
+      errs: (window.__errs || []).slice()
+    };
+  });
+  ok(`?${q} 直开不进菜单且进入 playing`, r.state === 'playing', JSON.stringify(r));
+  ok(`?${q} 直开后画布有内容（主循环已启动）`, r.nonBg > 200, 'nonBg=' + r.nonBg);
+  ok(`?${q} 直开零报错`, r.errs.length === 0, r.errs.join(' | '));
+}
+
 console.log(results.join('\n'));
 console.log(`\n通过 ${pass} / 失败 ${fail}`);
 console.log('shots:', shot1, shot2);

@@ -8517,25 +8517,33 @@ return {
     const q = (window.__q) || {};
     if (q.orient === 'land') { G.cfg.orient = 'landscape'; }
     if (q.orient === 'port') { G.cfg.orient = 'portrait'; }
+    /* 主循环必须在任何分支之前启动 —— 旧版在 ?level / ?seed 分支里直接
+       return，导致主循环 requestAnimationFrame(frame) 根本没跑：
+       游戏进了关卡但画面全黑、物理不推进、HUD 冻结（看起来像卡死）。
+       现在先起循环，再按 URL 参数决定初始画面。 */
+    requestAnimationFrame(frame);
     if (q.level) {
       const lv = parseInt(q.level, 10);
       if (lv > 0) {
         newRun(q.seed ? (parseInt(q.seed, 10) >>> 0) : undefined);
         G.g.level = lv;
         startLevel(lv);
+        bindTouch();
+        setTimeout(bindTouch, 400);
         return;
       }
     }
     if (q.seed) {
       newRun(parseInt(q.seed, 10) >>> 0);
       startLevel(1);
+      bindTouch();
+      setTimeout(bindTouch, 400);
       return;
     }
 
     toMenu();
     bindTouch();
     setTimeout(bindTouch, 400);
-    requestAnimationFrame(frame);
   }
 
   MP.game = {
