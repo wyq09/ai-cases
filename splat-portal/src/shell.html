@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#070708">
+<title>传送门 · 高斯泼溅 · SPLAT PORTAL</title>
+<meta name="description" content="用 3D Gaussian Splatting 与 WebGL2 实时渲染四个真实扫描场景，并在场景之间穿过一道世界锚定的传送门。手机与桌面均可运行。">
+<meta property="og:title" content="传送门 · 高斯泼溅 · SPLAT PORTAL">
+<meta property="og:description" content="四个真实扫描场景，几十万颗高斯球，浏览器里实时渲染。走近门洞，穿过去。">
+<meta property="og:image" content="cover.jpg">
+<meta property="og:type" content="website">
+<style>
+/*STYLE_INLINE*/
+</style>
+</head>
+<body>
+<canvas id="view" aria-label="高斯泼溅三维场景"></canvas>
+
+<!-- 载入遮罩 -->
+<div class="boot" id="boot">
+  <div class="boot-inner">
+    <div class="boot-kicker">SPLAT PORTAL · 高斯泼溅传送门</div>
+    <h1 class="boot-title">把四个真实空间<br>接成一条路</h1>
+    <p class="boot-sub">3D Gaussian Splatting · 实时渲染 · 世界锚定传送门</p>
+    <div class="boot-bar"><i id="progress-bar"></i></div>
+    <div class="boot-meta">
+      <span id="loading-label">初始化</span>
+      <span class="boot-sep">/</span>
+      <span id="total">4 个世界</span>
+      <span class="boot-sep">/</span>
+      <span id="backend">检测渲染后端</span>
+    </div>
+  </div>
+  <div class="boot-foot">拖拽旋转 · 滚轮或双指缩放 · 空格穿越</div>
+</div>
+
+<!-- 顶部信息条 -->
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">SPLAT<span>/</span>PORTAL</span>
+    <span class="brand-sub">Gaussian Splatting · WebGL2</span>
+  </div>
+  <div class="topbar-right">
+    <button id="info-toggle" class="ghost-btn" type="button">技术说明</button>
+    <span class="fps-wrap"><b id="fps">–</b><span>fps</span></span>
+  </div>
+</header>
+
+<!-- 左下：当前世界 -->
+<section class="place">
+  <div class="place-index" id="place-index">01 / 04</div>
+  <h2 class="place-zh" id="place-zh">睡莲池</h2>
+  <div class="place-en" id="place-en">WATER LILY</div>
+  <div class="place-note" id="place-note">近景微距 · 叶片与花瓣</div>
+</section>
+
+<!-- 右侧：世界轨道 -->
+<nav class="rail" aria-label="世界列表">
+  <button class="rail-item active" type="button" data-world="lily"><i>01</i><span>睡莲池</span></button>
+  <button class="rail-item" type="button" data-world="angel"><i>02</i><span>天使像</span></button>
+  <button class="rail-item" type="button" data-world="church"><i>03</i><span>山间教堂</span></button>
+  <button class="rail-item" type="button" data-world="millipede"><i>04</i><span>机械虫</span></button>
+</nav>
+
+<!-- 底部动作区 -->
+<footer class="dock">
+  <button id="enter" class="enter" type="button">
+    <span class="enter-ring" aria-hidden="true"></span>
+    <span class="enter-text"><b>穿越传送门</b><i>SPACE / 点击</i></span>
+  </button>
+  <button id="auto" class="auto" type="button" aria-pressed="true">
+    <span class="auto-dot"></span>自动巡游
+  </button>
+</footer>
+
+<!-- 技术说明抽屉 -->
+<aside class="info" id="info">
+  <button class="info-close" id="info-close" type="button" aria-label="关闭">×</button>
+  <div class="info-kicker">HOW IT WORKS</div>
+  <h3>这不是视频，是点云</h3>
+  <p>画面里的每一粒都是一颗三维高斯球：它有自己的位置、朝向、三轴尺度、颜色和不透明度。几十万颗叠在一起，才拼出这些看起来像照片的空间。</p>
+  <dl>
+    <div><dt>场景采集</dt><dd>公开数据集里的实拍重建，相机绕场景一圈拍摄后由 3DGS 训练出点云。</dd></div>
+    <div><dt>压缩</dt><dd>原始 .splat 每点 32 字节，这里量化到 20 字节：位置 int16、缩放 log 量化、四元数 int8。</dd></div>
+    <div><dt>排序</dt><dd>半透明必须由远到近画。每帧按视深做 2048 桶计数排序；相机位移小于阈值时跳过重排。</dd></div>
+    <div><dt>投影</dt><dd>顶点着色器把三维协方差用 EWA 投影成屏幕椭圆，片元里做高斯衰减。</dd></div>
+    <div><dt>传送门</dt><dd>门洞是世界空间里的一块圆盘。每个像素用视线与圆盘求交，落在门内就画下一个世界，接缝天然对齐。</dd></div>
+    <div><dt>后端</dt><dd>默认 WebGL2（跨端最稳）；<code>?backend=gpu</code> 可切到 WebGPU 实验路径，同一套数据与着色逻辑。</dd></div>
+  </dl>
+  <p class="info-src">场景：Nehc/splats（MIT）· three.js millipede（MIT）。渲染与传送门逻辑为本案例原创实现。</p>
+</aside>
+
+<script>
+/*RESET_INLINE*/
+</script>
+<!--MODULE_SCRIPTS-->
+</body>
+</html>
