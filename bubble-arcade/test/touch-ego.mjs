@@ -173,6 +173,12 @@ ok('危机提示能算出脚下引信', threat.info && threat.info.fuse > 0, JSO
 ok('危机提示能算出可逃方向', threat.info && Array.isArray(threat.info.dirs) && threat.info.dirs.length > 0, JSON.stringify(threat.info && threat.info.dirs));
 
 /* 快速划动：45°~49° 这种"迟滞刚好挡住"的区间，划一下必须立刻换向 */
+// 暂停时 .tl-zone 是 display:none，触摸落点会打到别的元素上——先等控件真的可点
+await page.waitForFunction(() => {
+  const l = document.getElementById('touchLayer');
+  const z = document.querySelector('.tl-zone');
+  return !!(l && !l.classList.contains('paused') && z && getComputedStyle(z).display !== 'none');
+}, undefined, { timeout: 10000 });
 await page.evaluate(() => window.__ba.teleport(window.__ba.players[0].id, 7, 6));
 await touch('touchstart', box.x, box.y);
 await touch('touchmove', box.x, box.y - 60);

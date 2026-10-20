@@ -64,7 +64,16 @@ await page.evaluate(() => {
   window.__ba.start({ mode: 'ffa', humans: 1, players: 4, diff: 'normal', map: 'garden', winsNeeded: 3, seed: 7 });
   window.__ba.fastForward(3.4);
 });
-await page.waitForTimeout(400);
+// 等游戏循环真的跑起来（角标 / 横屏引导由 mobile.update 每 100ms 刷新），
+// 用条件等待而不是固定 sleep——浏览器冷启动时首帧会慢，固定 sleep 会随机挂
+await page.waitForFunction(() => {
+  const n = document.querySelector('.tl-bomb-num');
+  const r = document.querySelector('.tl-rotate');
+  const layer = document.getElementById('touchLayer');
+  // 触摸层由 300ms 定时器 syncVisible 点亮，比游戏循环慢一拍，必须一起等
+  return !!(n && n.textContent && r && r.classList.contains('on') &&
+            layer && layer.classList.contains('on'));
+}, undefined, { timeout: 15000 });
 
 const port = await page.evaluate(() => {
   const app = document.getElementById('app');
@@ -113,7 +122,14 @@ ok('手机全程零报错', port.errs.length === 0, port.errs.join(' | '));
 /* ---------------- 3) 手机横屏：棋盘更大 + 不给横屏引导 ---------------- */
 await setViewport(844, 390);
 await page.evaluate(() => window.__ba.fastForward(0.2));
-await page.waitForTimeout(400);
+await page.waitForFunction(() => {
+  const app = document.getElementById('app');
+  const st = document.getElementById('stage').getBoundingClientRect();
+  const r = document.querySelector('.tl-rotate');
+  // 横屏引导要等 mobile.update 下一拍才会收起来
+  return !app.classList.contains('portrait') && st.width > 380 &&
+         r && !r.classList.contains('on');
+}, undefined, { timeout: 15000 });
 const land = await page.evaluate(() => {
   const app = document.getElementById('app');
   const sr = document.getElementById('stage').getBoundingClientRect();
@@ -137,9 +153,15 @@ await page.evaluate(() => {
   window.__ba.start({ mode: 'ffa', humans: 1, players: 4, diff: 'normal', map: 'garden', winsNeeded: 3, seed: 7 });
   window.__ba.fastForward(3.4);
 });
-await page.waitForTimeout(400);
+await page.waitForFunction(() => {
+  const r = document.querySelector('.tl-rotate');
+  return !!(r && r.classList.contains('on'));
+}, undefined, { timeout: 15000 });
 await page.click('.tl-rotate-x');
-await page.waitForTimeout(300);
+await page.waitForFunction(() => {
+  const r = document.querySelector('.tl-rotate');
+  return !!(r && !r.classList.contains('on'));
+}, undefined, { timeout: 15000 });
 const dismissed = await page.evaluate(() => ({
   off: !!window.__ba.cfg.rotateHintOff,
   on: (document.querySelector('.tl-rotate') || { className: '' }).classList.contains('on')

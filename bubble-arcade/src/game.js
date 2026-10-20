@@ -1706,12 +1706,14 @@
     S.paused = true;
     A().play('click');
     if (BA.UI) BA.UI.show('pause');
+    if (BA.TOUCH) BA.TOUCH.sync();
   }
   function resume() {
     if (!S.paused) return;
     S.paused = false;
     A().play('click');
     if (BA.UI) BA.UI.show(null);
+    if (BA.TOUCH) BA.TOUCH.sync();
   }
   function quit() {
     S.phase = 'idle';

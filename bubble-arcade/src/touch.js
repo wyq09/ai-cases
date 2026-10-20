@@ -231,6 +231,9 @@
 
   BA.TOUCH = {
     init: init,
+    /* 暂停/恢复时立刻同步控件可用性——否则要等下一次 300ms 定时器，
+       玩家点完"继续"会有半秒摇杆按不动的死区 */
+    sync: function () { syncVisible(); },
     get enabled() { return enabled; }
   };
 })(window);
