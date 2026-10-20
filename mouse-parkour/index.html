@@ -4289,12 +4289,13 @@ return {
       return s;
     }
 
-    /* 首段恒为 flat（长 320） */
-    sections.push({ type: 'flat', x0: 0, x1: 320 });
-    buildSection('flat', 0, 320);
+    /* 首段恒为 flat（长 520）：留足起跑热身跑道，
+       出生点落在画面 ~40% 处时脚下仍有实体地面 */
+    sections.push({ type: 'flat', x0: 0, x1: 520 });
+    buildSection('flat', 0, 520);
 
     var endX = len - 480;   // 末段 sprint 长 480
-    var cur = 320;
+    var cur = 520;
 
     var SECTION_LEN = {
       flat:    [300, 520],
@@ -7014,7 +7015,13 @@ return {
     if (!level) { console.error('[mp] genLevel 失败'); return; }
     G.level = level;
     G.bullets = [];
-    const spawn = level.spawn || { x: 90, y: level.groundY - 60 };
+    const rawSpawn = level.spawn || { x: 90, y: level.groundY - 60 };
+    // 出生点按视口宽度自适应：起跑瞬间老鼠就在画面 40% 附近，
+    // 不会像贴着左边缘那样看起来「镜头没跟上」
+    const spawn = {
+      x: Math.min(400, Math.max(90, G.viewW * 0.42)),
+      y: rawSpawn.y
+    };
     const p = L().createPlayer ? L().createPlayer(spawn.x, spawn.y) : { x: spawn.x, y: spawn.y, w: 34, h: 26, vx: 0, vy: 0 };
     p.level = n;
     p.spawnX = spawn.x; p.spawnY = spawn.y;
@@ -7837,11 +7844,25 @@ return {
     const sh = F().shakeOffset ? F().shakeOffset() : { x: 0, y: 0 };
     const zoom = G.cam.zoom || 1;
     ctx.save();
-    ctx.translate(G.cw / 2, G.ch / 2);
+    ctx.translate(G.cw / 2 + sh.x, G.ch / 2 + sh.y);
     ctx.scale(zoom, zoom);
     ctx.translate(-G.cw / 2, -G.ch / 2);
-    ctx.translate(-(G.cam.x + sh.x), -(G.cam.y + sh.y));
+    /* 世界空间：必须「先 scale 再 translate」。
+       Canvas 里 translate 后 scale 的复合是 s·p + t（平移量不被缩放），
+       而相机要的是 s·(p − camX)。顺序写反会让整幅画面被顶偏
+       camX×(scale−1) 像素 —— 屏幕越宽越明显（1920 宽时 scale=2），
+       表现为左侧黑边、老鼠被推到画面边缘。 */
     ctx.scale(G.scale, G.scale);
+    ctx.translate(-G.cam.x, -G.cam.y);
+    // 记录真实 CTM：测试据此断言「视图左上角确实落在屏幕 (0,0)」
+    const m = ctx.getTransform();
+    const pl = G.player;
+    G.ctm = {
+      a: m.a, b: m.b, c: m.c, d: m.d, e: m.e, f: m.f,
+      camX: G.cam.x, camY: G.cam.y,               // 渲染那一刻的相机（与 CTM 严格对应）
+      px: pl ? pl.x : 0, py: pl ? pl.y : 0,       // 渲染那一刻的角色位置
+      shakeX: sh.x, shakeY: sh.y
+    };
 
     // 背景：世界空间内绘制，恰好铺满可视区域（不随震屏抖动）
     ctx.save();
@@ -8414,7 +8435,27 @@ return {
         x: p.x, y: p.y, vx: p.vx, onScreen: (p.x >= G.cam.x && p.x <= G.cam.x + G.viewW)
       };
     },
-    testSpeed: function () { return G.cfg.speed; }
+    testSpeed: function () { return G.cfg.speed; },
+    /* 真实相机 CTM（渲染时捕获）：测试用它断言「视图左上角落在屏幕 (0,0)」
+       —— 这条不变量能直接抓出 scale/translate 顺序写反的错位 bug。 */
+    testCtm: function () { return G.ctm || null; },
+    testCtmCheck: function () {
+      const c = G.ctm;
+      if (!c) return null;
+      const dpr = G.dpr || 1;
+      // 全部用「渲染那一刻」的相机/角色坐标，避免与实时状态产生竞态
+      const sx = c.a * c.camX + c.c * c.camY + c.e;
+      const sy = c.b * c.camX + c.d * c.camY + c.f;
+      const px = c.a * c.px + c.c * c.py + c.e;
+      const py = c.b * c.px + c.d * c.py + c.f;
+      return {
+        // 换算成 CSS 像素（CTM 里是设备像素），再扣掉震屏的屏幕像素偏移
+        originX: sx / dpr - c.shakeX, originY: sy / dpr - c.shakeY,
+        playerScreenX: px / dpr - c.shakeX, playerScreenY: py / dpr - c.shakeY,
+        shake: { x: c.shakeX, y: c.shakeY },
+        zoom: G.cam.zoom || 1, cw: G.cw, ch: G.ch, dpr: dpr
+      };
+    }
   };
   window.__mp = MP.game;
 

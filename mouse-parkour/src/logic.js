@@ -458,12 +458,13 @@
       return s;
     }
 
-    /* 首段恒为 flat（长 320） */
-    sections.push({ type: 'flat', x0: 0, x1: 320 });
-    buildSection('flat', 0, 320);
+    /* 首段恒为 flat（长 520）：留足起跑热身跑道，
+       出生点落在画面 ~40% 处时脚下仍有实体地面 */
+    sections.push({ type: 'flat', x0: 0, x1: 520 });
+    buildSection('flat', 0, 520);
 
     var endX = len - 480;   // 末段 sprint 长 480
-    var cur = 320;
+    var cur = 520;
 
     var SECTION_LEN = {
       flat:    [300, 520],

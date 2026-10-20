@@ -87,6 +87,7 @@ const adv = await page.evaluate(() => {
   const lv0 = window.__mp.testLevel();
   const g0 = lv0.solids.filter((x) => x.kind === 'ground' && x.w > 200).sort((a, b) => a.x - b.x)[0];
   if (g0) { p0.x = g0.x + 30; p0.y = g0.y - p0.h - 2; p0.vx = 0; p0.vy = 0; p0.dead = false; }
+  const x0 = Math.round(window.__mp.testPlayer().x);
   window.__mp.setTestInput({ axis: 1 });
   // 先在起始平地上跑 0.4s（仍在首段 320px 内，必然在地面）
   window.__mp.fastForward(0.4);
@@ -96,11 +97,11 @@ const adv = await page.evaluate(() => {
   const a = window.__mp.fastForward(1.5);
   const p = window.__mp.testPlayer();
   return {
-    score: a.score, dist: a.distance, mid,
+    score: a.score, dist: a.distance, mid, x0,
     px: Math.round(p.x), onGround: p.onGround, py: Math.round(p.y)
   };
 });
-ok('推进后玩家前进', adv.mid.px > play.px, JSON.stringify(adv));
+ok('推进后玩家前进', adv.mid.px > adv.x0, JSON.stringify(adv));
 ok('起始平地上推进后着地', adv.mid.onGround === true, JSON.stringify(adv));
 ok('距离分增长', adv.score > 0, JSON.stringify(adv));
 

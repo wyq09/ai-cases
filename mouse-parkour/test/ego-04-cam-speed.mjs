@@ -48,6 +48,78 @@ ok('竖屏角色相对位置 ≤ 60%（留 5% 余量）', camTest.maxRel <= 0.60
 ok('竖屏角色在 35%~55% 主体区间', camTest.maxRel - camTest.minRel < 0.25,
   '区间宽度 ' + (camTest.maxRel - camTest.minRel).toFixed(3));
 
+
+/* ---------- 1.5 真实渲染变换校验（防「画面错位」回归） ----------
+   之前的 bug：相机变换里 translate 与 scale 顺序写反，整幅画面被顶偏
+   camX×(scale-1) 像素 —— 屏幕越宽越明显（1920 宽时左侧一大块黑边、
+   老鼠被推到 88% 位置）。这里用渲染时抓到的真实 CTM + 画布像素双重校验。 */
+const pxCheck = await page.evaluate(() => {
+  const c = document.getElementById('stage');
+  const g = c.getContext('2d');
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const k = window.__mp.testCtmCheck();
+  const d = g.getImageData(0, 0, c.width, c.height).data;
+  // 背景左边缘：第一个非清屏色(#0b0e18)的像素
+  let bgLeft = -1;
+  for (const frac of [0.15, 0.3, 0.55]) {
+    const y = Math.floor(c.height * frac);
+    for (let x = 0; x < c.width; x++) {
+      const i = (y * c.width + x) * 4;
+      if (Math.abs(d[i] - 11) > 6 || Math.abs(d[i + 1] - 14) > 6 || Math.abs(d[i + 2] - 24) > 6) {
+        if (bgLeft < 0 || x < bgLeft) bgLeft = x;
+        break;
+      }
+    }
+  }
+  return {
+    originX: +k.originX.toFixed(1), zoom: +k.zoom.toFixed(3),
+    playerRel: +(k.playerScreenX / k.cw).toFixed(3),
+    bgLeftCss: bgLeft < 0 ? -1 : Math.round(bgLeft / dpr),
+    cw: k.cw
+  };
+});
+ok('渲染变换：视口原点落在屏幕 (0,0) 附近', Math.abs(pxCheck.originX) < 32,
+  'originX=' + pxCheck.originX + ' zoom=' + pxCheck.zoom);
+ok('渲染变换：背景左边缘在屏幕 x=0（无黑边）', pxCheck.bgLeftCss >= 0 && pxCheck.bgLeftCss <= 4,
+  'bgLeft=' + pxCheck.bgLeftCss);
+ok('渲染变换：角色实际屏幕位置在 30%~60%', pxCheck.playerRel >= 0.30 && pxCheck.playerRel <= 0.60,
+  'rel=' + pxCheck.playerRel);
+
+/* ---------- 1.6 宽屏（1920）复现用户场景 ---------- */
+await page.cdp('Emulation.setDeviceMetricsOverride', {
+  width: 1920, height: 1000, deviceScaleFactor: 1, mobile: false
+});
+await page.waitForTimeout(600);
+await page.evaluate(() => {
+  window.__mp.startLevel(3);
+  const p = window.__mp.testPlayer(), lv = window.__mp.testLevel();
+  const gnd = lv.solids.find((s) => s.kind === 'ground' && s.x > 1500 && s.w > 300);
+  if (gnd) { p.x = gnd.x + 60; p.y = gnd.y - p.h - 2; p.vx = 0; p.vy = 0; p.dead = false; }
+});
+const wide = await page.evaluate(() => {
+  let minRel = 9, maxRel = -9, offs = 0, maxOrigin = 0;
+  for (let i = 0; i < 90; i++) {
+    window.__mp.setTestInput({ axis: 1, dashPressed: i % 12 === 0 });
+    window.__mp.fastForward(1 / 60);
+    window.__mp.setTestInput({ axis: 1 });
+    const k = window.__mp.testCtmCheck();
+    const r = window.__mp.testRel();
+    if (!r) break;
+    const rel = k.playerScreenX / k.cw;      // 实际绘制位置（真实 CTM）
+    if (rel < minRel) minRel = rel;
+    if (rel > maxRel) maxRel = rel;
+    if (!r.onScreen) offs++;
+    maxOrigin = Math.max(maxOrigin, Math.abs(k.originX));
+  }
+  return { minRel: +minRel.toFixed(3), maxRel: +maxRel.toFixed(3), offs, maxOrigin: +maxOrigin.toFixed(1) };
+});
+ok('1920 宽屏：角色实际绘制位置在 30%~60%', wide.minRel >= 0.30 && wide.maxRel <= 0.60, JSON.stringify(wide));
+ok('1920 宽屏：角色从未出画', wide.offs === 0, JSON.stringify(wide));
+ok('1920 宽屏：视口原点不偏移', wide.maxOrigin < 32, JSON.stringify(wide));
+const shotWide = await page.screenshot({ path: '/tmp/mp-17-wide.png' });
+await page.cdp('Emulation.clearDeviceMetricsOverride');
+await page.waitForTimeout(400);
+
 /* ---------- 2. 横屏同样验证 ---------- */
 await page.cdp('Emulation.setDeviceMetricsOverride', {
   width: 844, height: 390, deviceScaleFactor: 2, mobile: true
@@ -181,4 +253,5 @@ const errs = await page.evaluate(() => (window.__errs || []).slice());
 ok('全流程控制台零报错', errs.length === 0, errs.join(' | '));
 
 console.log('\n通过 ' + pass + ' / 失败 ' + fail);
+console.log('shot:', shotWide);
 console.log('shot:', shotSpeed);
