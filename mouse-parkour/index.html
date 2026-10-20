@@ -4297,12 +4297,18 @@ return {
 
   function genLayout(level, runSeed) {
     var n = Math.max(1, Math.floor(level) || 1);
-    var len = Math.min(4200 + n * 260, 9600);
+    /* 关卡长度：随关卡线性增长，封顶 21000（跑速 320/秒 ≈ 65 秒）。
+       旧版 4200+n*260 封顶 9600 → 最长只有 30 秒，一关跑两遍就没意思了。 */
+    var len = Math.min(6800 + n * 520, 21000);
     var seed = hash32(n, runSeed);
     var rng = mulberry32(seed);
     var groundY = PHYS.GROUND_Y;
     var goalX = len - 120;
-    var diff = 1 + (n - 1) * 0.09;
+    /* 难度进度 0→1（第 1 关 0，第 25 关封顶）：驱动段落权重与实体布点密度。
+       旧版难度几乎全靠「关卡变长堆数量」，而数量被 9600 的长度上限拖住，
+       结果 30 关之后完全不再变难。 */
+    var dp = Math.min(1, (n - 1) / 24);
+    var diff = 1 + (n - 1) * 0.11;
     var biome = BIOMES[Math.floor((n - 1) / 5) % BIOMES.length];
 
     var solids = [];
@@ -4358,9 +4364,18 @@ return {
       gauntlet:[460, 700]
     };
     function weights() {
+      /* 难度越高：平路越少，机关段 / 陷阱段 / 敌人段越多。
+         权重恒为正（pickWeighted 依赖非负权重，不能出现负数）。 */
+      var d = dp;
       var w = [
-        ['flat', 1.30], ['gap', 1.00], ['stairs', 0.90], ['float', 1.00],
-        ['enemy', 1.10], ['machine', n >= 3 ? 0.80 : 0.30], ['sprint', 0.50], ['gauntlet', 0.85]
+        ['flat',     0.95 - 0.45 * d],
+        ['gap',      1.00 + 0.45 * d],
+        ['stairs',   0.90 + 0.25 * d],
+        ['float',    1.00 + 0.30 * d],
+        ['enemy',    1.10 + 0.60 * d],
+        ['machine',  (n >= 2 ? 0.55 : 0.15) + 0.90 * d],
+        ['sprint',   0.50 + 0.30 * d],
+        ['gauntlet', 0.85 + 0.60 * d]
       ];
       return w;
     }
@@ -4513,14 +4528,16 @@ return {
       }
     }
 
-    var enemySpeedK = Math.min(1 + 0.03 * (n - 1), 1.9);
-    var densityK = Math.min(1 + 0.04 * (n - 1), 2.0);
-    var rarityWeight = Math.max(0.35, 1 - 0.03 * (n - 1));
+    /* 难度系数：旧版 1.9 / 2.0 / 0.35 的封顶在第 22~31 关就到头，
+       之后 20 关完全不再变难。现在把封顶推后、斜率加大。 */
+    var enemySpeedK = Math.min(1 + 0.035 * (n - 1), 2.6);
+    var densityK = Math.min(1 + 0.05 * (n - 1), 3.2);
+    var rarityWeight = Math.max(0.22, 1 - 0.035 * (n - 1));
 
     return {
       n: n, len: len, seed: seed, rng: rng, groundY: groundY, goalX: goalX,
-      diff: diff, biome: biome, sections: sections, solids: solids,
-      hazards: hazards, targetCheese: levelTargets(n).cheese,
+      diff: diff, dp: dp, biome: biome, sections: sections, solids: solids,
+      hazards: hazards, targetCheese: levelTargets(n, len).cheese,
       enemySpeedK: enemySpeedK, densityK: densityK, rarityWeight: rarityWeight
     };
   }
@@ -4546,21 +4563,50 @@ return {
       out.push(e);
     }
 
+    /* 敌人避开砖墙：砖墙 80 高（只能靠钻头撞碎），猫紧贴砖墙 = 玩家要一次
+       跳过「猫 + 墙」，几乎不可能。 */
+    function avoidBrick(x) {
+      for (var t = 0; t < 5; t++) {
+        var hit = false;
+        for (var i = 0; i < solids.length; i++) {
+          var s = solids[i];
+          if (s.kind !== 'brick') continue;
+          if (x < s.x + s.w + 70 && x + 40 > s.x - 70) { hit = true; break; }
+        }
+        if (!hit) break;
+        x += 150;
+      }
+      return x;
+    }
+
     for (var i = 0; i < L.sections.length; i++) {
       var sec = L.sections[i];
       var count = 0;
-      if (sec.type === 'enemy') count = Math.max(1, Math.round(1 * densK));
-      else if (sec.type === 'gauntlet') count = 1;
-      else if (sec.type === 'flat' && sec.x0 > 0 && L.n >= 2) count = (rng() < 0.4) ? 1 : 0;
+      if (sec.type === 'enemy') count = Math.max(1, Math.round(densK * 1.6));
+      else if (sec.type === 'gauntlet') count = 1 + (L.dp > 0.35 && rng() < L.dp ? 1 : 0);
+      else if (sec.type === 'flat' && sec.x0 > 0 && L.n >= 2) {
+        count = (rng() < 0.60 + 0.30 * L.dp) ? Math.max(1, Math.round(densK * 0.55)) : 0;
+      }
       if (count <= 0) continue;
       var w = sec.x1 - sec.x0;
+      /* 同一段内多个敌人按「槽位」铺开：随机取点会让两只猫叠在同一 x，
+         形成一堵跳不干净的墙（旧版概率低很少撞上，密度提高后必现）。 */
+      var span = Math.max(40, w - 140);
+      var slot = span / count;
       for (var k = 0; k < count; k++) {
-        var x = sec.x0 + 60 + rng() * Math.max(40, w - 140);
-        var kind = 'cat';
+        var x = sec.x0 + 60 + (k + 0.5) * slot + (rng() - 0.5) * slot * 0.5;
+        x = clamp(x, sec.x0 + 40, sec.x1 - 40);
+        x = avoidBrick(x);
+        /* 敌人构成随难度变化：炮台（远程瞄准）与追踪蜂（会追）占比随难度上升，
+           会飘的无人机占比下降 —— 旧版后期敌人种类几乎不变，只是变多。 */
+        var tP = (L.n >= 4 ? 0.08 : 0) + 0.14 * L.dp;   // 炮台
+        var cP = 0.40 - 0.08 * L.dp;                    // 巡逻猫
+        var wP = 0.26 + 0.14 * L.dp;                    // 追踪蜂
         var r = rng();
-        if (L.n >= 5 && r < 0.18) kind = 'turret';
-        else if (r < 0.55) kind = 'cat';
-        else if (r < 0.85) kind = 'wasp';
+        var kind = 'cat';
+        if (r < tP) kind = 'turret';
+        else if (r < tP + cP) kind = 'cat';
+        else if (r < tP + cP + wP) kind = 'wasp';
         else kind = 'drone';
         var y;
         if (kind === 'drone') y = L.groundY - 120 - rng() * 30;
@@ -4595,18 +4641,23 @@ return {
     return h;
   }
 
-  function genHazardPlacements(level, runSeed, solids, layout) {
+  function genHazardPlacements(level, runSeed, solids, layout, enemies) {
     var L = layout || genLayout(level, runSeed);
     var rng = mulberry32(hash32(L.n, (runSeed ^ 0x165667b1) >>> 0));
     var out = [];
-    var machineOk = L.n >= 3;
+    var machineOk = L.n >= 2;
+    var foes = enemies || [];
 
     function place(kind, x) {
-      // 避免与平台链在同一 x 区间重叠（平台带高度 40~100）
+      // 避免与平台链在同一 x 区间重叠（平台带高度 40~100），也避开砖墙
       for (var t = 0; t < 4; t++) {
         var bad = false;
         for (var i = 0; i < solids.length; i++) {
           var s = solids[i];
+          if (s.kind === 'brick') {
+            if (x < s.x + s.w + 60 && x + HAZARDS[kind].w > s.x - 60) { bad = true; break; }
+            continue;
+          }
           if (!isPlatKind(s.kind)) continue;
           if (s.x < x + HAZARDS[kind].w && s.x + s.w > x) {
             if (s.y < L.groundY && s.y > L.groundY - 110) { bad = true; break; }
@@ -4615,27 +4666,50 @@ return {
         if (!bad) break;
         x += 130;
       }
+      // 避免与敌人重叠：敌人和危险物叠在一起 = 跑不过去的一堵墙
+      for (var t2 = 0; t2 < 5; t2++) {
+        var clash = false;
+        for (var j = 0; j < foes.length; j++) {
+          var e = foes[j];
+          if (x < e.x + e.w + 70 && x + HAZARDS[kind].w > e.x - 70) { clash = true; break; }
+        }
+        if (!clash) break;
+        x += 150;
+      }
       out.push(makeHazard(kind, x, L.groundY, rng));
     }
 
     for (var i = 0; i < L.sections.length; i++) {
       var sec = L.sections[i];
       if (sec.type === 'machine' || sec.type === 'gauntlet') {
-        var count = sec.type === 'machine' ? (rng() < 0.55 ? 2 : 1) : 1;
+        /* 机关段：难度越高，每段塞的机关越多（上限 3） */
+        var count = 1 + (rng() < 0.65 ? 1 : 0);
+        if (L.dp > 0.4 && rng() < L.dp) count++;
+        /* 同一段内多个机关按槽位铺开，避免叠成一坨 */
+        var hspan = Math.max(30, (sec.x1 - sec.x0) - 160);
+        var hslot = hspan / count;
         for (var k = 0; k < count; k++) {
           var kind = machineOk ? MACHINE_KINDS[Math.floor(rng() * MACHINE_KINDS.length)]
                                : STATIC_KINDS[Math.floor(rng() * STATIC_KINDS.length)];
-          var x = sec.x0 + 70 + rng() * Math.max(30, (sec.x1 - sec.x0) - 160);
+          var x = sec.x0 + 70 + (k + 0.5) * hslot + (rng() - 0.5) * hslot * 0.5;
           place(kind, x);
         }
-      } else if (sec.type === 'enemy' && L.n >= 2 && rng() < 0.4) {
+      } else if (sec.type === 'enemy' && L.n >= 2 && rng() < 0.50 + 0.30 * L.dp) {
         var sx = sec.x0 + 90 + rng() * Math.max(30, (sec.x1 - sec.x0) - 200);
         place(STATIC_KINDS[Math.floor(rng() * STATIC_KINDS.length)], sx);
       }
       /* 巡逻猫（危险物版本）出现在平地段落 */
-      if (sec.type === 'flat' && sec.x0 > 0 && L.n >= 3 && rng() < 0.35) {
+      if (sec.type === 'flat' && sec.x0 > 0 && L.n >= 2 && rng() < 0.50 + 0.35 * L.dp) {
         var cx = sec.x0 + 80 + rng() * Math.max(30, (sec.x1 - sec.x0) - 200);
         place('cat', cx);
+      }
+      /* 中后期在 gap / stairs / float 段也放静态机关（尖刺 / 栅栏 / 酸液），
+         否则高关卡的机关只集中在 machine / gauntlet 两种段落里，节奏很规律。 */
+      if (L.dp > 0.25 && (sec.type === 'gap' || sec.type === 'stairs' || sec.type === 'float')) {
+        if (rng() < (L.dp - 0.25) * 0.9) {
+          var gx = sec.x0 + 100 + rng() * Math.max(30, (sec.x1 - sec.x0) - 220);
+          place(STATIC_KINDS[Math.floor(rng() * STATIC_KINDS.length)], gx);
+        }
       }
     }
     /* 终点前 220px 内不得有伤害性机关 */
@@ -4701,11 +4775,13 @@ return {
     /* ---- 收集类：奶酪 / 金币 ----
        按关卡目标数分层均匀铺开（带抖动，避免扎堆也避免过密）。
        旧版每关额外撒 (len/300) 个随机道具，密集处一个道具只隔 0.3 秒，
-       既刷屏又抢跑酷节奏；现在总量固定、间距可控。 */
-    var target = levelTargets(L.n).cheese;
+       既刷屏又抢跑酷节奏；现在总量固定、间距可控。
+       关卡加长后总量随之增长，但**密度**基本恒定（约 3.4 个/千单位），
+       长关卡既不会空荡，也不会刷屏。 */
+    var target = levelTargets(L.n, L.len).cheese;
     // 奶酪数必须 ≥ 星级目标（留 3 个余量），否则高关卡拿不到二星
-    var cheeseN = Math.min(target + 3, 32);
-    var coinN = Math.min(4 + Math.floor(L.n / 4), 10);
+    var cheeseN = Math.min(target + 3, 40);
+    var coinN = Math.min(6 + Math.floor(L.len / 2600), 20);
 
     /* ---- 能力道具：23 种（除奶酪/金币外），每关 5 种 ----
        取池子里的「连续 5 个」窗口，窗口起点按关卡步进 5（23 与 5 互质）：
@@ -4756,6 +4832,9 @@ return {
   function genLevel(level, runSeed) {
     var L = genLayout(level, runSeed);
     var n = L.n;
+    /* 敌人先算，机关布点据此避让（两者叠在一起会形成跑不过去的墙） */
+    var enemies = genEnemyPlacements(n, runSeed, L.solids, L);
+    var hazards = genHazardPlacements(n, runSeed, L.solids, L, enemies);
     return {
       level: n,
       seed: L.seed,
@@ -4764,9 +4843,9 @@ return {
       groundY: L.groundY,
       diff: L.diff,
       solids: L.solids,
-      hazards: L.hazards.concat(genHazardPlacements(n, runSeed, L.solids, L)),
+      hazards: L.hazards.concat(hazards),
       pickups: genItemPlacements(n, runSeed, L.solids, L),
-      enemies: genEnemyPlacements(n, runSeed, L.solids, L),
+      enemies: enemies,
       checkpoints: L.sections.map(function (s) { return s.x0; }),
       goalX: L.goalX,
       sections: L.sections,
@@ -4921,7 +5000,9 @@ return {
     var lives = 600 * Math.max(0, stats.lives !== undefined && stats.lives !== null
       ? stats.lives : (g ? (g.lives || 0) : 0));
     var total = base + flawless + cheese + lives;
-    var target = levelTargets(n).cheese;
+    /* 星级目标必须与关卡里实际铺设的奶酪口径一致（按关卡长度），
+       否则结算面板显示的目标会和 HUD / 布点对不上。 */
+    var target = levelTargets(n, g && g.levelLen).cheese;
     var stars = 1;
     if (cheeseCount >= target) stars = 2;
     if (stats.flawless && cheeseCount >= target) stars = 3;
@@ -4931,11 +5012,14 @@ return {
     };
   }
 
-  /* 关卡目标：奶酪 target = 6 + floor(n/2) */
-  function levelTargets(level) {
+  /* 关卡目标：奶酪数量目标。
+     给了关卡长度就按长度定（长关卡要跨更远才凑得齐奶酪，星级才有意义），
+     没给长度就按关卡数定（对外 API 的旧行为）。
+     两种口径都封顶 34 —— 星级目标必须 ≤ 实际铺设的奶酪数，否则永远拿不到二星。 */
+  function levelTargets(level, len) {
     var n = Math.max(1, Math.floor(level) || 1);
-    /* 关卡长度在 9600 单位封顶，奶酪目标同步封顶（否则超高关卡永远拿不到二星） */
-    return { cheese: Math.min(6 + Math.floor(n / 2), 28) };
+    var base = (len && len > 0) ? 6 + Math.floor(len / 1500) : 6 + Math.floor(n / 2);
+    return { cheese: Math.min(base, 34) };
   }
 
   /* ======================================================================
@@ -7086,6 +7170,9 @@ return {
     const level = L().genLevel ? L().genLevel(n, g.runSeed) : null;
     if (!level) { console.error('[mp] genLevel 失败'); return; }
     G.level = level;
+    /* 关卡长度记进 run：奶酪星级目标按长度算（长关卡要跨更远才凑得齐），
+       HUD / 结算 / 星级判定三处必须用同一个口径。 */
+    g.levelLen = level.length;
     G.bullets = [];
     const rawSpawn = level.spawn || { x: 90, y: level.groundY - 60 };
     // 出生点按视口宽度自适应：起跑瞬间老鼠就在画面 40% 附近，
@@ -7270,7 +7357,7 @@ return {
   function levelClear() {
     const g = G.g, p = G.player, level = G.level;
     if (!g || !level) return;
-    const target = (L().levelTargets ? L().levelTargets(g.level) : { cheese: 6 }) || { cheese: 6 };
+    const target = (L().levelTargets ? L().levelTargets(g.level, g.levelLen) : { cheese: 6 }) || { cheese: 6 };
     const cheeseGot = g.levelCheese || 0;      // 本关收集（星级按本关判定）
     const cheeseTotal = g.cheese || 0;         // 本局累计
     const flawless = g.flawless !== false;
@@ -8194,7 +8281,7 @@ return {
         }
       }
     }
-    const target = (L().levelTargets && g) ? (L().levelTargets(g.level) || { cheese: 6 }) : { cheese: 6 };
+    const target = (L().levelTargets && g) ? (L().levelTargets(g.level, g.levelLen) || { cheese: 6 }) : { cheese: 6 };
     return {
       state: G.state,
       score: g ? g.score : 0,

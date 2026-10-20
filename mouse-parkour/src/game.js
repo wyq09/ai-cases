@@ -241,6 +241,9 @@
     const level = L().genLevel ? L().genLevel(n, g.runSeed) : null;
     if (!level) { console.error('[mp] genLevel 失败'); return; }
     G.level = level;
+    /* 关卡长度记进 run：奶酪星级目标按长度算（长关卡要跨更远才凑得齐），
+       HUD / 结算 / 星级判定三处必须用同一个口径。 */
+    g.levelLen = level.length;
     G.bullets = [];
     const rawSpawn = level.spawn || { x: 90, y: level.groundY - 60 };
     // 出生点按视口宽度自适应：起跑瞬间老鼠就在画面 40% 附近，
@@ -425,7 +428,7 @@
   function levelClear() {
     const g = G.g, p = G.player, level = G.level;
     if (!g || !level) return;
-    const target = (L().levelTargets ? L().levelTargets(g.level) : { cheese: 6 }) || { cheese: 6 };
+    const target = (L().levelTargets ? L().levelTargets(g.level, g.levelLen) : { cheese: 6 }) || { cheese: 6 };
     const cheeseGot = g.levelCheese || 0;      // 本关收集（星级按本关判定）
     const cheeseTotal = g.cheese || 0;         // 本局累计
     const flawless = g.flawless !== false;
@@ -1349,7 +1352,7 @@
         }
       }
     }
-    const target = (L().levelTargets && g) ? (L().levelTargets(g.level) || { cheese: 6 }) : { cheese: 6 };
+    const target = (L().levelTargets && g) ? (L().levelTargets(g.level, g.levelLen) || { cheese: 6 }) : { cheese: 6 };
     return {
       state: G.state,
       score: g ? g.score : 0,

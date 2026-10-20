@@ -153,6 +153,79 @@ t('关卡长度随关卡增长（至上限）', () => {
   const l20 = L.genLevel(20, 5).length;
   ok(l20 > l1, `第20关(${l20}) 应长于第1关(${l1})`);
 });
+/* ---- 关卡长度 / 难度曲线（本轮重做）----
+   旧版：len = 4200+n*260 封顶 9600 → 最长 30 秒；
+        enemySpeedK 封顶 1.9、densityK 封顶 2.0、rarityWeight 封底 0.35
+        → 第 22~31 关之后完全不再变难。
+   现在：len = 6800+n*520 封顶 21000（≈65 秒）；
+        难度参数封顶推后，密度随关卡持续上升。 */
+t('关卡长度显著加长（L1 ≥ 7000 单位，30 关封顶 21000）', () => {
+  const l1 = L.genLevel(1, 5).length;
+  const l10 = L.genLevel(10, 5).length;
+  const l30 = L.genLevel(30, 5).length;
+  const l50 = L.genLevel(50, 5).length;
+  ok(l1 >= 7000, `第1关 ${l1} 应 ≥ 7000`);
+  ok(l10 > l1, `第10关 ${l10} 应长于第1关 ${l1}`);
+  ok(l30 >= 20000, `第30关 ${l30} 应 ≥ 20000`);
+  eq(l50, 21000, '第 50 关应达长度上限 21000');
+});
+t('关卡长度换算成游玩时长 ≥ 22 秒（L1）/ ≥ 60 秒（封顶关）', () => {
+  const RUN_SPEED = 320;
+  const l1 = L.genLevel(1, 5).length / RUN_SPEED;
+  const l30 = L.genLevel(30, 5).length / RUN_SPEED;
+  ok(l1 >= 22, `第1关仅 ${l1.toFixed(1)} 秒`);
+  ok(l30 >= 60, `第30关仅 ${l30.toFixed(1)} 秒`);
+});
+t('难度参数不再早早封顶（速度 / 密度 / 稀有度）', () => {
+  const k = (n) => L.genLevel(n, 5);
+  ok(k(30).enemySpeedK > 1.9, `第30关敌人速度系数 ${k(30).enemySpeedK} 应 > 旧版上限 1.9`);
+  ok(k(30).densityK > 2.0, `第30关密度系数 ${k(30).densityK} 应 > 旧版上限 2.0`);
+  ok(k(30).rarityWeight < 0.35, `第30关稀有度权重 ${k(30).rarityWeight} 应 < 旧版下限 0.35`);
+  ok(k(50).enemySpeedK > k(30).enemySpeedK, '50 关应比 30 关更快');
+});
+t('敌人 / 机关密度随关卡单调上升（不再靠长度堆数量）', () => {
+  const per1k = (n) => {
+    // 取 3 个种子求均值，避免单一种子噪声
+    let en = 0, hz = 0, len = 0;
+    for (const seed of [11, 22, 33]) {
+      const lv = L.genLevel(n, seed);
+      const dmg = lv.hazards.filter((h) => h.kind !== 'pit').length;
+      en += lv.enemies.length; hz += dmg; len += lv.length;
+    }
+    return { en: en / 3 / (len / 3) * 1000, hz: hz / 3 / (len / 3) * 1000 };
+  };
+  const a = per1k(1), b = per1k(12), c = per1k(25);
+  ok(b.en > a.en * 1.3, `敌人密度 L1=${a.en.toFixed(2)} → L12=${b.en.toFixed(2)} 涨幅不足`);
+  ok(c.en > b.en, `敌人密度 L12=${b.en.toFixed(2)} → L25=${c.en.toFixed(2)} 未上升`);
+  ok(c.hz > b.hz, `机关密度 L12=${b.hz.toFixed(2)} → L25=${c.hz.toFixed(2)} 未上升`);
+  ok(a.en >= 0.8, `第1关敌人密度 ${a.en.toFixed(2)} 过低（应 ≥ 0.8/千单位）`);
+});
+t('高关卡平路占比下降（段落构成随难度漂移）', () => {
+  const flatPct = (n) => {
+    let flat = 0, len = 0;
+    for (const seed of [11, 22, 33]) {
+      const lv = L.genLevel(n, seed);
+      flat += lv.sections.filter((s) => s.type === 'flat')
+        .reduce((a, s) => a + (s.x1 - s.x0), 0);
+      len += lv.length;
+    }
+    return flat / len;
+  };
+  const a = flatPct(1), c = flatPct(25);
+  ok(c < a, `平路占比 L1=${(a * 100).toFixed(0)}% 应高于 L25=${(c * 100).toFixed(0)}%`);
+  ok(c <= 0.15, `第25关平路占比 ${(c * 100).toFixed(0)}% 仍偏高（应 ≤ 15%）`);
+});
+t('奶酪星级目标与实际铺设一致（目标 ≤ 实铺数量）', () => {
+  for (const n of [1, 5, 12, 25, 40]) {
+    const lv = L.genLevel(n, 777);
+    const actual = lv.pickups.filter((p) => p.id === 'cheese').length;
+    ok(lv.targetCheese > 0, `第${n}关星级目标应为正`);
+    ok(actual >= lv.targetCheese,
+      `第${n}关实铺奶酪 ${actual} < 星级目标 ${lv.targetCheese}（拿不到二星）`);
+    ok(L.levelTargets(n, lv.length).cheese === lv.targetCheese,
+      `第${n}关 levelTargets 口径与关卡目标不一致`);
+  }
+});
 t('群系每 5 关切换，26 关后循环', () => {
   const b = (n) => L.genLevel(n, 42).biome.id;
   eq(b(1), 'kitchen'); eq(b(5), 'kitchen');

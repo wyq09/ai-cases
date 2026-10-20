@@ -190,7 +190,14 @@ const density = await page.evaluate(() => {
 });
 ok('道具不再扎堆（最小间距 ≥ 80 单位）', density.every((d) => d.minGap >= 80), JSON.stringify(density));
 ok('道具平均间隔 ≥ 0.6 秒', density.every((d) => d.perSec >= 0.6), JSON.stringify(density));
-ok('单关道具总数收敛（≤ 40）', density.every((d) => d.count <= 40), JSON.stringify(density));
+/* 关卡加长到 21000 单位后，「总数 ≤ 40」已经不能代表「不刷屏」了
+   （总数随长度自然增长）。真正的约束是**密度**：每千单位多少个道具。
+   同时加一条上限，防长关卡变空。 */
+ok('道具密度收敛（≤ 4 个/千单位，不刷屏）',
+  density.every((d) => d.count / (d.len / 1000) <= 4), JSON.stringify(density));
+ok('道具平均间隔 ≤ 2.5 秒（长关卡不能太空）',
+  density.every((d) => d.perSec <= 2.5), JSON.stringify(density));
+ok('单关道具总数有上限（≤ 60 个）', density.every((d) => d.count <= 60), JSON.stringify(density));
 
 /* ---------- 5. 速度控制 ----------
  * 位移比必须与地形无关，否则测的是「掉进坑里被卡住」而不是倍速。
