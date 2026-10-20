@@ -309,7 +309,8 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
 /* 菜单/暂停时收起操作控件，暂停键保持可点 */
 #touchLayer.paused .tl-zone,
 #touchLayer.paused .tl-bomb,
-#touchLayer.paused .tl-ghost { display: none; }
+#touchLayer.paused .tl-stick,
+#touchLayer.paused .tl-rotate { display: none; }
 /* 摇杆本体（视觉层，不接事件） */
 .tl-base {
   position: fixed; left: -999px; top: -999px;
@@ -330,25 +331,31 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
   box-shadow: 0 2px 10px rgba(4,10,22,.45), inset 0 -3px 6px rgba(110,170,240,.35);
   transform: translate(-50%, -50%);
 }
-/* 首次进入的落点提示：淡入淡出的呼吸圈 */
-.tl-ghost {
+/* 常驻摇杆底座：告诉玩家"左下角这块可以拖"，不用自己盲找 */
+.tl-stick {
   position: absolute;
-  left: calc(96px + env(safe-area-inset-left));
-  bottom: calc(118px + env(safe-area-inset-bottom));
-  width: 104px; height: 104px;
+  left: calc(30px + env(safe-area-inset-left));
+  bottom: calc(46px + env(safe-area-inset-bottom));
+  width: 108px; height: 108px;
   border-radius: 50%;
-  border: 1.5px dashed rgba(150,200,255,.30);
+  border: 1.5px solid rgba(150,200,255,.18);
+  background: rgba(10,18,32,.16);
   pointer-events: none;
-  animation: tlBreath 2.6s ease-in-out infinite;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color .15s, background .15s;
 }
-.tl-ghost i {
-  position: absolute; left: 50%; top: 50%;
-  width: 40px; height: 40px;
-  transform: translate(-50%, -50%);
+.tl-stick i {
+  width: 38px; height: 38px;
   border-radius: 50%;
-  background: rgba(180,215,255,.14);
+  background: rgba(180,215,255,.12);
+  transition: background .15s, transform .15s;
 }
-.tl-ghost.gone { animation: tlFade .4s forwards; }
+.tl-stick span {
+  position: absolute; bottom: -19px; left: 50%; transform: translateX(-50%);
+  font: 11px/1 var(--mono); color: rgba(190,208,240,.42); white-space: nowrap;
+}
+.tl-stick.act { border-color: rgba(150,200,255,.34); background: rgba(10,18,32,.26); }
+.tl-stick.act i { background: rgba(180,215,255,.2); transform: scale(1.12); }
 @keyframes tlBreath { 0%, 100% { opacity: .38; } 50% { opacity: .8; } }
 @keyframes tlFade { to { opacity: 0; visibility: hidden; } }
 /* 放泡大按钮 */
@@ -422,4 +429,171 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
   .title-logo .en { margin-top: 8px; font-size: 10px; }
   .setrow { margin-top: 10px; }
   .btnrow { margin-top: 12px; }
+}
+
+/* ============================================================
+ * 移动端专属（#app.mobile）
+ * 桌面上棋盘整体缩放，文字跟着缩；手机上棋盘只有 380px 宽，
+ * 缩放后标题 6px、玩家名 4.6px 根本读不了。
+ * → 文字层搬出 stage（见 mobile.js），这里给一套独立样式：
+ *    独立尺寸的 HUD / 菜单，紧凑排版 + 大触控目标。
+ * ============================================================ */
+#uiLayer {
+  position: fixed; inset: 0; z-index: 35;
+  pointer-events: none;
+}
+#uiLayer .screen { pointer-events: auto; }
+#uiLayer #hud,
+#uiLayer #countdown,
+#uiLayer #toast { pointer-events: none; }
+
+/* ---- HUD：竖屏独立成顶部条，横屏叠在棋盘顶部 ---- */
+#app.portrait #hud {
+  position: fixed; left: 0; right: 0;
+  top: var(--sat, 0px); height: 46px;
+  padding: 4px 50px 4px 8px;
+  gap: 6px; align-items: center;
+}
+#app.landscape #hud {
+  position: fixed;
+  left: var(--bx, 0px); top: var(--by, 0px);
+  width: var(--bw, 100%); height: var(--bh, 100%);
+  padding: 5px 50px 5px 8px;
+  gap: 6px; align-items: flex-start;
+}
+#app.mobile #scoreStrip { gap: 4px; flex-wrap: nowrap; overflow: hidden; }
+#app.mobile .sc {
+  min-width: 0; padding: 3px 5px 3px 3px; border-radius: 9px; gap: 4px;
+  background: rgba(8,13,26,.66);
+}
+#app.mobile .sc .av { width: 18px; height: 18px; border-radius: 6px; }
+#app.mobile .sc .nm { font-size: 11px; letter-spacing: 0; }
+#app.mobile .sc .st {
+  font-size: 9.5px; gap: 3px; margin-top: 1px; line-height: 1;
+  font-family: inherit;   /* emoji / 中文在 mono 回退字体下行盒会炸开 */
+}
+#app.mobile .sc .st .mb { color: #9fc0ea; }
+#app.mobile .sc .st .mi {
+  color: #d9c6ff; background: rgba(169,139,255,.18);
+  border-radius: 3px; padding: 0 3px; line-height: 13px;
+}
+#app.mobile .sc .st .mt { color: #ff9db4; }
+#app.mobile .sc .wins { font-size: 12px; margin-left: 2px; }
+#app.mobile #timer {
+  font-size: 19px; padding: 2px 9px; border-radius: 9px;
+  min-width: 0;            /* 桌面端 min-width:104px 在手机上白白占位 */
+}
+#app.mobile #roundTag { display: none; }   /* 中文在 mono 回退下撑出 29px 行高 */
+
+/* ---- 倒计时 / 提示条：锚到棋盘上 ---- */
+#app.mobile #countdown {
+  left: calc(var(--bx, 50%) + var(--bw, 0px) / 2);
+  top: calc(var(--by, 44%) + var(--bh, 0px) * 0.44);
+  font-size: clamp(58px, 21vw, 104px);
+  text-shadow: 0 5px 0 rgba(0,0,0,.35), 0 0 44px rgba(120,200,255,.7);
+}
+#app.mobile #toast {
+  left: calc(var(--bx, 50%) + var(--bw, 0px) / 2);
+  bottom: auto;
+  top: calc(var(--by, 50%) + var(--bh, 0px) * 0.80);
+  font-size: 13px; padding: 8px 16px; max-width: 88vw; white-space: normal; text-align: center;
+}
+/* ---- 提示条：竖屏贴在棋盘下方，横屏空间不够就藏起来 ---- */
+#app.portrait #hints {
+  bottom: auto;
+  top: calc(var(--by, 0px) + var(--bh, 0px) + 9px);
+  font-size: 11px; padding: 5px 12px;
+  width: max-content; max-width: 94vw; flex-wrap: nowrap;
+}
+#app.landscape #hints { display: none; }
+
+/* ---- 菜单屏：字号与触控目标按手机重新排 ---- */
+#app.mobile .screen .card {
+  width: min(94vw, 520px);
+  max-height: 90vh;
+  padding: 20px 18px 18px;
+  border-radius: 16px;
+}
+#app.mobile .screen .card.wide { width: min(96vw, 560px); }
+#app.mobile .title-logo .cn { font-size: 44px; letter-spacing: .1em; }
+#app.mobile .title-logo .en { font-size: 10.5px; letter-spacing: .34em; margin-top: 10px; }
+#app.mobile .title-logo .sub { font-size: 13px; margin-top: 12px; }
+#app.mobile .setrow { margin-top: 15px; }
+#app.mobile .setrow .lbl { font-size: 11px; margin-bottom: 7px; }
+#app.mobile .setgrid { gap: 0 12px; }
+#app.mobile .chip { padding: 9px 13px; font-size: 14px; border-radius: 11px; }
+#app.mobile .chip .k { font-size: 11px; }
+#app.mobile .chip.map { min-width: 92px; padding: 7px 10px; }
+#app.mobile .chip.map .mn { font-size: 13.5px; }
+#app.mobile .chip.map .mt { font-size: 10px; }
+#app.mobile .btnrow { margin-top: 16px; gap: 10px; }
+#app.mobile .btn { padding: 13px 22px; font-size: 16px; border-radius: 14px; }
+#app.mobile .btn.ghost { padding: 12px 18px; }
+#app.mobile .tips { font-size: 13px; line-height: 1.75; }
+#app.mobile .keys-grid { gap: 10px; }
+#app.mobile .keys-box { padding: 11px 13px; }
+#app.mobile .keys-box h4 { font-size: 12px; }
+#app.mobile .keys-box .row { font-size: 13px; }
+#app.mobile .stat { padding: 11px 12px; }
+#app.mobile .stat .v { font-size: 22px; }
+#app.mobile .stat .k { font-size: 9.5px; }
+#app.mobile .round-big { font-size: 42px; }
+#app.mobile .round-title { font-size: 14px; }
+
+/* ---- 触摸控件：拇指可达 + 状态提示 ---- */
+#app.mobile .tl-bomb {
+  width: 96px; height: 96px;
+  right: calc(18px + env(safe-area-inset-right));
+  bottom: calc(30px + env(safe-area-inset-bottom));
+}
+#app.mobile .tl-zone { height: 50%; }
+
+#app.mobile .tl-pause {
+  width: 40px; height: 40px; border-radius: 12px;
+  top: calc(6px + env(safe-area-inset-top));
+  right: calc(8px + env(safe-area-inset-right));
+}
+/* 横屏引导：竖屏时棋盘受宽度限制只有 25px/格，横屏能到 29px/格 */
+.tl-rotate {
+  position: absolute;
+  left: 50%; top: 0; transform: translateX(-50%);
+  display: none; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: 14px;
+  background: rgba(12,20,38,.74);
+  border: 1px solid rgba(120,170,255,.22);
+  pointer-events: none;
+}
+.tl-rotate.on { display: flex; }
+.tl-rotate b { font-size: 12.5px; color: #e6f0ff; white-space: nowrap; }
+.tl-rotate span { font-size: 11px; color: var(--dim); white-space: nowrap; }
+.tl-rotate-x {
+  pointer-events: auto;
+  font: 11px/1 var(--mono);
+  color: #9fc6ff; background: rgba(120,170,255,.14);
+  border: 1px solid rgba(120,170,255,.3); border-radius: 9px;
+  padding: 6px 9px; cursor: pointer; white-space: nowrap;
+}
+.tl-rotate.gone { display: none !important; }
+#app.portrait .tl-rotate { top: calc(var(--by, 0px) + var(--bh, 0px) + 44px); }
+
+/* 炸弹键角标：还能放几个泡 */
+.tl-bomb-num {
+  position: absolute; top: 4px; right: 8px;
+  min-width: 21px; height: 21px; padding: 0 5px;
+  border-radius: 11px;
+  background: rgba(110,220,255,.95); color: #052033;
+  font: 700 12px/21px var(--mono); text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.45);
+  pointer-events: none;
+}
+.tl-bomb-num:empty { display: none; }
+.tl-bomb.empty { opacity: .42; }
+/* 被困时炸弹键变成"连点自救"提示 */
+.tl-bomb.trapped {
+  border-color: rgba(255,190,120,.95);
+  animation: tlPulse .52s ease-out infinite;
+}
+@keyframes tlPulse {
+  0% { box-shadow: 0 0 0 0 rgba(255,170,90,.55); }
+  100% { box-shadow: 0 0 0 20px rgba(255,170,90,0); }
 }

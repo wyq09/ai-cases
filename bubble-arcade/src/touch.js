@@ -9,19 +9,20 @@
   var BA = global.BA;
 
   var layer = null, zone = null, base = null, knob = null;
-  var bombBtn = null, pauseBtn = null, ghost = null;
+  var bombBtn = null, pauseBtn = null, stick = null, rotate = null;
   var joyId = null;        // 占用摇杆的 touch identifier
   var ox = 0, oy = 0;      // 摇杆原点（视口坐标）
   var outDir = null;       // 当前输出给游戏的四向
+  var lastAngle = 0;       // 上一次摇杆角度（用于识别"快速划动"）
   var bombDown = false;
-  var usedOnce = false;
   var enabled = false;
   var syncTimer = 0;
 
   var R = 56;              // 摇杆最大半径（CSS px）
-  var DEAD = 12;           // 死区：视为原地站定
-  var K_AXIS = 1.35;       // 轴间切换迟滞：新轴分量需 > 当前轴分量 × K
-  var M_AXIS = 10;         // 轴间切换迟滞：且需超出 M px
+  var DEAD = 8;            // 死区：视为原地站定（手机上手指粗，死区小一点更跟手）
+  var K_AXIS = 1.15;       // 轴间切换迟滞：新轴分量需 > 当前轴分量 × K
+  var M_AXIS = 6;          // 轴间切换迟滞：且需超出 M px
+  var FLICK = 0.85;        // 快速划动阈值（弧度 ≈ 49°）：划一下立刻转向，不等迟滞
 
   var ICON_BOMB =
     '<svg viewBox="0 0 48 48" width="42" height="42" aria-hidden="true">' +
@@ -41,12 +42,6 @@
     return !!S && (S.phase === 'play' || S.phase === 'countdown');
   }
 
-  function markUsed() {
-    if (usedOnce) return;
-    usedOnce = true;
-    if (ghost) ghost.classList.add('gone');
-  }
-
   /* 4 向吸附 + 迟滞：当前横轴时，纵轴分量需明显占优才切换，防 45° 抖动 */
   function pickDir(dx, dy) {
     var mag = Math.hypot(dx, dy);
@@ -61,6 +56,16 @@
       return dy >= 0 ? 'down' : 'up';
     }
     return ax >= ay ? (dx >= 0 ? 'right' : 'left') : (dy >= 0 ? 'down' : 'up');
+  }
+  /* 不看迟滞，直接按主轴吸附（快速划动时用） */
+  function snapAxis(dx, dy) {
+    return Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 'right' : 'left') : (dy >= 0 ? 'down' : 'up');
+  }
+  function angleDelta(a, b) {
+    var d = a - b;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    return d;
   }
 
   function showBase(x, y) {
@@ -83,22 +88,33 @@
     joyId = t.identifier;
     ox = t.clientX; oy = t.clientY;
     outDir = null;
+    lastAngle = Math.atan2(t.clientY - oy, t.clientX - ox);
     showBase(ox, oy);
-    markUsed();
+    if (stick) stick.classList.add('act');
   }
   function joystickMove(t) {
     var dx = t.clientX - ox, dy = t.clientY - oy;
     moveKnob(dx, dy);
+    var ang = Math.atan2(dy, dx);
     var d = pickDir(dx, dy);
+    // 快速划动：本次角度和上次差得多（≈49°以上）→ 玩家明确想转向，
+    // 忽略迟滞直接采用主轴方向。迟滞挡住的恰好是 45°~49° 这段，
+    // 慢推要挪 35px 才转得过来，快速划一下反而更跟手。
+    var raw = snapAxis(dx, dy);
+    if (d !== null && outDir && raw !== outDir && Math.abs(angleDelta(ang, lastAngle)) > FLICK) {
+      d = raw;
+    }
     if (d !== outDir) {
       outDir = d;
       if (BA.GAME.touch) BA.GAME.touch.dir(d);
     }
+    lastAngle = ang;
   }
   function joystickEnd() {
     if (outDir && BA.GAME.touch) BA.GAME.touch.dir(null);
     outDir = null;
     hideBase();
+    if (stick) stick.classList.remove('act');
   }
 
   function setBomb(down) {
@@ -124,13 +140,34 @@
 
     layer.innerHTML =
       '<div class="tl-zone"></div>' +
-      '<div class="tl-ghost"><i></i></div>' +
+      '<div class="tl-stick"><i></i><span>拖动移动</span></div>' +
       '<div class="tl-base"><div class="tl-knob"></div></div>' +
+      '<div class="tl-rotate">' +
+        '<svg viewBox="0 0 48 48" width="34" height="34" aria-hidden="true">' +
+          '<rect x="15" y="5" width="18" height="30" rx="3.5" fill="none" stroke="#9fc6ff" stroke-width="2.4"/>' +
+          '<path d="M9 34a16 16 0 0 0 30 0" fill="none" stroke="#9fc6ff" stroke-width="2.4" stroke-linecap="round"/>' +
+          '<path d="M36 28l4 6-7 1z" fill="#9fc6ff"/>' +
+        '</svg>' +
+        '<b>横屏更爽</b>' +
+        '<span>棋盘更大 · 视野更宽</span>' +
+        '<button type="button" class="tl-rotate-x">知道了</button>' +
+      '</div>' +
       '<div class="tl-bomb">' + ICON_BOMB + '</div>' +
       '<button class="tl-pause" type="button" aria-label="暂停">' + ICON_PAUSE + '</button>';
 
     zone = layer.querySelector('.tl-zone');
-    ghost = layer.querySelector('.tl-ghost');
+    stick = layer.querySelector('.tl-stick');
+    rotate = layer.querySelector('.tl-rotate');
+    if (rotate) {
+      var rx = rotate.querySelector('.tl-rotate-x');
+      if (rx) {
+        rx.addEventListener('click', function (e) {
+          e.preventDefault(); e.stopPropagation();
+          BA.CORE.CFG.patch({ rotateHintOff: true });
+          if (rotate) rotate.classList.add('gone');
+        });
+      }
+    }
     base = layer.querySelector('.tl-base');
     knob = layer.querySelector('.tl-knob');
     bombBtn = layer.querySelector('.tl-bomb');

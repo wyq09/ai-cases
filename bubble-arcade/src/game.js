@@ -94,7 +94,7 @@
   /* ---------------- 初始化 ---------------- */
   function init(cv) {
     canvas = cv || document.getElementById('game');
-    dpr = Math.min(2, window.devicePixelRatio || 1);
+    dpr = Math.min((BA.MOBILE && BA.MOBILE.enabled) ? 1.5 : 2, window.devicePixelRatio || 1);
     canvas.width = Math.round(P.BOARD_W * dpr);
     canvas.height = Math.round(P.BOARD_H * dpr);
     canvas.style.width = P.BOARD_W + 'px';
@@ -295,6 +295,20 @@
     F().ring(p.x * T, p.y * T, '#8fe6ff', { r0: 12, r1: 40, ttl: 0.3, lw: 3 });
     if (p.trapPress >= P.TRAP_SELF_RESCUE) rescuePlayer(p, 'self');
     else A().play('tick');
+  }
+
+  /* 触屏专属：振动反馈（桌面端 BA.MOBILE.enabled 为 false，完全不触发） */
+  function haptic(kind) {
+    if (BA.MOBILE && BA.MOBILE.enabled) BA.MOBILE.haptic(kind);
+  }
+  /* 爆炸离真人玩家够近才给振动（远处连环爆不该震） */
+  function nearHuman(tx, ty, r) {
+    for (var i = 0; i < S.players.length; i++) {
+      var p = S.players[i];
+      if (!p.isHuman || !p.alive) continue;
+      if (Math.abs(p.x - (tx + .5)) <= r && Math.abs(p.y - (ty + .5)) <= r) return true;
+    }
+    return false;
   }
 
   function toggleMute() {
@@ -593,6 +607,7 @@
 
   function step(dt) {
     S.phaseT += dt;
+    if (BA.MOBILE && BA.MOBILE.enabled) BA.MOBILE.update(dt);
     if (S.phase === 'countdown') {
       var before = Math.ceil(S.countdown);
       S.countdown -= dt;
@@ -897,6 +912,77 @@
   }
 
   /* ---------------- 泡泡 ---------------- */
+  /* 一颗泡泡的爆炸覆盖格（中心 + 四向水柱）。
+   * pure=true 时不做链式点燃副作用，供触屏危机提示做纯查询用。 */
+  function blastCellsOf(b, pure) {
+    var cells = [{ x: b.tx, y: b.ty, kind: 'center', axis: null, dir: 0 }];
+    // 钻头：水柱穿透软箱，并多延伸 1 格
+    var power = b.power + (b.pierce ? 1 : 0);
+    for (var di = 0; di < 4; di++) {
+      var dx = DIRS[di][0], dy = DIRS[di][1];
+      var axis = dx !== 0 ? 'h' : 'v';
+      var arm = [];
+      for (var r = 1; r <= power; r++) {
+        var nx = b.tx + dx * r, ny = b.ty + dy * r;
+        if (!inb(nx, ny)) break;
+        var cell = S.grid[ny][nx];
+        if (cell === 1) break;
+        if (cell === 2) {
+          arm.push({ x: nx, y: ny, kind: 'end', axis: axis, dir: dx || dy });
+          if (!b.pierce) break;
+          continue;
+        }
+        arm.push({ x: nx, y: ny, kind: r === power ? 'end' : 'mid', axis: axis, dir: dx || dy });
+        var other = bombAt(nx, ny);
+        if (other && !other.exploded) {
+          if (!pure) other.fuse = Math.min(other.fuse, 0.09);
+          break;
+        }
+      }
+      if (arm.length) arm[arm.length - 1].kind = 'end';
+      for (var a = 0; a < arm.length; a++) cells.push(arm[a]);
+    }
+    return cells;
+  }
+
+  /* ---------------- 触屏危机提示 ----------------
+   * 手机屏幕小、没有环绕视野：脚下快炸的泡泡要能一眼看到，并知道往哪跑。 */
+  function threatScan(p) {
+    var tx = Math.floor(p.x), ty = Math.floor(p.y);
+    var best = null, bestCells = null;
+    for (var i = 0; i < S.bombs.length; i++) {
+      var b = S.bombs[i];
+      if (b.exploded || b.fuse > 2.4) continue;
+      var cells = blastCellsOf(b, true);
+      for (var c = 0; c < cells.length; c++) {
+        if (cells[c].x === tx && cells[c].y === ty) {
+          if (!best || b.fuse < best.fuse) { best = b; bestCells = cells; }
+          break;
+        }
+      }
+    }
+    return best ? { bomb: best, cells: bestCells } : null;
+  }
+  /* 可逃方向：相邻格能走，且不落在这颗泡泡的爆炸范围内 */
+  function escapeDirs(p, threat) {
+    if (!threat) return [];
+    var tx = Math.floor(p.x), ty = Math.floor(p.y);
+    var out = [];
+    for (var di = 0; di < 4; di++) {
+      var dx = DIRS[di][0], dy = DIRS[di][1];
+      var nx = tx + dx, ny = ty + dy;
+      if (!inb(nx, ny)) continue;
+      if (S.grid[ny][nx] !== 0) continue;     // 墙 / 软箱
+      if (bombAt(nx, ny)) continue;           // 有泡泡
+      var hit = false;
+      for (var c = 0; c < threat.cells.length; c++) {
+        if (threat.cells[c].x === nx && threat.cells[c].y === ny) { hit = true; break; }
+      }
+      if (!hit) out.push(DIR_NAMES[di]);
+    }
+    return out;
+  }
+
   function placeBomb(p) {
     if (p.held) { throwHeld(p); return false; }
     if (p.activeBombs >= p.maxBombs) return false;
@@ -924,6 +1010,7 @@
     p.statBombs = (p.statBombs || 0) + 1;
     S.stats.bombs++;
     A().play('place');
+    if (p.isHuman) haptic('place');
     F().ring(p.x * T, p.y * T, '#bfefff', { r0: 6, r1: 46, ttl: 0.32, lw: 4 });
     return true;
   }
@@ -1051,33 +1138,7 @@
     if (idx >= 0) S.bombs.splice(idx, 1);
     if (b.owner) b.owner.activeBombs = Math.max(0, b.owner.activeBombs - 1);
 
-    var cells = [{ x: b.tx, y: b.ty, kind: 'center', axis: null, dir: 0 }];
-    // 钻头：水柱穿透软箱，并多延伸 1 格
-    var power = b.power + (b.pierce ? 1 : 0);
-    for (var di = 0; di < 4; di++) {
-      var dx = DIRS[di][0], dy = DIRS[di][1];
-      var axis = dx !== 0 ? 'h' : 'v';
-      var arm = [];
-      for (var r = 1; r <= power; r++) {
-        var nx = b.tx + dx * r, ny = b.ty + dy * r;
-        if (!inb(nx, ny)) break;
-        var cell = S.grid[ny][nx];
-        if (cell === 1) break;
-        if (cell === 2) {
-          arm.push({ x: nx, y: ny, kind: 'end', axis: axis, dir: dx || dy });
-          if (!b.pierce) break;
-          continue;
-        }
-        arm.push({ x: nx, y: ny, kind: r === power ? 'end' : 'mid', axis: axis, dir: dx || dy });
-        var other = bombAt(nx, ny);
-        if (other && !other.exploded) {
-          other.fuse = Math.min(other.fuse, 0.09);
-          break;
-        }
-      }
-      if (arm.length) arm[arm.length - 1].kind = 'end';
-      for (var a = 0; a < arm.length; a++) cells.push(arm[a]);
-    }
+    var cells = blastCellsOf(b, false);
 
     // 生成水柱
     var brokeHere = {};
@@ -1117,6 +1178,7 @@
     }
 
     A().play('pop', { pitch: 0.9 + Math.random() * 0.25 });
+    if (nearHuman(b.tx, b.ty, 3.2)) haptic('boom');
     F().splash(b.x * T, b.y * T, 22, { color: '#9fe8ff' });
     F().ring(b.x * T, b.y * T, '#ffffff', { r0: 16, r1: T * 1.5, ttl: 0.36, lw: 7 });
     F().shake(4.5);
@@ -1195,6 +1257,7 @@
     applyItem(p, it.type);
     S.stats.items++;
     A().play('item');
+    if (p.isHuman) haptic('item');
     var meta = BA.ART.ITEM_META[it.type];
     F().burst(it.x * T + T / 2, it.y * T + T / 2, meta.color, 16, { speed: 190 });
     F().text(p.x * T, p.y * T - 30, meta.label, meta.color);
@@ -1260,6 +1323,7 @@
     p.dir = 'down';
     S.stats.traps++;
     A().play('trap');
+    if (p.isHuman) haptic('trap');
     F().ring(p.x * T, p.y * T, '#8fe6ff', { r0: 26, r1: 58, ttl: 0.45, lw: 5 });
     F().text(p.x * T, p.y * T - 36, '被困！', '#9fe8ff');
     if (BA.UI) BA.UI.hud(S);
@@ -1276,6 +1340,7 @@
     S.stats.rescues++;
     SAVE.bump('rescues');
     A().play('rescue');
+    if (p.isHuman) haptic('rescue');
     F().burst(p.x * T, p.y * T, '#a6f06a', 20, { speed: 200 });
     F().text(p.x * T, p.y * T - 34, how === 'team' ? '队友救援！' : '挣脱！', '#a6f06a');
     if (BA.UI) BA.UI.hud(S);
@@ -1302,6 +1367,7 @@
     else p.deathSelf = !!p.trapSelf;
     S.stats.kills++;
     A().play('death');
+    if (p.isHuman) haptic('die');
     F().splash(p.x * T, p.y * T, 30, { color: '#bfefff' });
     F().burst(p.x * T, p.y * T, p.color, 26, { speed: 260 });
     F().text(p.x * T, p.y * T - 34, cause === 'water' ? '爆泡淘汰' : cause === 'pop' ? '被戳破！' : '泡泡破了', '#ff9db4');
@@ -1470,6 +1536,9 @@
       c.restore();
     }
 
+    // 触屏专属：危机提示（脚下引信倒计时环 + 可逃方向箭头）
+    if (BA.MOBILE && BA.MOBILE.enabled) drawThreatHints(c);
+
     // 玩家（按 y 排序）
     var list = S.players.slice().sort(function (a, b) { return a.y - b.y; });
     for (var pi = 0; pi < list.length; pi++) {
@@ -1484,6 +1553,50 @@
       vg.addColorStop(1, 'rgba(255,40,60,' + pulse.toFixed(3) + ')');
       c.fillStyle = vg;
       c.fillRect(0, 0, P.BOARD_W, P.BOARD_H);
+    }
+  }
+
+  /* 触屏危机提示：脚下倒计时环（还剩几秒炸）+ 可逃方向箭头
+   * 手机屏小、没有环绕视野，AI 那套"算引信"的能力必须让人也看得见。 */
+  function drawThreatHints(c) {
+    var now = performance.now();
+    for (var i = 0; i < S.players.length; i++) {
+      var p = S.players[i];
+      if (!p.isHuman || !p.alive || p.trapped) continue;
+      var th = threatScan(p);
+      if (!th) continue;
+      var b = th.bomb;
+      var px = p.x * T, py = p.y * T;
+      var frac = Math.max(0, Math.min(1, b.fuse / Math.max(0.001, b.maxFuse)));
+      // 脚下倒计时环
+      c.save();
+      c.translate(px, py);
+      c.strokeStyle = 'rgba(255,90,110,.26)';
+      c.lineWidth = 4;
+      c.beginPath(); c.arc(0, 0, T * 0.46, 0, 7); c.stroke();
+      c.strokeStyle = b.fuse < 0.8 ? '#ff5f7a' : '#ffc46b';
+      c.lineCap = 'round';
+      c.beginPath();
+      c.arc(0, 0, T * 0.46, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
+      c.stroke();
+      c.restore();
+      // 可逃方向箭头（越接近爆炸越明显）
+      if (b.fuse > 1.6) continue;
+      var dirs = escapeDirs(p, th);
+      var pulse = 0.5 + 0.4 * Math.sin(now / 90);
+      for (var k = 0; k < dirs.length; k++) {
+        var v = DIR_VEC[dirs[k]];
+        if (!v) continue;
+        c.save();
+        c.translate(px + v[0] * T * 0.44, py + v[1] * T * 0.44);
+        c.rotate(Math.atan2(v[1], v[0]));
+        c.fillStyle = 'rgba(120,255,190,' + pulse.toFixed(3) + ')';
+        c.beginPath();
+        c.moveTo(10, 0); c.lineTo(-5, -7.5); c.lineTo(-5, 7.5);
+        c.closePath();
+        c.fill();
+        c.restore();
+      }
     }
   }
 
@@ -1634,6 +1747,18 @@
       },
       setSpeed: function (x) { S.speedMul = x; },
       setBotOnly: function (b) { S.botOnly = !!b; },
+      /* 触屏危机提示：返回玩家身边快炸的泡泡与可逃方向（测试/调试用） */
+      threatInfo: function (id) {
+        var p = null;
+        for (var i = 0; i < S.players.length; i++) {
+          if (id && S.players[i].id === id) { p = S.players[i]; break; }
+          if (!id && S.players[i].isHuman) { p = S.players[i]; break; }
+        }
+        if (!p) return null;
+        var th = threatScan(p);
+        if (!th) return null;
+        return { fuse: Math.round(th.bomb.fuse * 100) / 100, dirs: escapeDirs(p, th) };
+      },
       give: function (id, type, n) {
         var p = S.players.filter(function (q) { return q.id === id; })[0];
         if (!p) return false;

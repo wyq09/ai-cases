@@ -34,7 +34,12 @@ await page.click('[data-act="start"]');
 await page.waitForFunction(() => window.__ba.phase === 'play', undefined, { timeout: 20000 });
 await page.waitForTimeout(200);
 ok('对局中触屏层激活', await page.evaluate(() => document.querySelector('#touchLayer').classList.contains('on')));
-ok('落点提示圈可见', await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('.tl-ghost')).opacity) > 0.1));
+ok('常驻摇杆底座可见', await page.evaluate(() => {
+  const e = document.querySelector('.tl-stick');
+  if (!e) return false;
+  const r = e.getBoundingClientRect();
+  return r.width > 60 && r.height > 60;
+}));
 
 // 把 P1 放到开阔地并停掉 AI，避免干扰
 const spot = await page.evaluate(() => {
@@ -120,6 +125,64 @@ const items = await page.evaluate(() => {
   return { needle: me.needle, trapped: me.trapped };
 });
 ok('触屏下银针仍能自动脱困', items.trapped === false, JSON.stringify(items));
+
+/* ---------------- 手机端专项：UI 可读性 / 布局 / 角标 / 危机提示 ---------------- */
+const mob = await page.evaluate(() => {
+  const stage = document.getElementById('stage');
+  const hud = document.getElementById('hud');
+  const app = document.getElementById('app');
+  const stageRect = stage.getBoundingClientRect();
+  const hudRect = hud.getBoundingClientRect();
+  // 屏幕上的实际字号 = CSS 字号（UI 层不缩放）
+  const nm = document.querySelector('.sc .nm');
+  const nmSize = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0;
+  return {
+    mobile: app.classList.contains('mobile'),
+    portrait: app.classList.contains('portrait'),
+    hudOutsideStage: !stage.contains(hud),
+    nmSize: nmSize,
+    hudTop: hudRect.top,
+    boardTop: stageRect.top,
+    boardW: stageRect.width,
+    boardH: stageRect.height,
+    badge: (document.querySelector('.tl-bomb-num') || {}).textContent,
+    rotateShown: (document.querySelector('.tl-rotate') || { className: '' }).classList.contains('on')
+  };
+});
+ok('移动端增强层已启用', mob.mobile === true);
+ok('UI 文字层已移出被缩放的 stage', mob.hudOutsideStage === true);
+ok('手机端玩家名 >= 10px 可读', mob.nmSize >= 10, 'font=' + mob.nmSize);
+ok('竖屏时棋盘顶部留出 HUD 条', !mob.portrait || mob.boardTop >= 30, 'portrait=' + mob.portrait + ' boardTop=' + mob.boardTop);
+ok('炸弹键显示剩余可放数', mob.badge === '1' || mob.badge === '', 'badge=' + JSON.stringify(mob.badge));
+
+/* 危机提示：脚下有泡泡时能算出剩余引信与可逃方向 */
+const threat = await page.evaluate(async () => {
+  const B = window.__ba, S = B.state, me = S.players[0];
+  me.trapped = false; me.alive = true; me.x = 7.5; me.y = 6.5;
+  S.bombs.length = 0;            // 清掉前面用例留下的泡泡，否则引信更短会被优先选中
+  // 正上方一格放泡泡：威力 1 往下炸到玩家，up 方向被封死，其余方向可逃
+  S.bombs.push({
+    tx: 7, ty: 5, x: 7.5, y: 5.5, power: 1,
+    fuse: 1.2, maxFuse: 2.4, owner: null, ownerTeam: 'p1',
+    exploded: false, moving: false, dir: null, t: 0, ownerInside: false, pierce: false
+  });
+  const info = B.threatInfo(me.id);
+  return { info: info, bombs: S.bombs.length };
+});
+ok('危机提示能算出脚下引信', threat.info && threat.info.fuse > 0, JSON.stringify(threat.info));
+ok('危机提示能算出可逃方向', threat.info && Array.isArray(threat.info.dirs) && threat.info.dirs.length > 0, JSON.stringify(threat.info && threat.info.dirs));
+
+/* 快速划动：45°~49° 这种"迟滞刚好挡住"的区间，划一下必须立刻换向 */
+await page.evaluate(() => window.__ba.teleport(window.__ba.players[0].id, 7, 6));
+await touch('touchstart', box.x, box.y);
+await touch('touchmove', box.x, box.y - 60);
+await page.waitForTimeout(60);
+const dirBefore = await page.evaluate(() => window.__ba.touch.dir);
+await touch('touchmove', box.x + 40, box.y - 35);   // 相对上一帧转了 ~49°
+await page.waitForTimeout(60);
+const dirAfter = await page.evaluate(() => window.__ba.touch.dir);
+ok('快速划动立即换向（不吃迟滞）', dirBefore === 'up' && dirAfter === 'right', dirBefore + '→' + dirAfter);
+await touch('touchend', box.x, box.y);
 
 const errs = await page.evaluate(() => window.__ba.errors);
 ok('触屏全程零报错', errs.length === 0, errs.join(' | '));

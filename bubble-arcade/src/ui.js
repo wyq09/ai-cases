@@ -553,30 +553,49 @@
     var strip = $('scoreStrip');
     if (!strip) return;
     strip.innerHTML = '';
+    /* 手机上 emoji 的行盒会把整条 chip 撑到 46px，中文在 mono 回退字体下更夸张
+     * （实测 roundTag 一个 9px 的字撑出 29px 行高）→ 移动端改用纯文字短标签 */
+    var mob = !!(BA.MOBILE && BA.MOBILE.enabled);
     S.players.forEach(function (p) {
       var el = mk('div', 'sc' + (p.alive ? '' : ' dead') + (p.isHuman ? ' me' : '') + (S.winner === p ? ' win' : ''));
       el.style.setProperty('--c', p.color);
       var teamTag = S.mode === 'team' ? (p.team === 0 ? '蓝队' : '粉队') : '';
       var nm = p.isHuman ? (p.id === 'p1' ? '你 P1' : 'P2') : p.name;
-      var state = p.trapped ? (p.popT > 0 ? '被戳破 ' + p.popT.toFixed(1) + 's' : '被困 ' + p.trapT.toFixed(1) + 's') : (p.alive ? '' : '淘汰');
+      var state = p.trapped ? (p.popT > 0 ? (mob ? '破' : '被戳破 ' + p.popT.toFixed(1) + 's') : (mob ? '困' : '被困 ' + p.trapT.toFixed(1) + 's')) : (p.alive ? '' : (mob ? '出局' : '淘汰'));
+      var stats;
+      if (mob) {
+        stats =
+          '<span class="mb">泡' + p.maxBombs + '</span>' +
+          (p.power > 1 ? '<span class="mb">威' + p.power + '</span>' : '') +
+          (p.kick ? '<span class="mi">踢</span>' : '') +
+          (p.shield ? '<span class="mi">盾</span>' : '') +
+          (p.needle ? '<span class="mi">针</span>' : '') +
+          (p.bombPass ? '<span class="mi">穿</span>' : '') +
+          (p.pierce ? '<span class="mi">钻</span>' : '') +
+          (p.magnet ? '<span class="mi">磁</span>' : '') +
+          (p.glove ? '<span class="mi">套</span>' : '') +
+          (p.held ? '<span class="mi" style="color:#ffd166">举</span>' : '') +
+          (state ? '<span class="mt">' + state + '</span>' : '');
+      } else {
+        stats =
+          '<span>💧<b>' + p.maxBombs + '</b></span>' +
+          '<span>🔥<b>' + p.power + '</b></span>' +
+          '<span>👟<b>' + p.speed.toFixed(1) + '</b></span>' +
+          (p.kick ? '<span title="踢靴">👢</span>' : '') +
+          (p.shield ? '<span title="护盾">🛡</span>' : '') +
+          (p.needle ? '<span title="银针：自动脱困">🪡</span>' : '') +
+          (p.bombPass ? '<span title="泡泡靴：可穿过泡泡">🧊</span>' : '') +
+          (p.pierce ? '<span title="钻头：水柱穿透软箱">🔩</span>' : '') +
+          (p.magnet ? '<span title="磁铁：吸取道具">🧲</span>' : '') +
+          (p.glove ? '<span title="手套：举泡投掷">🧤</span>' : '') +
+          (p.held ? '<span style="color:#ffd166">举泡</span>' : '') +
+          (state ? '<span style="color:#ff9db4">' + state + '</span>' : '');
+      }
       el.innerHTML =
         '<div class="av"><img src="' + BA.ART.avatar(p.theme) + '" alt=""></div>' +
         '<div>' +
           '<div class="nm" style="color:' + p.color + '">' + U.esc(nm) + (teamTag ? ' <span style="opacity:.6;font-weight:400">' + teamTag + '</span>' : '') + '</div>' +
-          '<div class="st">' +
-            '<span>💧<b>' + p.maxBombs + '</b></span>' +
-            '<span>🔥<b>' + p.power + '</b></span>' +
-            '<span>👟<b>' + p.speed.toFixed(1) + '</b></span>' +
-            (p.kick ? '<span title="踢靴">👢</span>' : '') +
-            (p.shield ? '<span title="护盾">🛡</span>' : '') +
-            (p.needle ? '<span title="银针：自动脱困">🪡</span>' : '') +
-            (p.bombPass ? '<span title="泡泡靴：可穿过泡泡">🧊</span>' : '') +
-            (p.pierce ? '<span title="钻头：水柱穿透软箱">🔩</span>' : '') +
-            (p.magnet ? '<span title="磁铁：吸取道具">🧲</span>' : '') +
-            (p.glove ? '<span title="手套：举泡投掷">🧤</span>' : '') +
-            (p.held ? '<span style="color:#ffd166">举泡</span>' : '') +
-            (state ? '<span style="color:#ff9db4">' + state + '</span>' : '') +
-          '</div>' +
+          '<div class="st">' + stats + '</div>' +
         '</div>' +
         '<div class="wins">' + p.wins + '</div>';
       strip.appendChild(el);

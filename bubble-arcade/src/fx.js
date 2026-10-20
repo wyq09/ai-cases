@@ -31,7 +31,7 @@
     var stage = document.getElementById('stage');
     W = stage ? stage.clientWidth : 960;
     H = stage ? stage.clientHeight : 832;
-    dpr = Math.min(2, window.devicePixelRatio || 1);
+    dpr = Math.min((BA.MOBILE && BA.MOBILE.enabled) ? 1.5 : 2, window.devicePixelRatio || 1);
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
     canvas.style.width = W + 'px';
