@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#070a12"><meta name="description" content="原创游戏王风格单机卡牌决斗，手机与桌面即开即玩。">
+<title>决斗传说 · DUEL LEGENDS</title>
+<style><!--STYLE_INLINE--></style>
+<script><!--RESET_INLINE--></script>
+</head>
+<body>
+<div id="app">
+  <section id="homeScreen" class="screen home active">
+    <header class="topbar"><a class="brand" href="#" aria-label="决斗传说首页"><span class="brand-mark">D</span><span>DUEL <b>LEGENDS</b></span></a><div class="top-actions"><button id="soundBtn" class="icon-btn" aria-label="切换声音">♪</button><button id="rulesBtn" class="text-btn">决斗规则</button></div></header>
+    <main class="home-main">
+      <div class="hero-copy"><div class="eyebrow"><i></i> ORIGINAL CARD DUEL · 单机对战</div><h1>以卡牌为刃<br><span>缔结决斗传说</span></h1><p>召唤怪兽，布下陷阱，在瞬息万变的战场上<br class="desktop-only">击碎对手的 8000 点生命。</p><div class="feature-row"><span>36+ 原创卡牌</span><span>3 套战术卡组</span><span>完整 AI 对战</span></div></div>
+      <div class="hero-visual" aria-hidden="true"><div class="orbit o1"></div><div class="orbit o2"></div><div class="hero-card hc-back"><div class="card-back-art"><span>D</span></div></div><div class="hero-card hc-mid"><img id="heroSpell" alt=""></div><div class="hero-card hc-front"><img id="heroMonster" alt=""><div class="hero-card-label"><b>曜日铸龙</b><small>LV 8 · 炎 / 龙族</small></div></div><div class="duel-seal">✦</div></div>
+    </main>
+    <section class="launch-panel"><div class="launch-head"><div><span class="step">01</span><h2>选择你的卡组</h2></div><button id="collectionBtn" class="link-btn">卡牌图鉴 <span>↗</span></button></div><div id="deckChoices" class="deck-choices"></div><div class="launch-bottom"><div class="record"><span>决斗战绩</span><b id="recordText">0 胜 · 0 负</b></div><button id="startBtn" class="primary-btn"><span>开始决斗</span><small>DUEL START</small><b>→</b></button></div></section>
+    <footer class="home-footer"><span>DUEL LEGENDS / 经典规则轻量复刻</span><span>无需联网 · 自动保存战绩</span></footer>
+  </section>
+
+  <section id="duelScreen" class="screen duel">
+    <header class="duel-header"><button id="exitBtn" class="icon-btn" aria-label="退出对局">‹</button><div class="duel-title">DUEL <span>LEGENDS</span></div><div class="phase-track" aria-label="阶段"><span data-phase="draw">抽卡</span><i>›</i><span data-phase="main" class="active">主要</span><i>›</i><span data-phase="battle">战斗</span><i>›</i><span data-phase="end">结束</span></div><button id="menuBtn" class="icon-btn" aria-label="对局菜单">☰</button></header>
+    <main class="arena">
+      <div class="ambient-grid"></div><div id="fxLayer" class="fx-layer"></div>
+      <section class="duelist opponent"><div class="avatar-wrap"><img id="avatar1" alt="对手 零"><span class="level-badge">AI</span></div><div class="duelist-info"><div class="name-line"><b>虚空观测者 · 零</b><span id="aiThinking">等待中</span></div><div class="lp-line"><span>LP</span><strong id="lp1">8000</strong><div class="lp-bar"><i id="lpbar1"></i></div></div></div><div class="zone-counts"><span>手卡 <b id="handCount1">5</b></span><span>卡组 <b id="deckCount1">15</b></span><span>墓地 <b id="graveCount1">0</b></span></div></section>
+      <section id="opponentField" class="field opponent-field" aria-label="对手场地"><div class="field-row monster-row" data-zone="monsters"></div><div class="field-row spell-row" data-zone="spells"></div></section>
+      <div class="arena-center"><span id="roundLabel">ROUND 01</span><div class="turn-emblem">✦</div><b id="turnLabel">你的回合</b><span id="phaseLabel">主要阶段</span></div>
+      <section id="playerField" class="field player-field" aria-label="你的场地"><div class="field-row spell-row" data-zone="spells"></div><div class="field-row monster-row" data-zone="monsters"></div></section>
+      <section class="duelist player"><div class="avatar-wrap"><img id="avatar0" alt="玩家 苍"><span class="level-badge">YOU</span></div><div class="duelist-info"><div class="name-line"><b>星轨决斗者 · 苍</b><span id="deckName">苍蓝星轨</span></div><div class="lp-line"><span>LP</span><strong id="lp0">8000</strong><div class="lp-bar"><i id="lpbar0"></i></div></div></div><div class="zone-counts"><span>墓地 <b id="graveCount0">0</b></span><span>卡组 <b id="deckCount0">15</b></span><button id="logBtn">记录 ↗</button></div></section>
+    </main>
+    <section class="hand-dock"><div class="hand-meta"><span>你的手卡 <b id="handCount0">5</b></span><span id="hintText">点击卡牌查看操作</span></div><div id="hand" class="hand"></div></section>
+    <footer class="action-bar"><button id="inspectFieldBtn" class="secondary-btn">场地详情</button><div id="normalStatus" class="summon-status"><i></i><span>通常召唤可用</span></div><button id="phaseBtn" class="phase-btn"><span>进入战斗阶段</span><b>→</b></button></footer>
+  </section>
+
+  <section id="collectionScreen" class="screen collection"><header class="topbar"><button id="collectionBack" class="icon-btn">‹</button><div><h2>卡牌图鉴</h2><small>CARD ARCHIVE</small></div><div id="collectionTotal" class="collection-total"></div></header><div class="collection-tools"><div id="cardFilters" class="filters"><button class="active" data-filter="all">全部</button><button data-filter="monster">怪兽</button><button data-filter="spell">魔法</button><button data-filter="trap">陷阱</button></div><label class="search"><span>⌕</span><input id="cardSearch" placeholder="搜索卡名或效果" aria-label="搜索卡牌"></label></div><main id="collectionGrid" class="collection-grid"></main></section>
+</div>
+<div id="cardModal" class="modal" hidden><div class="modal-backdrop" data-close></div><article class="card-detail"><button class="modal-close" data-close aria-label="关闭">×</button><div id="detailArt" class="detail-art"></div><div class="detail-copy"><div id="detailType" class="detail-type"></div><h2 id="detailName"></h2><div id="detailStats" class="detail-stats"></div><div class="effect-box"><b>卡牌效果</b><p id="detailDesc"></p></div><div id="detailActions" class="detail-actions"></div></div></article></div>
+<div id="rulesModal" class="modal" hidden><div class="modal-backdrop" data-close></div><article class="paper-modal"><button class="modal-close" data-close>×</button><div class="eyebrow">DUEL GUIDE</div><h2>三分钟学会决斗</h2><ol class="rules-list"><li><b>赢得胜利</b><p>将对手 8000 LP 降为 0，或让对手需要抽卡时卡组为空。</p></li><li><b>召唤怪兽</b><p>每回合一次通常召唤。5–6 星需要 1 只祭品，7 星以上需要 2 只。点击手卡即可选择攻击或里侧守备召唤。</p></li><li><b>魔法与陷阱</b><p>魔法在主要阶段从手卡发动；魔法和陷阱都能盖放到后场。盖放陷阱会在对手攻击时自动触发。</p></li><li><b>战斗与伤害</b><p>进入战斗阶段后，点击自己的攻击表示怪兽选择目标。对方没有怪兽时可直接攻击。高攻击破低攻并造成差值伤害；攻击守备怪兽通常不造成战斗伤害。</p></li><li><b>轻量经典规则</b><p>双方 20 张卡组、3 个怪兽格和 3 个魔陷格。本作不包含额外卡组、复杂连锁及同调/超量等召唤方式。</p></li></ol><button class="primary-btn wide" data-close>明白了，开始决斗</button></article></div>
+<div id="menuModal" class="modal" hidden><div class="modal-backdrop" data-close></div><article class="paper-modal compact"><button class="modal-close" data-close>×</button><div class="eyebrow">DUEL MENU</div><h2>对局菜单</h2><button id="menuRules" class="menu-row">查看决斗规则 <span>↗</span></button><button id="menuSound" class="menu-row">切换声音 <span>♪</span></button><button id="restartBtn" class="menu-row">重新开始本局 <span>↻</span></button><button id="surrenderBtn" class="menu-row danger">认输并返回 <span>×</span></button></article></div>
+<div id="logModal" class="modal" hidden><div class="modal-backdrop" data-close></div><article class="paper-modal compact"><button class="modal-close" data-close>×</button><div class="eyebrow">BATTLE LOG</div><h2>决斗记录</h2><div id="log" class="battle-log"></div></article></div>
+<div id="resultModal" class="modal result-modal" hidden><div class="modal-backdrop"></div><article><div id="resultSigil" class="result-sigil">✦</div><div class="eyebrow">DUEL COMPLETE</div><h2 id="resultTitle">胜利</h2><p id="resultReason"></p><div class="result-stats"><span>回合数 <b id="resultRound"></b></span><span>剩余 LP <b id="resultLp"></b></span></div><button id="rematchBtn" class="primary-btn wide">再来一局 <b>↻</b></button><button id="resultHome" class="link-btn">返回卡组选择</button></article></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script><!--MODULE_SCRIPTS--></script>
+</body></html>

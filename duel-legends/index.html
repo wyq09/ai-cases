@@ -1,0 +1,1412 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#070a12"><meta name="description" content="原创游戏王风格单机卡牌决斗，手机与桌面即开即玩。">
+<title>决斗传说 · DUEL LEGENDS</title>
+<style>:root{--bg:#070a12;--panel:#101622;--line:#263042;--gold:#e9c681;--gold2:#9b7640;--blue:#68c9ff;--red:#ff6680;--text:#f2f0ea;--muted:#8993a5;--card-w:clamp(54px,7.1vw,86px);--card-h:calc(var(--card-w)*1.43);font-family:Inter,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--text);background:var(--bg);font-synthesis:none}
+*{box-sizing:border-box}html,body,#app{margin:0;min-height:100%;width:100%}body{overflow-x:hidden}button,input{font:inherit}button{color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}button:disabled{opacity:.42;cursor:not-allowed}button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:3px}img{display:block;max-width:100%}.screen{display:none;min-height:100dvh}.screen.active{display:flex;flex-direction:column}.topbar{height:76px;padding:0 clamp(20px,5vw,72px);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ffffff0d;position:relative;z-index:3}.brand{display:flex;align-items:center;gap:12px;color:#eee8dc;text-decoration:none;font-size:13px;letter-spacing:2.7px}.brand b{color:var(--gold);font-weight:600}.brand-mark{width:34px;height:38px;display:grid;place-items:center;border:1px solid var(--gold2);transform:skew(-8deg);font-family:Georgia;font-size:24px;color:var(--gold);background:#e9c6810b}.top-actions{display:flex;gap:12px;align-items:center}.icon-btn,.text-btn,.link-btn{border:0;background:none}.icon-btn{width:40px;height:40px;border:1px solid #ffffff1c;border-radius:50%;font-size:18px}.text-btn,.link-btn{font-size:12px;letter-spacing:1px;color:#b7beca}.link-btn:hover{color:var(--gold)}
+.home{background:radial-gradient(ellipse at 68% 22%,#19384a60,transparent 40%),radial-gradient(ellipse at 4% 80%,#31261650,transparent 38%),#080b13;position:relative;overflow:hidden}.home:before{content:"";position:absolute;inset:0;opacity:.16;background-image:linear-gradient(#ffffff0b 1px,transparent 1px),linear-gradient(90deg,#ffffff0b 1px,transparent 1px);background-size:60px 60px;mask-image:linear-gradient(to bottom,#000,transparent 80%);pointer-events:none}.home-main{position:relative;z-index:1;flex:1;min-height:350px;max-width:1250px;width:90%;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:30px}.hero-copy{padding:50px 0 30px}.eyebrow{font-size:10px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;display:flex;align-items:center;gap:9px}.eyebrow i{width:20px;height:1px;background:var(--gold)}h1{font-family:Georgia,"Songti SC",serif;font-size:clamp(38px,5.2vw,70px);font-weight:500;line-height:1.2;letter-spacing:2px;margin:20px 0 18px}h1 span{color:var(--gold);text-shadow:0 0 45px #e9c68124}.hero-copy p{font-size:13px;color:#9ca5b4;line-height:2}.feature-row{display:flex;gap:20px;margin-top:25px;font-size:10px;color:#d1c6b1;letter-spacing:.8px}.feature-row span:before{content:"◇";color:var(--gold2);margin-right:7px}.hero-visual{width:380px;height:370px;position:relative;perspective:900px;flex:none}.orbit{position:absolute;border:1px solid #a4dfff20;border-radius:50%;inset:35px;transform:rotateX(62deg) rotateZ(-20deg)}.o2{inset:0;border-color:#e9c68114}.hero-card{position:absolute;width:166px;aspect-ratio:.7;border:5px solid #b99b62;border-radius:9px;background:#111;box-shadow:0 20px 55px #000b;overflow:hidden}.hero-card img{width:100%;height:100%;object-fit:cover}.hc-front{left:115px;top:25px;transform:rotate(6deg);z-index:3}.hc-mid{left:45px;top:65px;transform:rotate(-14deg);filter:brightness(.75);z-index:2}.hc-back{left:185px;top:82px;transform:rotate(22deg);filter:brightness(.55);z-index:1}.card-back-art{height:100%;display:grid;place-items:center;background:repeating-radial-gradient(circle,#142c45 0 8px,#0b1829 9px 17px)}.card-back-art span{font:70px Georgia;color:var(--gold);border:1px solid var(--gold);width:85px;height:85px;border-radius:50%;display:grid;place-items:center}.hero-card-label{position:absolute;bottom:0;left:0;right:0;padding:35px 10px 12px;background:linear-gradient(transparent,#070a12f2)}.hero-card-label b{display:block;font-family:Georgia,"Songti SC";font-size:13px}.hero-card-label small{font-size:8px;color:var(--gold)}.duel-seal{position:absolute;right:5px;top:10px;font-size:70px;color:#e9c68120}.launch-panel{position:relative;z-index:2;width:min(1100px,90%);margin:0 auto 20px;padding:22px 28px 20px;border:1px solid #ffffff15;background:#101621df;box-shadow:0 25px 80px #0007}.launch-head,.launch-bottom{display:flex;justify-content:space-between;align-items:center}.launch-head>div{display:flex;align-items:center;gap:12px}.launch-head h2{font-size:14px;font-weight:500;letter-spacing:1px}.step{font:11px Georgia;color:var(--gold);border-right:1px solid var(--gold2);padding-right:12px}.deck-choices{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}.deck-choice{position:relative;text-align:left;padding:15px 16px;border:1px solid #ffffff13;background:#0a0f19;color:#b4bdc9;min-height:84px;transition:.2s}.deck-choice:hover{border-color:#e9c68155;transform:translateY(-2px)}.deck-choice.selected{border-color:var(--gold);background:linear-gradient(110deg,#e9c68114,transparent);color:#fff}.deck-choice.selected:after{content:"✓";position:absolute;right:12px;top:12px;color:var(--gold)}.deck-choice b{font-size:13px;display:block;margin-bottom:7px}.deck-choice small{font-size:10px;color:var(--muted)}.deck-choice .deck-icon{display:inline-block;margin-right:8px;color:var(--gold)}.record{display:flex;flex-direction:column;gap:5px;font-size:10px;color:var(--muted)}.record b{color:#d8dce3;font-size:11px}.primary-btn{border:1px solid #f3d89e;background:linear-gradient(120deg,#b38a4d,#e5c27f);color:#15110a;min-width:240px;min-height:54px;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 5px 25px #d5ab5d1c}.primary-btn span{font-weight:700;letter-spacing:2px}.primary-btn small{font-size:8px;letter-spacing:1.5px}.primary-btn b{font-size:20px}.primary-btn:hover{filter:brightness(1.12)}.home-footer{position:relative;z-index:1;width:90%;margin:auto;padding:12px 0 18px;display:flex;justify-content:space-between;font-size:8px;color:#566073;letter-spacing:1.2px}
+.duel{height:100dvh;min-height:590px;overflow:hidden;background:#080d15}.duel-header{height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:#0c111b;border-bottom:1px solid #ffffff12;z-index:4}.duel-header .icon-btn{width:30px;height:30px;font-size:15px}.duel-title{font:11px Georgia;letter-spacing:2px}.duel-title span{color:var(--gold)}.phase-track{display:flex;align-items:center;gap:12px;font-size:10px;color:#596476}.phase-track span.active{color:var(--gold)}.phase-track i{font-style:normal;color:#364050}.arena{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;justify-content:center;padding:5px max(12px,calc((100vw - 670px)/2));background:radial-gradient(ellipse at center,#19313b65,transparent 65%),#080d15}.ambient-grid{position:absolute;inset:0;opacity:.25;pointer-events:none;background-image:linear-gradient(#7ac7dd0b 1px,transparent 1px),linear-gradient(90deg,#7ac7dd0b 1px,transparent 1px);background-size:38px 38px;transform:perspective(500px) rotateX(5deg)}.duelist{height:49px;flex:none;display:flex;align-items:center;gap:9px;position:relative;z-index:2;padding:2px 4px}.avatar-wrap{width:42px;height:42px;position:relative;border:1px solid #a9d8e644;border-radius:50%;padding:2px;background:#0b1522}.avatar-wrap img{border-radius:50%;width:100%;height:100%;object-fit:cover}.level-badge{position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);background:#142c3e;color:#a9dfff;font-size:6px;padding:1px 5px;border-radius:5px;letter-spacing:1px}.opponent .avatar-wrap{border-color:#b494e166}.opponent .level-badge{background:#302442;color:#c6a8fa}.duelist-info{width:min(330px,42vw)}.name-line{display:flex;justify-content:space-between;font-size:10px;margin-bottom:5px}.name-line span{color:var(--muted);font-size:8px}.lp-line{display:flex;align-items:center;gap:8px}.lp-line>span{font:8px Georgia;color:var(--gold)}.lp-line strong{font:17px Georgia;color:#f5deb1;min-width:48px}.lp-bar{height:3px;background:#28303b;flex:1;max-width:170px}.lp-bar i{display:block;width:100%;height:100%;background:linear-gradient(90deg,#8e6738,#f5d493);transition:width .5s}.zone-counts{margin-left:auto;display:flex;gap:14px;font-size:8px;color:#778396}.zone-counts b{font-size:10px;color:#cbd1da;margin-left:3px}.zone-counts button{background:none;border:0;color:#b8a57f;font-size:8px;padding:6px}.field{position:relative;z-index:1}.field-row{height:var(--card-h);display:flex;justify-content:center;gap:clamp(7px,1.4vw,16px);margin:3px 0}.slot{width:var(--card-w);height:var(--card-h);border:1px solid #7699aa22;background:#91c9dc04;position:relative;border-radius:4px;display:flex;align-items:center;justify-content:center}.slot:empty:after{content:"✦";font-size:17px;color:#94c9dc13}.spell-row .slot{border-color:#a88fc422}.spell-row .slot:empty:after{content:"◇";color:#b9a0cf16}.game-card{width:100%;height:100%;position:relative;border:2px solid #a58a57;border-radius:4px;overflow:hidden;background:#182030;box-shadow:0 3px 7px #0007;cursor:pointer;transition:transform .15s,filter .15s;animation:cardIn .25s ease-out}.game-card:hover{transform:translateY(-4px);filter:brightness(1.15);z-index:5}.game-card img{width:100%;height:100%;object-fit:cover}.game-card .mini-name{position:absolute;left:0;right:0;bottom:0;background:#090d15e8;padding:3px 2px;font-size:clamp(6px,.75vw,9px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}.game-card .stats{position:absolute;right:1px;top:1px;background:#080b11dc;padding:2px 3px;font-size:7px;color:#ffe3a5}.game-card .position-mark{position:absolute;left:2px;top:2px;background:#142333dd;border-radius:2px;padding:2px;font-size:7px}.game-card.spell{border-color:#458f87}.game-card.trap{border-color:#a65b96}.game-card.face-down{border-color:#52647d}.game-card.face-down img{filter:brightness(.55) saturate(.5)}.game-card.attacked{filter:brightness(.55)}.game-card.defense{transform:rotate(90deg) scale(.88)}.game-card.defense:hover{transform:rotate(90deg) scale(.93)}.arena-center{height:27px;display:flex;align-items:center;justify-content:center;gap:12px;font-size:8px;color:#68788a;position:relative;z-index:2}.arena-center:before,.arena-center:after{content:"";height:1px;background:linear-gradient(90deg,transparent,#94c9dc1c);width:90px}.arena-center:after{transform:scaleX(-1)}.arena-center b{color:var(--gold);font-size:9px}.turn-emblem{color:#d9c18b;font-size:12px}.hand-dock{height:calc(var(--card-h)*.78 + 22px);flex:none;background:linear-gradient(transparent,#0a0f18 20%);position:relative;z-index:3;padding:0 12px}.hand-meta{height:19px;max-width:650px;margin:auto;display:flex;justify-content:space-between;color:#758093;font-size:8px}.hand-meta b{color:#d7c49d}.hand{height:calc(var(--card-h)*.78);display:flex;justify-content:center;align-items:flex-start;gap:5px;max-width:800px;margin:auto}.hand .game-card{width:var(--card-w);height:var(--card-h);flex:none;transform:translateY(-3px)}.hand .game-card:hover{transform:translateY(-12px)}.action-bar{height:58px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px max(16px,calc((100vw - 690px)/2)) calc(7px + env(safe-area-inset-bottom));background:#101621;border-top:1px solid #ffffff13;z-index:4}.secondary-btn{background:none;border:1px solid #334054;color:#9ca8ba;padding:10px 14px;font-size:10px}.summon-status{font-size:9px;color:#9fc6bb;display:flex;gap:6px;align-items:center}.summon-status i{width:5px;height:5px;border-radius:50%;background:#6be0b6}.summon-status.used{color:#657080}.summon-status.used i{background:#657080}.phase-btn{min-width:190px;background:linear-gradient(110deg,#a78045,#d7b875);border:1px solid #efd69f;color:#171209;padding:11px 16px;display:flex;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:1px}.phase-btn b{font-size:17px}.fx-layer{position:absolute;inset:0;pointer-events:none;z-index:20;overflow:hidden}
+.collection{background:radial-gradient(circle at top,#182536,#080b12 60%)}.collection .topbar{justify-content:flex-start;gap:18px}.collection h2{font-size:18px;margin:0}.collection .topbar small{font-size:8px;color:var(--gold);letter-spacing:2px}.collection-total{margin-left:auto;font-size:11px;color:var(--muted)}.collection-tools{width:min(1100px,92%);margin:25px auto 10px;display:flex;justify-content:space-between;gap:15px}.filters{display:flex;gap:7px}.filters button{border:1px solid #2b3648;background:#101621;padding:9px 17px;font-size:11px;color:#9ca8b9}.filters button.active{color:#191309;background:var(--gold);border-color:var(--gold)}.search{display:flex;align-items:center;border:1px solid #2b3648;background:#101621;padding:0 12px;gap:8px}.search input{background:none;border:0;color:#eee;width:200px;outline:0;font-size:11px}.collection-grid{width:min(1100px,92%);margin:10px auto 50px;display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:18px}.archive-card{border:1px solid #2a3341;background:#101621;padding:8px;text-align:left;position:relative}.archive-card:hover{border-color:var(--gold);transform:translateY(-3px)}.archive-card img{width:100%;aspect-ratio:.7;object-fit:cover}.archive-card h3{font-size:12px;margin:9px 2px 5px}.archive-card p{font-size:9px;color:var(--muted);margin:0 2px}.archive-card .archive-type{position:absolute;top:14px;right:14px;background:#0a0e17dc;padding:3px 5px;font-size:8px;color:var(--gold)}
+.modal[hidden]{display:none}.modal{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}.modal-backdrop{position:absolute;inset:0;background:#02050bdc;backdrop-filter:blur(7px)}.card-detail{width:min(620px,96vw);max-height:92dvh;overflow:auto;display:grid;grid-template-columns:230px 1fr;gap:26px;padding:28px;background:linear-gradient(135deg,#182131,#0d121d);border:1px solid #77684e;position:relative;box-shadow:0 25px 90px #000}.modal-close{position:absolute;right:12px;top:8px;background:none;border:0;color:#929bac;font-size:25px;z-index:3}.detail-art{height:326px;border:4px solid #b39760;border-radius:6px;overflow:hidden;background:#111}.detail-art img{width:100%;height:100%;object-fit:cover}.detail-type{color:var(--gold);font-size:9px;letter-spacing:1.5px;margin-top:8px}.detail-copy h2{font-family:Georgia,"Songti SC";font-size:24px;margin:10px 0}.detail-stats{display:flex;gap:8px;flex-wrap:wrap}.detail-stats span{background:#ffffff09;border:1px solid #ffffff0c;padding:5px 8px;font-size:10px;color:#c5cbd4}.effect-box{margin:18px 0;border-top:1px solid #ffffff14;padding-top:14px}.effect-box b{font-size:10px;color:var(--gold)}.effect-box p{font-size:12px;line-height:1.8;color:#b2bbc9}.detail-actions{display:flex;flex-direction:column;gap:8px}.action-choice{border:1px solid #89734c;background:#d9b97912;color:#e9d3a6;text-align:left;padding:11px 12px;font-size:11px;display:flex;justify-content:space-between}.action-choice:hover{background:#d9b97928}.action-choice:disabled{border-color:#333;color:#777}.paper-modal{position:relative;width:min(570px,95vw);max-height:90dvh;overflow:auto;background:#121925;border:1px solid #665a46;padding:35px}.paper-modal h2{font-family:Georgia,"Songti SC";font-weight:500;margin:12px 0 20px}.rules-list{padding-left:20px}.rules-list li{padding:6px 0 8px 6px;color:var(--gold)}.rules-list b{font-size:13px}.rules-list p{font-size:11px;line-height:1.8;color:#a8b1c0;margin:5px 0}.wide{width:100%;min-width:0;margin-top:15px}.paper-modal.compact{width:min(400px,94vw)}.menu-row{display:flex;justify-content:space-between;width:100%;padding:15px 3px;border:0;border-bottom:1px solid #ffffff12;background:none;font-size:12px;color:#c2cad6}.menu-row.danger{color:#e5848e}.battle-log{max-height:50vh;overflow:auto;font-size:11px;line-height:1.8;color:#aeb8c7}.battle-log div{padding:7px 0;border-bottom:1px solid #ffffff0c}.result-modal article{position:relative;text-align:center;width:min(400px,90vw);padding:40px;background:radial-gradient(circle at top,#2c2b2b,#111722 65%);border:1px solid #9b8255}.result-modal .eyebrow{justify-content:center}.result-sigil{font-size:60px;color:var(--gold);text-shadow:0 0 30px #e9c68180;animation:pulse 1.6s infinite}.result-modal h2{font:46px Georgia,"Songti SC";margin:12px}.result-modal p{font-size:12px;color:#aeb5c1}.result-stats{display:flex;justify-content:center;gap:30px;margin:25px 0;font-size:10px;color:#929cab}.result-stats b{display:block;color:#efdbb4;font:22px Georgia;margin-top:5px}.result-modal .link-btn{margin-top:18px}#toast{position:fixed;z-index:200;left:50%;bottom:90px;transform:translate(-50%,15px);padding:10px 17px;background:#1e2837f2;border:1px solid #8b7550;color:#e8d7b7;font-size:11px;opacity:0;pointer-events:none;transition:.2s;max-width:90%;text-align:center}#toast.show{opacity:1;transform:translate(-50%,0)}
+@keyframes cardIn{from{opacity:0;transform:translateY(15px) scale(.85)}to{opacity:1}}@keyframes pulse{50%{transform:scale(1.12);filter:brightness(1.4)}}
+@media(max-width:700px){:root{--card-w:clamp(51px,15.5vw,66px)}.topbar{height:60px;padding:0 18px}.brand{font-size:10px;letter-spacing:2px}.brand-mark{width:29px;height:32px}.text-btn{font-size:10px}.home-main{min-height:315px;width:92%;display:block}.hero-copy{padding:32px 0 10px;position:relative;z-index:2}.eyebrow{font-size:8px}.hero-copy h1{font-size:37px;margin:14px 0}.hero-copy p{font-size:11px;line-height:1.8}.feature-row{gap:10px;font-size:8px;margin-top:16px}.hero-visual{position:absolute;right:-72px;top:40px;width:270px;height:270px;opacity:.43;transform:scale(.8)}.hc-front{left:85px}.hc-mid{left:20px}.hc-back{left:130px}.hero-card{width:140px}.launch-panel{width:94%;padding:16px;margin-bottom:12px}.launch-head h2{font-size:12px}.deck-choices{gap:7px;margin:12px 0}.deck-choice{padding:11px 9px;min-height:82px}.deck-choice b{font-size:11px;line-height:1.4}.deck-choice small{font-size:8px;line-height:1.5;display:block}.deck-choice .deck-icon{display:block;margin-bottom:5px}.deck-choice.selected:after{font-size:10px;right:6px;top:5px}.primary-btn{min-width:205px;min-height:49px}.record{font-size:8px}.home-footer{font-size:7px;padding-bottom:12px}.duel-header{padding:0 10px;height:43px}.duel-title{font-size:8px;letter-spacing:1px}.phase-track{gap:6px;font-size:8px}.duel-header .icon-btn{width:28px;height:28px}.duel{min-height:570px}.arena{padding:3px 7px}.duelist{height:45px}.avatar-wrap{width:36px;height:36px}.duelist-info{width:46vw}.name-line{font-size:9px}.name-line span{font-size:7px}.lp-line strong{font-size:15px;min-width:43px}.zone-counts{gap:8px;font-size:7px}.zone-counts b{font-size:8px}.lp-bar{max-width:70px}.field-row{margin:2px 0;gap:7px}.arena-center{height:23px;gap:8px}.arena-center:before,.arena-center:after{width:35px}.hand-dock{padding:0 5px;height:calc(var(--card-h)*.66 + 20px)}.hand{height:calc(var(--card-h)*.66);gap:3px;overflow:visible}.hand .game-card{width:var(--card-w);height:var(--card-h);transform:translateY(-3px) scale(.82);transform-origin:top center;margin:0 -4px}.hand .game-card:hover{transform:translateY(-8px) scale(.86)}.action-bar{height:55px;padding-left:9px;padding-right:9px}.secondary-btn{padding:9px;font-size:9px}.summon-status{display:none}.phase-btn{min-width:166px;font-size:10px;padding:10px 12px}.collection-tools{flex-direction:column;margin-top:15px}.filters button{padding:8px 16px}.search{height:38px}.search input{width:100%}.collection-grid{grid-template-columns:repeat(3,1fr);gap:8px}.archive-card{padding:5px}.archive-card h3{font-size:10px}.archive-card p{font-size:8px}.card-detail{grid-template-columns:125px 1fr;gap:15px;padding:19px 14px}.detail-art{height:180px;border-width:3px}.detail-copy h2{font-size:18px;margin:7px 0}.detail-type{font-size:7px}.detail-stats span{font-size:8px;padding:4px}.effect-box{margin:10px 0;padding-top:9px}.effect-box p{font-size:10px;line-height:1.6}.action-choice{padding:9px;font-size:10px}.paper-modal{padding:28px 22px}.desktop-only{display:none}}
+@media(max-width:370px){.hero-copy h1{font-size:32px}.deck-choice small{display:none}.deck-choice{min-height:60px}.feature-row{gap:7px}.collection-grid{grid-template-columns:repeat(2,1fr)}.card-detail{grid-template-columns:105px 1fr}.detail-art{height:151px}.phase-track{display:none}}
+@media(orientation:landscape) and (max-height:600px){:root{--card-w:50px}.duel{min-height:360px}.duel-header{height:34px}.duelist{height:34px;position:absolute;width:180px;left:10px}.duelist.opponent{top:3px}.duelist.player{bottom:3px}.duelist-info{width:105px}.avatar-wrap{width:29px;height:29px}.name-line span,.lp-bar,.zone-counts{display:none}.arena{padding:2px 100px}.field-row{margin:1px 0}.arena-center{height:18px}.hand-dock{position:absolute;right:3px;bottom:50px;width:85px;height:230px;z-index:5}.hand-meta{display:none}.hand{flex-direction:column;height:220px;overflow:hidden;align-items:center}.hand .game-card{transform:scale(.62);transform-origin:top center;height:71px;margin-bottom:-48px}.hand .game-card:last-child{margin-bottom:0}.action-bar{height:46px;padding-top:5px;padding-bottom:calc(5px + env(safe-area-inset-bottom))}.phase-btn{padding-top:6px;padding-bottom:6px;min-height:32px}.home-main{min-height:230px}.hero-copy{padding:15px 0}.hero-copy h1{font-size:33px}.hero-copy p,.feature-row{display:none}.hero-visual{height:230px;transform:scale(.65)}.launch-panel{padding:12px 20px}.deck-choice{min-height:55px;padding:8px}.launch-head{margin-bottom:5px}.deck-choices{margin:7px 0}.home-footer{display:none}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+<script>(function(){var Q={};location.search.replace(/^\?/,'').split('&').forEach(function(kv){var p=kv.split('=');Q[decodeURIComponent(p[0])]=p[1]===undefined?true:decodeURIComponent(p[1]);});window.__q=Q;window.__errs=[];function pushErr(m,l,e){__errs.push(String(m).slice(0,180)+' @'+(l||'?')+(e&&e.stack?' | '+String(e.stack).split('\n').slice(0,4).join(' <- '):''));}window.onerror=function(m,s,l,c,e){pushErr(m,l,e);};window.onunhandledrejection=function(e){pushErr('rej:'+String(e&&e.reason).slice(0,180),'promise',e&&e.reason);};})();</script>
+</head>
+<body>
+<div id="app">
+  <section id="homeScreen" class="screen home active">
+    <header class="topbar"><a class="brand" href="#" aria-label="决斗传说首页"><span class="brand-mark">D</span><span>DUEL <b>LEGENDS</b></span></a><div class="top-actions"><button id="soundBtn" class="icon-btn" aria-label="切换声音">♪</button><button id="rulesBtn" class="text-btn">决斗规则</button></div></header>
+    <main class="home-main">
+      <div class="hero-copy"><div class="eyebrow"><i></i> ORIGINAL CARD DUEL · 单机对战</div><h1>以卡牌为刃<br><span>缔结决斗传说</span></h1><p>召唤怪兽，布下陷阱，在瞬息万变的战场上<br class="desktop-only">击碎对手的 8000 点生命。</p><div class="feature-row"><span>36+ 原创卡牌</span><span>3 套战术卡组</span><span>完整 AI 对战</span></div></div>
+      <div class="hero-visual" aria-hidden="true"><div class="orbit o1"></div><div class="orbit o2"></div><div class="hero-card hc-back"><div class="card-back-art"><span>D</span></div></div><div class="hero-card hc-mid"><img id="heroSpell" alt=""></div><div class="hero-card hc-front"><img id="heroMonster" alt=""><div class="hero-card-label"><b>曜日铸龙</b><small>LV 8 · 炎 / 龙族</small></div></div><div class="duel-seal">✦</div></div>
+    </main>
+    <section class="launch-panel"><div class="launch-head"><div><span class="step">01</span><h2>选择你的卡组</h2></div><button id="collectionBtn" class="link-btn">卡牌图鉴 <span>↗</span></button></div><div id="deckChoices" class="deck-choices"></div><div class="launch-bottom"><div class="record"><span>决斗战绩</span><b id="recordText">0 胜 · 0 负</b></div><button id="startBtn" class="primary-btn"><span>开始决斗</span><small>DUEL START</small><b>→</b></button></div></section>
+    <footer class="home-footer"><span>DUEL LEGENDS / 经典规则轻量复刻</span><span>无需联网 · 自动保存战绩</span></footer>
+  </section>
+
+  <section id="duelScreen" class="screen duel">
+    <header class="duel-header"><button id="exitBtn" class="icon-btn" aria-label="退出对局">‹</button><div class="duel-title">DUEL <span>LEGENDS</span></div><div class="phase-track" aria-label="阶段"><span data-phase="draw">抽卡</span><i>›</i><span data-phase="main" class="active">主要</span><i>›</i><span data-phase="battle">战斗</span><i>›</i><span data-phase="end">结束</span></div><button id="menuBtn" class="icon-btn" aria-label="对局菜单">☰</button></header>
+    <main class="arena">
+      <div class="ambient-grid"></div><div id="fxLayer" class="fx-layer"></div>
+      <section class="duelist opponent"><div class="avatar-wrap"><img id="avatar1" alt="对手 零"><span class="level-badge">AI</span></div><div class="duelist-info"><div class="name-line"><b>虚空观测者 · 零</b><span id="aiThinking">等待中</span></div><div class="lp-line"><span>LP</span><strong id="lp1">8000</strong><div class="lp-bar"><i id="lpbar1"></i></div></div></div><div class="zone-counts"><span>手卡 <b id="handCount1">5</b></span><span>卡组 <b id="deckCount1">15</b></span><span>墓地 <b id="graveCount1">0</b></span></div></section>
+      <section id="opponentField" class="field opponent-field" aria-label="对手场地"><div class="field-row monster-row" data-zone="monsters"></div><div class="field-row spell-row" data-zone="spells"></div></section>
+      <div class="arena-center"><span id="roundLabel">ROUND 01</span><div class="turn-emblem">✦</div><b id="turnLabel">你的回合</b><span id="phaseLabel">主要阶段</span></div>
+      <section id="playerField" class="field player-field" aria-label="你的场地"><div class="field-row spell-row" data-zone="spells"></div><div class="field-row monster-row" data-zone="monsters"></div></section>
+      <section class="duelist player"><div class="avatar-wrap"><img id="avatar0" alt="玩家 苍"><span class="level-badge">YOU</span></div><div class="duelist-info"><div class="name-line"><b>星轨决斗者 · 苍</b><span id="deckName">苍蓝星轨</span></div><div class="lp-line"><span>LP</span><strong id="lp0">8000</strong><div class="lp-bar"><i id="lpbar0"></i></div></div></div><div class="zone-counts"><span>墓地 <b id="graveCount0">0</b></span><span>卡组 <b id="deckCount0">15</b></span><button id="logBtn">记录 ↗</button></div></section>
+    </main>
+    <section class="hand-dock"><div class="hand-meta"><span>你的手卡 <b id="handCount0">5</b></span><span id="hintText">点击卡牌查看操作</span></div><div id="hand" class="hand"></div></section>
+    <footer class="action-bar"><button id="inspectFieldBtn" class="secondary-btn">场地详情</button><div id="normalStatus" class="summon-status"><i></i><span>通常召唤可用</span></div><button id="phaseBtn" class="phase-btn"><span>进入战斗阶段</span><b>→</b></button></footer>
+  </section>
+
+  <section id="collectionScreen" class="screen collection"><header class="topbar"><button id="collectionBack" class="icon-btn">‹</button><div><h2>卡牌图鉴</h2><small>CARD ARCHIVE</small></div><div id="collectionTotal" class="collection-total"></div></header><div class="collection-tools"><div id="cardFilters" class="filters"><button class="active" data-filter="all">全部</button><button data-filter="monster">怪兽</button><button data-filter="spell">魔法</button><button data-filter="trap">陷阱</button></div><label class="search"><span>⌕</span><input id="cardSearch" placeholder="搜索卡名或效果" aria-label="搜索卡牌"></label></div><main id="collectionGrid" class="collection-grid"></main></section>
+</div>
+<div id="cardModal" class="modal" hidden><div class="modal-backdrop" data-close></div><article class="card-detail"><button class="modal-close" data-close aria-label="关闭">×</button><div id="detailArt" class="detail-art"></div><div class="detail-copy"><div id="detailType" class="detail-type"></div><h2 id="detailName"></h2><div id="detailStats" class="detail-stats"></div><div class="effect-box"><b>卡牌效果</b><p id="detailDesc"></p></div><div id="detailActions" class="detail-actions"></div></div></article></div>
+<div id="rulesModal" class="modal" hidden><div class="modal-backdrop" data-close></div><article class="paper-modal"><button class="modal-close" data-close>×</button><div class="eyebrow">DUEL GUIDE</div><h2>三分钟学会决斗</h2><ol class="rules-list"><li><b>赢得胜利</b><p>将对手 8000 LP 降为 0，或让对手需要抽卡时卡组为空。</p></li><li><b>召唤怪兽</b><p>每回合一次通常召唤。5–6 星需要 1 只祭品，7 星以上需要 2 只。点击手卡即可选择攻击或里侧守备召唤。</p></li><li><b>魔法与陷阱</b><p>魔法在主要阶段从手卡发动；魔法和陷阱都能盖放到后场。盖放陷阱会在对手攻击时自动触发。</p></li><li><b>战斗与伤害</b><p>进入战斗阶段后，点击自己的攻击表示怪兽选择目标。对方没有怪兽时可直接攻击。高攻击破低攻并造成差值伤害；攻击守备怪兽通常不造成战斗伤害。</p></li><li><b>轻量经典规则</b><p>双方 20 张卡组、3 个怪兽格和 3 个魔陷格。本作不包含额外卡组、复杂连锁及同调/超量等召唤方式。</p></li></ol><button class="primary-btn wide" data-close>明白了，开始决斗</button></article></div>
+<div id="menuModal" class="modal" hidden><div class="modal-backdrop" data-close></div><article class="paper-modal compact"><button class="modal-close" data-close>×</button><div class="eyebrow">DUEL MENU</div><h2>对局菜单</h2><button id="menuRules" class="menu-row">查看决斗规则 <span>↗</span></button><button id="menuSound" class="menu-row">切换声音 <span>♪</span></button><button id="restartBtn" class="menu-row">重新开始本局 <span>↻</span></button><button id="surrenderBtn" class="menu-row danger">认输并返回 <span>×</span></button></article></div>
+<div id="logModal" class="modal" hidden><div class="modal-backdrop" data-close></div><article class="paper-modal compact"><button class="modal-close" data-close>×</button><div class="eyebrow">BATTLE LOG</div><h2>决斗记录</h2><div id="log" class="battle-log"></div></article></div>
+<div id="resultModal" class="modal result-modal" hidden><div class="modal-backdrop"></div><article><div id="resultSigil" class="result-sigil">✦</div><div class="eyebrow">DUEL COMPLETE</div><h2 id="resultTitle">胜利</h2><p id="resultReason"></p><div class="result-stats"><span>回合数 <b id="resultRound"></b></span><span>剩余 LP <b id="resultLp"></b></span></div><button id="rematchBtn" class="primary-btn wide">再来一局 <b>↻</b></button><button id="resultHome" class="link-btn">返回卡组选择</button></article></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>/* ==== cards.js ==== */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) {
+    module.exports = factory();
+  } else {
+    root.DuelCards = factory();
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  const CARDS = {
+    cinder_gear_hound: {
+      id: 'cinder_gear_hound', name: '熔芯齿轮犬', type: 'monster', level: 3,
+      atk: 1400, def: 900, attribute: '炎', race: '机械', icon: '犬',
+      desc: '胸腔里燃着微小炉火，循着金属气味奔跑的造灵。'
+    },
+    kiln_carrier_crab: {
+      id: 'kiln_carrier_crab', name: '炉膛搬运蟹', type: 'monster', level: 4,
+      atk: 1500, def: 1800, attribute: '炎', race: '机械', icon: '蟹',
+      desc: '以双钳搬动灼热砖块，背甲就是一座行走的窑。'
+    },
+    spark_kite: {
+      id: 'spark_kite', name: '火花纸鸢', type: 'monster', level: 2,
+      atk: 800, def: 1200, attribute: '风', race: '机械', icon: '筝',
+      desc: '薄铜骨架乘着热流升高，长尾洒落不会伤人的星火。'
+    },
+    copperbell_ram: {
+      id: 'copperbell_ram', name: '铜铃冲角羊', type: 'monster', level: 4,
+      atk: 1700, def: 1000, attribute: '地', race: '兽', icon: '羊',
+      desc: '颈铃一响便埋头冲刺，弯角上刻着矿工的护符。'
+    },
+    magnet_wing_swallow: {
+      id: 'magnet_wing_swallow', name: '磁翼雨燕', type: 'monster', level: 3,
+      atk: 1200, def: 1400, attribute: '风', race: '鸟兽', icon: '燕',
+      desc: '剪开烟云的灵巧身影，总能找回遗落的螺钉与齿轮。'
+    },
+    furnace_tortoise: {
+      id: 'furnace_tortoise', name: '熔炉背甲龟', type: 'monster', level: 6,
+      atk: 2200, def: 2400, attribute: '炎', race: '机械', icon: '龟',
+      desc: '缓慢爬行时地脉随之升温，厚重炉甲足以封住爆裂。'
+    },
+    railhorn_rhino: {
+      id: 'railhorn_rhino', name: '轨角铁犀', type: 'monster', level: 5,
+      atk: 2100, def: 1600, attribute: '地', race: '机械', icon: '犀',
+      desc: '沿废弃矿轨巡视的巨兽，独角会铺出新的赤红轨道。'
+    },
+    sunforge_dragon: {
+      id: 'sunforge_dragon', name: '曜日铸龙', type: 'monster', level: 8,
+      atk: 2900, def: 2500, attribute: '炎', race: '龙', icon: '龙', piercing: true,
+      desc: '贯穿：攻击守备怪兽时，给予攻击力超过其守备力的战斗伤害。吞下游移的日光，再以呼吸锻成鳞甲的巨龙。'
+    },
+    nine_light_engine: {
+      id: 'nine_light_engine', name: '九曜天车', type: 'monster', level: 7,
+      atk: 2600, def: 2100, attribute: '光', race: '机械', icon: '车',
+      desc: '九枚光轮围绕无马车厢旋转，载着黎明驶过长夜。'
+    },
+    furnace_refit: {
+      id: 'furnace_refit', name: '炉心整备', type: 'spell', icon: '修',
+      desc: '熄灭杂音，让炉火重新平稳。自己回复1200点生命。',
+      effect: { kind: 'heal', value: 1200 }
+    },
+    spark_relay: {
+      id: 'spark_relay', name: '火花接力', type: 'spell', icon: '引',
+      desc: '把一粒火花送往下一盏灯。自己从卡组抽1张卡。',
+      effect: { kind: 'draw', value: 1 }
+    },
+    molten_overdrive: {
+      id: 'molten_overdrive', name: '熔流超荷', type: 'spell', icon: '燃',
+      desc: '让熔流贯通装甲。装备怪兽的攻击力上升700点。',
+      effect: { kind: 'equip', value: 700 }
+    },
+    slag_counter: {
+      id: 'slag_counter', name: '炉渣反崩', type: 'trap', icon: '崩',
+      desc: '对方怪兽攻击时发动，破坏那只攻击怪兽。',
+      effect: { kind: 'destroyAttacker' }
+    },
+
+    reed_flute_deer: {
+      id: 'reed_flute_deer', name: '芦笛灵鹿', type: 'monster', level: 3,
+      atk: 1300, def: 1100, attribute: '风', race: '兽', icon: '鹿',
+      desc: '蹄声像芦笛短句，走过之处会生出青色芦苇。'
+    },
+    mist_scale_carp: {
+      id: 'mist_scale_carp', name: '雾鳞鲤', type: 'monster', level: 2,
+      atk: 700, def: 1300, attribute: '水', race: '水族', icon: '鲤',
+      desc: '在晨雾中游弋的小鲤，鳞片收藏着尚未落下的雨。'
+    },
+    pine_crown_crane: {
+      id: 'pine_crown_crane', name: '松冠仙鹤', type: 'monster', level: 4,
+      atk: 1600, def: 1200, attribute: '风', race: '鸟兽', icon: '鹤',
+      desc: '头顶生着一簇不老松针，振翅时带起清越山风。'
+    },
+    stone_guard_ape: {
+      id: 'stone_guard_ape', name: '磊石守猿', type: 'monster', level: 4,
+      atk: 1800, def: 1500, attribute: '地', race: '兽', icon: '猿',
+      desc: '把圆润山石叠成山门，安静守望每一位过路旅人。'
+    },
+    rain_listener_fox: {
+      id: 'rain_listener_fox', name: '听雨狐', type: 'monster', level: 3,
+      atk: 1100, def: 1500, attribute: '水', race: '兽', icon: '狐',
+      desc: '能从千万滴雨声里辨出远方的脚步，尾尖常凝着水珠。'
+    },
+    tide_mystic_turtle: {
+      id: 'tide_mystic_turtle', name: '潮汐玄龟', type: 'monster', level: 6,
+      atk: 2000, def: 2600, attribute: '水', race: '水族', icon: '潮',
+      desc: '背纹与月相一同变化，呼吸之间牵引海湾的潮汐。'
+    },
+    thunder_branch_elk: {
+      id: 'thunder_branch_elk', name: '惊雷枝角麟', type: 'monster', level: 5,
+      atk: 2300, def: 1700, attribute: '光', race: '兽', icon: '雷',
+      desc: '枝状角间跳跃着亮色电弧，奔行如一声贴地惊雷。'
+    },
+    cloud_sea_whale: {
+      id: 'cloud_sea_whale', name: '云海浮鲸', type: 'monster', level: 8,
+      atk: 2800, def: 2800, attribute: '水', race: '水族', icon: '鲸',
+      desc: '以云层为海的温柔巨鲸，歌声会化作绵长细雨。'
+    },
+    verdant_ridge_dragon: {
+      id: 'verdant_ridge_dragon', name: '苍峦木蛟', type: 'monster', level: 7,
+      atk: 2700, def: 2200, attribute: '地', race: '龙', icon: '木',
+      desc: '沉睡时仿佛苍翠山岭，苏醒便舒展成遮天木蛟。'
+    },
+    bamboo_reverie: {
+      id: 'bamboo_reverie', name: '竹林同梦', type: 'spell', icon: '竹',
+      desc: '借一片竹林回应彼此。自己场上全部怪兽的攻击力上升300点。',
+      effect: { kind: 'buffAll', value: 300 }
+    },
+    clear_spring_return: {
+      id: 'clear_spring_return', name: '清泉回契', type: 'spell', icon: '泉',
+      desc: '让旧日契约随泉流归来。将自己墓地最近送入的1只怪兽特殊召唤。',
+      effect: { kind: 'revive' }
+    },
+    mountain_seal_script: {
+      id: 'mountain_seal_script', name: '山篆镇灵', type: 'spell', icon: '镇',
+      desc: '以沉稳山意压住锋芒。对方场上全部怪兽的攻击力下降600点。',
+      effect: { kind: 'weaken', value: 600 }
+    },
+    water_mirror_return: {
+      id: 'water_mirror_return', name: '水镜返照', type: 'trap', icon: '镜',
+      desc: '对方怪兽攻击时发动，无效此次攻击并给予对方其攻击力数值的伤害。',
+      effect: { kind: 'mirrorDamage' }
+    },
+
+    lantern_scribe: {
+      id: 'lantern_scribe', name: '守灯小篆', type: 'monster', level: 3,
+      atk: 1200, def: 1000, attribute: '暗', race: '魔法师', icon: '灯',
+      desc: '从旧灯笼里诞生的字符精，替夜行者保存名字。'
+    },
+    folded_ink_moth: {
+      id: 'folded_ink_moth', name: '折纸墨蛾', type: 'monster', level: 2,
+      atk: 900, def: 800, attribute: '风', race: '昆虫', icon: '蛾',
+      desc: '翅膀是两页折起的薄纸，抖落的鳞粉像未干的墨。'
+    },
+    inkblade_page: {
+      id: 'inkblade_page', name: '墨刃书童', type: 'monster', level: 4,
+      atk: 1700, def: 900, attribute: '暗', race: '战士', icon: '墨',
+      desc: '以长毫作剑的书童，每一笔都在空中留下利落墨痕。'
+    },
+    wellside_spirit_cat: {
+      id: 'wellside_spirit_cat', name: '井畔灵猫', type: 'monster', level: 4,
+      atk: 1500, def: 1600, attribute: '水', race: '兽', icon: '猫',
+      desc: '守着古井与水中倒影，能察觉被刻意遗忘的呼唤。'
+    },
+    ash_memory_crow: {
+      id: 'ash_memory_crow', name: '拾灰忆鸦', type: 'monster', level: 3,
+      atk: 1400, def: 1200, attribute: '风', race: '鸟兽', icon: '鸦',
+      desc: '收集冷却纸灰的鸦，羽间藏着信笺最后的余温。'
+    },
+    midnight_astrologer: {
+      id: 'midnight_astrologer', name: '子夜星盘师', type: 'monster', level: 6,
+      atk: 2300, def: 2000, attribute: '暗', race: '魔法师', icon: '星',
+      desc: '用墨色星盘记录无星之夜，推算尚未发生的梦。'
+    },
+    tide_eye_sage: {
+      id: 'tide_eye_sage', name: '观潮目贤者', type: 'monster', level: 5,
+      atk: 2000, def: 2200, attribute: '水', race: '魔法师', icon: '目',
+      desc: '闭目便能看见千里之外的海，袖口总带着咸湿潮气。'
+    },
+    long_night_stag: {
+      id: 'long_night_stag', name: '墨渊长夜鹿', type: 'monster', level: 8,
+      atk: 3000, def: 2400, attribute: '暗', race: '兽', icon: '夜',
+      desc: '角上悬着碎月般的微光，四蹄踏过处展开静谧长夜。'
+    },
+    hollow_moon_serpent: {
+      id: 'hollow_moon_serpent', name: '虚月环蛇', type: 'monster', level: 7,
+      atk: 2600, def: 2600, attribute: '光', race: '龙', icon: '月',
+      desc: '首尾相衔围成一轮空月，躯体里流动着银色薄雾。'
+    },
+    black_seal_bolt: {
+      id: 'black_seal_bolt', name: '玄印飞锋', type: 'spell', icon: '印',
+      desc: '把凝成锋刃的墨印送向对手。给予对方800点伤害。',
+      effect: { kind: 'damage', value: 800 }
+    },
+    erasing_talisman: {
+      id: 'erasing_talisman', name: '消字符箓', type: 'spell', icon: '消',
+      desc: '抹去维系术式的最后一笔。破坏对方场上1张魔法或陷阱卡。',
+      effect: { kind: 'destroySpell' }
+    },
+    forbidden_redaction: {
+      id: 'forbidden_redaction', name: '禁句删定', type: 'spell', icon: '禁',
+      desc: '从篇章中删去一个名字。破坏对方场上1只怪兽。',
+      effect: { kind: 'destroyMonster' }
+    },
+    blank_page_barrier: {
+      id: 'blank_page_barrier', name: '留白障页', type: 'trap', icon: '白',
+      desc: '对方怪兽攻击时发动，使那次攻击无效。',
+      effect: { kind: 'negateAttack' }
+    }
+  };
+
+  const DECKS = [
+    {
+      id: 'ember_workshop',
+      name: '赤炉巡游',
+      desc: '以坚韧机械稳住阵线，用装备与炉火逐步压倒对手。',
+      cards: [
+        'cinder_gear_hound', 'cinder_gear_hound',
+        'kiln_carrier_crab', 'kiln_carrier_crab',
+        'spark_kite', 'spark_kite',
+        'copperbell_ram', 'copperbell_ram',
+        'furnace_tortoise', 'railhorn_rhino',
+        'sunforge_dragon', 'nine_light_engine',
+        'furnace_refit', 'furnace_refit',
+        'spark_relay', 'spark_relay',
+        'molten_overdrive', 'molten_overdrive',
+        'slag_counter', 'slag_counter'
+      ]
+    },
+    {
+      id: 'cloud_mountain_pact',
+      name: '云山灵契',
+      desc: '借山川灵兽争夺场面，以群体强化和墓地回契延续攻势。',
+      cards: [
+        'reed_flute_deer', 'reed_flute_deer',
+        'mist_scale_carp', 'mist_scale_carp',
+        'pine_crown_crane', 'pine_crown_crane',
+        'stone_guard_ape', 'stone_guard_ape',
+        'tide_mystic_turtle', 'thunder_branch_elk',
+        'cloud_sea_whale', 'verdant_ridge_dragon',
+        'bamboo_reverie', 'bamboo_reverie',
+        'clear_spring_return', 'clear_spring_return',
+        'mountain_seal_script', 'mountain_seal_script',
+        'water_mirror_return', 'water_mirror_return'
+      ]
+    },
+    {
+      id: 'ink_night_archive',
+      name: '墨夜秘藏',
+      desc: '操纵墨术干扰对方，用直接伤害与削除效果掌控节奏。',
+      cards: [
+        'lantern_scribe', 'lantern_scribe',
+        'folded_ink_moth', 'folded_ink_moth',
+        'inkblade_page', 'inkblade_page',
+        'wellside_spirit_cat', 'wellside_spirit_cat',
+        'midnight_astrologer', 'tide_eye_sage',
+        'long_night_stag', 'hollow_moon_serpent',
+        'black_seal_bolt', 'black_seal_bolt',
+        'erasing_talisman', 'erasing_talisman',
+        'forbidden_redaction', 'forbidden_redaction',
+        'blank_page_barrier', 'blank_page_barrier'
+      ]
+    }
+  ];
+
+  return { CARDS, DECKS };
+});
+
+
+/* ==== logic.js ==== */
+(function (root, factory) {
+  const api = factory(typeof require === 'function' ? require('./cards.js') : root.DuelCards);
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.DuelLogic = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (DATA) {
+  'use strict';
+  const CARDS = DATA.CARDS;
+  let serial = 0;
+  function rng(seed) {
+    let n = (Number(seed) || Date.now()) >>> 0;
+    return () => { n += 0x6D2B79F5; let t = n; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  }
+  function shuffle(a, random) {
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+  function createGame(options) {
+    options = options || {};
+    const random = rng(options.seed);
+    const g = { players: [], cards: {}, turn: 0, round: 1, phase: 'main', normalSummoned: false, winner: null, log: [], events: [], seed: options.seed || Date.now() };
+    [options.deck0 || DATA.DECKS[0].cards, options.deck1 || DATA.DECKS[1].cards].forEach(ids => {
+      const p = { lp: 8000, deck: [], hand: [], monsters: [null, null, null], spells: [null, null, null], grave: [] };
+      ids.forEach(id => { if (!CARDS[id]) throw new Error('未知卡牌 ' + id); const uid = 'c' + (++serial); g.cards[uid] = { uid, id }; p.deck.push(uid); });
+      shuffle(p.deck, random); g.players.push(p);
+    });
+    for (let n = 0; n < 5; n++) for (let p = 0; p < 2; p++) draw(g, p, false);
+    note(g, '决斗开始！先攻玩家不抽卡。');
+    return g;
+  }
+  function definition(g, uid) { return CARDS[g.cards[uid].id]; }
+  function note(g, message) { g.log.unshift(message); if (g.log.length > 40) g.log.length = 40; }
+  function emit(g, type, data) { g.events.push(Object.assign({ type }, data || {})); }
+  function draw(g, p, announce) {
+    const player = g.players[p];
+    if (!player.deck.length) { player.lp = 0; finish(g, 1 - p, '卡组耗尽'); return false; }
+    const uid = player.deck.pop(); player.hand.push(uid);
+    if (announce !== false) { note(g, (p ? '对手' : '你') + '抽了一张卡。'); emit(g, 'draw', { player: p, uid }); }
+    return true;
+  }
+  function finish(g, winner, reason) {
+    if (g.winner !== null) return;
+    g.winner = winner; note(g, (winner === 0 ? '你' : '对手') + '获胜：' + reason + '。'); emit(g, 'win', { player: winner, reason });
+  }
+  function hurt(g, p, amount) {
+    amount = Math.max(0, Math.floor(amount)); if (!amount) return;
+    g.players[p].lp = Math.max(0, g.players[p].lp - amount);
+    emit(g, 'damage', { player: p, amount }); note(g, (p ? '对手' : '你') + '受到 ' + amount + ' 点伤害。');
+    if (!g.players[p].lp) finish(g, 1 - p, '生命值归零');
+  }
+  function heal(g, p, amount) { g.players[p].lp += amount; note(g, (p ? '对手' : '你') + '恢复 ' + amount + ' LP。'); }
+  function discardHand(g, p, uid) { const i = g.players[p].hand.indexOf(uid); if (i < 0) return false; g.players[p].hand.splice(i, 1); return true; }
+  function toGrave(g, p, uid) { g.players[p].grave.push(uid); emit(g, 'destroy', { player: p, uid }); }
+  function slotOf(g, p, uid, zone) { return g.players[p][zone].findIndex(s => s && s.uid === uid); }
+  function destroyMonster(g, p, index) {
+    const s = g.players[p].monsters[index]; if (!s) return;
+    toGrave(g, p, s.uid); g.players[p].monsters[index] = null;
+    note(g, definition(g, s.uid).name + '被破坏，送入墓地。');
+  }
+  function destroySpell(g, p, index) {
+    const s = g.players[p].spells[index]; if (!s) return;
+    toGrave(g, p, s.uid); g.players[p].spells[index] = null;
+  }
+  function strongest(g, p) {
+    let best = -1, atk = -1;
+    g.players[p].monsters.forEach((s, i) => { if (s) { const a = definition(g, s.uid).atk + (s.buff || 0); if (a > atk) { atk = a; best = i; } } });
+    return best;
+  }
+  function effect(g, p, card) {
+    const e = card.effect || {}, foe = 1 - p, me = g.players[p], enemy = g.players[foe];
+    emit(g, card.type === 'trap' ? 'trap' : 'spell', { player: p, uid: card.uid, id: card.id });
+    if (e.kind === 'draw') for (let i = 0; i < e.value; i++) draw(g, p);
+    else if (e.kind === 'heal') heal(g, p, e.value);
+    else if (e.kind === 'damage') hurt(g, foe, e.value);
+    else if (e.kind === 'destroyMonster') { const i = strongest(g, foe); if (i >= 0) destroyMonster(g, foe, i); }
+    else if (e.kind === 'destroySpell') { const i = enemy.spells.findIndex(Boolean); if (i >= 0) destroySpell(g, foe, i); }
+    else if (e.kind === 'buffAll') me.monsters.forEach(s => { if (s) s.buff = (s.buff || 0) + e.value; });
+    else if (e.kind === 'weaken') enemy.monsters.forEach(s => { if (s) s.buff = (s.buff || 0) - e.value; });
+    else if (e.kind === 'equip') { const i = strongest(g, p); if (i >= 0) me.monsters[i].buff = (me.monsters[i].buff || 0) + e.value; }
+    else if (e.kind === 'revive') {
+      const uid = me.grave.slice().reverse().find(u => definition(g, u).type === 'monster'), slot = me.monsters.findIndex(s => !s);
+      if (uid && slot >= 0) { me.grave.splice(me.grave.indexOf(uid), 1); me.monsters[slot] = { uid, position: 'attack', faceDown: false, attacked: true, buff: 0 }; emit(g, 'summon', { player: p, uid }); }
+    }
+  }
+  function hasEffectTarget(g, p, card) {
+    const e = card.effect || {};
+    if (e.kind === 'destroyMonster') return g.players[1 - p].monsters.some(Boolean);
+    if (e.kind === 'destroySpell') return g.players[1 - p].spells.some(Boolean);
+    if (e.kind === 'equip' || e.kind === 'buffAll') return g.players[p].monsters.some(Boolean);
+    if (e.kind === 'revive') return g.players[p].grave.some(u => definition(g, u).type === 'monster') && g.players[p].monsters.some(s => !s);
+    return true;
+  }
+  function fail(error) { return { ok: false, error }; }
+  function act(g, a) {
+    g.events = [];
+    if (!a || g.winner !== null) return fail('对局已经结束');
+    const p = a.player;
+    if (p !== g.turn || p < 0 || p > 1) return fail('还没轮到你');
+    const me = g.players[p], foe = g.players[1 - p];
+    if (a.type === 'surrender') { finish(g, 1 - p, '对手认输'); return { ok: true, events: g.events }; }
+    if (a.type === 'advance') {
+      if (g.phase === 'main') { g.phase = 'battle'; note(g, '进入战斗阶段。'); }
+      else {
+        g.turn = 1 - g.turn; g.phase = 'main'; g.normalSummoned = false;
+        if (g.turn === 0) g.round++;
+        g.players[g.turn].monsters.forEach(s => { if (s) { s.attacked = false; s.positionChanged = false; } });
+        if (g.round <= 1 && g.turn === 0) note(g, '对手回合结束。');
+        else if (!draw(g, g.turn)) return { ok: true, events: g.events };
+        if (g.round > 120) { const w = g.players[0].lp === g.players[1].lp ? (g.turn ? 0 : 1) : (g.players[0].lp > g.players[1].lp ? 0 : 1); finish(g, w, '回合上限，按生命值判定'); }
+      }
+      emit(g, 'phase', { phase: g.phase, player: g.turn }); return { ok: true, events: g.events };
+    }
+    if (a.type === 'summon') {
+      const card = g.cards[a.uid] && definition(g, a.uid);
+      if (g.phase !== 'main' || g.normalSummoned) return fail('本回合已经通常召唤，或当前阶段不能召唤');
+      if (!card || card.type !== 'monster' || !me.hand.includes(a.uid)) return fail('手卡中没有这张怪兽卡');
+      if (!me.monsters.some(s => !s)) return fail('怪兽区域已满');
+      const needed = card.level >= 7 ? 2 : card.level >= 5 ? 1 : 0, tributes = a.tributes || [];
+      if (tributes.length !== needed || new Set(tributes).size !== needed) return fail('需要解放 ' + needed + ' 只怪兽');
+      if (tributes.some(uid => slotOf(g, p, uid, 'monsters') < 0)) return fail('祭品必须是自己场上的怪兽');
+      if (!discardHand(g, p, a.uid)) return fail('召唤失败');
+      tributes.forEach(uid => destroyMonster(g, p, slotOf(g, p, uid, 'monsters')));
+      const slot = me.monsters.findIndex(s => !s);
+      me.monsters[slot] = { uid: a.uid, position: a.position === 'defense' ? 'defense' : 'attack', faceDown: !!a.faceDown, attacked: false, buff: 0 };
+      g.normalSummoned = true; note(g, (p ? '对手' : '你') + (a.faceDown ? '盖放了一只怪兽。' : '召唤了 ' + card.name + '。')); emit(g, 'summon', { player: p, uid: a.uid });
+      return { ok: true, events: g.events };
+    }
+    if (a.type === 'setSpell') {
+      const card = g.cards[a.uid] && definition(g, a.uid), slot = me.spells.findIndex(s => !s);
+      if (g.phase !== 'main' || !card || (card.type !== 'spell' && card.type !== 'trap') || !me.hand.includes(a.uid)) return fail('现在不能盖放这张卡');
+      if (slot < 0) return fail('魔法陷阱区域已满');
+      discardHand(g, p, a.uid); me.spells[slot] = { uid: a.uid, faceDown: true }; note(g, (p ? '对手' : '你') + '盖放了一张卡。'); return { ok: true, events: g.events };
+    }
+    if (a.type === 'activateSpell') {
+      const card = g.cards[a.uid] && definition(g, a.uid);
+      if (g.phase !== 'main' || !card || card.type !== 'spell' || !me.hand.includes(a.uid)) return fail('魔法卡只能在自己的主要阶段从手卡发动');
+      if (!hasEffectTarget(g, p, card)) return fail('没有符合条件的效果对象');
+      discardHand(g, p, a.uid); note(g, (p ? '对手' : '你') + '发动 ' + card.name + '！'); effect(g, p, Object.assign({ uid: a.uid }, card)); toGrave(g, p, a.uid);
+      return { ok: true, events: g.events };
+    }
+    if (a.type === 'flip' || a.type === 'changePosition') {
+      const i = slotOf(g, p, a.uid, 'monsters'), s = me.monsters[i];
+      if (g.phase !== 'main' || !s || s.attacked || s.positionChanged) return fail('这只怪兽现在不能变更表示形式');
+      if (a.type === 'flip' && !s.faceDown) return fail('这只怪兽已经表侧表示');
+      s.faceDown = false; s.position = a.type === 'flip' ? 'attack' : (s.position === 'attack' ? 'defense' : 'attack'); s.positionChanged = true;
+      note(g, definition(g, a.uid).name + '变为' + (s.position === 'attack' ? '攻击' : '守备') + '表示。'); return { ok: true, events: g.events };
+    }
+    if (a.type === 'attack') {
+      const ai = slotOf(g, p, a.uid, 'monsters'), attacker = me.monsters[ai];
+      if (g.phase !== 'battle' || !attacker || attacker.faceDown || attacker.position !== 'attack' || attacker.attacked) return fail('这只怪兽现在不能攻击');
+      if (a.targetUid && slotOf(g, 1 - p, a.targetUid, 'monsters') < 0) return fail('攻击目标不存在');
+      if (!a.targetUid && foe.monsters.some(Boolean)) return fail('对方场上有怪兽，不能直接攻击');
+      attacker.attacked = true; const ac = definition(g, a.uid), atk = Math.max(0, ac.atk + (attacker.buff || 0));
+      note(g, ac.name + (a.targetUid ? '发起攻击！' : '发动直接攻击！')); emit(g, 'attack', { player: p, uid: a.uid, targetUid: a.targetUid });
+      for (let i = 0; i < foe.spells.length; i++) {
+        const ts = foe.spells[i]; if (!ts || !ts.faceDown) continue;
+        const tc = definition(g, ts.uid); if (tc.type !== 'trap') continue;
+        destroySpell(g, 1 - p, i); note(g, '陷阱卡 ' + tc.name + ' 发动！');
+        if (tc.effect.kind === 'negateAttack') { emit(g, 'trap', { player: 1 - p, uid: ts.uid, id: tc.id }); note(g, '攻击被无效化！'); return { ok: true, events: g.events }; }
+        if (tc.effect.kind === 'destroyAttacker') { emit(g, 'trap', { player: 1 - p, uid: ts.uid, id: tc.id }); destroyMonster(g, p, ai); return { ok: true, events: g.events }; }
+        if (tc.effect.kind === 'mirrorDamage') { emit(g, 'trap', { player: 1 - p, uid: ts.uid, id: tc.id }); hurt(g, p, atk); return { ok: true, events: g.events }; }
+      }
+      if (!a.targetUid) hurt(g, 1 - p, atk);
+      else {
+        const di = slotOf(g, 1 - p, a.targetUid, 'monsters'), defender = foe.monsters[di], dc = definition(g, a.targetUid), wasFaceDown = defender.faceDown;
+        defender.faceDown = false; const value = Math.max(0, (defender.position === 'attack' ? dc.atk : dc.def) + (defender.buff || 0));
+        if (defender.position === 'attack') {
+          if (atk > value) { destroyMonster(g, 1 - p, di); hurt(g, 1 - p, atk - value); }
+          else if (atk < value) { destroyMonster(g, p, ai); hurt(g, p, value - atk); }
+          else { destroyMonster(g, p, ai); destroyMonster(g, 1 - p, di); }
+        } else if (atk > value) {
+          destroyMonster(g, 1 - p, di); if (dc.piercing || ac.piercing) hurt(g, 1 - p, atk - value);
+        } else if (atk < value) hurt(g, p, value - atk);
+        if (wasFaceDown) note(g, dc.name + '反转！');
+      }
+      return { ok: true, events: g.events };
+    }
+    return fail('未知操作');
+  }
+  function legal(g, p) {
+    if (g.winner !== null || g.turn !== p) return [];
+    const me = g.players[p], out = [{ type: 'advance', player: p }];
+    if (g.phase === 'main') {
+      me.hand.forEach(uid => {
+        const c = definition(g, uid);
+        if (c.type === 'monster' && !g.normalSummoned && me.monsters.some(s => !s)) {
+          const need = c.level >= 7 ? 2 : c.level >= 5 ? 1 : 0, available = me.monsters.filter(Boolean);
+          if (available.length >= need) {
+            const combos = need === 0 ? [[]] : need === 1 ? available.map(s => [s.uid]) : available.flatMap((s, i) => available.slice(i + 1).map(t => [s.uid, t.uid]));
+            combos.forEach(tributes => { out.push({ type: 'summon', player: p, uid, position: 'attack', tributes }); out.push({ type: 'summon', player: p, uid, position: 'defense', faceDown: true, tributes }); });
+          }
+        } else if (c.type === 'spell' && hasEffectTarget(g, p, c)) out.push({ type: 'activateSpell', player: p, uid });
+        if ((c.type === 'spell' || c.type === 'trap') && me.spells.some(s => !s)) out.push({ type: 'setSpell', player: p, uid });
+      });
+      me.monsters.forEach(s => { if (s && !s.attacked && !s.positionChanged) out.push({ type: s.faceDown ? 'flip' : 'changePosition', player: p, uid: s.uid }); });
+    } else me.monsters.forEach(s => {
+      if (!s || s.faceDown || s.position !== 'attack' || s.attacked) return;
+      const targets = g.players[1 - p].monsters.filter(Boolean);
+      if (targets.length) targets.forEach(t => out.push({ type: 'attack', player: p, uid: s.uid, targetUid: t.uid }));
+      else out.push({ type: 'attack', player: p, uid: s.uid, targetUid: null });
+    });
+    return out;
+  }
+  return { createGame, act, legal, definition, CARDS };
+});
+
+
+/* ==== ai.js ==== */
+(function (root, factory) {
+  const api = factory(typeof require === 'function' ? require('./logic.js') : root.DuelLogic);
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.DuelAI = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (Logic) {
+  'use strict';
+  function choose(g, p) {
+    const actions = Logic.legal(g, p);
+    if (!actions.length) return null;
+    const def = uid => Logic.definition(g, uid);
+    if (g.phase === 'battle') {
+      const attacks = actions.filter(a => a.type === 'attack').map(a => {
+        const attacker = g.players[p].monsters.find(s => s && s.uid === a.uid);
+        const atk = Math.max(0, def(a.uid).atk + (attacker.buff || 0));
+        let score = -1;
+        if (!a.targetUid) score = 10000 + atk;
+        else {
+          const target = g.players[1 - p].monsters.find(s => s && s.uid === a.targetUid), c = def(a.targetUid);
+          const value = Math.max(0, (target.position === 'attack' ? c.atk : c.def) + (target.buff || 0));
+          if (atk > value) score = 2000 + atk - value + (target.position === 'attack' ? 800 : 0);
+          else if (atk === value && target.position === 'attack') score = 100;
+        }
+        return { a, score };
+      }).sort((x, y) => y.score - x.score);
+      return attacks[0] && attacks[0].score > 0 ? attacks[0].a : { type: 'advance', player: p };
+    }
+    const summons = actions.filter(a => a.type === 'summon').map(a => {
+      const c = def(a.uid), tributeCost = a.tributes.reduce((n, uid) => n + def(uid).atk * 0.85, 0);
+      return { a, score: c.atk + c.def * 0.18 - tributeCost + (a.position === 'attack' ? 30 : 0) };
+    }).sort((x, y) => y.score - x.score);
+    if (summons.length) return summons[0].a;
+    const spells = actions.filter(a => a.type === 'activateSpell').sort((a, b) => {
+      const priority = { damage: 8, draw: 7, destroyMonster: 6, heal: 5, equip: 4, buffAll: 4, revive: 4, weaken: 3, destroySpell: 2 };
+      return (priority[def(b.uid).effect.kind] || 0) - (priority[def(a.uid).effect.kind] || 0);
+    });
+    if (spells.length) return spells[0];
+    const traps = actions.filter(a => a.type === 'setSpell' && def(a.uid).type === 'trap');
+    if (traps.length) return traps[0];
+    const flips = actions.filter(a => a.type === 'flip' && def(a.uid).atk >= def(a.uid).def);
+    if (flips.length) return flips[0];
+    const changes = actions.filter(a => a.type === 'changePosition');
+    if (changes.length) {
+      const wise = changes.find(a => { const s = g.players[p].monsters.find(x => x && x.uid === a.uid), c = def(a.uid); return s.position === 'attack' ? c.def > c.atk : c.atk > c.def; });
+      if (wise) return wise;
+    }
+    const sets = actions.filter(a => a.type === 'setSpell');
+    if (sets.length && g.players[p].hand.length > 5) return sets[0];
+    return { type: 'advance', player: p };
+  }
+  return { choose };
+});
+
+
+/* ==== art.js ==== */
+(function (root) {
+  'use strict';
+
+  var TYPES = {
+    monster: { top: '#18365a', bottom: '#07111f', accent: '#f6c85f', glow: '#70d7ff', ink: '#091321' },
+    spell: { top: '#12645f', bottom: '#071f2b', accent: '#8df5ce', glow: '#70dfff', ink: '#062126' },
+    trap: { top: '#72244f', bottom: '#210d2c', accent: '#ff9ac2', glow: '#c394ff', ink: '#250d29' }
+  };
+
+  var ATTRIBUTES = {
+    fire: ['#ffcb66', '#f04b36'],
+    water: ['#80ecff', '#3478e5'],
+    earth: ['#e5bb75', '#7d6847'],
+    wind: ['#b8f5c8', '#38a990'],
+    light: ['#fff5b0', '#e6a942'],
+    dark: ['#d6a0ff', '#7043a8'],
+    divine: ['#fff8cf', '#e9bd4d']
+  };
+
+  function hash(value) {
+    var text = String(value == null ? '' : value);
+    var result = 2166136261;
+    for (var i = 0; i < text.length; i += 1) {
+      result ^= text.charCodeAt(i);
+      result = Math.imul(result, 16777619);
+    }
+    return result >>> 0;
+  }
+
+  function key(value) {
+    return String(value == null ? '' : value).toLowerCase();
+  }
+
+  function attribute(value) {
+    var name = key(value);
+    if (/fire|flame|pyro|火|炎/.test(name)) return 'fire';
+    if (/water|aqua|ice|水|冰/.test(name)) return 'water';
+    if (/earth|rock|ground|地|岩/.test(name)) return 'earth';
+    if (/wind|air|风|風/.test(name)) return 'wind';
+    if (/divine|god|神/.test(name)) return 'divine';
+    if (/light|holy|光|圣|聖/.test(name)) return 'light';
+    return 'dark';
+  }
+
+  function uri(svg) {
+    return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg.replace(/>\s+</g, '><').trim());
+  }
+
+  function stars(seed, color) {
+    var out = '';
+    for (var i = 0; i < 12; i += 1) {
+      var x = 24 + ((seed >>> (i % 16)) + i * 47) % 272;
+      var y = 24 + ((seed >>> ((i + 5) % 16)) + i * 31) % 238;
+      var r = 2 + (i % 3);
+      out += '<path d="M' + x + ' ' + (y - r * 2) + 'L' + (x + r) + ' ' + y + 'L' + x + ' ' + (y + r * 2) + 'L' + (x - r) + ' ' + y + 'Z" fill="' + color + '" opacity="' + (0.25 + (i % 4) * 0.12).toFixed(2) + '"/>';
+    }
+    return out;
+  }
+
+  function monsterShape(kind, p) {
+    var common = ' fill="url(#figure)" stroke="' + p.accent + '" stroke-width="3" stroke-linejoin="round"';
+    if (/dragon|serpent|wyvern|龙|龍/.test(kind)) {
+      return '<g>' +
+        '<path d="M73 240Q38 186 61 122Q92 145 120 176Q104 123 128 78L157 111L184 70Q213 120 196 172Q237 137 266 121Q279 183 235 237L201 212L184 278H125L112 216Z" fill="' + p.ink + '" opacity=".65"/>' +
+        '<path d="M105 235Q83 193 115 159L91 139L128 137Q122 105 148 84L158 112L179 89L184 125Q221 141 209 180Q205 196 190 202L223 228L196 231L176 213L173 276H126L129 215L93 230Z"' + common + '/>' +
+        '<path d="M132 157Q161 135 193 155L177 163L192 174Q156 187 126 173Z" fill="' + p.glow + '"/>' +
+        '<path d="M151 150L166 151L159 160Z" fill="' + p.ink + '"/>' +
+        '<path d="M127 215Q150 229 176 213M119 187Q153 203 196 184" fill="none" stroke="' + p.glow + '" stroke-width="5" opacity=".75"/>' +
+        '<path d="M113 160Q70 150 54 108Q94 111 127 136M190 142Q233 107 267 109Q250 153 207 166" fill="' + p.glow + '" opacity=".3" stroke="' + p.accent + '" stroke-width="3"/>' +
+        '</g>';
+    }
+    if (/warrior|knight|sword|战士|戰士|骑士|騎士|剑|劍/.test(kind)) {
+      return '<g>' +
+        '<path d="M223 61L238 75L205 218L190 230L181 217L196 201Z" fill="url(#metal)" stroke="' + p.accent + '" stroke-width="3"/>' +
+        '<path d="M177 206L216 224L209 237L170 219Z" fill="' + p.accent + '"/>' +
+        '<path d="M126 113L137 82L159 68L184 83L193 116L179 140H141Z"' + common + '/>' +
+        '<path d="M132 105L159 91L188 105L179 124H139Z" fill="' + p.ink + '"/>' +
+        '<path d="M144 109H177" stroke="' + p.glow + '" stroke-width="5"/>' +
+        '<path d="M119 139L143 128H178L202 143L218 211L191 222L185 278H130L124 221L95 208Z"' + common + '/>' +
+        '<path d="M144 142L159 164L177 141L184 205L159 224L135 204Z" fill="' + p.glow + '" opacity=".35"/>' +
+        '<path d="M112 151L76 169L83 223L117 214Z" fill="url(#metal)" stroke="' + p.accent + '" stroke-width="4"/>' +
+        '<path d="M94 169L103 207M82 187L115 187" stroke="' + p.glow + '" stroke-width="4"/>' +
+        '</g>';
+    }
+    if (/machine|mech|robot|cyber|机械|機械|机|機/.test(kind)) {
+      return '<g>' +
+        '<path d="M123 90L140 70H181L199 91L190 137H128Z"' + common + '/>' +
+        '<path d="M137 99H185L178 121H132Z" fill="' + p.glow + '"/>' +
+        '<path d="M148 107H174" stroke="' + p.ink + '" stroke-width="5"/>' +
+        '<path d="M112 137H203L221 208L194 232H119L92 207Z"' + common + '/>' +
+        '<path d="M91 144L61 158L48 220L79 228L108 184M207 144L239 156L265 211L235 226L207 184" fill="url(#metal)" stroke="' + p.accent + '" stroke-width="4"/>' +
+        '<path d="M132 231L122 278H151L160 240L171 278H201L187 229Z" fill="' + p.ink + '" stroke="' + p.accent + '" stroke-width="3"/>' +
+        '<circle cx="158" cy="179" r="30" fill="' + p.ink + '" stroke="' + p.glow + '" stroke-width="5"/>' +
+        '<path d="M158 157L177 188H139Z" fill="' + p.accent + '"/>' +
+        '<path d="M118 151H197M111 207H203" stroke="' + p.glow + '" stroke-width="4" opacity=".6"/>' +
+        '</g>';
+    }
+    if (/beast|wolf|tiger|兽|獸|狼|虎/.test(kind)) {
+      return '<g>' +
+        '<path d="M80 233Q52 195 84 169Q52 136 77 98L118 126Q154 106 193 125L236 91Q254 137 222 166Q261 199 229 235L188 221L177 278H137L126 222Z" fill="' + p.ink + '" opacity=".7"/>' +
+        '<path d="M99 157L78 111L124 135Q158 119 194 136L235 108L218 159Q235 193 207 217L189 249L176 278H134L122 242L102 216Q77 190 99 157Z"' + common + '/>' +
+        '<path d="M108 160L137 151L128 170ZM183 151L211 160L191 170Z" fill="' + p.glow + '"/>' +
+        '<path d="M130 183L159 170L188 184L176 211L159 221L141 209Z" fill="' + p.ink + '"/>' +
+        '<path d="M149 185H170L159 198Z" fill="' + p.accent + '"/>' +
+        '<path d="M111 196L75 203M112 207L77 224M205 195L242 201M204 207L239 224" stroke="' + p.accent + '" stroke-width="3"/>' +
+        '</g>';
+    }
+    if (/fiend|demon|devil|恶魔|惡魔|魔/.test(kind)) {
+      return '<g>' +
+        '<path d="M115 133Q74 90 99 53Q104 94 143 104M179 104Q220 91 224 50Q251 91 203 137" fill="' + p.ink + '" stroke="' + p.accent + '" stroke-width="4"/>' +
+        '<path d="M118 115L145 96H180L205 119L194 164L174 183H143L121 159Z"' + common + '/>' +
+        '<path d="M130 132L150 126L143 142ZM173 126L192 132L179 143Z" fill="' + p.glow + '"/>' +
+        '<path d="M130 174L99 144Q61 175 78 234L125 207L133 278H184L192 208L242 235Q253 174 216 145L187 176Z" fill="' + p.ink + '" stroke="' + p.accent + '" stroke-width="4"/>' +
+        '<path d="M140 181L160 204L181 180L188 243L159 264L133 241Z" fill="url(#figure)"/>' +
+        '<path d="M160 204V252M137 222H184" stroke="' + p.glow + '" stroke-width="4" opacity=".7"/>' +
+        '</g>';
+    }
+    return '<g>' +
+      '<circle cx="160" cy="164" r="101" fill="none" stroke="' + p.glow + '" stroke-width="3" opacity=".4"/>' +
+      '<path d="M160 48L177 83L207 58L209 100L249 91L229 128L268 142L231 162L258 193L216 194L218 238L180 218L160 258L140 219L100 239L105 195L62 194L89 162L52 142L91 128L70 91L111 100L113 58L143 83Z" fill="' + p.glow + '" opacity=".18"/>' +
+      '<path d="M129 111Q126 72 160 61Q195 73 191 112L181 139H139Z"' + common + '/>' +
+      '<path d="M137 103L160 82L184 104L175 123H143Z" fill="' + p.ink + '"/>' +
+      '<path d="M147 106H174" stroke="' + p.glow + '" stroke-width="5"/>' +
+      '<path d="M126 132L96 157L75 231L116 213L126 278H195L204 213L245 232L224 157L192 132L160 161Z"' + common + '/>' +
+      '<path d="M160 161L137 197L160 232L184 197Z" fill="' + p.glow + '" opacity=".55"/>' +
+      '<path d="M104 156L66 128M216 156L254 128" stroke="' + p.accent + '" stroke-width="6"/>' +
+      '<circle cx="61" cy="123" r="12" fill="' + p.glow + '"/><circle cx="259" cy="123" r="12" fill="' + p.glow + '"/>' +
+      '</g>';
+  }
+
+  function spellShape(kind, p) {
+    if (/heal|life|recovery|恢复|治|回复|回復/.test(kind)) {
+      return '<g><path d="M160 267C119 226 65 188 65 130C65 65 139 58 160 111C181 58 255 65 255 130C255 188 201 226 160 267Z" fill="url(#figure)" stroke="' + p.accent + '" stroke-width="5"/><path d="M146 112H174V145H207V173H174V206H146V173H113V145H146Z" fill="' + p.glow + '" stroke="' + p.ink + '" stroke-width="3"/><path d="M94 94L72 70M226 94L248 70M160 75V43" stroke="' + p.accent + '" stroke-width="6" stroke-linecap="round"/></g>';
+    }
+    if (/sword|equip|blade|weapon|剑|劍|装备|裝備/.test(kind)) {
+      return '<g transform="rotate(35 160 160)"><path d="M160 29L181 58L174 203L160 229L146 203L139 58Z" fill="url(#metal)" stroke="' + p.accent + '" stroke-width="4"/><path d="M160 53V193" stroke="' + p.glow + '" stroke-width="5"/><path d="M103 199L160 183L217 199L207 220L174 216V268H146V216L113 220Z" fill="' + p.ink + '" stroke="' + p.accent + '" stroke-width="4"/><circle cx="160" cy="247" r="10" fill="' + p.glow + '"/></g>';
+    }
+    if (/draw|book|scroll|knowledge|抽|书|書|卷/.test(kind)) {
+      return '<g><path d="M54 91Q107 67 153 101V251Q104 219 54 240ZM266 91Q213 67 167 101V251Q216 219 266 240Z" fill="url(#figure)" stroke="' + p.accent + '" stroke-width="5"/><path d="M160 103V253M79 123Q111 112 134 128M79 153Q111 142 134 158M186 128Q211 112 241 123M186 158Q211 142 241 153" fill="none" stroke="' + p.glow + '" stroke-width="5"/><path d="M160 35L174 65L160 88L146 65Z" fill="' + p.glow + '"/></g>';
+    }
+    return '<g><circle cx="160" cy="158" r="104" fill="' + p.ink + '" opacity=".55" stroke="' + p.accent + '" stroke-width="4"/><circle cx="160" cy="158" r="78" fill="none" stroke="' + p.glow + '" stroke-width="4" stroke-dasharray="10 9"/><path d="M160 53L184 124L260 128L200 175L220 249L160 205L100 249L120 175L60 128L136 124Z" fill="url(#figure)" stroke="' + p.accent + '" stroke-width="4"/><circle cx="160" cy="157" r="35" fill="' + p.glow + '" opacity=".8"/><path d="M160 127L175 157L160 187L145 157Z" fill="' + p.ink + '"/></g>';
+  }
+
+  function trapShape(kind, p) {
+    if (/mirror|reflect|镜|鏡|反射/.test(kind)) {
+      return '<g><path d="M160 43L252 92V210L160 269L68 210V92Z" fill="url(#metal)" stroke="' + p.accent + '" stroke-width="6"/><path d="M160 68L229 107V196L160 239L91 196V107Z" fill="' + p.ink + '" stroke="' + p.glow + '" stroke-width="4"/><path d="M112 184L195 101M139 211L219 125M98 153L164 88" stroke="' + p.glow + '" stroke-width="9" opacity=".65"/><path d="M160 25V48M160 267V291M41 157H68M252 157H279" stroke="' + p.accent + '" stroke-width="6"/></g>';
+    }
+    if (/chain|bind|negate|锁|鎖|封|无效|無效/.test(kind)) {
+      return '<g fill="none" stroke="' + p.accent + '" stroke-width="12"><ellipse cx="103" cy="108" rx="38" ry="57" transform="rotate(-38 103 108)"/><ellipse cx="158" cy="158" rx="38" ry="57" transform="rotate(-38 158 158)"/><ellipse cx="214" cy="208" rx="38" ry="57" transform="rotate(-38 214 208)"/></g><path d="M160 84L182 137L238 142L195 180L208 236L160 205L112 236L125 180L82 142L138 137Z" fill="url(#figure)" stroke="' + p.glow + '" stroke-width="4"/>';
+    }
+    return '<g><path d="M47 157Q160 42 273 157Q160 272 47 157Z" fill="url(#figure)" stroke="' + p.accent + '" stroke-width="5"/><circle cx="160" cy="157" r="63" fill="' + p.ink + '" stroke="' + p.glow + '" stroke-width="5"/><circle cx="160" cy="157" r="29" fill="' + p.glow + '"/><circle cx="160" cy="157" r="12" fill="' + p.ink + '"/><path d="M160 42V72M160 242V274M47 79L74 103M246 211L273 235M47 235L74 211M246 103L273 79" stroke="' + p.accent + '" stroke-width="6"/><path d="M99 267L86 291M132 273L127 302M188 273L193 302M221 267L234 291" stroke="' + p.glow + '" stroke-width="5"/></g>';
+  }
+
+  function card(cardData) {
+    var data = cardData || {};
+    var type = TYPES[data.type] ? data.type : 'monster';
+    var p = TYPES[type];
+    var attr = ATTRIBUTES[attribute(data.attribute)];
+    var icon = key(data.icon || data.race || data.type);
+    var seed = hash((data.id || '') + '|' + icon + '|' + type);
+    var figure = type === 'monster' ? monsterShape(icon, p) : type === 'spell' ? spellShape(icon, p) : trapShape(icon, p);
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" width="320" height="320">' +
+      '<defs>' +
+      '<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="' + attr[1] + '"/><stop offset=".48" stop-color="' + p.top + '"/><stop offset="1" stop-color="' + p.bottom + '"/></linearGradient>' +
+      '<radialGradient id="aura"><stop stop-color="' + attr[0] + '" stop-opacity=".7"/><stop offset="1" stop-color="' + p.glow + '" stop-opacity="0"/></radialGradient>' +
+      '<linearGradient id="figure" x1="0" y1="0" x2="1" y2="1"><stop stop-color="' + attr[0] + '"/><stop offset=".48" stop-color="' + attr[1] + '"/><stop offset="1" stop-color="' + p.ink + '"/></linearGradient>' +
+      '<linearGradient id="metal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="' + p.ink + '"/><stop offset=".45" stop-color="' + attr[0] + '"/><stop offset=".58" stop-color="#ffffff"/><stop offset="1" stop-color="' + attr[1] + '"/></linearGradient>' +
+      '<pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="' + p.glow + '" stroke-width="1" opacity=".12"/></pattern>' +
+      '</defs>' +
+      '<rect x="3" y="3" width="314" height="314" rx="25" fill="url(#bg)"/>' +
+      '<rect x="4" y="4" width="312" height="312" rx="24" fill="url(#grid)"/>' +
+      '<circle cx="160" cy="145" r="145" fill="url(#aura)"/>' +
+      '<path d="M18 91V31Q18 18 31 18H91M229 18H289Q302 18 302 31V91M302 229V289Q302 302 289 302H229M91 302H31Q18 302 18 289V229" fill="none" stroke="' + p.accent + '" stroke-width="5"/>' +
+      '<path d="M160 15L172 28L160 41L148 28ZM160 279L172 292L160 305L148 292Z" fill="' + p.accent + '"/>' +
+      '<path d="M35 213L160 288L285 213M35 232L160 307L285 232" fill="none" stroke="' + p.glow + '" stroke-width="2" opacity=".25"/>' +
+      '<ellipse cx="160" cy="280" rx="105" ry="19" fill="' + p.ink + '" opacity=".65"/>' +
+      stars(seed, attr[0]) + figure +
+      '<rect x="5" y="5" width="310" height="310" rx="23" fill="none" stroke="' + attr[0] + '" stroke-width="2" opacity=".7"/>' +
+      '</svg>';
+    return uri(svg);
+  }
+
+  function avatar(who) {
+    var rival = who === 1 || who === '1' || who === 'opponent' || who === 'ai';
+    var p = rival ? {
+      bg0: '#4c2478', bg1: '#0c0916', accent: '#c587ff', glow: '#f06fd6', skin: '#d8b2c9', shade: '#a7789c', hair: '#17111f', hairLight: '#513060', eye: '#e487ff', cloth: '#171321'
+    } : {
+      bg0: '#17679c', bg1: '#071729', accent: '#ffd66b', glow: '#72dfff', skin: '#f1c7a5', shade: '#c88d78', hair: '#15334f', hairLight: '#276b91', eye: '#65dfff', cloth: '#102c4b'
+    };
+    var hair = rival ?
+      '<path d="M66 112Q50 47 110 35L98 12L137 28L165 7L169 33Q220 50 194 122L177 91L160 108L144 74L126 104L110 75L88 117Z" fill="' + p.hair + '" stroke="' + p.accent + '" stroke-width="3"/><path d="M91 65L119 42L112 70M146 43L166 28L162 65M179 54L196 72" fill="none" stroke="' + p.hairLight + '" stroke-width="8" stroke-linecap="round"/>' :
+      '<path d="M67 112Q49 55 99 35L87 13L126 28L150 5L158 31L190 17L184 43Q216 71 192 119L174 85L151 105L139 69L113 102L101 73L84 119Z" fill="' + p.hair + '" stroke="' + p.accent + '" stroke-width="3"/><path d="M86 61L111 43L105 72M132 42L150 20L151 57M166 47L184 32" fill="none" stroke="' + p.hairLight + '" stroke-width="8" stroke-linecap="round"/>';
+    var collar = rival ?
+      '<path d="M69 246L79 180L108 165L128 195L150 165L181 180L193 246Z" fill="' + p.cloth + '" stroke="' + p.accent + '" stroke-width="4"/><path d="M79 181L50 153L57 218M181 181L210 151L204 219" fill="' + p.hair + '" stroke="' + p.accent + '" stroke-width="4"/><path d="M104 178L128 207L153 177L145 239H111Z" fill="' + p.accent + '" opacity=".32"/>' :
+      '<path d="M55 246L73 183L107 164L128 190L151 164L185 183L203 246Z" fill="' + p.cloth + '" stroke="' + p.accent + '" stroke-width="4"/><path d="M74 181L99 176L128 208L158 176L184 182L166 218L128 236L91 217Z" fill="#e8f4ff" opacity=".9"/><path d="M109 190L128 209L148 190L141 239H116Z" fill="' + p.accent + '"/>';
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">' +
+      '<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="' + p.bg0 + '"/><stop offset="1" stop-color="' + p.bg1 + '"/></linearGradient><linearGradient id="skin" x1="0" y1="0" x2="1" y2="1"><stop stop-color="' + p.skin + '"/><stop offset="1" stop-color="' + p.shade + '"/></linearGradient></defs>' +
+      '<rect width="256" height="256" rx="38" fill="url(#bg)"/>' +
+      '<circle cx="128" cy="111" r="104" fill="none" stroke="' + p.glow + '" stroke-width="3" opacity=".3"/>' +
+      '<path d="M128 7L143 24L128 41L113 24ZM18 128L35 113L52 128L35 143ZM204 128L221 113L238 128L221 143Z" fill="' + p.accent + '" opacity=".65"/>' +
+      '<path d="M12 207L73 167M183 167L244 207M20 66L68 92M188 92L236 66" stroke="' + p.glow + '" stroke-width="3" opacity=".28"/>' +
+      collar +
+      '<path d="M106 144V178L128 195L151 177V141Z" fill="url(#skin)" stroke="' + p.bg1 + '" stroke-width="3"/>' +
+      '<path d="M77 94Q77 52 128 47Q181 52 181 98V125Q174 163 128 174Q83 163 76 125Z" fill="url(#skin)" stroke="' + p.bg1 + '" stroke-width="3"/>' +
+      '<path d="M77 107L65 102Q57 120 74 132M180 107L192 102Q200 120 182 132" fill="url(#skin)" stroke="' + p.bg1 + '" stroke-width="3"/>' +
+      hair +
+      '<path d="M91 116Q104 106 116 115M141 115Q154 106 167 116" fill="none" stroke="' + p.bg1 + '" stroke-width="5" stroke-linecap="round"/>' +
+      '<path d="M94 122Q105 130 116 121Q105 115 94 122ZM141 121Q152 130 164 122Q152 115 141 121Z" fill="' + p.eye + '"/>' +
+      '<path d="M128 123L122 141L132 143" fill="none" stroke="' + p.shade + '" stroke-width="3"/>' +
+      (rival ? '<path d="M112 153Q128 148 145 153Q128 163 112 153Z" fill="' + p.bg1 + '"/>' : '<path d="M111 151Q128 163 146 150Q130 170 111 151Z" fill="#9f5f5f"/>') +
+      '<path d="M88 143L76 149M169 143L181 149" stroke="' + p.accent + '" stroke-width="3" opacity=".65"/>' +
+      '<path d="M128 215L139 226L128 241L117 226Z" fill="' + p.glow + '" stroke="' + p.accent + '" stroke-width="3"/>' +
+      '<rect x="3" y="3" width="250" height="250" rx="36" fill="none" stroke="' + p.accent + '" stroke-width="4"/>' +
+      '</svg>';
+    return uri(svg);
+  }
+
+  var api = { card: card, avatar: avatar };
+  root.DuelArt = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ==== audio.js ==== */
+(function (root) {
+  'use strict';
+
+  var AudioContextClass = root.AudioContext || root.webkitAudioContext;
+  var context = null;
+  var master = null;
+  var noiseBuffer = null;
+  var unlockPromise = null;
+  var resumeOnVisible = false;
+  var activeVoices = 0;
+  var isMuted = false;
+  var MAX_VOICES = 24;
+
+  function setMasterVolume() {
+    if (!context || !master) return;
+    var now = context.currentTime;
+    master.gain.cancelScheduledValues(now);
+    master.gain.setTargetAtTime(isMuted ? 0 : 0.16, now, 0.015);
+  }
+
+  function createContext() {
+    if (context && context.state !== 'closed') return true;
+    if (!AudioContextClass) return false;
+    try {
+      context = new AudioContextClass();
+      master = context.createGain();
+      master.gain.value = isMuted ? 0 : 0.16;
+      master.connect(context.destination);
+      noiseBuffer = null;
+      return true;
+    } catch (error) {
+      context = null;
+      master = null;
+      return false;
+    }
+  }
+
+  function unlock() {
+    if (!createContext()) return Promise.resolve(false);
+    if (context.state === 'running') return Promise.resolve(true);
+    if (unlockPromise) return unlockPromise;
+
+    unlockPromise = Promise.resolve()
+      .then(function () {
+        return context.resume();
+      })
+      .then(function () {
+        unlockPromise = null;
+        return context.state === 'running';
+      })
+      .catch(function () {
+        unlockPromise = null;
+        return false;
+      });
+    return unlockPromise;
+  }
+
+  function disconnectOnEnd(source, nodes) {
+    source.onended = function () {
+      activeVoices = Math.max(0, activeVoices - 1);
+      nodes.forEach(function (node) {
+        try {
+          node.disconnect();
+        } catch (error) {}
+      });
+    };
+  }
+
+  function tone(frequency, endFrequency, start, duration, volume, type) {
+    if (activeVoices >= MAX_VOICES) return;
+    var oscillator = context.createOscillator();
+    var gain = context.createGain();
+    activeVoices += 1;
+    oscillator.type = type || 'sine';
+    oscillator.frequency.setValueAtTime(Math.max(20, frequency), start);
+    if (endFrequency) {
+      oscillator.frequency.exponentialRampToValueAtTime(Math.max(20, endFrequency), start + duration);
+    }
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume), start + Math.min(0.012, duration / 3));
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    oscillator.connect(gain);
+    gain.connect(master);
+    disconnectOnEnd(oscillator, [oscillator, gain]);
+    oscillator.start(start);
+    oscillator.stop(start + duration + 0.02);
+  }
+
+  function noise(start, duration, volume, cutoff) {
+    if (activeVoices >= MAX_VOICES) return;
+    if (!noiseBuffer) {
+      var length = Math.ceil(context.sampleRate * 0.6);
+      noiseBuffer = context.createBuffer(1, length, context.sampleRate);
+      var data = noiseBuffer.getChannelData(0);
+      for (var i = 0; i < length; i += 1) data[i] = Math.random() * 2 - 1;
+    }
+    var source = context.createBufferSource();
+    var filter = context.createBiquadFilter();
+    var gain = context.createGain();
+    activeVoices += 1;
+    source.buffer = noiseBuffer;
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(cutoff || 1800, start);
+    filter.frequency.exponentialRampToValueAtTime(120, start + duration);
+    gain.gain.setValueAtTime(Math.max(0.0001, volume), start);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(master);
+    disconnectOnEnd(source, [source, filter, gain]);
+    source.start(start);
+    source.stop(start + duration + 0.02);
+  }
+
+  var sounds = {
+    draw: function (t) {
+      tone(520, 920, t, 0.11, 0.16, 'sine');
+      tone(1040, 1380, t + 0.055, 0.08, 0.08, 'triangle');
+    },
+    summon: function (t) {
+      tone(110, 330, t, 0.34, 0.22, 'sawtooth');
+      tone(220, 440, t + 0.06, 0.3, 0.12, 'triangle');
+      tone(440, 660, t + 0.15, 0.25, 0.08, 'sine');
+    },
+    spell: function (t) {
+      tone(330, 990, t, 0.38, 0.12, 'sine');
+      tone(495, 1485, t + 0.04, 0.34, 0.08, 'sine');
+      tone(660, 1320, t + 0.12, 0.25, 0.06, 'triangle');
+    },
+    trap: function (t) {
+      tone(190, 55, t, 0.3, 0.2, 'sawtooth');
+      tone(380, 90, t + 0.025, 0.24, 0.08, 'square');
+    },
+    attack: function (t) {
+      noise(t, 0.2, 0.2, 3200);
+      tone(240, 65, t, 0.23, 0.2, 'sawtooth');
+    },
+    damage: function (t) {
+      noise(t, 0.3, 0.24, 1000);
+      tone(95, 42, t, 0.32, 0.26, 'square');
+    },
+    destroy: function (t) {
+      noise(t, 0.48, 0.22, 2200);
+      tone(180, 35, t, 0.42, 0.18, 'sawtooth');
+    },
+    phase: function (t) {
+      tone(392, 392, t, 0.11, 0.12, 'triangle');
+      tone(587, 587, t + 0.1, 0.16, 0.12, 'triangle');
+    },
+    win: function (t) {
+      [523, 659, 784, 1047].forEach(function (frequency, index) {
+        tone(frequency, frequency, t + index * 0.12, index === 3 ? 0.5 : 0.18, 0.13, 'triangle');
+      });
+    },
+    click: function (t) {
+      tone(720, 520, t, 0.045, 0.1, 'sine');
+    }
+  };
+
+  function play(name) {
+    if (isMuted || !sounds[name]) return Promise.resolve(false);
+    if (root.document && root.document.hidden) return Promise.resolve(false);
+    return unlock().then(function (ready) {
+      if (!ready || isMuted || !context || context.state !== 'running') return false;
+      if (root.document && root.document.hidden) return false;
+      try {
+        sounds[name](context.currentTime + 0.005);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }).catch(function () {
+      return false;
+    });
+  }
+
+  function toggle() {
+    isMuted = !isMuted;
+    setMasterVolume();
+    return isMuted;
+  }
+
+  if (root.document && root.document.addEventListener) {
+    root.document.addEventListener('visibilitychange', function () {
+      if (!context || context.state === 'closed') return;
+      if (root.document.hidden) {
+        resumeOnVisible = context.state === 'running';
+        if (resumeOnVisible) context.suspend().catch(function () {});
+      } else if (resumeOnVisible) {
+        resumeOnVisible = false;
+        context.resume().catch(function () {});
+      }
+    });
+  }
+
+  var api = {
+    unlock: unlock,
+    play: play,
+    toggle: toggle
+  };
+  Object.defineProperty(api, 'muted', {
+    enumerable: true,
+    get: function () { return isMuted; }
+  });
+
+  root.DuelAudio = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ==== fx.js ==== */
+(function (root) {
+  'use strict';
+
+  var doc = root.document;
+  var layer = null;
+  var canvas = null;
+  var context = null;
+  var textLayer = null;
+  var particles = [];
+  var messages = [];
+  var frame = 0;
+  var lastTime = 0;
+  var width = 0;
+  var height = 0;
+  var shakeAnimation = null;
+  var motionQuery = root.matchMedia ? root.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  var reducedMotion = !!(motionQuery && motionQuery.matches);
+  var palettes = {
+    draw: ['#7dd3fc', '#e0f2fe', '#60a5fa'],
+    summon: ['#fbbf24', '#fef3c7', '#f97316'],
+    spell: ['#c084fc', '#f5d0fe', '#818cf8'],
+    trap: ['#fb7185', '#fecdd3', '#a855f7'],
+    attack: ['#fb923c', '#fef08a', '#ef4444'],
+    damage: ['#ef4444', '#fca5a5', '#f97316'],
+    destroy: ['#94a3b8', '#e2e8f0', '#f97316'],
+    phase: ['#34d399', '#a7f3d0', '#38bdf8'],
+    win: ['#fde047', '#fbbf24', '#f9a8d4', '#a78bfa'],
+    click: ['#e2e8f0', '#94a3b8']
+  };
+
+  function isMobile() {
+    return width <= 600 || (root.matchMedia && root.matchMedia('(pointer: coarse)').matches);
+  }
+
+  function resize() {
+    if (!canvas || !context) return;
+    width = Math.max(1, root.innerWidth || doc.documentElement.clientWidth || 1);
+    height = Math.max(1, root.innerHeight || doc.documentElement.clientHeight || 1);
+    var ratio = Math.min(root.devicePixelRatio || 1, isMobile() ? 1.5 : 2);
+    canvas.width = Math.round(width * ratio);
+    canvas.height = Math.round(height * ratio);
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+  }
+
+  function ensureLayer() {
+    if (layer && layer.parentNode) return true;
+    if (!doc || !doc.createElement) return false;
+    var parent = doc.body || doc.documentElement;
+    if (!parent) return false;
+
+    layer = doc.createElement('div');
+    layer.setAttribute('aria-hidden', 'true');
+    layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:2147483000;';
+
+    canvas = doc.createElement('canvas');
+    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
+    layer.appendChild(canvas);
+    context = canvas.getContext('2d');
+
+    textLayer = doc.createElement('div');
+    textLayer.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
+    layer.appendChild(textLayer);
+    parent.appendChild(layer);
+    resize();
+    root.addEventListener('resize', resize, { passive: true });
+    return true;
+  }
+
+  function centerOf(element) {
+    var x = width / 2 || (root.innerWidth || 0) / 2;
+    var y = height / 2 || (root.innerHeight || 0) / 2;
+    if (element && typeof element.getBoundingClientRect === 'function') {
+      var rect = element.getBoundingClientRect();
+      if (rect && isFinite(rect.left) && isFinite(rect.top)) {
+        x = rect.left + (rect.width || 0) / 2;
+        y = rect.top + (rect.height || 0) / 2;
+      }
+    }
+    return { x: x, y: y };
+  }
+
+  function requestFrame(callback) {
+    return (root.requestAnimationFrame || function (fn) {
+      return root.setTimeout(function () { fn(Date.now()); }, 16);
+    })(callback);
+  }
+
+  function animate(now) {
+    frame = 0;
+    if (!context || reducedMotion) {
+      particles.length = 0;
+      return;
+    }
+    var delta = Math.min(0.034, Math.max(0.001, (now - lastTime) / 1000));
+    lastTime = now;
+    context.clearRect(0, 0, width, height);
+
+    for (var i = particles.length - 1; i >= 0; i -= 1) {
+      var particle = particles[i];
+      particle.life -= delta;
+      if (particle.life <= 0) {
+        particles.splice(i, 1);
+        continue;
+      }
+      particle.vy += particle.gravity * delta;
+      particle.x += particle.vx * delta;
+      particle.y += particle.vy * delta;
+      particle.rotation += particle.spin * delta;
+      var alpha = Math.min(1, particle.life / particle.fade);
+      context.globalAlpha = alpha;
+      context.fillStyle = particle.color;
+      context.beginPath();
+      context.arc(particle.x, particle.y, particle.size * Math.min(1, particle.life * 5), 0, Math.PI * 2);
+      context.fill();
+    }
+    context.globalAlpha = 1;
+    if (particles.length) frame = requestFrame(animate);
+    else context.clearRect(0, 0, width, height);
+  }
+
+  function burst(kind, element) {
+    try {
+      if (reducedMotion || !ensureLayer() || !context) return;
+      var point = centerOf(element);
+      var colors = palettes[kind] || palettes.click;
+      var mobile = isMobile();
+      var limit = mobile ? 56 : 96;
+      var count = mobile ? 10 : 18;
+      if (kind === 'win') count = mobile ? 20 : 34;
+      else if (kind === 'destroy' || kind === 'summon') count = mobile ? 14 : 24;
+      count = Math.min(count, limit - particles.length);
+
+      for (var i = 0; i < count; i += 1) {
+        var angle = Math.random() * Math.PI * 2;
+        var speed = (kind === 'win' ? 100 : 65) + Math.random() * (mobile ? 110 : 170);
+        var life = 0.4 + Math.random() * 0.45;
+        particles.push({
+          x: point.x,
+          y: point.y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - (kind === 'win' ? 80 : 20),
+          gravity: kind === 'spell' || kind === 'draw' ? 35 : 210,
+          size: 1.5 + Math.random() * (mobile ? 2.5 : 3.5),
+          color: colors[Math.floor(Math.random() * colors.length)],
+          life: life,
+          fade: life * 0.7,
+          rotation: 0,
+          spin: 0
+        });
+      }
+      if (particles.length && !frame) {
+        lastTime = (root.performance && root.performance.now ? root.performance.now() : Date.now());
+        frame = requestFrame(animate);
+      }
+    } catch (error) {}
+  }
+
+  function removeMessage(item) {
+    var index = messages.indexOf(item);
+    if (index !== -1) messages.splice(index, 1);
+    if (item.timer) root.clearTimeout(item.timer);
+    if (item.node.parentNode) item.node.parentNode.removeChild(item.node);
+  }
+
+  function text(message, element) {
+    try {
+      if ((message === undefined || message === null || message === '') || !ensureLayer()) return;
+      var point = centerOf(element);
+      var node = doc.createElement('div');
+      node.textContent = String(message);
+      node.style.cssText = 'position:absolute;left:' + Math.max(12, Math.min(width - 12, point.x)) + 'px;top:' + Math.max(24, Math.min(height - 24, point.y)) + 'px;transform:translate(-50%,-50%);max-width:88vw;padding:.35em .65em;border-radius:.5em;background:rgba(15,23,42,.82);color:#fff;font:700 clamp(16px,4vw,28px)/1.2 system-ui,-apple-system,sans-serif;text-align:center;white-space:normal;overflow-wrap:anywhere;box-sizing:border-box;';
+      textLayer.appendChild(node);
+      var item = { node: node, timer: 0, animation: null };
+      messages.push(item);
+      while (messages.length > 6) removeMessage(messages[0]);
+
+      if (!reducedMotion && typeof node.animate === 'function') {
+        item.animation = node.animate([
+          { opacity: 0, transform: 'translate(-50%,-35%) scale(.85)' },
+          { opacity: 1, transform: 'translate(-50%,-65%) scale(1)', offset: 0.22 },
+          { opacity: 1, transform: 'translate(-50%,-100%) scale(1)', offset: 0.72 },
+          { opacity: 0, transform: 'translate(-50%,-145%) scale(.96)' }
+        ], { duration: 1100, easing: 'ease-out', fill: 'forwards' });
+      }
+      item.timer = root.setTimeout(function () { removeMessage(item); }, reducedMotion ? 1300 : 1150);
+    } catch (error) {}
+  }
+
+  function shake() {
+    try {
+      if (reducedMotion || !doc) return;
+      var target = doc.getElementById('duelScreen') || doc.body;
+      if (!target || typeof target.animate !== 'function') return;
+      if (shakeAnimation) shakeAnimation.cancel();
+      var distance = isMobile() ? 4 : 7;
+      shakeAnimation = target.animate([
+        { transform: 'translate(0,0)' },
+        { transform: 'translate(' + -distance + 'px,2px)' },
+        { transform: 'translate(' + distance + 'px,-2px)' },
+        { transform: 'translate(' + -distance * 0.6 + 'px,0)' },
+        { transform: 'translate(' + distance * 0.6 + 'px,1px)' },
+        { transform: 'translate(0,0)' }
+      ], { duration: 280, easing: 'ease-out' });
+    } catch (error) {}
+  }
+
+  function motionChanged(event) {
+    reducedMotion = event.matches;
+    if (!reducedMotion) return;
+    particles.length = 0;
+    if (frame && root.cancelAnimationFrame) root.cancelAnimationFrame(frame);
+    frame = 0;
+    if (context) context.clearRect(0, 0, width, height);
+    if (shakeAnimation) shakeAnimation.cancel();
+  }
+
+  if (motionQuery) {
+    if (motionQuery.addEventListener) motionQuery.addEventListener('change', motionChanged);
+    else if (motionQuery.addListener) motionQuery.addListener(motionChanged);
+  }
+
+  var api = { burst: burst, text: text, shake: shake };
+  root.DuelFx = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ==== game.js ==== */
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const CARDS = DuelCards.CARDS, DECKS = DuelCards.DECKS;
+  const Art = window.DuelArt, Audio = window.DuelAudio, Fx = window.DuelFx;
+  let profile = { deck: 0, wins: 0, losses: 0, muted: false };
+  try { profile = Object.assign(profile, JSON.parse(localStorage.getItem('duel-legends.profile.v1') || '{}')); } catch (_) {}
+  if (window.__q && __q.reset) { profile = { deck: 0, wins: 0, losses: 0, muted: false }; try { localStorage.removeItem('duel-legends.profile.v1'); } catch (_) {} }
+  let game = null, selectedDeck = Math.max(0, Math.min(DECKS.length - 1, Number(profile.deck) || 0));
+  let aiBusy = false, aiTimer = 0, resultRecorded = false, currentFilter = 'all', toastTimer;
+  const typeNames = { monster: '怪兽卡', spell: '魔法卡', trap: '陷阱卡' };
+  const cardBack = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 286"><defs><radialGradient id="g"><stop stop-color="#284664"/><stop offset="1" stop-color="#080f1c"/></radialGradient></defs><rect width="200" height="286" fill="url(#g)"/><rect x="9" y="9" width="182" height="268" rx="7" fill="none" stroke="#8f7c54"/><g fill="none" stroke="#bca56b" opacity=".7"><circle cx="100" cy="143" r="55"/><circle cx="100" cy="143" r="43" stroke-dasharray="3 7"/><path d="M100 78l15 50 50 15-50 15-15 50-15-50-50-15 50-15z"/></g><text x="100" y="158" text-anchor="middle" font-family="serif" font-size="48" fill="#dec58b">D</text></svg>');
+  function save() { profile.deck = selectedDeck; profile.muted = !!Audio.muted; try { localStorage.setItem('duel-legends.profile.v1', JSON.stringify(profile)); } catch (_) {} }
+  function toast(message) { $('toast').textContent = message; $('toast').classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2200); }
+  function closeModals() { document.querySelectorAll('.modal').forEach(m => { if (m.id !== 'resultModal') m.hidden = true; }); }
+  function showScreen(id) { closeModals(); $('resultModal').hidden = true; document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id)); window.scrollTo(0, 0); }
+  function updateSound() { $('soundBtn').textContent = Audio.muted ? '♩' : '♪'; $('soundBtn').setAttribute('aria-label', Audio.muted ? '开启声音' : '静音'); }
+  function toggleSound() { Audio.unlock(); Audio.toggle(); updateSound(); save(); }
+  function renderDecks() {
+    $('deckChoices').innerHTML = DECKS.map((d, i) => '<button class="deck-choice ' + (i === selectedDeck ? 'selected' : '') + '" data-deck="' + i + '"><span class="deck-icon">' + ['♨', '♧', '✦'][i] + '</span><b>' + d.name + '</b><small>' + d.desc + '</small></button>').join('');
+    $('recordText').textContent = profile.wins + ' 胜 · ' + profile.losses + ' 负';
+  }
+  function cardDef(uid) { return CARDS[game.cards[uid].id]; }
+  function cardHTML(uid, options) {
+    options = options || {}; const c = options.card || cardDef(uid), hidden = options.faceDown;
+    const cls = ['game-card', c.type, hidden ? 'face-down' : '', options.position === 'defense' ? 'defense' : '', options.attacked ? 'attacked' : ''].filter(Boolean).join(' ');
+    const art = hidden ? cardBack : Art.card(c);
+    const name = hidden ? '里侧卡牌' : c.name;
+    return '<button class="' + cls + '" data-uid="' + uid + '" data-owner="' + options.owner + '" data-zone="' + (options.zone || '') + '" aria-label="' + name + '"><img draggable="false" src="' + art + '" alt="">' + (hidden ? '' : '<span class="mini-name">' + c.name + '</span>') + (!hidden && c.type === 'monster' ? '<span class="stats">' + (c.atk + (options.buff || 0)) + '/' + (c.def + (options.buff || 0)) + '</span><span class="position-mark">' + (options.position === 'attack' ? 'ATK' : 'DEF') + '</span>' : '') + '</button>';
+  }
+  function renderField(p, id) {
+    const root = $(id), player = game.players[p];
+    ['monsters', 'spells'].forEach(zone => {
+      root.querySelector('[data-zone="' + zone + '"]').innerHTML = player[zone].map(s => '<div class="slot">' + (s ? cardHTML(s.uid, { owner: p, zone, faceDown: s.faceDown, position: s.position, attacked: s.attacked, buff: s.buff }) : '') + '</div>').join('');
+    });
+  }
+  function render() {
+    if (!game) return;
+    renderField(1, 'opponentField'); renderField(0, 'playerField');
+    $('hand').innerHTML = game.players[0].hand.map(uid => cardHTML(uid, { owner: 0, zone: 'hand' })).join('');
+    for (let p = 0; p < 2; p++) {
+      $('lp' + p).textContent = game.players[p].lp; $('lpbar' + p).style.width = Math.min(100, game.players[p].lp / 80) + '%';
+      $('handCount' + p).textContent = game.players[p].hand.length; $('deckCount' + p).textContent = game.players[p].deck.length; $('graveCount' + p).textContent = game.players[p].grave.length;
+    }
+    $('roundLabel').textContent = 'ROUND ' + String(game.round).padStart(2, '0');
+    $('turnLabel').textContent = game.turn === 0 ? '你的回合' : '对手回合';
+    $('phaseLabel').textContent = game.phase === 'main' ? '主要阶段' : '战斗阶段';
+    $('aiThinking').textContent = game.turn === 1 ? '思考中…' : '等待中';
+    document.querySelectorAll('.phase-track span').forEach(s => s.classList.toggle('active', s.dataset.phase === game.phase));
+    const disabled = game.turn !== 0 || aiBusy || game.winner !== null;
+    $('phaseBtn').disabled = disabled;
+    $('phaseBtn').querySelector('span').textContent = game.turn === 1 ? '对手行动中' : game.phase === 'main' ? '进入战斗阶段' : '结束回合';
+    $('normalStatus').classList.toggle('used', game.normalSummoned);
+    $('normalStatus').querySelector('span').textContent = game.normalSummoned ? '本回合已通常召唤' : '通常召唤可用';
+    $('hintText').textContent = game.turn === 0 ? (game.phase === 'main' ? '召唤怪兽 · 发动魔法 · 盖放陷阱' : '点击攻击表示怪兽选择目标') : '对手正在行动…';
+    $('log').innerHTML = game.log.map(x => '<div>' + x + '</div>').join('');
+  }
+  function playEvents(events) {
+    (events || []).forEach(e => {
+      const sound = ['draw', 'summon', 'spell', 'trap', 'attack', 'damage', 'destroy', 'phase', 'win'].includes(e.type) ? e.type : 'click';
+      Audio.play(sound);
+      const uidEl = e.uid ? document.querySelector('.game-card[data-uid="' + e.uid + '"]') : null;
+      if (['summon', 'spell', 'trap', 'attack', 'destroy', 'win'].includes(e.type)) Fx.burst(e.type, uidEl || (e.player !== undefined ? $('lp' + e.player) : null));
+      if (e.type === 'damage') { Fx.text('−' + e.amount, $('lp' + e.player)); Fx.shake(); }
+    });
+  }
+  function perform(action) {
+    if (!game) return { ok: false, error: '尚未开始' };
+    const result = DuelLogic.act(game, action);
+    if (!result.ok) { toast(result.error); return result; }
+    closeModals(); render(); playEvents(result.events);
+    if (game.winner !== null) setTimeout(showResult, 650);
+    else if (game.turn === 1) scheduleAI();
+    return result;
+  }
+  function scheduleAI() {
+    if (aiBusy || game.winner !== null) return;
+    aiBusy = true; render(); let steps = 0;
+    const tick = () => {
+      if (!game || game.winner !== null || game.turn !== 1 || steps++ > 100) { aiBusy = false; if (game) render(); return; }
+      const action = DuelAI.choose(game, 1) || { type: 'advance', player: 1 };
+      const result = DuelLogic.act(game, action);
+      if (!result.ok) { console.error('AI illegal action', action, result.error); DuelLogic.act(game, { type: 'advance', player: 1 }); }
+      render(); playEvents(result.events);
+      if (game.winner !== null || game.turn === 0) { aiBusy = false; render(); if (game.winner !== null) setTimeout(showResult, 650); return; }
+      aiTimer = setTimeout(tick, window.__q && __q.fast ? 30 : 430);
+    };
+    aiTimer = setTimeout(tick, window.__q && __q.fast ? 30 : 600);
+  }
+  function newGame(deckIndex, seed) {
+    clearTimeout(aiTimer); aiBusy = false; resultRecorded = false; selectedDeck = typeof deckIndex === 'number' ? deckIndex : selectedDeck;
+    game = DuelLogic.createGame({ deck0: DECKS[selectedDeck].cards, deck1: DECKS[(selectedDeck + 1) % DECKS.length].cards, seed: seed || (window.__q && __q.seed) || Date.now() });
+    $('deckName').textContent = DECKS[selectedDeck].name; showScreen('duelScreen'); render(); save(); Audio.unlock(); Audio.play('phase');
+    return game;
+  }
+  function showResult() {
+    if (!game || game.winner === null) return;
+    if (!resultRecorded) { if (game.winner === 0) profile.wins++; else profile.losses++; resultRecorded = true; save(); }
+    $('resultTitle').textContent = game.winner === 0 ? '决斗胜利' : '惜败';
+    $('resultReason').textContent = game.winner === 0 ? '精彩的决斗。你的战术撕开了对手的防线。' : '胜负只在一念之间，调整卡组再战一次吧。';
+    $('resultRound').textContent = game.round; $('resultLp').textContent = game.players[0].lp; $('resultSigil').textContent = game.winner === 0 ? '✦' : '◇';
+    $('resultModal').hidden = false; Fx.burst('win', $('resultSigil'));
+  }
+  function actionLabel(a) {
+    const c = cardDef(a.uid);
+    if (a.type === 'summon') return (a.faceDown ? '里侧守备盖放' : a.position === 'defense' ? '守备表示召唤' : '攻击表示召唤') + (a.tributes.length ? ' · 解放 ' + a.tributes.length + ' 只' : ' · ' + c.level + ' 星');
+    if (a.type === 'activateSpell') return '发动魔法 · ' + c.name;
+    if (a.type === 'setSpell') return '盖放到魔法陷阱区域';
+    if (a.type === 'flip') return '反转召唤为攻击表示';
+    if (a.type === 'changePosition') return '变更攻击 / 守备表示';
+    if (a.type === 'attack') return a.targetUid ? '攻击 · ' + cardDef(a.targetUid).name : '直接攻击对手';
+    return a.type;
+  }
+  function openCard(uid, owner, zone, collectionMode) {
+    if (!collectionMode && game && owner === 1) {
+      const p = game.players[1], s = p.monsters.concat(p.spells).find(x => x && x.uid === uid);
+      if (s && s.faceDown) { toast('里侧表示的卡牌无法查看'); return; }
+    }
+    const c = collectionMode ? CARDS[uid] : cardDef(uid);
+    $('detailArt').innerHTML = '<img src="' + Art.card(c) + '" alt="' + c.name + '">';
+    $('detailType').textContent = typeNames[c.type] + (c.attribute ? ' / ' + c.attribute + '属性 / ' + c.race + '族' : '');
+    $('detailName').textContent = c.name;
+    $('detailStats').innerHTML = c.type === 'monster' ? '<span>LV ' + c.level + '</span><span>攻击力 ' + c.atk + '</span><span>守备力 ' + c.def + '</span>' : '<span>' + (c.type === 'spell' ? '通常魔法' : '反击陷阱') + '</span>';
+    $('detailDesc').textContent = c.desc;
+    let actions = [];
+    if (!collectionMode && game && game.turn === 0 && !aiBusy && game.winner === null) actions = DuelLogic.legal(game, 0).filter(a => a.uid === uid);
+    $('detailActions').innerHTML = actions.length ? actions.map((a, i) => '<button class="action-choice" data-action="' + i + '"><span>' + actionLabel(a) + '</span><b>→</b></button>').join('') : '<small style="color:#737f91">当前阶段无可用操作 · 可查看卡牌详情</small>';
+    $('detailActions').querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => perform(actions[Number(btn.dataset.action)])));
+    $('cardModal').hidden = false; Audio.play('click');
+  }
+  function renderCollection() {
+    const query = $('cardSearch').value.trim().toLowerCase();
+    const cards = Object.values(CARDS).filter(c => (currentFilter === 'all' || c.type === currentFilter) && (!query || (c.name + c.desc + (c.race || '')).toLowerCase().includes(query)));
+    $('collectionTotal').textContent = cards.length + ' / ' + Object.keys(CARDS).length + ' 张';
+    $('collectionGrid').innerHTML = cards.map(c => '<button class="archive-card" data-card="' + c.id + '"><span class="archive-type">' + typeNames[c.type] + '</span><img loading="lazy" src="' + Art.card(c) + '" alt="' + c.name + '"><h3>' + c.name + '</h3><p>' + (c.type === 'monster' ? 'LV ' + c.level + ' · ' + c.atk + ' / ' + c.def : c.attribute || (c.type === 'spell' ? '战术魔法' : '自动触发')) + '</p></button>').join('') || '<p>没有找到符合条件的卡牌。</p>';
+  }
+  document.addEventListener('click', e => {
+    const close = e.target.closest('[data-close]'); if (close) { close.closest('.modal').hidden = true; return; }
+    const deck = e.target.closest('[data-deck]'); if (deck) { selectedDeck = Number(deck.dataset.deck); renderDecks(); save(); Audio.unlock(); Audio.play('click'); return; }
+    const archive = e.target.closest('[data-card]'); if (archive) { openCard(archive.dataset.card, 0, '', true); return; }
+    const card = e.target.closest('.game-card[data-uid]'); if (card && !aiBusy) { openCard(card.dataset.uid, Number(card.dataset.owner), card.dataset.zone, false); }
+  });
+  $('startBtn').addEventListener('click', () => newGame());
+  $('phaseBtn').addEventListener('click', () => perform({ type: 'advance', player: 0 }));
+  $('soundBtn').addEventListener('click', toggleSound); $('menuSound').addEventListener('click', toggleSound);
+  $('rulesBtn').addEventListener('click', () => { $('rulesModal').hidden = false; });
+  $('menuBtn').addEventListener('click', () => { $('menuModal').hidden = false; }); $('exitBtn').addEventListener('click', () => { $('menuModal').hidden = false; });
+  $('menuRules').addEventListener('click', () => { $('menuModal').hidden = true; $('rulesModal').hidden = false; });
+  $('logBtn').addEventListener('click', () => { $('logModal').hidden = false; });
+  $('inspectFieldBtn').addEventListener('click', () => { toast('点击任意场上卡牌可查看效果、攻守与可用操作'); });
+  $('collectionBtn').addEventListener('click', () => { showScreen('collectionScreen'); renderCollection(); });
+  $('collectionBack').addEventListener('click', () => showScreen('homeScreen'));
+  $('cardFilters').addEventListener('click', e => { if (!e.target.dataset.filter) return; currentFilter = e.target.dataset.filter; $('cardFilters').querySelectorAll('button').forEach(b => b.classList.toggle('active', b === e.target)); renderCollection(); });
+  $('cardSearch').addEventListener('input', renderCollection);
+  $('restartBtn').addEventListener('click', () => newGame());
+  $('rematchBtn').addEventListener('click', () => newGame());
+  $('resultHome').addEventListener('click', () => { renderDecks(); showScreen('homeScreen'); });
+  $('surrenderBtn').addEventListener('click', () => { if (game && game.winner === null && game.turn === 0) perform({ type: 'surrender', player: 0 }); else if (game && game.winner === null) { clearTimeout(aiTimer); aiBusy = false; profile.losses++; save(); } showScreen('homeScreen'); renderDecks(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(); });
+  document.addEventListener('pointerdown', () => Audio.unlock(), { once: true });
+  if (profile.muted !== Audio.muted) Audio.toggle(); updateSound(); renderDecks();
+  $('avatar0').src = Art.avatar(0); $('avatar1').src = Art.avatar(1);
+  $('heroMonster').src = Art.card(CARDS.sunforge_dragon); $('heroSpell').src = Art.card(CARDS.black_seal_bolt);
+  window.__duel = { state: () => game ? JSON.parse(JSON.stringify(game)) : null, act: perform, newGame, legal: () => game ? DuelLogic.legal(game, game.turn) : [], cards: CARDS, decks: DECKS };
+})();
+</script>
+</body></html>
