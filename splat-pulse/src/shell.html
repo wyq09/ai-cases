@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#080b09">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="PULSE：上传音乐，让节拍驱动 72,000 颗三维高斯。可旋转、可变形的实时 3D Gaussian Splatting 声音雕塑。">
+<meta property="og:title" content="PULSE · 让声音拥有形状">
+<meta property="og:description" content="音乐驱动的三维高斯声音雕塑。上传一首歌，让节奏穿过点云。">
+<meta property="og:image" content="cover.jpg">
+<title>PULSE · 让声音拥有形状</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23080b09'/%3E%3Cellipse cx='16' cy='16' rx='12' ry='4.5' transform='rotate(-40 16 16)' fill='none' stroke='%23d8ff73'/%3E%3Cellipse cx='16' cy='16' rx='12' ry='4.5' transform='rotate(40 16 16)' fill='none' stroke='%23d8ff73'/%3E%3C/svg%3E">
+<style>
+<!--STYLE_INLINE-->
+</style>
+</head>
+<body>
+<canvas id="view" tabindex="0" aria-label="三维高斯声音雕塑。拖拽旋转，滚轮或双指缩放，数字 1 到 3 切换形态。"></canvas>
+<div class="stage-shade" aria-hidden="true"></div>
+
+<div class="boot chrome" id="boot" role="status">
+  <div class="boot-word">PULSE<span>°</span></div>
+  <div class="boot-line"><i></i></div>
+  <p id="boot-message">正在排列 72,000 颗三维高斯</p>
+</div>
+
+<header class="topbar chrome">
+  <a class="brand" href="./" aria-label="PULSE 首页">
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="16" cy="16" rx="13" ry="5" transform="rotate(-40 16 16)"/><ellipse cx="16" cy="16" rx="13" ry="5" transform="rotate(40 16 16)"/><circle cx="16" cy="16" r="2"/></svg>
+    <span class="brand-word">PULSE<span class="brand-dot">.</span><small>AUDIO-REACTIVE 3DGS</small></span>
+  </a>
+  <div class="top-actions">
+    <span class="local-note"><i></i>LOCAL AUDIO ENGINE</span>
+    <button class="icon-button" id="about-open" aria-label="关于与快捷键" title="关于与快捷键"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 10.5v6M12 7.2v.5"/></svg></button>
+    <button class="icon-button" id="fullscreen" aria-label="进入全屏" title="全屏 · F"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4.5h-4v4M15.5 4.5h4v4M19.5 15.5v4h-4M8.5 19.5h-4v-4"/></svg></button>
+  </div>
+</header>
+
+<main>
+  <section class="intro chrome" aria-labelledby="hero-title">
+    <p class="eyebrow"><span>001</span> SOUND &amp; MATTER</p>
+    <h1 id="hero-title">Sound,<br> made<br> <em>visible.</em></h1>
+    <p class="intro-sub">让声音，拥有形状。</p>
+    <p class="intro-description">一首歌，<span id="hero-count">72,000</span> 颗三维高斯。<br>看节拍穿过物质，听色彩发出声音。</p>
+    <button class="demo-link" id="demo-link"><span>没选好想听的歌？</span>试试内置节拍<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"/></svg></button>
+  </section>
+
+  <nav class="forms chrome" aria-label="雕塑形态">
+    <span class="forms-label">SCULPTURE</span>
+    <button class="form-button active" data-form="0" aria-pressed="true"><span class="form-number">01</span><span class="form-name">缠绕<small>ENTANGLE</small></span><i></i></button>
+    <button class="form-button" data-form="1" aria-pressed="false"><span class="form-number">02</span><span class="form-name">潮汐<small>TIDAL WAVE</small></span><i></i></button>
+    <button class="form-button" data-form="2" aria-pressed="false"><span class="form-number">03</span><span class="form-name">奇点<small>SINGULARITY</small></span><i></i></button>
+  </nav>
+
+  <div class="scene-caption chrome" aria-hidden="true"><span class="caption-cross">+</span><span id="scene-name">ENTANGLE</span><small>GENERATIVE SCULPTURE / <span id="scene-index">01</span></small></div>
+
+  <section class="beat-readout chrome" aria-label="实时节拍分析">
+    <div class="beat-top"><span id="beat-indicator"></span><span id="analysis-label">等待声音输入</span></div>
+    <div class="beat-number"><strong id="bpm">--</strong><span>BPM</span></div>
+    <div class="beat-detail"><span id="beat-count">000</span> ONSETS <i></i> <span id="splats-visible">72,000</span> SPLATS</div>
+  </section>
+
+  <div class="scene-hint chrome"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 9V5.5a1.5 1.5 0 0 1 3 0V9m0-2.5a1.5 1.5 0 0 1 3 0V9m0-1a1.5 1.5 0 0 1 3 0v4c0 3-2 5-5 5H9c-2 0-3-1-4-3L3 11c-.5-2 1.5-3 3-1l1 1"/></svg><span>拖拽旋转 · 滚轮缩放</span></div>
+  <button class="tune-toggle chrome" id="tune-toggle" aria-expanded="false" aria-controls="tuning"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h8m4 0h4M4 17h3m4 0h9"/><circle cx="14" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>调谐场景</button>
+</main>
+
+<footer class="transport chrome" id="transport" aria-label="音乐播放控制台">
+  <button class="play-button" id="play" aria-label="播放内置节拍" title="播放 / 暂停 · Space"><svg id="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 9 6-9 6Z"/></svg></button>
+  <div class="track">
+    <span class="track-source" id="track-source">YOUR SOUND, YOUR SPACE</span>
+    <strong id="track-name" title="给点声音，让它活过来">给点声音，让它活过来</strong>
+    <span class="track-status" id="track-status">音乐仅在本地播放，不会上传</span>
+  </div>
+  <div class="timeline">
+    <span id="time-current">00:00</span>
+    <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="播放进度" disabled>
+    <span id="time-duration">--:--</span>
+  </div>
+  <div class="spectrum-wrap"><div class="spectrum" id="spectrum" role="img" aria-label="实时音频频谱"></div><span>LIVE SPECTRUM</span></div>
+  <div class="volume"><button id="mute" aria-label="静音" title="静音"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10H4ZM17 9c2 2 2 4 0 6M19 6c4 4 4 8 0 12"/></svg></button><input id="volume" type="range" min="0" max="100" value="70" aria-label="音量"></div>
+  <button class="upload-button" id="upload"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M5 15v4h14v-4"/></svg><span>上传音乐<small>MP3, WAV &amp; MORE</small></span></button>
+</footer>
+<div class="keyboard-note chrome">SPACE 播放 / 暂停 <span>·</span> H 纯净模式 <span>·</span> 1—3 切换形态</div>
+<input id="audio-file" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" hidden>
+
+<aside class="tuning chrome" id="tuning" aria-labelledby="tuning-title" hidden>
+  <div class="panel-heading"><div><span>MAKE IT YOURS</span><h2 id="tuning-title">场景调谐</h2></div><button class="icon-button" id="tune-close" aria-label="关闭调谐"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+  <label class="range-control" for="intensity"><span>音频反应强度<output id="intensity-value">100%</output></span><input id="intensity" type="range" min="0" max="200" value="100"></label>
+  <label class="range-control" for="point-size"><span>高斯尺寸<output id="point-value">100%</output></span><input id="point-size" type="range" min="60" max="180" value="100"></label>
+  <div class="switch-row"><span>自动环绕<small>AUTO ORBIT</small></span><button class="switch" id="auto-orbit" role="switch" aria-checked="true" aria-label="自动环绕"><i></i></button></div>
+  <div class="palette-control"><span>色彩情绪</span><div class="palette-options"><button class="palette active" data-palette="0" aria-pressed="true"><i style="--swatch:#d8ff73"></i>酸橙</button><button class="palette" data-palette="1" aria-pressed="false"><i style="--swatch:#8edfff"></i>冰川</button><button class="palette" data-palette="2" aria-pressed="false"><i style="--swatch:#ff9975"></i>落日</button></div></div>
+  <button class="reset-camera" id="reset-camera"><span>重置视角</span><kbd>R</kbd></button>
+</aside>
+
+<dialog id="about" class="about chrome">
+  <div class="panel-heading"><div><span>BEHIND THE SCENE</span><h2>声音如何成为物质</h2></div><button class="icon-button" id="about-close" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+  <p>这里的每一粒光都不是普通圆点，而是一颗带位置、尺度与朝向的三维高斯。WebGL2 将它们投影为屏幕椭圆，再按深度由远到近叠加成一座可以走进的声音雕塑。</p>
+  <div class="about-grid"><div><span>01 / LISTEN</span><p>上传音乐或使用内置节拍，音频在本地解码。低频驱动呼吸，中频形成波纹，高频点亮细节。</p></div><div><span>02 / MOVE</span><p>自适应阈值检测真实 onset，并从节拍间隔估算 BPM。没有音乐时，不会伪造节拍数值。</p></div></div>
+  <div class="shortcut-grid"><span>播放 / 暂停<kbd>SPACE</kbd></span><span>切换形态<kbd>1 / 2 / 3</kbd></span><span>重置视角<kbd>R</kbd></span><span>全屏<kbd>F</kbd></span><span>纯净模式<kbd>H</kbd></span><span>退出面板<kbd>ESC</kbd></span></div>
+  <p class="privacy-note">无需账号，没有服务器。你的音乐文件不会离开当前设备。建议使用支持 WebGL2 的新版浏览器，并佩戴耳机。</p>
+</dialog>
+
+<div class="drop-overlay chrome" id="drop-overlay" hidden><div><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 31V9m-8 8 8-8 8 8M10 30v8h28v-8"/></svg><span>DROP THE BEAT</span><h2>把音乐放进来</h2><p>松开即可本地解码 · 不会上传文件</p></div></div>
+<div class="toast chrome" id="toast" role="status" aria-live="polite"></div>
+<button class="exit-immersive" id="exit-immersive">退出纯净模式 <kbd>H</kbd></button>
+<noscript><div class="no-script">PULSE 需要 JavaScript 与 WebGL2 来渲染三维高斯，请启用 JavaScript 后重试。</div></noscript>
+
+<script>
+<!--RESET_INLINE-->
+</script>
+<!--MODULE_SCRIPTS-->
+</body>
+</html>

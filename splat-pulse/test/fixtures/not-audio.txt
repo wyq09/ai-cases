@@ -1,0 +1,1 @@
+This is a deliberately invalid audio fixture used to verify decoding errors and current-track preservation.
