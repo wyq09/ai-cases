@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>球面涟漪 · Sphere Ripples</title>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #101010; overflow: hidden; }
+  canvas { display: block; margin: 0 auto; }
+</style>
+</head>
+<body>
+<script>
+/* ============================================================
+   球面涟漪 · Sphere Ripples
+   p5.js 1.9.4 / WEBGL / 1080×1080 / 每帧清屏重画 / 60fps
+   看不见的球（半径 = 短边 × 0.32），球面不断冒出涟漪
+   时间一律用 frameCount / 60，方便逐帧录制
+   ============================================================ */
+
+/* ---------------- 常量 ---------------- */
+const W = 1080;
+const H = 1080;
+const R = W * 0.32;          // 球半径 345.6（画布短边 × 0.32）
+const N = 150;              // 同时存在的涟漪数量
+const RAY_FRAMES = 30;      // a. 射线段 0.5s = 30 帧
+const RING_SEG = 36;        // 圆环顶点数
+const RAY_WEIGHT = 5;       // 射线线宽（px）
+const RING_WEIGHT = 5;      // 圆环起始线宽（px），按 t² 细到 0
+const BG = [0x10, 0x10, 0x10];
+
+// 只用 5 种颜色，每个涟漪随机一种
+const PALETTE = [
+  [0x14, 0x6c, 0xbd],   // 蓝
+  [0xf3, 0xf3, 0xf3],   // 白
+  [0xdf, 0x6c, 0x1f],   // 橙
+  [0xd7, 0x23, 0x29],   // 红
+  [0xff, 0xcc, 0x3f]    // 黄
+];
+
+/* ---------------- 工具 ---------------- */
+
+// 球面上均匀分布的随机单位方向
+function randDir() {
+  const u = Math.random() * 2 - 1;          // y 分量，[-1,1]
+  const th = Math.random() * Math.PI * 2;   // 方位角
+  const s = Math.sqrt(Math.max(0, 1 - u * u));
+  return { x: s * Math.cos(th), y: u, z: s * Math.sin(th) };
+}
+
+// 给定方向 d，求与其正交的切向基 (u, v)
+function orthoBasis(d) {
+  const ax = Math.abs(d.y) > 0.9 ? { x: 1, y: 0, z: 0 } : { x: 0, y: 1, z: 0 };
+  let ux = d.y * ax.z - d.z * ax.y;
+  let uy = d.z * ax.x - d.x * ax.z;
+  let uz = d.x * ax.y - d.y * ax.x;
+  const ul = Math.hypot(ux, uy, uz) || 1;
+  ux /= ul; uy /= ul; uz /= ul;
+  const vx = d.y * uz - d.z * uy;
+  const vy = d.z * ux - d.x * uz;
+  const vz = d.x * uy - d.y * ux;
+  return { u: { x: ux, y: uy, z: uz }, v: { x: vx, y: vy, z: vz } };
+}
+
+/* ---------------- 涟漪 ---------------- */
+class Ripple {
+  constructor(delayFrames) {
+    this.birth(delayFrames);
+  }
+
+  // c. 重生：新方向 / 新颜色 / 新参数，随后延迟 delayFrames 帧再开始
+  birth(delayFrames) {
+    this.state = 'delay';
+    this.f = 0;
+    this.delay = delayFrames;
+    this.dir = randDir();
+    const b = orthoBasis(this.dir);
+    this.u = b.u;
+    this.v = b.v;
+    this.c = PALETTE[(Math.random() * PALETTE.length) | 0];
+    this.aMax = 0.05 + Math.random() * 0.20;              // 0.05 ~ 0.25 弧度
+    this.ringFrames = 60 + ((Math.random() * 61) | 0);    // 1 ~ 2 秒
+  }
+
+  update() {
+    this.f++;
+    if (this.state === 'delay') {
+      if (this.f > this.delay) { this.state = 'ray'; this.f = 0; }
+    } else if (this.state === 'ray') {
+      if (this.f > RAY_FRAMES) { this.state = 'ring'; this.f = 0; }
+    } else if (this.f > this.ringFrames) {
+      this.birth((Math.random() * 31) | 0);                // 0 ~ 0.5s 延迟后重生
+    }
+  }
+
+  render() {
+    if (this.state === 'delay') return;
+
+    const c = this.c;
+    stroke(c[0], c[1], c[2]);
+
+    if (this.state === 'ray') {
+      // a. 射线段：头部进度 √p，尾部进度 p，尾巴追上头部消失在球面上
+      const p = this.f / RAY_FRAMES;
+      const head = Math.sqrt(p);
+      const tail = p;
+      const d = this.dir;
+      strokeWeight(RAY_WEIGHT);
+      line(
+        d.x * R * tail, d.y * R * tail, d.z * R * tail,
+        d.x * R * head, d.y * R * head, d.z * R * head
+      );
+    } else {
+      // b. 涟漪段：贴着球面的圆环，张角缓出扩大，线宽按 t² 细到 0
+      const t = this.f / this.ringFrames;
+      const e = 1 - Math.pow(1 - t, 2.2);      // 先快后慢
+      const a = this.aMax * e;                 // 张角
+      const sa = Math.sin(a);
+      const ca = Math.cos(a);
+      const d = this.dir, u = this.u, v = this.v;
+      strokeWeight(RING_WEIGHT * (1 - t * t));
+      beginShape();
+      for (let i = 0; i < RING_SEG; i++) {
+        const th = (i / RING_SEG) * Math.PI * 2;
+        const c1 = Math.cos(th), s1 = Math.sin(th);
+        const x = (d.x * ca + (u.x * c1 + v.x * s1) * sa) * R;
+        const y = (d.y * ca + (u.y * c1 + v.y * s1) * sa) * R;
+        const z = (d.z * ca + (u.z * c1 + v.z * s1) * sa) * R;
+        vertex(x, y, z);
+      }
+      endShape(CLOSE);
+    }
+  }
+}
+
+/* ---------------- p5 ---------------- */
+let ripples = [];
+let gl = null;
+
+function pickGL() {
+  try {
+    if (typeof drawingContext !== 'undefined' && drawingContext &&
+        typeof drawingContext.disable === 'function') return drawingContext;
+  } catch (e) { /* ignore */ }
+  const cv = document.querySelector('canvas');
+  return cv ? (cv.getContext('webgl') || cv.getContext('experimental-webgl')) : null;
+}
+
+function setup() {
+  createCanvas(W, H, WEBGL);
+  frameRate(60);
+  strokeCap(ROUND);
+  noFill();
+  gl = pickGL();
+  // 开场 150 个涟漪的延迟在 0 ~ 4 秒内错开
+  for (let i = 0; i < N; i++) {
+    ripples.push(new Ripple((Math.random() * 241) | 0));
+  }
+}
+
+function draw() {
+  const t = frameCount / 60;
+
+  // 每帧清屏重画
+  blendMode(BLEND);
+  background(BG[0], BG[1], BG[2]);
+
+  // ADD 叠加发光：前后元素都可见，不做遮挡
+  blendMode(ADD);
+  noFill();
+  if (gl && gl.DEPTH_TEST !== undefined) gl.disable(gl.DEPTH_TEST);
+
+  // 镜头：绕 Y 轴持续转动 + 绕 X 轴缓慢点头
+  rotateY(t * 0.2);
+  rotateX(-0.25 + Math.sin(t * 0.2) * 0.5);
+
+  for (let i = 0; i < N; i++) {
+    ripples[i].update();
+    ripples[i].render();
+  }
+}
+</script>
+</body>
+</html>
