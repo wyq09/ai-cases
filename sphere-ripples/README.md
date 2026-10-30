@@ -41,7 +41,7 @@ UI 层覆盖：WEBGL 渲染器、p5 1.9.4、画布 1080×1080、150 个涟漪、
 
 ## 在线链接
 
-待部署。发布后为 <https://case.youyongai.com/sphere-ripples/>；本地直接双击 `index.html` 即可运行。
+**<https://case.youyongai.com/sphere-ripples/>** —— 仓库 push 到 `main` 后由 `.github/workflows/deploy.yml` 自动 rsync 发布。本地也可以直接双击 `index.html` 运行（首屏需联网取 p5 CDN）。
 
 ## 目录
 
