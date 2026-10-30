@@ -47,7 +47,8 @@ const ctx = {
   WEBGL: 'webgl', ROUND: 'round', CLOSE: 'close',
   BLEND: 'BLEND', ADD: 'ADD',
   frameCount: 0,
-  createCanvas: () => ({}),
+  window: { innerWidth: 1440, innerHeight: 900, devicePixelRatio: 2 },
+  createCanvas: () => ({ elt: { style: {} } }),
   frameRate: () => {},
   strokeCap: () => {},
   noFill: () => {},
@@ -263,6 +264,19 @@ check('所有描边颜色都来自调色板', () => {
 check('时间基准：只用 frameCount/60，不使用 millis', () => {
   assert.ok(!/\bmillis\b/.test(code), '脚本里不应出现 millis');
   assert.ok(/\bframeCount\s*\/\s*60\b/.test(code), '脚本应使用 frameCount/60');
+});
+
+check('自适应：画布按视口等比缩放且保持正方形（内部仍是 1080×1080）', () => {
+  const cases = [[1440, 900], [1280, 720], [1024, 1024], [480, 800], [1440, 400], [320, 568]];
+  for (const [vw, vh] of cases) {
+    ctx.window.innerWidth = vw;
+    ctx.window.innerHeight = vh;
+    vm.runInContext('fitStage()', ctx);
+    const st = vm.runInContext('cnv.elt.style', ctx);
+    const expect = Math.floor(1080 * Math.min(vw / 1080, vh / 1080));
+    assert.equal(parseInt(st.width, 10), expect, `${vw}×${vh} -> ${st.width}`);
+    assert.equal(parseInt(st.height, 10), expect, `${vw}×${vh} -> ${st.height}`);
+  }
 });
 
 /* ---------- 报告 ---------- */

@@ -6,8 +6,15 @@
 <title>球面涟漪 · Sphere Ripples</title>
 <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
 <style>
-  html, body { margin: 0; padding: 0; background: #101010; overflow: hidden; }
-  canvas { display: block; margin: 0 auto; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #101010; overflow: hidden;
+  }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    -webkit-user-select: none; user-select: none;
+  }
+  canvas { display: block; }
 </style>
 </head>
 <body>
@@ -137,6 +144,7 @@ class Ripple {
 /* ---------------- p5 ---------------- */
 let ripples = [];
 let gl = null;
+let cnv = null;
 
 function pickGL() {
   try {
@@ -147,16 +155,34 @@ function pickGL() {
   return cv ? (cv.getContext('webgl') || cv.getContext('experimental-webgl')) : null;
 }
 
+/* 自适应：画布内部始终按 1080×1080 渲染，只在 DOM 层等比缩放到视口内并居中。
+   这样小屏 / 竖屏 / 扁屏都能完整看到画面，构图与渲染分辨率完全不变。 */
+function fitStage() {
+  const vw = window.innerWidth || W;
+  const vh = window.innerHeight || H;
+  const scale = Math.min(vw / W, vh / H);           // 取宽高中更紧的一边
+  const side = Math.max(1, Math.floor(W * scale));
+  if (cnv && cnv.elt) {
+    cnv.elt.style.width = side + 'px';
+    cnv.elt.style.height = side + 'px';
+  }
+}
+
 function setup() {
-  createCanvas(W, H, WEBGL);
+  cnv = createCanvas(W, H, WEBGL);
   frameRate(60);
   strokeCap(ROUND);
   noFill();
   gl = pickGL();
+  fitStage();
   // 开场 150 个涟漪的延迟在 0 ~ 4 秒内错开
   for (let i = 0; i < N; i++) {
     ripples.push(new Ripple((Math.random() * 241) | 0));
   }
+}
+
+function windowResized() {
+  fitStage();
 }
 
 function draw() {

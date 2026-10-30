@@ -119,8 +119,56 @@ await page.waitForTimeout(1500);
 const s2 = await sig();
 check("画面逐帧演进（像素签名随时间变化）", s1.h !== s2.h && s1.f !== s2.f, `${s1.h} vs ${s2.h}`);
 
+/* ---------- 自适应：多种视口下不溢出、居中、构图不变 ---------- */
+const VIEWPORTS = [
+  { w: 1280, h: 720, name: "1280×720 小屏桌面" },
+  { w: 1024, h: 1024, name: "1024×1024 方屏" },
+  { w: 480, h: 800, name: "480×800 手机竖屏" },
+  { w: 1440, h: 400, name: "1440×400 超宽扁屏" },
+  { w: 320, h: 568, name: "320×568 小手机" },
+];
+for (const v of VIEWPORTS) {
+  await page.cdp("Emulation.setDeviceMetricsOverride", {
+    width: v.w, height: v.h, deviceScaleFactor: 1, mobile: false,
+  });
+  await page.waitForTimeout(450);
+  const m = await page.evaluate(() => {
+    const c = document.querySelector("canvas");
+    const r = c.getBoundingClientRect();
+    return {
+      cssW: c.clientWidth, cssH: c.clientHeight,
+      bufferW: c.width, bufferH: c.height,
+      left: r.left, top: r.top, w: r.width, h: r.height,
+      vw: window.innerWidth, vh: window.innerHeight,
+      scrollW: document.documentElement.scrollWidth,
+      scrollH: document.documentElement.scrollHeight,
+      frameCount,
+    };
+  });
+  const expect = Math.floor(Math.min(m.vw, m.vh));
+  const centeredX = Math.abs(m.left - (m.vw - m.w) / 2) <= 2;
+  const centeredY = Math.abs(m.top - (m.vh - m.h) / 2) <= 2;
+  check(`${v.name}：画布缩放到 ${expect}×${expect} 并居中`,
+    m.cssW === expect && m.cssH === expect && centeredX && centeredY,
+    `css=${m.cssW}×${m.cssH} left=${m.left.toFixed(1)} top=${m.top.toFixed(1)} vw=${m.vw} vh=${m.vh}`);
+  check(`${v.name}：无滚动条溢出`,
+    m.scrollW <= m.vw && m.scrollH <= m.vh,
+    `scroll=${m.scrollW}×${m.scrollH} view=${m.vw}×${m.vh}`);
+  check(`${v.name}：渲染分辨率仍为 1080×1080（构图不变）`,
+    m.bufferW === 1080 && m.bufferH === 1080, `buffer=${m.bufferW}×${m.bufferH}`);
+}
+
 /* ---------- 截图留档 ---------- */
+await page.cdp("Emulation.setDeviceMetricsOverride", {
+  width: 1080, height: 1080, deviceScaleFactor: 1, mobile: false,
+});
+await page.waitForTimeout(400);
 await page.screenshot({ path: SHOT_DIR + "/ui-check-01.png" });
+await page.cdp("Emulation.setDeviceMetricsOverride", {
+  width: 1280, height: 720, deviceScaleFactor: 1, mobile: false,
+});
+await page.waitForTimeout(600);
+await page.screenshot({ path: SHOT_DIR + "/ui-check-small-720.png" });
 
 /* ---------- 控制台错误 ---------- */
 const events = await page.events();
