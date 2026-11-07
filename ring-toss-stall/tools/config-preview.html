@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>设置面板预览 · 地摊套圈</title>
+<style>
+  html,body{margin:0;height:100%;background:#150a08;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
+  #app{position:fixed;inset:0;}
+  .pv-bar{display:flex;justify-content:space-between;align-items:center;padding:calc(14px + env(safe-area-inset-top)) 16px 0;}
+  .pv-bar span{color:#ffd257;font-weight:700;letter-spacing:2px;font-size:15px;}
+  .pv-open{background:#b3241c;color:#ffe08a;border:1.5px solid #e8b25c;border-radius:6px;padding:8px 14px;font-weight:700;font-size:14px;}
+  .pv-note{color:#8a5a3a;font-size:12px;padding:8px 16px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="pv-bar"><span>地摊套圈 · 设置面板预览</span><button class="pv-open" id="pvOpen" type="button">打开设置</button></div>
+  <div class="pv-note">stub：window.__rt = { cfg, state }（假的 cfg / coins / dex / stats）。<br>onChange 快照记录在 window.__cfgLog。</div>
+  <div id="panel"></div>
+</div>
+<script>
+/* 预览 stub：假的 cfg 与 state（模拟 main.js 暴露的 window.__rt） */
+window.__rt = {
+  cfg: { aimGuide:true, powerSens:1.0, talk:true, vols:{bgm:0.35, sfx:1, master:1}, sound:true },
+  state: { coins:37, rings:6, dex:{goose:2, frog:1, doll:1}, loot:["goose","frog","doll"], stats:{throws:52, hits:7, best:3} }
+};
+</script>
+<script src="../src/config-panel.js"></script>
+<script>
+window.__cfgLog = [];
+RT.CONFIG_PANEL.mount(document.getElementById('panel'));
+RT.CONFIG_PANEL.onChange(function (c) { window.__cfgLog.push(c); });
+document.getElementById('pvOpen').addEventListener('click', function () { RT.CONFIG_PANEL.open('play'); });
+RT.CONFIG_PANEL.open('play');
+</script>
+</body>
+</html>

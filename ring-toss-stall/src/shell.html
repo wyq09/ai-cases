@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a0b0b">
+<title>地摊套圈 · 夜市 Ring Toss</title>
+<style>
+/*STYLE_INLINE*/
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="stage"></canvas>
+  <canvas id="fxlayer"></canvas>
+  <div id="hud">
+    <div class="hud-left">
+      <div class="chip" id="coinChip"><img id="coinIcon" alt=""><b id="coinVal">0</b></div>
+      <div class="chip" id="ringChip"><span class="ringDot"></span><b id="ringVal">0</b><i>圈</i></div>
+    </div>
+    <div class="hud-right">
+      <button class="hbtn" id="btnDex" aria-label="图鉴">奖</button>
+      <button class="hbtn" id="btnShop" aria-label="买圈">买圈</button>
+      <button class="hbtn" id="btnCfg" aria-label="设置">设</button>
+    </div>
+  </div>
+  <div id="streak"></div>
+  <div id="aimHint">按住屏幕拖动瞄准 · 松手掷圈</div>
+  <div id="bubble" class="hide"><span id="bubbleText"></span></div>
+  <div id="toast" class="hide"></div>
+  <div id="shop" class="modal hide">
+    <div class="sheet">
+      <div class="sheet-bar"><b>来来来，买圈圈！</b><button class="xbtn" id="shopClose">✕</button></div>
+      <div class="banner-mini">20个币20个圈 · 60个币100个圈</div>
+      <button class="buy big" id="buy20"><span class="q">20 <i>圈</i></span><span class="p"><span class="coinGlyph"></span>20 币</span></button>
+      <button class="buy big value" id="buy60"><span class="q">100 <i>圈</i></span><span class="p"><span class="coinGlyph"></span>60 币</span><span class="tag">多 40%</span></button>
+      <button class="buy free" id="btnFree"><span>币花完了？找老板领 5 币</span><span id="freeCd"></span></button>
+      <div class="shop-tip">套中奖品进图鉴；重复的折算成币</div>
+    </div>
+  </div>
+  <div id="dex" class="modal hide">
+    <div class="sheet">
+      <div class="sheet-bar"><b>战利品图鉴</b><button class="xbtn" id="dexClose">✕</button></div>
+      <div id="dexGrid"></div>
+      <div id="dexStats"></div>
+    </div>
+  </div>
+  <div id="panel"></div>
+</div>
+<script>
+/*RESET_INLINE*/
+</script>
+<!-- MODULE_SCRIPTS -->
+</body>
+</html>
