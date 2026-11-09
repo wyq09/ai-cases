@@ -6,13 +6,23 @@ AI 辅助产出的案例集合 —— 方案 · 演示 · 视觉作品。
 
 ## Cases
 
+- [hearth-workspace](./hearth-workspace/) — Hearth · Life OS —— 参考图 1:1 网页复刻「个人 AI 工作台」：**Chat / Goals / Files / Tasks / Memory / Calendar** 六页同壳；Chat **四段状态 + 逐字流式输出**（可复制/点赞/重新生成）+ 灵感指令 + 附件/麦克风；Goals 全景插画横幅（SVG 程序化绘制，人物独立成层不随横幅拉伸变形）+ Active Targets 曲线「垂帘」图与柱状图（W1·W2·W3 切换联动数值/指标/图表）+ Life Pillars + Quick Stats + Vision Board 看板视图；Files `AI INSIGHT` 横幅（复盘 14 份文档**流式**总结并一键生成任务）+ Ask AI 检索**流式**作答 + 网格/列表双布局 + 索引进度条 + 存储分段 + 语义分组 + 云同步；Tasks **Smart View / Kanban / List** 三视图 + HTML5 **拖拽换列** + 条纹进度条 + AI Quick Entry **流式**解析；全局 `⌘K` 命令面板、通知中心、New 菜单、Light/Dark/System 三档主题、侧边栏折叠、localStorage 状态持久化；零外部资源单文件（build.py 打包 ~220KB），logo/插画/图表全为运行时 SVG；node **70 项**逻辑回归 + ego-lite **112 项** UI 回归（含拖拽/流式/390px·900px 响应式/控制台零报错）全绿（[在线体验](https://case.youyongai.com/hearth-workspace/) · [预览图](./hearth-workspace/shots/preview.png)）
+
+- [wps-gpui](./wps-gpui/) — WPS 文字复刻 · Rust + GPUI 桌面排版编辑器（深色主题对齐真机截图）：**DOCX 打开**（自写 OOXML 解析器：字符样式/行距段距/大纲/表格/分页符；⌘O 原生 NSOpenPanel 多选 + CLI 参数 + 最近使用列表）；**文件大面板**（WPS 式操作列 + 最近使用持久化）；**导出 PDF**（文档模型→JSON→swift CoreText 渲染，系统字体嵌入中文完美，表格/行距/对齐/上下标全保真）与**打印**（PDF→lp 直发打印队列）；**表格**（网格插入/Tab 跳格/追加行/三种样式）；**段落排版**（行距倍数/段前后磅值/WPS 实测页边距预设/cm 标尺）；**大纲导航窗格**；**附件**（卡片插入/Finder 复制文件直接 ⌘V 粘贴/双击系统程序打开）；快速访问工具栏 + macOS TCC 四层权限处理（启动探测/选择即授权/报错带指引/make_app.sh 打包 .app 带权限声明）；51 项单元回归全绿 + 实机验证（PDF 双页版式与 app 一致）（[预览图](./wps-gpui/preview.jpg) · [PDF 导出样张](./wps-gpui/preview-pdf.jpg)）
+
 - [end-of-time](./end-of-time/) — 时间的尽头 · The End of Time：Three.js 实时 3D 交互作品——一座正在崩解的宇宙时钟悬在吞噬光线的黑洞之上：纯黑事件视界 + 锐利光子环 + 引力透镜晕 + 自定义着色器吸积盘（fbm 湍流、1/r^1.5 差速旋转、多普勒束射亮 limb）；42,000 颗 GPU 粒子组成螺旋"时间之沙"向奇点坠落；3 道断裂青铜环 + 120 实例化刻度 + 12 罗马数字 + 转动指针的破碎时钟遗迹，熵增时按 fbm 阈值逐块溶解、边缘烧出余烬（onBeforeCompile 注入，兼容 InstancedMesh）；**完整可玩循环**——轻点奇点/空格引发坍缩冲击波，5 次坍缩推进纪元（黄昏→暮年→残响→余烬→终末之始）抵达"终焉"全宇宙溶解熄灭，重置再来；控制台 10 项实时工具（流速/熵增/坠入/沙量/盘亮度/辉光/视距/自动环绕/画质三档/三主题）；自研阻尼轨道相机（惯性/视差/trauma² 震屏/开场推镜/闲置环绕），HalfFloat + UnrealBloom + 自定义 ACES/色差/暗角/颗粒调色，线性空间渲染，自适应分辨率；WebAudio 全合成拍频 drone/秒针 tick/坍缩扫频；three r128 本地化，`build.py` 打成 ~696KB 单文件零外部资源 `file://` 可玩；ego-browser 4 轮 **53 项回归全绿**零报错（[在线体验](https://case.youyongai.com/end-of-time/) · [预览图](./end-of-time/shots/preview.png)）
 
 - [end-of-time-v1](./end-of-time-v1/) — 时间的尽头 v1（归档）：初代方案——黑曜石镜面荒原尽头的最后一座沙漏纪念碑与地平线上的黑洞，菲涅尔玻璃沙漏 + 颈口悬停沙粒 + 地面倒影光路，全局"时间流速"凝固/唤醒系统（[预览图](./end-of-time-v1/shots/preview.png)）
 
+- [flowdock-3d](./flowdock-3d/) — FlowDock · 3D 仓库运营台 · 参考图 1:1 网页复刻：Three.js 实时立体仓库（装卸月台 01/02 门位+厢式货车、A1/A2/B1 高位货架约 200 货位实例化货堆、CanvasTexture 地面标线 INBOUND/PICKING AREA/OUTBOUND STAGING）+ 全套运营 Dashboard（导航/KPI 卡/订单面板/步骤条任务列表逐字复刻）；**内容全部流动**：主叉车沿发光蓝路径闭环行驶、副叉车往返+货叉升降、路径箭头流动、PICK-7843 高亮括号脉动+悬浮标签、传送带纸箱循环、工人 idle、相机呼吸漂移、KPI 数字微调、donut 0→72% 缓动、ETA 倒计时；相机按内容包围盒自适应 fit 并对浮层遮挡区偏移，1280px 不散架；three r170 本地化，`build.py` 打成 ~1.4MB 单文件零外部资源；UI 与场景两个子代理按文件契约并行开发，ego-browser 多轮截图对照验收 console 零报错（[预览图](./flowdock-3d/shots/final.png)）
+
 - [ring-toss-stall](./ring-toss-stall/) — 地摊套圈 · Ring Toss Stall：夜市红帐篷套圈摊 1:1 复刻——黄字横幅（20个币20个圈 / 60个币100个圈）、红地毯三排彩凳 9 种陶瓷玩偶、格子衫老板头顶一叠彩虹圈。**按住拖动瞄准、上滑力度、松手掷圈**，伪 3D 针孔投影 Canvas2D 画家算法渲染，固定步长物理：套颈判定 / 磕凳弹开 / 砸头近失 / 地面弹跳滚停，闭式解落点预测反解"拖哪落哪"（吸收半隐式积分偏差）；`simulate` 蒙特卡洛与实机共用物理定标命中率 ~13%（前中后排 17/14/9，20 圈期望 1~3 中）；套中进图鉴、重复折算币、摊主补货吆喝，BGM 五声音阶弹拨全套 WebAudio 合成，SVG dataURI 零外部资源，单文件离线可玩，ego-browser **35 项回归全绿**（[在线游玩](https://case.youyongai.com/ring-toss-stall/) · [预览图](./ring-toss-stall/preview.png)）
 
 - [sphere-ripples](./sphere-ripples/) — 球面涟漪 · Sphere Ripples：一个看不见的球（半径 = 短边 × 0.32），球面同时有 150 个涟漪不断冒出。**三段生命周期**：①射线段 0.5s——一截光从球心射出，头部进度 √p、尾部进度 p，尾巴最后追上头、一起消失在球面；②涟漪段 随机 1~2s——落点荡开贴着球面的圆环，张角从 0 按 1-(1-t)^2.2 缓出扩到 0.05~0.25 弧度随机值，线宽从 5px 按 t² 细到 0 后消散；③重生——换新方向，延迟 0~0.5s 再来（开场 150 个延迟在 0~4s 内错开，画面逐渐被点亮）。**只 5 种配色**（蓝 #146cbd / 白 #f3f3f3 / 橙 #df6c1f / 红 #d72329 / 黄 #ffcc3f）随机取一，blendMode(ADD) 加色发光并**关闭深度测试**，前后元素全部可见、像线框一样互不遮挡；镜头绕 Y 轴 0.2 rad/s 持续转动 + 绕 X 轴点头 rotateX(-0.25+sin(t·0.2)·0.5)；圆环 36 段顶点闭合 noFill；时间一律 frameCount/60 不用 millis，方便逐帧录制。单文件 HTML（p5@1.9.4 CDN · WEBGL · 1080×1080 · 60fps），**按视口等比缩放并居中自适应**——内部固定 1080×1080 渲染，小屏/竖屏/扁屏都不裁切、不出滚动条，node 18 项逻辑回归 + ego-lite 28 项 UI 回归全绿，实测 60.33fps、零控制台报错（[在线体验](https://case.youyongai.com/sphere-ripples/) · [预览图](./sphere-ripples/preview.png)）
+
+- [alice-website-film](./alice-website-film/) — 白艾莉 · Alice 官网电影感宣传片：30 秒、1920×1080、30fps，真实首页 3D 悬浮环绕与水彩分层推进，覆盖全模态能力、Agent 朋友圈和「在场 / 记得 / 回响 / 同行」，暖钢琴与品牌下载收尾；HyperFrames 六镜头、官方素材、708 条确定性动画，完整质量检查 + 18 帧分镜复核 + 150 帧成片连续抽查全过（[成片](./alice-website-film/renders/alice-website-film.mp4)）
+
+- [luma-shot](./luma-shot/) — LumaShot · 原生 macOS 截图与标注工具：Swift / AppKit / SwiftUI / ScreenCaptureKit / Vision，区域/全屏/窗口/延时/多屏截图、完整对象标注、OCR/QR、取色/测量/置顶、滚动长截图、渐变输出与真实 S3 SigV4 上传；零第三方依赖，45 项 XCTest 全绿，直接运行 [LumaShot.app](./luma-shot/dist/LumaShot.app)
 
 - [duel-legends](./duel-legends/) — 决斗传说 · DUEL LEGENDS：原创游戏王风格单机卡牌对战，39 种卡牌、3 套卡组、通常召唤/祭品/攻守/魔法陷阱/墓地与贯穿伤害，真实规则 AI、完整胜负结算、图鉴搜索、合成卡面角色音效与战斗特效，手机横竖屏和桌面自适应，单文件零外部资源；node 35 项 + ego-lite 24 项回归全绿，并通过真实 UI 完整对局（[在线游玩](https://case.youyongai.com/duel-legends/)）
 
@@ -51,7 +61,7 @@ AI 辅助产出的案例集合 —— 方案 · 演示 · 视觉作品。
 
 - [tower-crane](./tower-crane/) — 盖楼达人 · 经典盖楼小游戏复刻：吊机摆动点按松钩落块、完美吸附居中连击加成、偏出即坠损命、每 10 层里程碑加命、40 层达标转无尽、难度曲线经时机误差模拟器调参、房间块配色与贴图/背景/吊钩上传替换、11 条音效逐条自定义、25 项玩法参数面板、配置导出导入、进度存档刷新续玩，单文件零外部资源（[在线游玩](https://case.youyongai.com/tower-crane/)）
 
-- [pelican-bike](./pelican-bike/) — 鹈鹕骑自行车 · 海堤傍晚的动态插画：鹈鹕踩着城市自行车，喉囊里一条鱼，按住加速、空格按铃，单文件零外部资源（[在线观看](https://case.youyongai.com/pelican-bike/)）
+- [pelican-bike](./pelican-bike/) — 鹈鹕骑自行车 · 海堤昼夜巡航：90 秒循环的黎明-白昼-黄昏-黑夜天空（太阳/月亮/星空/萤火虫/路灯自动点亮）、鹈鹕扇翅呼吸、喉囊里的鱼不时跃起又接回、按住加速（速度线+镜头抖动+扬尘）、点海面溅水花、空格/按钮按铃惊飞海鸥、速度表盘与实时时钟、WebAudio 合成的 lo-fi 循环 BGM + 车铃/海鸥/风声/水花音效，单文件零外部资源（[在线观看](https://case.youyongai.com/pelican-bike/)）
 
 - [water-sort](./water-sort/) — 倒水挑战 · Water Sort Puzzle 经典倒水排序益智复刻：无限关卡（种子确定性生成 + DFS 求解器验证必可解）、同一求解器驱动提示与 AI 自动演示、Canvas 倒水液流演出与 SVG 玻璃瓶裁剪、三猪观战动画、星级与每关最佳步数、三套房间/水色板与逐条音效上传替换、配置导出导入，单文件零外部资源（[在线游玩](https://case.youyongai.com/water-sort/)）
 
