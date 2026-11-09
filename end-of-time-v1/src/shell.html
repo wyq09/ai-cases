@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#04060c">
+<title>时间的尽头 · The End of Time</title>
+<script>
+/* 诊断钩子：供自动化验收读取 window 错误与 console 报错（不影响页面行为） */
+window.__TE_diag = { errors: [], warns: [] };
+window.addEventListener('error', function (e) {
+  window.__TE_diag.errors.push(String((e && e.message) || (e && e.error) || 'unknown'));
+});
+window.addEventListener('unhandledrejection', function (e) {
+  window.__TE_diag.errors.push('promise:' + String(e && e.reason));
+});
+(function () {
+  var ce = console.error.bind(console), cw = console.warn.bind(console);
+  console.error = function () {
+    try { window.__TE_diag.errors.push('console:' + Array.prototype.map.call(arguments, String).join(' ').slice(0, 14000)); } catch (x) {}
+    return ce.apply(null, arguments);
+  };
+  console.warn = function () {
+    try { window.__TE_diag.warns.push(Array.prototype.map.call(arguments, String).join(' ').slice(0, 14000)); } catch (x) {}
+    return cw.apply(null, arguments);
+  };
+})();
+</script>
+<style>
+/*STYLE_INLINE*/
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="时间的尽头 3D 场景"></canvas>
+
+<div id="veil" class="veil" aria-hidden="true">
+  <div class="veil-inner">
+    <div class="veil-mark"></div>
+    <h1 class="veil-title">时间的尽头</h1>
+    <p class="veil-sub">THE&nbsp;END&nbsp;OF&nbsp;TIME</p>
+    <p class="veil-hint">正在凝固最后一秒…</p>
+  </div>
+</div>
+
+<header class="ui ui-title" aria-hidden="true">
+  <h1 class="title">时间的尽头</h1>
+  <p class="subtitle">THE&nbsp;END&nbsp;OF&nbsp;TIME</p>
+  <span class="rule"></span>
+</header>
+
+<footer class="ui ui-hint" aria-hidden="true">
+  <p class="hint">◎ 拖动环视&ensp;·&ensp;滚轮靠近&ensp;·&ensp;轻点，让时间流动</p>
+</footer>
+
+<button id="soundBtn" class="sound-btn" type="button" title="声音：关" aria-label="开启声音">
+  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+    <path class="spk" d="M4 9.5v5h3.6L12 18.4V5.6L7.6 9.5H4z" fill="currentColor"/>
+    <path class="wave" d="M15.2 8.4a4.6 4.6 0 0 1 0 7.2M17.8 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>
+</button>
+
+<script>
+/*SCRIPT_INLINE*/
+</script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#05060d">
+<title>时间的尽头 · The End of Time</title>
+<script>
+/* 诊断钩子：供自动化验收读取 window 错误与 console 报错（不影响页面行为） */
+window.__EOT_diag = { errors: [], warns: [] };
+window.addEventListener('error', function (e) {
+  window.__EOT_diag.errors.push(String((e && e.message) || (e && e.error) || 'unknown'));
+});
+window.addEventListener('unhandledrejection', function (e) {
+  window.__EOT_diag.errors.push('promise:' + String(e && e.reason));
+});
+(function () {
+  var ce = console.error.bind(console), cw = console.warn.bind(console);
+  console.error = function () {
+    try { window.__EOT_diag.errors.push('console:' + Array.prototype.map.call(arguments, String).join(' ').slice(0, 14000)); } catch (x) {}
+    return ce.apply(null, arguments);
+  };
+  console.warn = function () {
+    try { window.__EOT_diag.warns.push(Array.prototype.map.call(arguments, String).join(' ').slice(0, 14000)); } catch (x) {}
+    return cw.apply(null, arguments);
+  };
+})();
+</script>
+<style>
+/*STYLE_INLINE*/
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="时间的尽头 3D 场景：环绕黑洞的时钟遗迹正在崩解"></canvas>
+
+<div id="veil" class="veil" aria-hidden="true">
+  <div class="veil-inner">
+    <svg class="veil-mark" viewBox="0 0 64 64" width="54" height="54" aria-hidden="true">
+      <circle cx="32" cy="32" r="26" fill="none" stroke="currentColor" stroke-width="1"
+              stroke-dasharray="130 34" stroke-linecap="round"/>
+      <circle cx="32" cy="32" r="17" fill="none" stroke="currentColor" stroke-width="0.7"
+              stroke-dasharray="80 27" stroke-linecap="round" opacity="0.55"/>
+      <circle cx="32" cy="32" r="4.5" fill="currentColor"/>
+    </svg>
+    <h1 class="veil-title">时间的尽头</h1>
+    <p class="veil-sub">THE&nbsp;END&nbsp;OF&nbsp;TIME</p>
+    <p class="veil-hint">最后一座时钟，正在崩解…</p>
+  </div>
+</div>
+
+<header class="ui hud" aria-hidden="false">
+  <h1 class="title">时间的尽头</h1>
+  <p class="subtitle" id="subtitle">THE&nbsp;END&nbsp;OF&nbsp;TIME</p>
+  <span class="rule"></span>
+  <div class="era">
+    <span id="eraText" class="era-text">纪元 I · 黄昏</span>
+    <span class="era-dots" id="eraDots" aria-label="坍缩进度">
+      <i></i><i></i><i></i><i></i><i></i>
+    </span>
+  </div>
+  <div class="entropy-meter" title="熵值">
+    <span class="entropy-label">熵</span>
+    <span class="entropy-track"><span id="entropyFill" class="entropy-fill"></span></span>
+    <span id="entropyPct" class="entropy-pct">18%</span>
+  </div>
+</header>
+
+<div class="ui topbar">
+  <button id="soundBtn" class="icon-btn" type="button" title="声音：开" aria-label="切换声音" aria-pressed="true">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path class="spk" d="M4 9.5v5h3.6L12 18.4V5.6L7.6 9.5H4z" fill="currentColor"/>
+      <path class="wave" d="M15.2 8.4a4.6 4.6 0 0 1 0 7.2M17.8 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <line class="mute-line" x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+  </button>
+  <button id="fullBtn" class="icon-btn" type="button" title="全屏" aria-label="切换全屏">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+</div>
+
+<aside id="console" class="ui console" aria-label="控制台">
+  <div class="console-head">
+    <span class="console-title">控制台</span>
+    <span class="console-sub">CONSOLE</span>
+    <span id="statLine" class="stat-line">— fps</span>
+  </div>
+  <div class="console-body">
+    <section class="ctl-section">
+      <h2 class="sec-title">时间 <em>TIME</em></h2>
+      <label class="ctl">
+        <span class="ctl-name">时间流速<output id="oFlow">1.00×</output></span>
+        <input id="rngFlow" type="range" min="0" max="3" step="0.01" value="1">
+      </label>
+      <label class="ctl">
+        <span class="ctl-name">熵增 · 崩解<output id="oEntropy">0.18</output></span>
+        <input id="rngEntropy" type="range" min="0" max="1" step="0.01" value="0.18">
+      </label>
+      <label class="ctl">
+        <span class="ctl-name">坠入速度<output id="oInfall">1.00×</output></span>
+        <input id="rngInfall" type="range" min="0.2" max="3" step="0.01" value="1">
+      </label>
+    </section>
+    <section class="ctl-section">
+      <h2 class="sec-title">物质 <em>MATTER</em></h2>
+      <label class="ctl">
+        <span class="ctl-name">时间之沙<output id="oSand">80%</output></span>
+        <input id="rngSand" type="range" min="0.1" max="1" step="0.01" value="0.8">
+      </label>
+      <label class="ctl">
+        <span class="ctl-name">吸积盘亮度<output id="oDisk">1.00×</output></span>
+        <input id="rngDisk" type="range" min="0.2" max="2" step="0.01" value="1">
+      </label>
+      <label class="ctl">
+        <span class="ctl-name">辉光<output id="oBloom">1.00×</output></span>
+        <input id="rngBloom" type="range" min="0" max="2" step="0.01" value="1">
+      </label>
+    </section>
+    <section class="ctl-section">
+      <h2 class="sec-title">视角 <em>VIEW</em></h2>
+      <label class="ctl">
+        <span class="ctl-name">视距<output id="oDist">26</output></span>
+        <input id="rngDist" type="range" min="12" max="55" step="0.1" value="26">
+      </label>
+      <label class="ctl ctl-row">
+        <span class="ctl-name">自动环绕</span>
+        <span class="switch"><input id="tglOrbit" type="checkbox" checked><i></i></span>
+      </label>
+    </section>
+    <section class="ctl-section">
+      <h2 class="sec-title">渲染 <em>RENDER</em></h2>
+      <label class="ctl ctl-row">
+        <span class="ctl-name">画质</span>
+        <select id="selQuality" class="select">
+          <option value="high" selected>高</option>
+          <option value="mid">中</option>
+          <option value="low">低</option>
+        </select>
+      </label>
+      <label class="ctl ctl-row">
+        <span class="ctl-name">色调</span>
+        <select id="selTheme" class="select">
+          <option value="gold" selected>终焉之金</option>
+          <option value="ice">热寂苍蓝</option>
+          <option value="rose">绯红熵增</option>
+        </select>
+      </label>
+    </section>
+  </div>
+  <div class="console-foot">
+    <button id="btnCollapse" class="btn btn-primary" type="button">
+      <span class="btn-glyph">◉</span> 触发坍缩
+    </button>
+    <div class="btn-row">
+      <button id="btnPause" class="btn btn-ghost" type="button" aria-pressed="false">暂停</button>
+      <button id="btnReset" class="btn btn-ghost" type="button">重置宇宙</button>
+      <button id="btnExport" class="btn btn-ghost" type="button">导出画面</button>
+    </div>
+  </div>
+</aside>
+
+<footer class="ui ui-hint" aria-hidden="true">
+  <p class="hint" id="hintText">拖动环视&ensp;·&ensp;滚轮缩放&ensp;·&ensp;点击奇点，引发坍缩</p>
+</footer>
+
+<div id="nogl" class="nogl" hidden>
+  <p>这片宇宙需要 WebGL 才能诞生。<br>请更换支持 WebGL 的浏览器再来。</p>
+</div>
+
+<script>
+/*SCRIPT_INLINE*/
+</script>
+</body>
+</html>
