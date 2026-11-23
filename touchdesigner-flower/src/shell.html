@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="description" content="TouchDesigner 粒子向日葵特效的网页 1:1 复刻：原生 WebGL2，零依赖单文件。">
+<title>Flower · 粒子向日葵</title>
+<style>
+/*STYLE_INLINE*/
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="粒子向日葵：六朵由金色粒子构成的向日葵在黑色背景上缓缓旋转，可拖动环视"></canvas>
+<div class="veil" id="veil" aria-hidden="true"></div>
+
+<header class="mark ui">
+  <h1 class="mark-title">Flower</h1>
+  <p class="mark-sub">TOUCHDESIGNER&nbsp;粒子向日葵</p>
+</header>
+
+<p class="hint ui" id="hint">拖动环视 · 滚轮缩放 · 空格暂停</p>
+
+<div class="ctrl ui" id="ctrl">
+  <button id="btn-pause" type="button" aria-label="暂停" aria-pressed="false" title="暂停（空格）">
+    <svg class="ico ico-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <svg class="ico ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+  </button>
+  <button id="btn-reset" type="button" aria-label="回到初始视角" title="回到初始视角（R）">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5M4.5 4.5v4.2h4.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <button id="btn-save" type="button" aria-label="保存当前画面" title="保存画面（S）">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 11l4.5 4.5 4.5-4.5M5 19.5h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+</div>
+
+<div class="fallback ui" id="fallback" hidden>
+  <p>这幅粒子向日葵需要支持 WebGL2 的浏览器才能绽放。</p>
+</div>
+
+<!-- MODULE_SCRIPTS -->
+</body>
+</html>

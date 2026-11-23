@@ -1,0 +1,2310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="description" content="TouchDesigner 粒子向日葵特效的网页 1:1 复刻：原生 WebGL2，零依赖单文件。">
+<title>Flower · 粒子向日葵</title>
+<style>
+/* Flower · 全屏黑底，只留一处左上角标记与一行操作提示；控制条鼠标动才出现。 */
+:root {
+  --gold: #d9ab5c;
+  --gold-dim: rgba(217, 171, 92, 0.6);
+  --ui-font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  --serif: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", "STSong", Georgia, "Times New Roman", serif;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  color: var(--gold);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+body {
+  font-family: var(--serif);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+  background: #000;
+}
+#stage.is-dragging { cursor: grabbing; }
+
+.veil {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 1.8s ease 0.15s;
+}
+html.is-ready .veil { opacity: 0; }
+
+.mark {
+  position: fixed;
+  left: max(30px, env(safe-area-inset-left));
+  top: max(26px, env(safe-area-inset-top));
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.8s ease 1.4s;
+}
+html.is-ready .mark { opacity: 1; }
+.mark-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  color: var(--gold);
+}
+.mark-sub {
+  margin: 10px 0 0;
+  font-family: var(--ui-font);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  color: var(--gold-dim);
+}
+
+.hint {
+  position: fixed;
+  left: 50%;
+  bottom: max(26px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  margin: 0;
+  font-family: var(--ui-font);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+  color: rgba(255, 244, 226, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.4s ease 1.8s;
+}
+html.is-ready .hint { opacity: 1; }
+html.hint-off .hint { opacity: 0; transition-delay: 0s; transition-duration: 0.7s; }
+
+.ctrl {
+  position: fixed;
+  right: max(22px, env(safe-area-inset-right));
+  bottom: max(22px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+html.ctrl-on .ctrl { opacity: 1; }
+.ctrl button {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(217, 171, 92, 0.34);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--gold);
+  cursor: pointer;
+}
+.ctrl button:hover, .ctrl button:focus-visible { border-color: rgba(217, 171, 92, 0.85); outline: none; }
+.ctrl svg { width: 16px; height: 16px; display: block; }
+#btn-pause .ico-play { display: none; }
+html.is-paused #btn-pause .ico-play { display: block; }
+html.is-paused #btn-pause .ico-pause { display: none; }
+
+html.ui-hidden .ui { opacity: 0 !important; pointer-events: none; }
+html.ui-hidden .veil { opacity: 0 !important; transition: none !important; }
+
+.fallback {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  font-size: 17px;
+  line-height: 1.8;
+  color: var(--gold);
+}
+.fallback[hidden] { display: none; }
+
+@media (hover: none) {
+  html.is-ready .ctrl { opacity: 0.8; }
+  .hint { display: none; }
+}
+@media (max-height: 420px) {
+  .mark-title { font-size: 22px; }
+  .mark-sub { margin-top: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .veil, .mark, .hint, .ctrl { transition-duration: 0.25s; transition-delay: 0s; }
+}
+
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="粒子向日葵：六朵由金色粒子构成的向日葵在黑色背景上缓缓旋转，可拖动环视"></canvas>
+<div class="veil" id="veil" aria-hidden="true"></div>
+
+<header class="mark ui">
+  <h1 class="mark-title">Flower</h1>
+  <p class="mark-sub">TOUCHDESIGNER&nbsp;粒子向日葵</p>
+</header>
+
+<p class="hint ui" id="hint">拖动环视 · 滚轮缩放 · 空格暂停</p>
+
+<div class="ctrl ui" id="ctrl">
+  <button id="btn-pause" type="button" aria-label="暂停" aria-pressed="false" title="暂停（空格）">
+    <svg class="ico ico-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <svg class="ico ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+  </button>
+  <button id="btn-reset" type="button" aria-label="回到初始视角" title="回到初始视角（R）">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5M4.5 4.5v4.2h4.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <button id="btn-save" type="button" aria-label="保存当前画面" title="保存画面（S）">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 11l4.5 4.5 4.5-4.5M5 19.5h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+</div>
+
+<div class="fallback ui" id="fallback" hidden>
+  <p>这幅粒子向日葵需要支持 WebGL2 的浏览器才能绽放。</p>
+</div>
+
+<script>
+(function () {
+'use strict';
+/* ===== src/util.js ===== */
+/* Flower · 公共工具：命名空间 / 确定性随机 / 值噪声 / 四元数与矩阵
+   纯函数、无 DOM 依赖：浏览器与 node 回归共用同一份代码。 */
+(function (root) {
+  'use strict';
+  var TF = (root.TF = root.TF || {});
+  var TAU = Math.PI * 2;
+  TF.TAU = TAU;
+
+  TF.clamp = function (v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; };
+  TF.lerp = function (a, b, t) { return a + (b - a) * t; };
+  TF.smoothstep = function (a, b, x) {
+    var t = TF.clamp((x - a) / (b - a), 0, 1);
+    return t * t * (3 - 2 * t);
+  };
+
+  /* mulberry32：同种子必得同序列 */
+  TF.rng = function (seed) {
+    var a = seed >>> 0;
+    var f = function () {
+      a = (a + 0x6d2b79f5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    f.range = function (lo, hi) { return lo + (hi - lo) * f(); };
+    f.int = function (n) { return Math.floor(f() * n) % n; };
+    f.pick = function (arr) { return arr[Math.floor(f() * arr.length) % arr.length]; };
+    f.gauss = function () {
+      var u = 0, v = 0;
+      while (u === 0) u = f();
+      while (v === 0) v = f();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * v);
+    };
+    f.sign = function () { return f() < 0.5 ? -1 : 1; };
+    return f;
+  };
+
+  /* 整数格点哈希 → [0,1) */
+  TF.hash3 = function (x, y, z, seed) {
+    var h = (seed | 0) ^ 0x9e3779b9;
+    h = Math.imul(h ^ (x | 0), 0x27d4eb2d); h ^= h >>> 15;
+    h = Math.imul(h ^ (y | 0), 0x85ebca6b); h ^= h >>> 13;
+    h = Math.imul(h ^ (z | 0), 0xc2b2ae35); h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  };
+
+  /* 三维值噪声（平滑插值），范围 [0,1] */
+  TF.noise3 = function (x, y, z, seed) {
+    var ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+    var fx = x - ix, fy = y - iy, fz = z - iz;
+    fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy); fz = fz * fz * (3 - 2 * fz);
+    var h = TF.hash3;
+    var x0 = ix, x1 = ix + 1, y0 = iy, y1 = iy + 1, z0 = iz, z1 = iz + 1;
+    var n000 = h(x0, y0, z0, seed), n100 = h(x1, y0, z0, seed);
+    var n010 = h(x0, y1, z0, seed), n110 = h(x1, y1, z0, seed);
+    var n001 = h(x0, y0, z1, seed), n101 = h(x1, y0, z1, seed);
+    var n011 = h(x0, y1, z1, seed), n111 = h(x1, y1, z1, seed);
+    var a = n000 + (n100 - n000) * fx, b = n010 + (n110 - n010) * fx;
+    var c = n001 + (n101 - n001) * fx, d = n011 + (n111 - n011) * fx;
+    return (a + (b - a) * fy) + ((c + (d - c) * fy) - (a + (b - a) * fy)) * fz;
+  };
+
+  /* 二维便捷封装 */
+  TF.noise2 = function (x, y, seed) { return TF.noise3(x, y, 0.5, seed); };
+
+  /* ---------- 四元数 [x,y,z,w] ---------- */
+  TF.quatAxisAngle = function (ax, ay, az, angle) {
+    var l = Math.hypot(ax, ay, az) || 1, s = Math.sin(angle * 0.5) / l;
+    return [ax * s, ay * s, az * s, Math.cos(angle * 0.5)];
+  };
+  TF.quatMul = function (a, b) {
+    return [
+      a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
+      a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+      a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
+      a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]
+    ];
+  };
+  /* 把单位向量 from 转到 to 的最短旋转 */
+  TF.quatBetween = function (fx, fy, fz, tx, ty, tz) {
+    var d = fx * tx + fy * ty + fz * tz;
+    if (d > 0.999999) return [0, 0, 0, 1];
+    if (d < -0.999999) {
+      // 反向：绕任意垂直轴转 180°
+      var ax = Math.abs(fx) < 0.9 ? 1 : 0, ay = Math.abs(fx) < 0.9 ? 0 : 1;
+      return TF.quatAxisAngle(ax, ay, 0, Math.PI);
+    }
+    var cx = fy * tz - fz * ty, cy = fz * tx - fx * tz, cz = fx * ty - fy * tx;
+    var q = [cx, cy, cz, 1 + d], l = Math.hypot(q[0], q[1], q[2], q[3]);
+    return [q[0] / l, q[1] / l, q[2] / l, q[3] / l];
+  };
+
+  /* ---------- 4x4 矩阵（列主序 Float32Array，供 WebGL 直接上传） ---------- */
+  TF.mat4 = function () {
+    var m = new Float32Array(16);
+    m[0] = m[5] = m[10] = m[15] = 1;
+    return m;
+  };
+  TF.mat4Mul = function (a, b, out) {
+    out = out || TF.mat4();
+    for (var c = 0; c < 4; c++) {
+      for (var r = 0; r < 4; r++) {
+        out[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
+      }
+    }
+    return out;
+  };
+  /* 平移 · 旋转(四元数) · 缩放 */
+  TF.mat4FromQuatPosScale = function (q, px, py, pz, s, out) {
+    out = out || TF.mat4();
+    var x = q[0], y = q[1], z = q[2], w = q[3];
+    var x2 = x + x, y2 = y + y, z2 = z + z;
+    var xx = x * x2, xy = x * y2, xz = x * z2, yy = y * y2, yz = y * z2, zz = z * z2;
+    var wx = w * x2, wy = w * y2, wz = w * z2;
+    out[0] = (1 - (yy + zz)) * s; out[1] = (xy + wz) * s; out[2] = (xz - wy) * s; out[3] = 0;
+    out[4] = (xy - wz) * s; out[5] = (1 - (xx + zz)) * s; out[6] = (yz + wx) * s; out[7] = 0;
+    out[8] = (xz + wy) * s; out[9] = (yz - wx) * s; out[10] = (1 - (xx + yy)) * s; out[11] = 0;
+    out[12] = px; out[13] = py; out[14] = pz; out[15] = 1;
+    return out;
+  };
+  /* 透视投影：fovY(弧度)、宽高比、近远裁剪 */
+  TF.mat4Perspective = function (fovY, aspect, near, far, out) {
+    out = out || TF.mat4();
+    var f = 1 / Math.tan(fovY / 2), nf = 1 / (near - far);
+    out.fill(0);
+    out[0] = f / aspect; out[5] = f; out[10] = (far + near) * nf; out[11] = -1; out[14] = 2 * far * near * nf;
+    return out;
+  };
+  /* 视图矩阵：相机位置 eye，看向 target，上方向 up */
+  TF.mat4LookAt = function (ex, ey, ez, tx, ty, tz, ux, uy, uz, out) {
+    out = out || TF.mat4();
+    var zx = ex - tx, zy = ey - ty, zz = ez - tz;
+    var zl = Math.hypot(zx, zy, zz) || 1; zx /= zl; zy /= zl; zz /= zl;
+    var xx = uy * zz - uz * zy, xy = uz * zx - ux * zz, xz = ux * zy - uy * zx;
+    var xl = Math.hypot(xx, xy, xz) || 1; xx /= xl; xy /= xl; xz /= xl;
+    var yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+    out[0] = xx; out[1] = yx; out[2] = zx; out[3] = 0;
+    out[4] = xy; out[5] = yy; out[6] = zy; out[7] = 0;
+    out[8] = xz; out[9] = yz; out[10] = zz; out[11] = 0;
+    out[12] = -(xx * ex + xy * ey + xz * ez);
+    out[13] = -(yx * ex + yy * ey + yz * ez);
+    out[14] = -(zx * ex + zy * ey + zz * ez);
+    out[15] = 1;
+    return out;
+  };
+
+  /* 屏幕方向角(度，0=上，顺时针) → 单位向量 */
+  TF.dirFromAngle = function (deg) {
+    var a = deg * Math.PI / 180;
+    return [Math.sin(a), Math.cos(a)];
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
+/* ===== src/layout.js ===== */
+/* Flower · 构图：全部坐标以参考图（996×1388 像素）为基准定义。
+   花心 / 叶片 / 雾团 / 丝线 / 散景的位置都从参考图量出来，默认视角下与参考图对位。
+   纯数据 + 纯函数，node 回归可校验。 */
+(function (root) {
+  'use strict';
+  var TF = root.TF;
+
+  var FRAME = (TF.FRAME = { w: 996, h: 1388, aspect: 996 / 1388, focal: 24, unit: 0.01 });
+  var DEG = Math.PI / 180;
+
+  /* 参考图像素 → 世界坐标。depth 为到相机的距离（世界单位）；越近的花越大，投影后仍等于参考图像素尺寸 */
+  TF.toWorld = function (px, py, depth) {
+    var k = (depth / FRAME.focal) * FRAME.unit;
+    return [(px - FRAME.w / 2) * k, (FRAME.h / 2 - py) * k, -depth];
+  };
+  TF.pxScale = function (depth) { return (depth / FRAME.focal) * FRAME.unit; };
+
+  /* 花朵朝向：tilt = 花盘偏离正对镜头的角度；lean = 哪一侧远离镜头（0=上，90=右，180=下，顺时针度数） */
+  TF.flowerQuat = function (tiltDeg, leanDeg, out) {
+    var a = leanDeg * DEG;
+    return TF.quatAxisAngle(Math.cos(a), -Math.sin(a), 0, -tiltDeg * DEG);
+  };
+
+  /* ---------- 花朵：disc 花盘半径 / petal 外圈花瓣长（均为参考图像素） ---------- */
+  var FLOWERS = [
+    { id: 'T',  x: 655, y: 292,  disc: 117, petal: 186, width: 0.36, tilt: 55, lean: -8,  depth: 27.5, spin: 2.6,  petals: 22, gain: 0.92 },
+    { id: 'LU', x: 255, y: 478,  disc: 50,  petal: 168, width: 0.30, tilt: 38, lean: 186, depth: 26.5, spin: -3.4, petals: 17, gain: 0.95 },
+    { id: 'CL', x: 380, y: 665,  disc: 46,  petal: 212, width: 0.27, tilt: 30, lean: 160, depth: 23.0, spin: 2.0,  petals: 17, gain: 1.00 },
+    { id: 'R',  x: 790, y: 640,  disc: 39,  petal: 118, width: 0.34, tilt: 22, lean: 100, depth: 24.5, spin: -4.2, petals: 14, gain: 0.92 },
+    { id: 'BR', x: 700, y: 990,  disc: 68,  petal: 138, width: 0.38, tilt: 6,  lean: 0,   depth: 20.5, spin: 3.0,  petals: 20, gain: 1.10 },
+    { id: 'BL', x: 222, y: 1005, disc: 54,  petal: 150, width: 0.34, tilt: 42, lean: 196, depth: 22.0, spin: -2.4, petals: 16, gain: 0.80 }
+  ];
+
+  /* ---------- 叶片：x,y = 叶心；len = 长；w = 最宽处/长；dir = 叶尖方向（0=上，顺时针）；tone 0=纯绿 1=偏金 ---------- */
+  /* 底部亮绿叶：从花束中心向四周铺开，参考图 y≈1060~1388 整片被绿叶填满 */
+  var LEAF_BRIGHT = [
+    { x: 218, y: 1172, len: 196, w: 0.66, dir: 318, depth: 21.6, gain: 1.35, tone: 0.03, tilt: 16 },
+    { x: 322, y: 1228, len: 184, w: 0.62, dir: 164, depth: 21.4, gain: 1.30, tone: 0.04, tilt: 14 },
+    { x: 398, y: 1308, len: 158, w: 0.56, dir: 182, depth: 21.2, gain: 1.15, tone: 0.04, tilt: 12 },
+    { x: 622, y: 1304, len: 186, w: 0.56, dir: 192, depth: 21.4, gain: 1.15, tone: 0.04, tilt: 12 },
+    { x: 500, y: 1122, len: 184, w: 0.60, dir: 104, depth: 22.0, gain: 1.15, tone: 0.08, tilt: 22 },
+    { x: 690, y: 1112, len: 170, w: 0.58, dir: 128, depth: 22.4, gain: 1.05, tone: 0.08, tilt: 22 },
+    { x: 798, y: 1300, len: 168, w: 0.56, dir: 152, depth: 22.0, gain: 1.05, tone: 0.06, tilt: 16 },
+    { x: 866, y: 1240, len: 150, w: 0.54, dir: 132, depth: 22.8, gain: 0.95, tone: 0.10, tilt: 22 },
+    { x: 150, y: 1250, len: 150, w: 0.56, dir: 200, depth: 22.2, gain: 1.00, tone: 0.05, tilt: 16 },
+    { x: 262, y: 1100, len: 140, w: 0.56, dir: 250, depth: 22.6, gain: 1.00, tone: 0.06, tilt: 20 },
+    { x: 452, y: 1200, len: 128, w: 0.52, dir: 150, depth: 21.0, gain: 1.10, tone: 0.05, tilt: 14 },
+    { x: 740, y: 1216, len: 134, w: 0.52, dir: 206, depth: 21.6, gain: 1.00, tone: 0.06, tilt: 16 },
+    { x: 560, y: 1340, len: 118, w: 0.50, dir: 172, depth: 21.0, gain: 0.90, tone: 0.04, tilt: 12 },
+    { x: 356, y: 1140, len: 126, w: 0.54, dir: 84,  depth: 22.2, gain: 1.00, tone: 0.08, tilt: 20 },
+    { x: 850, y: 1120, len: 150, w: 0.54, dir: 140, depth: 23.0, gain: 0.95, tone: 0.10, tilt: 22 },
+    { x: 190, y: 1090, len: 136, w: 0.54, dir: 276, depth: 22.8, gain: 1.00, tone: 0.08, tilt: 20 }
+  ];
+  var LEAF_MID = [
+    { x: 492, y: 244, len: 190, w: 0.60, dir: 332, depth: 27.8, gain: 1.13, tone: 0.07, tilt: 30 },
+    { x: 128, y: 478, len: 168, w: 0.62, dir: 316, depth: 26.8, gain: 1.25, tone: 0.00, tilt: 28 },
+    { x: 586, y: 466, len: 186, w: 0.60, dir: 232, depth: 26.6, gain: 1.04, tone: 0.17, tilt: 34 },
+    { x: 926, y: 600, len: 206, w: 0.56, dir: 200, depth: 26.0, gain: 1.04, tone: 0.06, tilt: 26 },
+    { x: 170, y: 792, len: 206, w: 0.58, dir: 128, depth: 25.6, gain: 0.90, tone: 0.13, tilt: 30 },
+    { x: 534, y: 912, len: 196, w: 0.55, dir: 136, depth: 24.6, gain: 1.19, tone: 0.03, tilt: 26 },
+    { x: 676, y: 822, len: 172, w: 0.55, dir: 230, depth: 24.8, gain: 1.04, tone: 0.06, tilt: 30 },
+    { x: 878, y: 384, len: 168, w: 0.55, dir: 196, depth: 27.0, gain: 0.75, tone: 0.24, tilt: 34 },
+    { x: 320, y: 630, len: 150, w: 0.55, dir: 70,  depth: 26.2, gain: 0.75, tone: 0.24, tilt: 32 },
+    { x: 784, y: 492, len: 150, w: 0.52, dir: 300, depth: 26.4, gain: 0.75, tone: 0.24, tilt: 32 },
+    { x: 812, y: 1020, len: 170, w: 0.55, dir: 150, depth: 23.6, gain: 1.19, tone: 0.05, tilt: 24 },
+    { x: 520, y: 1040, len: 160, w: 0.55, dir: 100, depth: 23.4, gain: 1.10, tone: 0.05, tilt: 24 },
+    { x: 352, y: 962,  len: 150, w: 0.55, dir: 250, depth: 23.8, gain: 1.04, tone: 0.07, tilt: 26 }
+  ];
+
+  /* ---------- 雾团（大面积软噪声）：填充花与花之间，tone 0=绿 1=金，k=强度 ---------- */
+  var HAZE = [
+    { x: 640, y: 250,  r: 330, depth: 29.0, tone: 1.00, k: 0.62 },
+    { x: 872, y: 420,  r: 230, depth: 29.5, tone: 1.00, k: 0.55 },
+    { x: 470, y: 330,  r: 250, depth: 29.0, tone: 0.64, k: 0.66 },
+    { x: 250, y: 470,  r: 270, depth: 28.5, tone: 0.80, k: 0.66 },
+    { x: 380, y: 680,  r: 300, depth: 27.5, tone: 0.76, k: 0.66 },
+    { x: 800, y: 640,  r: 250, depth: 27.5, tone: 0.90, k: 0.60 },
+    { x: 600, y: 560,  r: 280, depth: 28.5, tone: 0.60, k: 0.66 },
+    { x: 230, y: 1010, r: 260, depth: 26.0, tone: 0.76, k: 0.60 },
+    { x: 700, y: 990,  r: 280, depth: 25.5, tone: 0.66, k: 0.66 },
+    { x: 500, y: 860,  r: 280, depth: 27.0, tone: 0.60, k: 0.66 },
+    { x: 520, y: 1230, r: 420, depth: 26.0, tone: 0.30, k: 0.74 }
+  ];
+
+  /* ---------- 丝线：细金线（首尾两点，参考图像素） ---------- */
+  var THREADS = [
+    { x0: 541, y0: 182, x1: 527, y1: 905,  b: 0.95 },
+    { x0: 770, y0: 178, x1: 838, y1: 1012, b: 1.00 },
+    { x0: 521, y0: 736, x1: 748, y1: 1022, b: 0.72 },
+    { x0: 105, y0: 985, x1: 242, y1: 1036, b: 0.50 },
+    { x0: 136, y0: 1022, x1: 203, y1: 1162, b: 0.34 }
+  ];
+  /* 发丝般的卷曲细线（折线点列） */
+  var HAIRS = [
+    { pts: [[88, 150], [118, 128], [150, 132], [162, 158], [150, 186], [128, 192]], b: 0.55 },
+    { pts: [[262, 198], [296, 250], [318, 296], [334, 306]], b: 0.30 },
+    { pts: [[62, 1128], [104, 1148], [150, 1150], [182, 1136]], b: 0.55 },
+    { pts: [[956, 296], [938, 344], [928, 384]], b: 0.30 },
+    { pts: [[86, 250], [112, 282], [120, 318]], b: 0.25 },
+    { pts: [[900, 560], [930, 640], [918, 720]], b: 0.30 }
+  ];
+
+  /* ---------- 散景：颜色 c（线性）= orange / violet / blue / cyan ---------- */
+  var C = {
+    orange: [1.0, 0.42, 0.05],
+    violet: [0.62, 0.16, 1.0],
+    blue: [0.16, 0.36, 1.0],
+    cyan: [0.10, 0.70, 0.9]
+  };
+  var BOKEH = [
+    [201, 1049, 13, 'orange', 1.0], [242, 1046, 17, 'orange', 0.55], [214, 1356, 11, 'orange', 0.8], [118, 880, 7, 'orange', 0.5],
+    [177, 1090, 10, 'violet', 1.0], [330, 1085, 11, 'violet', 0.9], [90, 1200, 7, 'violet', 0.8], [262, 668, 6, 'violet', 0.9],
+    [487, 715, 6, 'violet', 0.8], [515, 720, 6, 'violet', 0.7], [320, 333, 7, 'violet', 0.8],
+    [822, 828, 8, 'blue', 0.9], [838, 838, 5, 'cyan', 0.8], [688, 108, 4, 'cyan', 0.7], [760, 840, 5, 'cyan', 0.7],
+    [880, 112, 4, 'blue', 0.6], [846, 760, 4, 'cyan', 0.5], [404, 806, 4, 'cyan', 0.5], [736, 934, 5, 'blue', 0.6]
+  ];
+
+  /* ---------- 调色 / 氛围参数（对着参考图直方图调出来的基准值） ---------- */
+  var PARAMS = (TF.PARAMS = {
+    exposure: 1.04,      // 线性 HDR → 调色前的整体曝光
+    bloom: 0.26,        // 辉光强度
+    bloomRadius: 1.0,   // 辉光扩散
+    trail: 0.915,        // 反馈拖尾：每帧保留比例（按 60fps 折算到实时）
+    grain: 1.0,         // 胶片颗粒
+    vignette: 1.0,      // 暗角
+    dof: 1.0,           // 景深
+    lift: 1.0,          // 黑位抬升（暗处的褐色雾）
+    aberration: 1.0,    // 色差
+    speed: 1.0          // 时间流速
+  });
+
+  /* 画质档：粒子前缀比例 + 内部渲染倍率上限 + 是否开景深 */
+  var QUALITY = (TF.QUALITY = {
+    high: { frac: 1.0, maxScale: 1.0, dpr: 2.0 },
+    mid: { frac: 0.6, maxScale: 0.85, dpr: 1.5 },
+    low: { frac: 0.34, maxScale: 0.7, dpr: 1.0 }
+  });
+
+  TF.layout = {
+    frame: FRAME,
+    flowers: FLOWERS,
+    leafBright: LEAF_BRIGHT,
+    leafMid: LEAF_MID,
+    haze: HAZE,
+    threads: THREADS,
+    hairs: HAIRS,
+    bokeh: BOKEH,
+    bokehColors: C,
+    params: PARAMS,
+    quality: QUALITY,
+
+    /* 视口宽高比 → 核心画幅在画布上的缩放（css px / 参考图像素）与可见的参考图坐标范围 */
+    fit: function (cssW, cssH) {
+      var s = Math.min(cssW / FRAME.w, cssH / FRAME.h);
+      return {
+        scale: s,
+        x0: FRAME.w / 2 - cssW / (2 * s),
+        x1: FRAME.w / 2 + cssW / (2 * s),
+        y0: FRAME.h / 2 - cssH / (2 * s),
+        y1: FRAME.h / 2 + cssH / (2 * s)
+      };
+    },
+
+    /* 画幅外的延伸内容：宽屏在左右补叶丛与侧花，长屏在上下补叶丛。
+       view = 当前视口可见的参考图坐标范围；只有真正超出核心画幅（≥ MIN 像素）的方向才补，
+       所以 5:7 视口下什么都不生成，默认构图 == 参考图。返回 { flowers, leaves, haze }。 */
+    margins: function (view, rand) {
+      var out = { flowers: [], leaves: [], haze: [] };
+      var MIN = 48, OVER = 160;
+      var i, x, y;
+      // 左右
+      [[-1, view.x0], [1, view.x1]].forEach(function (sd) {
+        var dir = sd[0], span = dir < 0 ? -view.x0 : view.x1 - FRAME.w;
+        if (span < MIN) return;
+        var edge = dir < 0 ? 0 : FRAME.w, outer = dir < 0 ? view.x0 : view.x1;
+        for (x = edge + dir * 70; dir < 0 ? x > outer - OVER : x < outer + OVER; x += dir * 150) {
+          var local = Math.min(1, Math.abs(x - edge) / Math.max(span, 1));   // 0 贴边 → 1 最外
+          for (y = 110; y < 1330; y += 118) {
+            out.leaves.push({
+              x: x + (rand() - 0.5) * 90, y: y + (rand() - 0.5) * 80, len: 120 + rand() * 120, w: 0.5 + rand() * 0.16, dir: rand() * 360,
+              depth: 25.5 + rand() * 4, gain: (0.36 + rand() * 0.44) * (1 - 0.55 * local), tone: 0.15 + rand() * 0.45, tilt: 20 + rand() * 30
+            });
+          }
+          out.haze.push({ x: x, y: 640, r: 400, depth: 29, tone: 0.45, k: 0.52 * (1 - 0.5 * local) });
+        }
+        if (span > 300) {
+          var fx = edge + dir * 230;
+          out.flowers.push({ id: dir < 0 ? 'ML' : 'MR', x: fx, y: dir < 0 ? 610 : 720, disc: 52, petal: 158, width: 0.32, tilt: 26, lean: dir < 0 ? 70 : 110, depth: 27.2, spin: dir * 2.8, petals: 16, gain: 0.74 });
+        }
+        if (span > 720) {
+          var gx = edge + dir * 640;
+          out.flowers.push({ id: dir < 0 ? 'FL' : 'FR', x: gx, y: dir < 0 ? 980 : 400, disc: 46, petal: 140, width: 0.32, tilt: 40, lean: 180, depth: 28, spin: -dir * 2.2, petals: 15, gain: 0.52 });
+        }
+      });
+      // 上下
+      var below = view.y1 - FRAME.h, above = -view.y0;
+      if (below >= MIN) {
+        for (y = FRAME.h + 60; y < view.y1 + OVER; y += 120) {
+          var ly = Math.min(1, (y - FRAME.h) / Math.max(below, 1));
+          for (x = 90; x < FRAME.w; x += 128) {
+            out.leaves.push({
+              x: x + (rand() - 0.5) * 70, y: y + (rand() - 0.5) * 60, len: 130 + rand() * 130, w: 0.5 + rand() * 0.14, dir: 120 + rand() * 140,
+              depth: 23.5 + rand() * 3.5, gain: (0.9 - 0.55 * ly) * (0.7 + rand() * 0.5), tone: 0.04 + rand() * 0.2, tilt: 12 + rand() * 24
+            });
+          }
+        }
+        out.haze.push({ x: FRAME.w / 2, y: FRAME.h + below * 0.45, r: 520 + below * 0.4, depth: 27, tone: 0.0, k: 0.6 });
+      }
+      if (above >= MIN) {
+        for (y = view.y0 - OVER + 60; y < -20; y += 120) {
+          var ay = Math.min(1, (-y) / Math.max(above, 1));
+          for (x = 160; x < FRAME.w - 60; x += 150) {
+            out.leaves.push({
+              x: x + (rand() - 0.5) * 80, y: y + (rand() - 0.5) * 50, len: 120 + rand() * 110, w: 0.5 + rand() * 0.14, dir: 280 + rand() * 100,
+              depth: 28 + rand() * 3, gain: (0.5 - 0.3 * ay) * (0.7 + rand() * 0.5), tone: 0.3 + rand() * 0.4, tilt: 20 + rand() * 30
+            });
+          }
+        }
+        out.haze.push({ x: FRAME.w / 2, y: -above * 0.4, r: 560 + above * 0.4, depth: 30, tone: 0.6, k: 0.5 });
+      }
+      return out;
+    },
+
+    /* 校验：坐标在合理范围、参数为正、无重复 id。返回问题字符串数组（空 = 通过） */
+    validate: function () {
+      var bad = [];
+      var seen = {};
+      FLOWERS.forEach(function (f) {
+        if (seen[f.id]) bad.push('duplicate flower id ' + f.id);
+        seen[f.id] = 1;
+        if (!(f.x > 0 && f.x < FRAME.w && f.y > 0 && f.y < FRAME.h)) bad.push(f.id + ' center outside frame');
+        if (!(f.disc > 0 && f.petal > 0 && f.depth > 1)) bad.push(f.id + ' bad size/depth');
+        if (!(f.width > 0.1 && f.width < 0.8)) bad.push(f.id + ' bad width ratio');
+      });
+      var checkLeaf = function (l, tag) {
+        if (!(l.len > 0 && l.w > 0 && l.w < 1.2 && l.depth > 1 && l.gain > 0)) bad.push(tag + ' leaf bad params ' + JSON.stringify(l));
+      };
+      LEAF_BRIGHT.forEach(function (l) { checkLeaf(l, 'bright'); });
+      LEAF_MID.forEach(function (l) { checkLeaf(l, 'mid'); });
+      HAZE.forEach(function (h) { if (!(h.r > 0 && h.k > 0)) bad.push('haze bad ' + JSON.stringify(h)); });
+      THREADS.forEach(function (t) { if (!(t.b > 0)) bad.push('thread brightness'); });
+      Object.keys(PARAMS).forEach(function (k) { if (!(typeof PARAMS[k] === 'number' && isFinite(PARAMS[k]))) bad.push('param ' + k); });
+      return bad;
+    }
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
+/* ===== src/gen.js ===== */
+/* Flower · 程序化生成：向日葵 / 叶片 / 雾团斑点 / 尘埃 / 丝线 / 散景
+   全部输出纯数据，单位 = 参考图像素（渲染层按深度缩放到世界坐标）。
+   每个物体是一个「采样器」：粒子按序独立随机采样，所以画前缀 = 均匀抽稀 → 画质档位直接截断绘制数量。 */
+(function (root) {
+  'use strict';
+  var TF = root.TF;
+  var TAU = TF.TAU, clamp = TF.clamp;
+  var DEG = Math.PI / 180;
+
+  var KIND = (TF.KIND = { PETAL: 0, DISC: 1, LEAF: 2, WISP: 3, SPECK: 4, DUST: 5 });
+  var STRIDE = (TF.STRIDE = 11);   // aPos xyz | aA 强度·点径·随机·种类 | aB 相位·aux·aux2·偏白
+
+  var GOLD = [1.0, 0.62, 0.06];
+  var GREEN = [0.50, 1.0, 0.06];
+
+  /* 生成密度基准：对着参考图亮度分布调出来的值；density（0~1）整体缩放粒子数 */
+  var TUNING = (TF.TUNING = {
+    petalDensity: 0.50,   // 花瓣体粒子 / 像素²
+    petalI: 1.10,         // 花瓣粒子基准强度
+    leafDensity: 0.42,
+    leafI: 0.82,
+    speckDensity: 0.045,  // 雾团斑点 / 像素²
+    dustCount: 2600,
+    wispFrac: 0.17,       // 花朵粒子中飘散粒子的占比
+    discFrac: 0.08        // 花朵粒子中花盘粒子的占比
+  });
+
+  function mix3(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
+  function fract(x) { return x - Math.floor(x); }
+
+  /* 披针形轮廓 t^a·(1-t)^b：返回 {inv: 归一化倒数, mean: 轮廓沿 t 的平均值} */
+  function profile(ea, eb) {
+    var ts = ea / (ea + eb);
+    var inv = 1 / (Math.pow(ts, ea) * Math.pow(1 - ts, eb));
+    var mean = 0, N = 24;
+    for (var k = 0; k < N; k++) mean += Math.pow((k + 0.5) / N, ea) * Math.pow(1 - (k + 0.5) / N, eb) * inv;
+    return { inv: inv, mean: mean / N };
+  }
+
+  /* ================= 向日葵 ================= */
+  function buildFlower(spec, rnd) {
+    var R = spec.disc, L = spec.petal, W = spec.width;
+    var rings = [
+      { n: spec.petals, len: L, wr: W, a0: 15 + rnd() * 10, curl: 30 + rnd() * 16, phase: rnd() },
+      { n: Math.max(8, Math.round(spec.petals * 0.66)), len: L * 0.62, wr: W * 1.18, a0: 44 + rnd() * 12, curl: 14 + rnd() * 10, phase: 0.5 }
+    ];
+    var petals = [], cdf = [], sum = 0, N = 16;
+    rings.forEach(function (ring) {
+      for (var i = 0; i < ring.n; i++) {
+        var len = ring.len * (0.82 + 0.36 * rnd());
+        var hw = len * ring.wr * 0.5 * (0.86 + 0.28 * rnd());
+        var a0 = (ring.a0 + (rnd() - 0.5) * 16) * DEG;
+        var curl = (ring.curl + (rnd() - 0.5) * 18) * DEG;
+        var phi = TAU * (i + ring.phase) / ring.n + (rnd() - 0.5) * (TAU / ring.n) * 0.35;
+        var ea = 0.52 + rnd() * 0.2, eb = 0.40 + rnd() * 0.3;   // 基部收窄、先端钝尖（向日葵舌状花）
+        var pr = profile(ea, eb);
+        // 中心线查表：角 α(τ) = a0 − curl·τ²，先扬后垂
+        var cr = new Float32Array(N + 1), cz = new Float32Array(N + 1), ca = new Float32Array(N + 1);
+        var r = 0, z = 0;
+        for (var k = 0; k <= N; k++) {
+          cr[k] = r; cz[k] = z; ca[k] = a0 - curl * (k / N) * (k / N);
+          if (k < N) {
+            var am = a0 - curl * ((k + 0.5) / N) * ((k + 0.5) / N);
+            r += Math.cos(am) * len / N; z += Math.sin(am) * len / N;
+          }
+        }
+        var area = 2 * hw * len * pr.mean;
+        var p = {
+          cos: Math.cos(phi), sin: Math.sin(phi), ea: ea, eb: eb, inv: pr.inv, cr: cr, cz: cz, ca: ca,
+          fold: 0.35 + rnd() * 0.4, twist: (rnd() - 0.5) * 0.9, seed: rnd() * 100, area: area, hw: hw
+        };
+        petals.push(p);
+        sum += area; cdf.push(sum);
+      }
+    });
+    var body = sum * TUNING.petalDensity;
+    var count = Math.round(body / (1 - TUNING.wispFrac - TUNING.discFrac));
+    var f = {
+      type: 'flower', id: spec.id, R: R, petals: petals, cdf: cdf, cdfMax: sum, gain: spec.gain,
+      pos: TF.toWorld(spec.x, spec.y, spec.depth), scale: TF.pxScale(spec.depth),
+      quat: TF.flowerQuat(spec.tilt, spec.lean), spin: spec.spin, depth: spec.depth, color: GOLD,
+      spec: spec, start: 0, count: count
+    };
+    f.sampler = flowerSampler(f);
+    return f;
+  }
+
+  function flowerSampler(f) {
+    var R = f.R, gain = f.gain, petals = f.petals, cdf = f.cdf, cdfMax = f.cdfMax;
+    var T = TUNING;
+    var P = [0, 0, 0, 0];
+    // 花瓣表面点：x 沿花瓣向外，y 横向，z 沿花盘法向；返回中心线倾角
+    function petalPoint(p, t, s) {
+      var N = 16, ft = clamp(t, 0, 1) * N, k = Math.min(N - 1, Math.floor(ft)), fr = ft - k;
+      var cr = p.cr[k] + (p.cr[k + 1] - p.cr[k]) * fr;
+      var cz = p.cz[k] + (p.cz[k + 1] - p.cz[k]) * fr;
+      var al = p.ca[k] + (p.ca[k + 1] - p.ca[k]) * fr;
+      var tc = clamp(t, 0, 1);
+      var shape = Math.pow(Math.max(tc, 1e-4), p.ea) * Math.pow(1 - tc, p.eb) * p.inv;
+      var petiole = 0.16 + 0.84 * TF.smoothstep(0, 0.10, tc);
+      var ragged = 1 + (TF.noise2(tc * 7 + p.seed, p.seed * 0.37, 11) - 0.5) * 0.5 + (TF.noise2(tc * 23 + p.seed, 3.1, 13) - 0.5) * 0.3;
+      var hw = p.hw * shape * petiole * ragged;
+      var fold = p.fold * (1 - Math.min(Math.abs(s), 1.6)) * hw * (1 - 0.45 * tc);
+      var nx = -Math.sin(al), nz = Math.cos(al);
+      var lat = s * hw, off = fold;
+      var tw = p.twist * tc, ct = Math.cos(tw), st = Math.sin(tw);
+      var lat2 = lat * ct - off * st, off2 = lat * st + off * ct;
+      P[0] = cr + nx * off2; P[1] = lat2; P[2] = cz + nz * off2 + Math.sin(tc * 5.2 + p.seed) * hw * 0.12;
+      P[3] = al;
+      return P;
+    }
+    function pick(u) {
+      var lo = 0, hi = cdf.length - 1, mid, x = u * cdfMax;
+      while (lo < hi) { mid = (lo + hi) >> 1; if (cdf[mid] < x) lo = mid + 1; else hi = mid; }
+      return petals[lo];
+    }
+    return function (rnd, A, o, i, n) {
+      // 部位由每个粒子独立随机决定（而不是按序号比例），任意前缀截断都保持 花瓣/花盘/飘散 的比例
+      var u = rnd(), p, q, t, s, I, size, kind, white = 0, ph = 0, a1 = 0, a2 = 0;
+      var r1 = rnd(), r2 = rnd(), r3 = rnd(), r4 = rnd(), r5 = rnd();
+      if (u < 1 - T.wispFrac - T.discFrac) {
+        /* —— 花瓣体 —— */
+        p = pick(r1); t = r2; s = (r3 * 2 - 1) * 1.22; q = petalPoint(p, t, s);
+        var as = Math.abs(s);
+        var edge = as <= 1 ? 1 : Math.exp(-(as - 1) * 5) * 0.9;                       // 边缘飞白
+        var fiber = 0.70 + 0.62 * TF.noise2(s * 9 + p.seed, t * 1.6, 23);              // 放射纤维
+        var midrib = 1 - 0.40 * Math.exp(-(s * s) / 0.0045) * (t < 0.92 ? 1 : 0.2);    // 中脉暗线
+        var lv = Math.abs(fract(t * 5.5 - as * 0.85 + 0.5) - 0.5);
+        var latv = 1 - 0.22 * Math.exp(-(lv * lv) / 0.0032) * (1 - as * 0.25);          // 侧脉（若隐若现）
+        var patch = 0.68 + 0.64 * TF.noise2(t * 3.1 + p.seed * 2, s * 2.4 + p.seed, 37);
+        var base = 0.09 + 0.91 * TF.smoothstep(0.02, 0.56, t);                          // 基部暗（红橙）
+        var tip = 1 - 0.25 * TF.smoothstep(0.86, 1.0, t);
+        var shade = 0.70 + 0.36 * Math.cos(q[3]);
+        var sp = 0.09 + 3.3 * r4 * r4;
+        I = gain * T.petalI * edge * fiber * midrib * latv * patch * base * tip * shade * sp;
+        size = 0.75 + 0.75 * r5 * r5; kind = KIND.PETAL;
+        if (r5 > 0.968) { I *= 4.6; size *= 1.7; white = 0.15; }                        // 高光颗粒
+      } else if (u < 1 - T.wispFrac) {
+        /* —— 花盘：绒毛斑点 + 橙红边环 —— */
+        var rr, th = r1 * TAU;
+        if (r2 < 0.60) {
+          rr = R * (0.30 + 0.70 * Math.sqrt(r3));
+          I = gain * (0.05 + 0.55 * Math.pow(rr / R, 5) * r4 + 0.07 * r5);
+          size = 1.0 + 0.7 * r4;
+        } else {
+          rr = R * (0.89 + 0.15 * r3 * r3);
+          I = gain * (0.40 + 1.05 * r4 * r4);
+          size = 1.1 + 1.1 * r5;
+        }
+        q = [rr * Math.cos(th), rr * Math.sin(th), 0.6 + 1.4 * r3 * r3];
+        kind = KIND.DISC;
+      } else {
+        /* —— 飘散粒子：从花瓣外围出发，绕花轴旋出、朝镜头飘起（顶点着色器里算轨迹） —— */
+        p = pick(r1); t = 0.35 + 0.65 * r2; s = (r3 * 2 - 1) * 1.1; q = petalPoint(p, t, s);
+        I = gain * 0.85 * (0.35 + 0.9 * r4 * r4) * (0.5 + 0.5 * t);
+        size = 1.3 + 0.9 * r5; kind = KIND.WISP;
+        ph = r5; a1 = (r3 < 0 ? -1 : 1) * (0.55 + 0.9 * r4); a2 = 0.5 + r2; white = 0.05;
+      }
+      // 花瓣 / 飘散：花瓣坐标 → 花朵坐标（附着在花盘边缘）
+      if (kind !== KIND.DISC) {
+        var R0 = R * 0.965, x = q[0], y = q[1];
+        A[o] = x * p.cos - y * p.sin + R0 * p.cos;
+        A[o + 1] = x * p.sin + y * p.cos + R0 * p.sin;
+        A[o + 2] = q[2];
+      } else {
+        A[o] = q[0]; A[o + 1] = q[1]; A[o + 2] = q[2] - 0.16 * R * (1 - (q[0] * q[0] + q[1] * q[1]) / (R * R));
+      }
+      A[o + 3] = I; A[o + 4] = size; A[o + 5] = fract(r5 * 7.31 + r1 * 3.17); A[o + 6] = kind;
+      A[o + 7] = ph; A[o + 8] = a1; A[o + 9] = a2; A[o + 10] = white;
+    };
+  }
+
+  /* ================= 叶片 ================= */
+  function buildLeaf(spec, rnd) {
+    var len = spec.len, w = spec.w;
+    var ea = 0.40 + rnd() * 0.26, eb = 0.72 + rnd() * 0.5;
+    var pr = profile(ea, eb);
+    var teeth = 9 + Math.floor(rnd() * 7);
+    var seed = rnd() * 100;
+    var fold = 0.25 + rnd() * 0.45;
+    // 朝向：先绕 z 把叶尖转到屏幕方向，再绕叶轴倾斜、绕中脉翻滚
+    var theta = spec.dir * DEG - Math.PI / 2;
+    var tilt = (spec.tilt || 20) * DEG * (rnd() < 0.5 ? 1 : -1);
+    var roll = (rnd() - 0.5) * 70 * DEG;
+    var quat = TF.quatMul(TF.quatMul(TF.quatAxisAngle(0, 0, 1, theta), TF.quatAxisAngle(0, 1, 0, tilt)), TF.quatAxisAngle(1, 0, 0, roll));
+    var area = len * len * w * pr.mean;       // 全宽 = len·w，积分 2·半宽
+    var lf = {
+      type: 'leaf', x: spec.x, y: spec.y, len: len, color: mix3(GREEN, GOLD, spec.tone || 0),
+      pos: TF.toWorld(spec.x, spec.y, spec.depth), scale: TF.pxScale(spec.depth), quat: quat, depth: spec.depth,
+      spec: spec, start: 0, count: Math.round(area * TUNING.leafDensity)
+    };
+    lf.sampler = leafSampler(lf, { ea: ea, eb: eb, inv: pr.inv, teeth: teeth, seed: seed, fold: fold });
+    return lf;
+  }
+
+  function leafSampler(lf, g) {
+    var len = lf.len, w = lf.spec.w, gain = lf.spec.gain;
+    return function (rnd, A, o) {
+      var t = rnd(), s = (rnd() * 2 - 1) * 1.10, r1 = rnd(), r2 = rnd(), r3 = rnd(), r4 = rnd();
+      var tc = t, as = Math.abs(s);
+      var shape = Math.pow(tc, g.ea) * Math.pow(1 - tc, g.eb) * g.inv;
+      var tooth = 1 + 0.075 * (Math.abs(((tc * g.teeth) % 1) * 2 - 1) - 0.5);           // 锯齿边缘
+      var hw = len * w * 0.5 * shape * tooth * (1 + (TF.noise2(tc * 6 + g.seed, g.seed, 3) - 0.5) * 0.12);
+      var a = Math.min(as, 1.5);
+      var z = -0.11 * len * tc * tc - g.fold * a * hw + Math.sin(tc * 9 + s * 3 + g.seed) * hw * 0.2;
+      var edge = as <= 1 ? 1 : Math.exp(-(as - 1) * 8) * 0.7;
+      var mid = 1 - 0.62 * Math.exp(-(s * s) / 0.0035);                                 // 主脉
+      var lv = Math.abs(fract(tc * 6.5 - as * 0.75 + 0.5) - 0.5);
+      var latv = 1 - 0.48 * Math.exp(-(lv * lv) / 0.0026);                              // 侧脉
+      var rim = 1 + 0.22 * Math.exp(-((as - 0.95) * (as - 0.95)) / 0.006);              // 叶缘亮边
+      var fiber = 0.74 + 0.52 * TF.noise2(s * 7 + g.seed, tc * 2.2, 5);
+      var patch = 0.70 + 0.60 * TF.noise2(tc * 2.6 + g.seed * 2, s * 2.0, 7);
+      var core = 0.72 + 0.38 * (1 - as * as);
+      var sp = 0.30 + 1.8 * r1 * r1;
+      var I = gain * TUNING.leafI * edge * mid * latv * rim * fiber * patch * core * sp;
+      var size = 1.0 + 0.8 * r2 * r2, white = 0;
+      if (r3 < 0.015) { I *= 2.6; size *= 1.4; white = 0.08; }
+      A[o] = (tc - 0.5) * len; A[o + 1] = s * hw; A[o + 2] = z;
+      A[o + 3] = I; A[o + 4] = size; A[o + 5] = fract(r4 * 9.17 + r2 * 2.71); A[o + 6] = KIND.LEAF;
+      A[o + 7] = fract(r3 * 5.13); A[o + 8] = 0; A[o + 9] = 0; A[o + 10] = white;
+    };
+  }
+
+  /* ================= 雾团斑点 ================= */
+  function buildSpecks(h, rnd) {
+    var count = Math.round(Math.PI * h.r * h.r * TUNING.speckDensity * (0.6 + 0.4 * h.k));
+    var R = h.r;
+    var o = {
+      type: 'speck', pos: TF.toWorld(h.x, h.y, h.depth), scale: TF.pxScale(h.depth), quat: [0, 0, 0, 1],
+      color: mix3(GREEN, GOLD, h.tone), depth: h.depth, h: h, start: 0, count: count
+    };
+    o.sampler = function (rnd, A, off) {
+      var r = Math.sqrt(rnd()) * R, th = rnd() * TAU, r1 = rnd(), r2 = rnd(), r3 = rnd(), r4 = rnd();
+      var fall = 1 - 0.6 * (r / R) * (r / R);
+      A[off] = r * Math.cos(th) + (rnd() - 0.5) * 30;
+      A[off + 1] = r * Math.sin(th) + (rnd() - 0.5) * 30;
+      A[off + 2] = (rnd() * 2 - 1) * 24;
+      var I = h.k * fall * (0.10 + 0.50 * r1 * r1);
+      var size = 0.9 + 1.4 * r2 * r2, white = 0;
+      if (r3 < 0.015) { I *= 2.6; size *= 1.5; white = 0.12; }
+      A[off + 3] = I; A[off + 4] = size; A[off + 5] = fract(r4 * 11.3); A[off + 6] = KIND.SPECK;
+      A[off + 7] = fract(r1 * 6.7); A[off + 8] = 0; A[off + 9] = 0; A[off + 10] = white;
+    };
+    return o;
+  }
+
+  /* ================= 尘埃（世界坐标直接存） ================= */
+  function buildDust(view, rnd) {
+    var count = Math.round(TUNING.dustCount * (1 + 0.5 * Math.max(0, (view.x1 - view.x0) * (view.y1 - view.y0) / (TF.FRAME.w * TF.FRAME.h) - 1)));
+    var o = { type: 'dust', pos: [0, 0, 0], scale: 1, quat: [0, 0, 0, 1], color: [1.0, 0.80, 0.40], start: 0, count: count };
+    o.sampler = function (rnd, A, off) {
+      var x = view.x0 - 60 + rnd() * (view.x1 - view.x0 + 120);
+      var y = view.y0 - 60 + rnd() * (view.y1 - view.y0 + 120);
+      var d = 18.5 + rnd() * 13;
+      var w = TF.toWorld(x, y, d);
+      A[off] = w[0]; A[off + 1] = w[1]; A[off + 2] = w[2];
+      A[off + 3] = 0.25 + 1.1 * rnd() * rnd(); A[off + 4] = 0.9 + 1.5 * rnd() * rnd();
+      A[off + 5] = rnd(); A[off + 6] = KIND.DUST; A[off + 7] = rnd(); A[off + 8] = 0.3 + rnd(); A[off + 9] = 0; A[off + 10] = 0.12;
+    };
+    return o;
+  }
+
+  /* 把一组物体顺序填进一块交错缓冲；返回 { data, objects, total } */
+  function pack(objects, seed) {
+    var total = 0, i;
+    for (i = 0; i < objects.length; i++) { objects[i].start = total; total += objects[i].count; }
+    var data = new Float32Array(total * STRIDE);
+    for (i = 0; i < objects.length; i++) {
+      var o = objects[i], rnd = TF.rng((seed ^ Math.imul(i + 1, 0x9e3779b1)) >>> 0);
+      for (var j = 0; j < o.count; j++) o.sampler(rnd, data, (o.start + j) * STRIDE, j, o.count);
+    }
+    return { data: data, objects: objects, total: total };
+  }
+
+  var GEN = (TF.gen = { KIND: KIND, GOLD: GOLD, GREEN: GREEN, TUNING: TUNING, STRIDE: STRIDE });
+
+  /* 核心画幅内容：花 + 叶 + 雾团斑点 + 尘埃（不随视口变化） */
+  GEN.buildCore = function (layout, view, opt) {
+    opt = opt || {};
+    var seed = (opt.seed || 7) >>> 0, density = opt.density == null ? 1 : opt.density;
+    var rnd = TF.rng(seed), objects = [];
+    layout.flowers.forEach(function (s) { var f = buildFlower(s, rnd); f.count = Math.max(64, Math.round(f.count * density)); objects.push(f); });
+    layout.leafBright.concat(layout.leafMid).forEach(function (s) { var l = buildLeaf(s, rnd); l.count = Math.max(24, Math.round(l.count * density)); objects.push(l); });
+    layout.haze.forEach(function (h) { var o = buildSpecks(h, rnd); o.count = Math.max(24, Math.round(o.count * density)); objects.push(o); });
+    var d = buildDust(view, rnd); d.count = Math.max(200, Math.round(d.count * density)); objects.push(d);
+
+    // 丝线：细金线 + 发丝卷线（Catmull-Rom 细分），都在镜头前 17.5
+    var lines = [];
+    var lineDepth = 17.5;
+    function seg(x0, y0, x1, y1, b, sd) {
+      var a = TF.toWorld(x0, y0, lineDepth), c = TF.toWorld(x1, y1, lineDepth);
+      lines.push(a[0], a[1], a[2], c[0], c[1], c[2], b, sd);
+    }
+    layout.threads.forEach(function (t, i) { seg(t.x0, t.y0, t.x1, t.y1, t.b, i * 0.37 + 0.11); });
+    layout.hairs.forEach(function (h, i) {
+      var p = h.pts, n = p.length;
+      for (var k = 0; k < n - 1; k++) {
+        var p0 = p[Math.max(0, k - 1)], p1 = p[k], p2 = p[k + 1], p3 = p[Math.min(n - 1, k + 2)];
+        var px = p1[0], py = p1[1];
+        for (var m = 1; m <= 6; m++) {
+          var u = m / 6, u2 = u * u, u3 = u2 * u;
+          var cx = 0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * u + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * u2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * u3);
+          var cy = 0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * u + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * u2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * u3);
+          seg(px, py, cx, cy, h.b * (0.55 + 0.45 * Math.sin(Math.PI * (k + u) / (n - 1))), i * 0.53 + k * 0.07);
+          px = cx; py = cy;
+        }
+      }
+    });
+    // 散景光斑
+    var sprites = [], Cb = layout.bokehColors, spriteDepth = 17.0;
+    layout.bokeh.forEach(function (b, i) {
+      var w = TF.toWorld(b[0], b[1], spriteDepth), c = Cb[b[3]];
+      sprites.push(w[0], w[1], w[2], b[2], c[0], c[1], c[2], b[4], i * 0.618 % 1, 0, 0, 0);
+    });
+    // 雾团大面片
+    var haze = [];
+    layout.haze.forEach(function (h, i) {
+      var w = TF.toWorld(h.x, h.y, h.depth);
+      haze.push(w[0], w[1], w[2], h.r, h.tone, h.k, (i * 0.3819) % 1, 0, 0, 0, 0, 0);
+    });
+
+    var res = pack(objects, seed);
+    res.lines = new Float32Array(lines);
+    res.sprites = new Float32Array(sprites);
+    res.haze = new Float32Array(haze);
+    res.flowers = objects.filter(function (o) { return o.type === 'flower'; });
+    return res;
+  };
+
+  /* 画幅外的延伸内容（随视口宽高比变化才重建）：侧花 / 叶丛 / 雾团斑点 / 雾团面片 */
+  GEN.buildMargins = function (layout, view, opt) {
+    opt = opt || {};
+    var seed = ((opt.seed || 7) ^ 0x51ed270b) >>> 0, density = opt.density == null ? 1 : opt.density;
+    var rnd = TF.rng(seed);
+    var m = layout.margins(view, rnd);
+    var objects = [];
+    m.flowers.forEach(function (s) { var f = buildFlower(s, rnd); f.count = Math.max(64, Math.round(f.count * density)); objects.push(f); });
+    m.leaves.forEach(function (s) { var l = buildLeaf(s, rnd); l.count = Math.max(24, Math.round(l.count * density * 0.4)); objects.push(l); });   // 画幅外叶丛稀疏一些
+    m.haze.forEach(function (h) { var o = buildSpecks(h, rnd); o.count = Math.max(24, Math.round(o.count * density * 0.4)); objects.push(o); });
+    var haze = [];
+    m.haze.forEach(function (h, i) {
+      var w = TF.toWorld(h.x, h.y, h.depth);
+      haze.push(w[0], w[1], w[2], h.r, h.tone, h.k, (i * 0.2718) % 1, 0, 0, 0, 0, 0);
+    });
+    var res = pack(objects, seed);
+    res.haze = new Float32Array(haze);
+    res.flowers = objects.filter(function (o) { return o.type === 'flower'; });
+    return res;
+  };
+
+  /* 校验生成数据：无 NaN/Inf，所有物体区间合法，数量非负。返回问题数组 */
+  GEN.validate = function (res) {
+    var bad = [];
+    var a = res.data, n = res.total;
+    if (a.length !== n * STRIDE) bad.push('data length mismatch');
+    if (!res.objects.every(function (o) { return o.count >= 0 && o.start >= 0 && o.start + o.count <= n; })) bad.push('object range out of bounds');
+    for (var i = 0; i < a.length; i++) if (!isFinite(a[i])) { bad.push('non-finite at ' + i); break; }
+    var kinds = {};
+    for (var j = 0; j < n; j++) {
+      var k = a[j * STRIDE + 6], I = a[j * STRIDE + 3], sz = a[j * STRIDE + 4];
+      kinds[k] = (kinds[k] || 0) + 1;
+      if (!(I >= 0 && sz > 0)) { bad.push('bad intensity/size at ' + j); break; }
+    }
+    // 每种出现的物体类型都必须有对应粒子（画幅外数据没有尘埃，属正常）
+    var need = { flower: KIND.PETAL, leaf: KIND.LEAF, speck: KIND.SPECK, dust: KIND.DUST };
+    res.objects.forEach(function (o) { if (!kinds[need[o.type]]) bad.push('object ' + o.type + ' has no particles'); });
+    res.flowers.forEach(function (f) {
+      if (!(f.R > 0 && f.petals.length > 0)) bad.push('flower ' + f.id + ' malformed');
+    });
+    return bad;
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
+/* ===== src/shaders.js ===== */
+/* Flower · 全部 GLSL ES 3.00 着色器
+   坐标约定：物体空间单位 = 参考图像素；uModel 把它变换到世界（含深度缩放与自转）。 */
+(function (root) {
+  'use strict';
+  var TF = root.TF;
+  var S = (TF.SHADERS = {});
+
+  var NOISE = [
+    'float hash13(vec3 p3) { p3 = fract(p3 * 0.1031); p3 += dot(p3, p3.zyx + 31.32); return fract((p3.x + p3.y) * p3.z); }',
+    'float vnoise(vec3 p) {',
+    '  vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);',
+    '  return mix(mix(mix(hash13(i), hash13(i + vec3(1.0, 0.0, 0.0)), f.x), mix(hash13(i + vec3(0.0, 1.0, 0.0)), hash13(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),',
+    '             mix(mix(hash13(i + vec3(0.0, 0.0, 1.0)), hash13(i + vec3(1.0, 0.0, 1.0)), f.x), mix(hash13(i + vec3(0.0, 1.0, 1.0)), hash13(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z);',
+    '}',
+    'float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }',
+    'float vnoise2(vec2 p) {',
+    '  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);',
+    '  return mix(mix(hash12(i), hash12(i + vec2(1.0, 0.0)), f.x), mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), f.x), f.y);',
+    '}',
+    'float fbm2(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * vnoise2(p); p = p * 2.03 + vec2(17.3, 9.1); a *= 0.5; } return v; }'
+  ].join('\n');
+
+  /* ---------- 粒子 ---------- */
+  S.pointVS = [
+    '#version 300 es',
+    'precision highp float;',
+    'layout(location = 0) in vec3 aPos;',
+    'layout(location = 1) in vec4 aA;   // 强度 / 点径(参考像素) / 随机 / 种类',
+    'layout(location = 2) in vec4 aB;   // 相位 / aux / aux2 / 偏白',
+    'uniform mat4 uViewProj;',
+    'uniform mat4 uModel;',
+    'uniform vec3 uColor;',
+    'uniform vec4 uAnim;    // 时间 / 抖动幅度(px) / 飘散周期(s) / 自转角',
+    'uniform vec4 uCam;     // 相机位置 xyz / 焦距',
+    'uniform vec4 uScreen;  // 每参考像素的设备像素数 / 视口高 / 对焦深度 / 景深强度(px)',
+    'uniform float uScale;  // HDR 编码倍率（无浮点渲染时 < 1）',
+    'out vec3 vColor;',
+    'out float vSize;',
+    NOISE,
+    'void main() {',
+    '  vec3 p = aPos;',
+    '  float I = aA.x, size = aA.y, rnd = aA.z, kind = aA.w;',
+    '  float t = uAnim.x;',
+    '  if (kind < 0.5) {',
+    // 花瓣：整朵绕自身法向轻轻颤动
+    '    float n = vnoise(p * 0.045 + vec3(0.0, 0.0, t * 0.55 + rnd * 9.0));',
+    '    p.z += (n - 0.5) * uAnim.y * 2.0;',
+    '  } else if (kind < 1.5) {',
+    '  } else if (kind < 2.5) {',
+    '    float n = vnoise(p * 0.022 + vec3(t * 0.4, rnd * 2.0, 0.0));',
+    '    p.z += (n - 0.5) * uAnim.y * 2.4;',
+    '  } else if (kind < 3.5) {',
+    // 飘散：绕花轴旋出 + 朝镜头飘起 + 卷曲噪声，sin 包络淡入淡出
+    '    float life = uAnim.z * (0.7 + 0.6 * aB.z);',
+    '    float age = fract(t / life + aB.x);',
+    '    float ang = aB.y * age * life * 0.55;',
+    '    float ca = cos(ang), sa = sin(ang);',
+    '    p.xy = mat2(ca, -sa, sa, ca) * p.xy;',
+    '    p.xy *= 1.0 + 0.12 * age;',
+    '    p.z += (16.0 + 30.0 * aB.z) * age;',
+    '    p += (vec3(vnoise(p * 0.014 + vec3(t * 0.21, 0.0, 0.0)), vnoise(p * 0.014 + vec3(5.2, t * 0.19, 1.3)), vnoise(p * 0.014 + vec3(9.1, 2.7, t * 0.17))) - 0.5) * 34.0 * age;',
+    '    I *= sin(3.14159 * age) * 1.5;',
+    '  } else if (kind < 4.5) {',
+    '    p += (vec3(vnoise(p * 0.011 + vec3(t * 0.05, 0.0, 0.0)), vnoise(p * 0.011 + vec3(3.3, t * 0.045, 1.0)), vnoise(p * 0.011 + vec3(7.7, 1.1, t * 0.05))) - 0.5) * 26.0;',
+    '  } else {',
+    '    p += vec3(sin(t * 0.13 + rnd * 31.0), cos(t * 0.11 + rnd * 17.0), sin(t * 0.07 + rnd * 23.0)) * 0.05 * aB.y;',
+    '    I *= 0.30 + 1.3 * pow(0.5 + 0.5 * sin(t * (0.6 + rnd * 1.6) + aB.x * 6.2832), 3.0);',
+    '  }',
+    '  if (kind < 3.5) I *= 0.82 + 0.36 * sin(t * (1.1 + rnd * 2.6) + aB.x * 6.2832);',
+    '  vec4 cp = uViewProj * (uModel * vec4(p, 1.0));',
+    '  gl_Position = cp;',
+    '  float depth = max(cp.w, 0.001);',
+    '  float px = size * uScreen.x * uCam.w / depth;',
+    '  px += uScreen.w * abs(1.0 - uScreen.z / depth);',
+    '  if (px < 1.0) { I *= px * px; px = 1.0; }',
+    '  if (px > 60.0) { I *= (px / 60.0) * (px / 60.0); px = 60.0; }',
+    '  gl_PointSize = px;',
+    '  vSize = px;',
+    '  vColor = mix(uColor, vec3(1.0, 0.88, 0.62), aB.w) * (I * uScale);',
+    '}'
+  ].join('\n');
+
+  S.pointFS = [
+    '#version 300 es',
+    'precision highp float;',
+    'in vec3 vColor;',
+    'in float vSize;',
+    'out vec4 o;',
+    'void main() {',
+    '  vec2 d = gl_PointCoord * 2.0 - 1.0;',
+    '  float r2 = dot(d, d);',
+    '  if (r2 > 1.0) discard;',
+    // 每个粒子的能量 = 强度 × 像素²，摊在直径 vSize 的圆盘上；亚像素点至少占 1 像素，
+    // 这样 1px 小点拿到的是 ≈1 倍强度而不是软点剖面的峰值（1.28 = 1/0.785 圆盘积分校正）
+    '  float f = exp(-r2 * 2.6) * (1.0 - r2);',
+    '  float area = max(1.0, 0.785 * vSize * vSize);',
+    '  o = vec4(vColor * f * 1.28 / area, 1.0);',
+    '}'
+  ].join('\n');
+
+  /* ---------- 花盘网格（不透明，写深度 → 挡住后方花瓣） ---------- */
+  S.discVS = [
+    '#version 300 es',
+    'precision highp float;',
+    'layout(location = 0) in vec3 aPos;',
+    'layout(location = 1) in vec3 aNrm;',
+    'uniform mat4 uViewProj;',
+    'uniform mat4 uModel;',
+    'out vec2 vLocal;',
+    'out vec3 vNormal;',
+    'out vec3 vWorld;',
+    'void main() {',
+    '  vLocal = aPos.xy;',
+    '  vec4 wp = uModel * vec4(aPos, 1.0);',
+    '  vWorld = wp.xyz;',
+    '  vNormal = normalize(mat3(uModel) * aNrm);',
+    '  gl_Position = uViewProj * wp;',
+    '}'
+  ].join('\n');
+
+  S.discFS = [
+    '#version 300 es',
+    'precision highp float;',
+    'in vec2 vLocal;',
+    'in vec3 vNormal;',
+    'in vec3 vWorld;',
+    'uniform vec3 uCamPos;',
+    'uniform float uR;      // 花盘半径（参考像素）',
+    'uniform float uGain;',
+    'uniform float uScale;',
+    'out vec4 o;',
+    NOISE,
+    'void main() {',
+    '  float rr = length(vLocal);',
+    '  if (rr > 1.0) discard;',
+    '  float th = atan(vLocal.y, vLocal.x);',
+    // 绒毛：径向细纹 + 颗粒
+    '  float fur = vnoise2(vec2(th * 26.0, rr * uR * 0.55)) * 0.6 + vnoise2(vec2(th * 90.0 + 3.0, rr * uR * 1.4)) * 0.4;',
+    '  float fur2 = fbm2(vec2(th * 4.0, rr * 9.0));',
+    '  vec3 V = normalize(uCamPos - vWorld);',
+    '  float facing = clamp(dot(normalize(vNormal), V), 0.0, 1.0);',
+    '  float wall = 1.0 - facing;                         // 内壁：越斜越亮',
+    '  float rim = smoothstep(0.70, 0.95, rr) * (1.0 - smoothstep(0.96, 1.0, rr));',
+    '  vec3 base = vec3(0.030, 0.0115, 0.0016) * (0.45 + 1.1 * rr) * (0.40 + 1.5 * fur) * (0.6 + 0.8 * facing);',
+    '  vec3 glow = vec3(0.34, 0.085, 0.008) * rim * (0.30 + 0.9 * fur) * (0.5 + 0.7 * fur2) * (0.8 + 2.2 * wall);',
+    '  o = vec4((base + glow) * uGain * uScale, 1.0);',
+    '}'
+  ].join('\n');
+
+  /* ---------- 屏幕对齐面片：雾团（大软噪声）/ 散景光斑 ---------- */
+  S.quadVS = [
+    '#version 300 es',
+    'precision highp float;',
+    'layout(location = 0) in vec3 aCenter;',
+    'layout(location = 1) in vec2 aCorner;',
+    'layout(location = 2) in vec4 aP0;   // 半径(参考像素) / 种子 / 强度 / 种类',
+    'layout(location = 3) in vec3 aColor;',
+    'uniform mat4 uViewProj;',
+    'uniform vec4 uCam;',
+    'uniform vec4 uScreen;   // 每参考像素的设备像素数 / 视口宽 / 视口高 / 亮度',
+    'out vec2 vUv;',
+    'out vec4 vP0;',
+    'out vec3 vColor;',
+    'void main() {',
+    '  vec4 cp = uViewProj * vec4(aCenter, 1.0);',
+    '  float depth = max(cp.w, 0.001);',
+    '  float px = aP0.x * uScreen.x * uCam.w / depth;',
+    '  vec2 off = aCorner * px * 2.0 / uScreen.yz * cp.w;',
+    '  gl_Position = cp + vec4(off, 0.0, 0.0);',
+    '  vUv = aCorner;',
+    '  vP0 = aP0;',
+    '  vColor = aColor * uScreen.w;',
+    '}'
+  ].join('\n');
+
+  S.quadFS = [
+    '#version 300 es',
+    'precision highp float;',
+    'in vec2 vUv;',
+    'in vec4 vP0;',
+    'in vec3 vColor;',
+    'uniform float uTime;',
+    'uniform float uScale;',
+    'out vec4 o;',
+    NOISE,
+    'void main() {',
+    '  float r = length(vUv);',
+    '  if (vP0.w < 0.5) {',
+    '    if (r > 1.0) discard;',
+    '    float fall = exp(-r * r * 2.4);',
+    '    float n = fbm2(vUv * 2.3 + vP0.y * 19.0 + uTime * 0.012);',
+    '    o = vec4(vColor * fall * (0.30 + 1.0 * n * n) * vP0.z * uScale, 1.0);',
+    '  } else {',
+    '    if (r > 1.0) discard;',
+    '    float a = (1.0 - smoothstep(0.70, 1.0, r)) * (0.78 + 0.4 * smoothstep(0.5, 0.95, r));',
+    '    o = vec4(vColor * a * vP0.z * uScale, 1.0);',
+    '  }',
+    '}'
+  ].join('\n');
+
+  /* ---------- 丝线：屏幕空间加宽的线段 ---------- */
+  S.lineVS = [
+    '#version 300 es',
+    'precision highp float;',
+    'layout(location = 0) in vec3 aPos;     // 本端点（世界）',
+    'layout(location = 1) in vec3 aOther;   // 另一端点（世界）',
+    'layout(location = 2) in vec4 aL;       // 横向 ±1 / 沿线参数 0~1 / 亮度 / 种子',
+    'uniform mat4 uViewProj;',
+    'uniform vec4 uScreen;   // 每参考像素的设备像素数 / 视口宽 / 视口高 / 线宽倍率',
+    'out float vU;',
+    'out float vV;',
+    'out float vB;',
+    'out float vSeed;',
+    'void main() {',
+    '  vec4 cp = uViewProj * vec4(aPos, 1.0);',
+    '  vec4 co = uViewProj * vec4(aOther, 1.0);',
+    '  vec2 s0 = cp.xy / max(cp.w, 0.001) * uScreen.yz;',
+    '  vec2 s1 = co.xy / max(co.w, 0.001) * uScreen.yz;',
+    '  vec2 dir = s1 - s0;',
+    '  dir = dir / max(length(dir), 1e-4);',
+    '  vec2 nrm = vec2(-dir.y, dir.x);',
+    '  float halfW = 2.6 * uScreen.x * uScreen.w;',
+    '  vec2 off = nrm * aL.x * halfW * 2.0 / uScreen.yz * cp.w;',
+    '  gl_Position = cp + vec4(off, 0.0, 0.0);',
+    '  vU = aL.x; vV = aL.y; vB = aL.z; vSeed = aL.w;',
+    '}'
+  ].join('\n');
+
+  S.lineFS = [
+    '#version 300 es',
+    'precision highp float;',
+    'in float vU;',
+    'in float vV;',
+    'in float vB;',
+    'in float vSeed;',
+    'uniform float uTime;',
+    'uniform float uScale;',
+    'uniform float uBright;',
+    'out vec4 o;',
+    'void main() {',
+    '  float core = exp(-vU * vU * 3.4);',
+    '  float halo = exp(-vU * vU * 0.8) * 0.20;',
+    '  float flick = 0.62 + 0.38 * sin(vV * 26.0 + vSeed * 21.0 + uTime * 0.5);',
+    '  float d = fract(vV * 0.9 - uTime * 0.035 + vSeed) * 7.0;',
+    '  float run = 1.0 + 1.5 * exp(-d * d);',
+    '  o = vec4(vec3(1.0, 0.64, 0.09) * (core + halo) * vB * flick * run * 0.36 * uBright * uScale, 1.0);',
+    '}'
+  ].join('\n');
+
+  /* ---------- 全屏三角形 ---------- */
+  S.fsVS = [
+    '#version 300 es',
+    'precision highp float;',
+    'out vec2 vUv;',
+    'void main() {',
+    '  vec2 p = vec2((gl_VertexID == 1) ? 3.0 : -1.0, (gl_VertexID == 2) ? 3.0 : -1.0);',
+    '  vUv = p * 0.5 + 0.5;',
+    '  gl_Position = vec4(p, 0.0, 1.0);',
+    '}'
+  ].join('\n');
+
+  /* 反馈拖尾：acc = 场景·(1−衰减) + 上一帧·衰减（能量归一，静止内容亮度不变） */
+  S.feedbackFS = [
+    '#version 300 es',
+    'precision highp float;',
+    'in vec2 vUv;',
+    'uniform sampler2D uScene;',
+    'uniform sampler2D uPrev;',
+    'uniform float uDecay;',
+    'out vec4 o;',
+    'void main() {',
+    '  o = texture(uScene, vUv) * (1.0 - uDecay) + texture(uPrev, vUv) * uDecay;',
+    '}'
+  ].join('\n');
+
+  /* 13 抽头降采样 */
+  S.downFS = [
+    '#version 300 es',
+    'precision highp float;',
+    'in vec2 vUv;',
+    'uniform sampler2D uTex;',
+    'uniform vec2 uTexel;   // 源纹素',
+    'out vec4 o;',
+    'void main() {',
+    '  vec2 t = uTexel;',
+    '  vec3 a = texture(uTex, vUv + t * vec2(-2.0, 2.0)).rgb;',
+    '  vec3 b = texture(uTex, vUv + t * vec2(0.0, 2.0)).rgb;',
+    '  vec3 c = texture(uTex, vUv + t * vec2(2.0, 2.0)).rgb;',
+    '  vec3 d = texture(uTex, vUv + t * vec2(-2.0, 0.0)).rgb;',
+    '  vec3 e = texture(uTex, vUv).rgb;',
+    '  vec3 f = texture(uTex, vUv + t * vec2(2.0, 0.0)).rgb;',
+    '  vec3 g = texture(uTex, vUv + t * vec2(-2.0, -2.0)).rgb;',
+    '  vec3 h = texture(uTex, vUv + t * vec2(0.0, -2.0)).rgb;',
+    '  vec3 i = texture(uTex, vUv + t * vec2(2.0, -2.0)).rgb;',
+    '  vec3 j = texture(uTex, vUv + t * vec2(-1.0, 1.0)).rgb;',
+    '  vec3 k = texture(uTex, vUv + t * vec2(1.0, 1.0)).rgb;',
+    '  vec3 l = texture(uTex, vUv + t * vec2(-1.0, -1.0)).rgb;',
+    '  vec3 m = texture(uTex, vUv + t * vec2(1.0, -1.0)).rgb;',
+    '  o = vec4((j + k + l + m) * 0.125 + (a + b + d + e) * 0.03125 + (b + c + e + f) * 0.03125 + (d + e + g + h) * 0.03125 + (e + f + h + i) * 0.03125, 1.0);',
+    '}'
+  ].join('\n');
+
+  /* 帐篷滤波上采样并叠加 */
+  S.upFS = [
+    '#version 300 es',
+    'precision highp float;',
+    'in vec2 vUv;',
+    'uniform sampler2D uTex;     // 更低一级的上采样结果',
+    'uniform sampler2D uBase;    // 本级降采样',
+    'uniform vec2 uTexel;',
+    'uniform float uRadius;',
+    'out vec4 o;',
+    'void main() {',
+    '  vec2 t = uTexel * uRadius;',
+    '  vec3 s = texture(uTex, vUv + vec2(-t.x, t.y)).rgb * 1.0 + texture(uTex, vUv + vec2(t.x, t.y)).rgb * 1.0 +',
+    '           texture(uTex, vUv + vec2(-t.x, -t.y)).rgb * 1.0 + texture(uTex, vUv + vec2(t.x, -t.y)).rgb * 1.0 +',
+    '           texture(uTex, vUv + vec2(0.0, t.y)).rgb * 2.0 + texture(uTex, vUv + vec2(0.0, -t.y)).rgb * 2.0 +',
+    '           texture(uTex, vUv + vec2(-t.x, 0.0)).rgb * 2.0 + texture(uTex, vUv + vec2(t.x, 0.0)).rgb * 2.0 +',
+    '           texture(uTex, vUv).rgb * 4.0;',
+    '  o = vec4(texture(uBase, vUv).rgb + s / 16.0, 1.0);',
+    '}'
+  ].join('\n');
+
+  /* 调色：按亮度走「金色阶 / 绿色阶」（实测自参考图），紫蓝白走逐通道 filmic + 色差；暗角 + 黑位抬升 + 颗粒 */
+  S.gradeFS = [
+    '#version 300 es',
+    'precision highp float;',
+    'in vec2 vUv;',
+    'uniform sampler2D uAcc;',
+    'uniform sampler2D uBloom;',
+    'uniform vec2 uRes;',
+    'uniform float uTime;',
+    'uniform float uDecode;',
+    'uniform vec4 uP0;   // 曝光 / 辉光强度 / 颗粒 / 暗角',
+    'uniform vec4 uP1;   // 黑位抬升 / 色差 / 飘散亮度 / 保留',
+    'out vec4 o;',
+    NOISE,
+    'vec3 goldRamp(float y) {',
+    '  float r = y * (2.035 - 1.708 * y + 0.746 * y * y);',
+    '  return vec3(min(r, 1.0), 0.91 * y, min(0.476 * pow(y, 2.44), 0.91 * y));',
+    '}',
+    'vec3 greenRamp(float y) {',
+    '  float g = y * (1.0 + 0.24 * pow(max(1.0 - y, 0.0), 3.0));',
+    '  return vec3(y * (0.72 + 0.42 * pow(y, 1.6)), g, min(1.62 * pow(y, 2.94), g));',
+    '}',
+    'void main() {',
+    '  vec2 c = vUv - 0.5;',
+    '  float rr = length(c * vec2(uRes.x / uRes.y, 1.0));',
+    '  vec2 ab = c * rr * rr * 0.010 * uP1.y;',
+    '  vec3 accC = texture(uAcc, vUv).rgb * uDecode;',
+    '  vec3 hdr = accC * uP0.x + texture(uBloom, vUv).rgb * uDecode * uP0.y;',
+    '  vec3 other = vec3(texture(uAcc, vUv + ab).r, accC.g, texture(uAcc, vUv - ab).b) * uDecode * uP0.x;',
+    '  other = other / (1.0 + other);',
+    '  float lum = dot(hdr, vec3(0.2126, 0.7152, 0.0722));',
+    '  float gr = hdr.g / max(hdr.r, 1e-5);',
+    '  float w = smoothstep(0.86, 1.04, gr);',
+    '  float otherness = clamp((hdr.b - 0.5 * min(hdr.r, hdr.g)) / max(hdr.b, 1e-5), 0.0, 1.0);',
+    '  float y = 1.0 - exp(-lum);',
+    '  vec3 col = mix(mix(goldRamp(y), greenRamp(y), w), other, otherness);',
+    '  float vig = 1.0 - uP0.w * 0.62 * pow(min(rr * 1.12, 1.0), 2.6);',
+    '  col *= vig;',
+    '  col += vec3(0.014, 0.0065, 0.0028) * uP1.x * (1.0 - y) * vig;',
+    '  float g = hash12(gl_FragCoord.xy + fract(uTime * 0.731) * 371.0) - 0.5;',
+    '  col += g * (0.010 + 0.034 * (1.0 - y)) * uP0.z;',
+    '  o = vec4(max(col, 0.0), 1.0);',
+    '}'
+  ].join('\n');
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
+/* ===== src/camera.js ===== */
+/* Flower · 相机：绕焦点的阻尼轨道 + 指针视差 + 滚轮缩放；闲置 5 秒后缓慢回到参考构图。
+   默认位姿下，参考图像素坐标 == 画布核心画幅坐标（见 layout.fit）。 */
+(function (root) {
+  'use strict';
+  var TF = root.TF;
+  var clamp = TF.clamp;
+
+  TF.createCamera = function () {
+    var F = TF.FRAME;
+    var fovY = 2 * Math.atan((F.h * F.unit) / 2 / F.focal);
+    var st = {
+      yaw: 0, pitch: 0, zoom: 1, tYaw: 0, tPitch: 0, tZoom: 1, vYaw: 0, vPitch: 0,
+      parX: 0, parY: 0, tParX: 0, tParY: 0, dragging: false, idle: 99, focus: 22
+    };
+    var LIM = { yaw: 0.62, pitch: 0.40, zoomMin: 0.72, zoomMax: 1.7 };
+    var view = TF.mat4(), proj = TF.mat4(), vp = TF.mat4(), pos = [0, 0, F.focal];
+
+    var api = {
+      st: st, fovY: fovY, view: view, proj: proj, vp: vp, pos: pos, aspect: 1, limits: LIM,
+      startDrag: function () { st.dragging = true; st.vYaw = 0; st.vPitch = 0; st.idle = 0; },
+      /* 拖动：画面跟着手走（像素位移） */
+      drag: function (dx, dy, dt) {
+        var k = 0.0032;
+        st.tYaw = clamp(st.tYaw - dx * k, -LIM.yaw, LIM.yaw);
+        st.tPitch = clamp(st.tPitch + dy * k, -LIM.pitch, LIM.pitch);
+        st.idle = 0;
+        var d = Math.max(dt, 1 / 240);
+        st.vYaw = st.vYaw * 0.5 - (dx * k / d) * 0.5;
+        st.vPitch = st.vPitch * 0.5 + (dy * k / d) * 0.5;
+      },
+      endDrag: function () { st.dragging = false; st.idle = 0; },
+      wheel: function (deltaY) {
+        st.tZoom = clamp(st.tZoom * Math.exp(-deltaY * 0.0012), LIM.zoomMin, LIM.zoomMax);
+        st.idle = Math.min(st.idle, 4.4);
+      },
+      pinch: function (ratio) { st.tZoom = clamp(st.tZoom * ratio, LIM.zoomMin, LIM.zoomMax); st.idle = Math.min(st.idle, 4.4); },
+      /* 指针视差：nx ∈ [−1,1] 右为正，ny ∈ [−1,1] 上为正 */
+      pointer: function (nx, ny) { st.tParX = nx; st.tParY = ny; },
+      reset: function () { st.tYaw = 0; st.tPitch = 0; st.tZoom = 1; st.vYaw = 0; st.vPitch = 0; },
+      update: function (dt) {
+        st.idle += dt;
+        if (!st.dragging) {
+          if (Math.abs(st.vYaw) > 1e-4 || Math.abs(st.vPitch) > 1e-4) {
+            st.tYaw = clamp(st.tYaw + st.vYaw * dt, -LIM.yaw, LIM.yaw);
+            st.tPitch = clamp(st.tPitch + st.vPitch * dt, -LIM.pitch, LIM.pitch);
+            var damp = Math.exp(-dt * 3.2);
+            st.vYaw *= damp; st.vPitch *= damp;
+          }
+          if (st.idle > 5) {
+            var back = 1 - Math.exp(-dt * 0.55);
+            st.tYaw += (0 - st.tYaw) * back;
+            st.tPitch += (0 - st.tPitch) * back;
+            st.tZoom += (1 - st.tZoom) * back;
+          }
+        }
+        var k = 1 - Math.exp(-dt * (st.dragging ? 16 : 7));
+        st.yaw += (st.tYaw - st.yaw) * k;
+        st.pitch += (st.tPitch - st.pitch) * k;
+        st.zoom += (st.tZoom - st.zoom) * k;
+        var kp = 1 - Math.exp(-dt * 3.0);
+        st.parX += (st.tParX - st.parX) * kp;
+        st.parY += (st.tParY - st.parY) * kp;
+        api.layout();
+      },
+      layout: function () {
+        var yaw = st.yaw + st.parX * 0.042, pitch = st.pitch + st.parY * 0.028;
+        var D = F.focal / st.zoom;
+        pos[0] = D * Math.sin(yaw) * Math.cos(pitch);
+        pos[1] = D * Math.sin(pitch);
+        pos[2] = -F.focal + D * Math.cos(yaw) * Math.cos(pitch);
+        TF.mat4LookAt(pos[0], pos[1], pos[2], 0, 0, -F.focal, 0, 1, 0, view);
+        TF.mat4Perspective(fovY, api.aspect, 1, 120, proj);
+        TF.mat4Mul(proj, view, vp);
+        st.focus = 22 * (D / F.focal);
+      }
+    };
+    api.layout();
+    return api;
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
+/* ===== src/render.js ===== */
+/* Flower · 渲染器：原生 WebGL2，零依赖。
+   管线：HDR 场景（花盘不透明写深度 → 加色粒子/雾团/丝线/散景）
+        → 反馈拖尾（上一帧按时间常数衰减后叠加，能量归一）
+        → 5 级降采样 + 帐篷上采样 bloom
+        → 调色输出到画布 */
+(function (root) {
+  'use strict';
+  var TF = root.TF;
+  var SH = TF.SHADERS;
+  var STRIDE = TF.STRIDE;
+  var KIND = TF.KIND;
+
+  function compile(gl, type, src, label) {
+    var s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      var log = gl.getShaderInfoLog(s) || '';
+      var lines = src.split('\n'), m = /ERROR:\s*\d+:(\d+)/.exec(log), where = '';
+      if (m) where = ' | near line ' + m[1] + ': ' + lines.slice(Math.max(0, +m[1] - 2), +m[1] + 1).join(' / ');
+      throw new Error('shader compile failed [' + label + ']: ' + log + where);
+    }
+    return s;
+  }
+  function program(gl, vs, fs, label) {
+    var p = gl.createProgram();
+    gl.attachShader(p, compile(gl, gl.VERTEX_SHADER, vs, label));
+    gl.attachShader(p, compile(gl, gl.FRAGMENT_SHADER, fs, label));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('program link failed [' + label + ']: ' + gl.getProgramInfoLog(p));
+    var u = {}, n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+    for (var i = 0; i < n; i++) {
+      var info = gl.getActiveUniform(p, i), name = info.name.replace(/\[0\]$/, '');
+      u[name] = gl.getUniformLocation(p, info.name);
+    }
+    return { prog: p, u: u, label: label };
+  }
+
+  TF.createRenderer = function (canvas, opts) {
+    opts = opts || {};
+    var gl = canvas.getContext('webgl2', {
+      antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: false,
+      preserveDrawingBuffer: !!opts.preserveDrawingBuffer, powerPreference: 'high-performance'
+    });
+    if (!gl) return null;
+    var hdr = !!gl.getExtension('EXT_color_buffer_float');
+    var enc = hdr ? 1 : 0.14;          // 无浮点渲染目标时：场景先压进 0~1，调色时解回
+    gl.getExtension('OES_texture_float_linear');
+
+    var P = {
+      point: program(gl, SH.pointVS, SH.pointFS, 'point'),
+      disc: program(gl, SH.discVS, SH.discFS, 'disc'),
+      quad: program(gl, SH.quadVS, SH.quadFS, 'quad'),
+      line: program(gl, SH.lineVS, SH.lineFS, 'line'),
+      feedback: program(gl, SH.fsVS, SH.feedbackFS, 'feedback'),
+      down: program(gl, SH.fsVS, SH.downFS, 'down'),
+      up: program(gl, SH.fsVS, SH.upFS, 'up'),
+      grade: program(gl, SH.fsVS, SH.gradeFS, 'grade')
+    };
+
+    /* 全屏三角形 VAO（无属性，靠 gl_VertexID） */
+    var fsq = gl.createVertexArray();
+
+    /* 单位花盘网格：10 环 × 48 段，凹面 z = −0.16·(1−r²) */
+    var discVao = gl.createVertexArray(), discCount = 0;
+    (function buildDisc() {
+      var RINGS = 10, SEG = 48, v = [], idx = [];
+      for (var r = 0; r <= RINGS; r++) {
+        var rr = r / RINGS;
+        for (var s = 0; s <= SEG; s++) {
+          var a = (s / SEG) * Math.PI * 2, x = rr * Math.cos(a), y = rr * Math.sin(a);
+          var l = Math.hypot(0.32 * x, 0.32 * y, 1);
+          v.push(x, y, -0.16 * (1 - rr * rr), -0.32 * x / l, -0.32 * y / l, 1 / l);
+        }
+      }
+      for (var r2 = 0; r2 < RINGS; r2++) for (var s2 = 0; s2 < SEG; s2++) {
+        var a0 = r2 * (SEG + 1) + s2, b0 = a0 + SEG + 1;
+        idx.push(a0, b0, a0 + 1, a0 + 1, b0, b0 + 1);
+      }
+      gl.bindVertexArray(discVao);
+      var vb = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vb);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
+      var ib = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
+      gl.bindVertexArray(null);
+      discCount = idx.length;
+    })();
+
+    /* ---------- 几何批次 ---------- */
+    var batches = { points: [], quads: [], marginQuads: [], lines: null, sprites: null };
+
+    function freeQuads() {
+      batches.quads.forEach(disposeBatch);
+      batches.quads = [];
+    }
+
+    function uploadPoints(res, tag) {
+      var vao = gl.createVertexArray(), buf = gl.createBuffer();
+      gl.bindVertexArray(vao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, res.data, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, STRIDE * 4, 0);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, STRIDE * 4, 12);
+      gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, STRIDE * 4, 28);
+      gl.bindVertexArray(null);
+      var objs = res.objects.map(function (o) {
+        return {
+          type: o.type, id: o.id, start: o.start, count: o.count, color: o.color,
+          pos: o.pos, quat: o.quat, scale: o.scale, spin: o.type === 'flower' ? (o.spin * Math.PI / 180) : 0,
+          jitter: o.type === 'flower' ? 1.5 : o.type === 'leaf' ? 2.2 : 0,
+          wispLife: 2.0 + ((o.start * 0.618) % 1) * 2.2,
+          gain: o.gain || 1, R: o.R || 0,
+          model: TF.mat4FromQuatPosScale(o.quat, o.pos[0], o.pos[1], o.pos[2], o.scale)
+        };
+      });
+      return { tag: tag, vao: vao, buf: buf, objs: objs, total: res.total, flowers: objs.filter(function (o) { return o.type === 'flower'; }) };
+    }
+
+    function uploadQuads(arr, isSprite) {
+      // 入参每片 12 浮点：雾团 [x,y,z,r,tone,k,seed,…]，散景 [x,y,z,r,r,g,b,I,seed,…]
+      var n = arr.length / 12, vert = new Float32Array(n * 6 * 12), k = 0;   // 每顶点 12 浮点
+      var CORN = [[-1, -1], [1, -1], [1, 1], [-1, -1], [1, 1], [-1, 1]];
+      var GOLD = TF.gen.GOLD, GREEN = TF.gen.GREEN;
+      for (var i = 0; i < n; i++) {
+        var b = i * 12, col;
+        if (isSprite) col = [arr[b + 4], arr[b + 5], arr[b + 6]];
+        else col = [GREEN[0] + (GOLD[0] - GREEN[0]) * arr[b + 4], GREEN[1] + (GOLD[1] - GREEN[1]) * arr[b + 4], GREEN[2] + (GOLD[2] - GREEN[2]) * arr[b + 4]];
+        for (var c = 0; c < 6; c++) {
+          vert[k++] = arr[b]; vert[k++] = arr[b + 1]; vert[k++] = arr[b + 2];
+          vert[k++] = CORN[c][0]; vert[k++] = CORN[c][1];
+          vert[k++] = arr[b + 3]; vert[k++] = isSprite ? 0 : arr[b + 6];
+          vert[k++] = isSprite ? arr[b + 7] : arr[b + 5];
+          vert[k++] = isSprite ? 1 : 0;
+          vert[k++] = col[0]; vert[k++] = col[1]; vert[k++] = col[2];
+        }
+      }
+      var vao = gl.createVertexArray(), buf = gl.createBuffer();
+      gl.bindVertexArray(vao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, vert, gl.STATIC_DRAW);
+      // 每顶点 12 浮点 = 48 字节：center(3) corner(2) P0(4) color(3)
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 48, 0);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 48, 12);
+      gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 48, 20);
+      gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 3, gl.FLOAT, false, 48, 36);
+      gl.bindVertexArray(null);
+      return { vao: vao, buf: buf, count: n * 6 };
+    }
+
+    function uploadLines(arr) {
+      // 入参每段 8 浮点：x0,y0,z0,x1,y1,z1,b,seed → 4 顶点 + 6 索引
+      var n = arr.length / 8, vert = new Float32Array(n * 4 * 10), idx = new Uint32Array(n * 6), k = 0;
+      for (var i = 0; i < n; i++) {
+        var b = i * 8;
+        for (var e = 0; e < 2; e++) {
+          var ax = arr[b + e * 3], ay = arr[b + e * 3 + 1], az = arr[b + e * 3 + 2];
+          var ox = arr[b + (1 - e) * 3], oy = arr[b + (1 - e) * 3 + 1], oz = arr[b + (1 - e) * 3 + 2];
+          for (var s = 0; s < 2; s++) {
+            vert[k++] = ax; vert[k++] = ay; vert[k++] = az;
+            vert[k++] = ox; vert[k++] = oy; vert[k++] = oz;
+            vert[k++] = s ? 1 : -1; vert[k++] = e; vert[k++] = arr[b + 6]; vert[k++] = arr[b + 7];
+          }
+        }
+        var v0 = i * 4;
+        idx[i * 6] = v0; idx[i * 6 + 1] = v0 + 2; idx[i * 6 + 2] = v0 + 1; idx[i * 6 + 3] = v0 + 1; idx[i * 6 + 4] = v0 + 2; idx[i * 6 + 5] = v0 + 3;
+      }
+      var vao = gl.createVertexArray(), vb = gl.createBuffer(), ib = gl.createBuffer();
+      gl.bindVertexArray(vao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, vb);
+      gl.bufferData(gl.ARRAY_BUFFER, vert, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
+      gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 40, 24);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+      gl.bindVertexArray(null);
+      return { vao: vao, count: idx.length };
+    }
+
+    /* ---------- 渲染目标 ---------- */
+    function makeTarget(w, h, withDepth) {
+      var tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, hdr ? gl.RGBA16F : gl.RGBA8, w, h, 0, gl.RGBA, hdr ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      var fb = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+      var rb = null;
+      if (withDepth) {
+        rb = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, w, h);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rb);
+      }
+      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) throw new Error('framebuffer incomplete ' + w + 'x' + h);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      return { fb: fb, tex: tex, rb: rb, w: w, h: h };
+    }
+    function freeTarget(t) {
+      if (!t) return;
+      gl.deleteFramebuffer(t.fb); gl.deleteTexture(t.tex);
+      if (t.rb) gl.deleteRenderbuffer(t.rb);
+    }
+
+    var W = 0, H = 0, scene = null, accum = [null, null], ping = 0, down = [], up = [], levels = 5;
+
+    function setSize(w, h) {
+      w = Math.max(2, Math.floor(w)); h = Math.max(2, Math.floor(h));
+      if (w === W && h === H) return false;
+      W = w; H = h;
+      if (canvas.width !== W) canvas.width = W;
+      if (canvas.height !== H) canvas.height = H;
+      freeTarget(scene); freeTarget(accum[0]); freeTarget(accum[1]);
+      down.forEach(freeTarget); up.forEach(freeTarget);
+      down = []; up = [];
+      scene = makeTarget(W, H, true);
+      accum = [makeTarget(W, H, false), makeTarget(W, H, false)];
+      levels = Math.min(5, Math.max(3, Math.floor(Math.log2(Math.min(W, H))) - 3));
+      var bw = W, bh = H;
+      for (var i = 0; i < levels; i++) {
+        bw = Math.max(1, bw >> 1); bh = Math.max(1, bh >> 1);
+        down.push(makeTarget(bw, bh, false));
+        if (i < levels - 1) up.push(makeTarget(bw, bh, false));
+      }
+      // 清空反馈缓冲，避免首帧残留
+      gl.bindFramebuffer(gl.FRAMEBUFFER, accum[0].fb); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, accum[1].fb); gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      return true;
+    }
+
+    function blit(target) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, target ? target.fb : null);
+      gl.viewport(0, 0, target ? target.w : W, target ? target.h : H);
+      gl.bindVertexArray(fsq);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+    function bindTex(unit, tex, loc) {
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.uniform1i(loc, unit);
+    }
+
+    var tmpQ = [0, 0, 0, 1], tmpModel = TF.mat4();
+    var lastDrawn = 0;
+
+    function drawScene(st) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, scene.fb);
+      gl.viewport(0, 0, W, H);
+      gl.colorMask(true, true, true, true);
+      gl.disable(gl.BLEND);
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthFunc(gl.LEQUAL);
+      gl.depthMask(true);
+      gl.clearColor(0, 0, 0, 1);
+      gl.clearDepth(1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+      var pxDev = st.pxPerRef * (W / st.cssW);      // 每参考像素 = 多少设备像素
+      var i, o, b;
+
+      /* 花盘（不透明，写深度） */
+      gl.useProgram(P.disc.prog);
+      gl.uniformMatrix4fv(P.disc.u.uViewProj, false, st.vp);
+      gl.uniform3fv(P.disc.u.uCamPos, st.camPos);
+      gl.uniform1f(P.disc.u.uScale, enc);
+      gl.bindVertexArray(discVao);
+      var discModel = TF.mat4();
+      for (i = 0; i < batches.points.length; i++) {
+        b = batches.points[i];
+        for (var f = 0; f < b.flowers.length; f++) {
+          o = b.flowers[f];
+          // 单位花盘 × 花盘半径（参考像素）× 深度缩放
+          var sR = o.R;
+          for (var e = 0; e < 11; e++) discModel[e] = o.model[e] * sR;
+          discModel[11] = o.model[11];
+          discModel.set(o.model.subarray(12, 16), 12);
+          gl.uniformMatrix4fv(P.disc.u.uModel, false, discModel);
+          gl.uniform1f(P.disc.u.uR, o.R);
+          gl.uniform1f(P.disc.u.uGain, o.gain);
+          gl.drawElements(gl.TRIANGLES, discCount, gl.UNSIGNED_SHORT, 0);
+        }
+      }
+      gl.depthMask(false);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE);
+
+      /* 雾团 + 散景面片 */
+      gl.useProgram(P.quad.prog);
+      gl.uniformMatrix4fv(P.quad.u.uViewProj, false, st.vp);
+      gl.uniform4f(P.quad.u.uCam, st.camPos[0], st.camPos[1], st.camPos[2], TF.FRAME.focal);
+      gl.uniform4f(P.quad.u.uScreen, pxDev, W, H, st.haze);
+      gl.uniform1f(P.quad.u.uTime, st.time);
+      gl.uniform1f(P.quad.u.uScale, enc);
+      var quadSets = batches.quads.concat(batches.marginQuads);
+      for (i = 0; i < quadSets.length; i++) {
+        b = quadSets[i];
+        gl.bindVertexArray(b.vao);
+        gl.uniform4f(P.quad.u.uScreen, pxDev, W, H, b.sprite ? 1 : st.haze);
+        gl.drawArrays(gl.TRIANGLES, 0, b.count);
+      }
+      /* 粒子 */
+      gl.useProgram(P.point.prog);
+      gl.uniformMatrix4fv(P.point.u.uViewProj, false, st.vp);
+      gl.uniform4f(P.point.u.uCam, st.camPos[0], st.camPos[1], st.camPos[2], TF.FRAME.focal);
+      gl.uniform4f(P.point.u.uScreen, pxDev, H, st.focus, st.dof);
+      gl.uniform1f(P.point.u.uScale, enc);
+      lastDrawn = 0;
+      var anim = [0, 0, 0, 0];
+      for (i = 0; i < batches.points.length; i++) {
+        b = batches.points[i];
+        gl.bindVertexArray(b.vao);
+        for (var j = 0; j < b.objs.length; j++) {
+          o = b.objs[j];
+          var n = Math.floor(o.count * st.frac) || (o.count ? 1 : 0);
+          if (!n) continue;
+          if (o.spin) {
+            var q = TF.quatAxisAngle(0, 0, 1, o.spin * st.time);
+            tmpQ = TF.quatMul(o.quat, q);
+            o.model = TF.mat4FromQuatPosScale(tmpQ, o.pos[0], o.pos[1], o.pos[2], o.scale, o.model);
+          }
+          anim[0] = st.time; anim[1] = o.jitter; anim[2] = o.wispLife;
+          gl.uniformMatrix4fv(P.point.u.uModel, false, o.model);
+          gl.uniform3fv(P.point.u.uColor, o.color);
+          gl.uniform4fv(P.point.u.uAnim, anim);
+          gl.drawArrays(gl.POINTS, o.start, n);
+          lastDrawn += n;
+        }
+      }
+
+      /* 丝线 */
+      if (batches.lines) {
+        gl.useProgram(P.line.prog);
+        gl.uniformMatrix4fv(P.line.u.uViewProj, false, st.vp);
+        gl.uniform4f(P.line.u.uScreen, pxDev, W, H, st.lineW);
+        gl.uniform1f(P.line.u.uTime, st.time);
+        gl.uniform1f(P.line.u.uScale, enc);
+        gl.uniform1f(P.line.u.uBright, st.lineB);
+        gl.bindVertexArray(batches.lines.vao);
+        gl.drawElements(gl.TRIANGLES, batches.lines.count, gl.UNSIGNED_INT, 0);
+      }
+      gl.bindVertexArray(null);
+      gl.depthMask(true);
+      gl.disable(gl.BLEND);
+    }
+
+    function frame(st) {
+      if (!scene) return;
+      drawScene(st);
+
+      /* 反馈拖尾：按实时衰减（trail = 60fps 下每帧保留比例） */
+      var trail = Math.max(0, Math.min(0.985, st.trail));
+      var tau = trail > 0.001 ? -1 / (60 * Math.log(trail)) : 0;
+      var decay = tau > 0 ? Math.exp(-st.dt / tau) : 0;
+      var src = accum[1 - ping], dst = accum[ping];
+      gl.disable(gl.DEPTH_TEST);
+      gl.useProgram(P.feedback.prog);
+      bindTex(0, scene.tex, P.feedback.u.uScene);
+      bindTex(1, src.tex, P.feedback.u.uPrev);
+      gl.uniform1f(P.feedback.u.uDecay, decay);
+      blit(dst);
+      ping = 1 - ping;
+
+      /* bloom */
+      gl.useProgram(P.down.prog);
+      for (var i = 0; i < levels; i++) {
+        bindTex(0, i === 0 ? dst.tex : down[i - 1].tex, P.down.u.uTex);
+        gl.uniform2f(P.down.u.uTexel, 1 / (i === 0 ? W : down[i - 1].w), 1 / (i === 0 ? H : down[i - 1].h));
+        blit(down[i]);
+      }
+      gl.useProgram(P.up.prog);
+      gl.uniform1f(P.up.u.uRadius, st.bloomRadius);
+      for (var k = levels - 2; k >= 0; k--) {
+        bindTex(0, k === levels - 2 ? down[levels - 1].tex : up[k + 1].tex, P.up.u.uTex);
+        gl.uniform2f(P.up.u.uTexel, 1 / down[k].w, 1 / down[k].h);
+        bindTex(1, down[k].tex, P.up.u.uBase);
+        blit(up[k]);
+      }
+
+      /* 调色 → 画布 */
+      gl.useProgram(P.grade.prog);
+      bindTex(0, dst.tex, P.grade.u.uAcc);
+      bindTex(1, up[0].tex, P.grade.u.uBloom);
+      gl.uniform2f(P.grade.u.uRes, W, H);
+      gl.uniform1f(P.grade.u.uTime, st.time);
+      gl.uniform1f(P.grade.u.uDecode, 1 / enc);
+      gl.uniform4f(P.grade.u.uP0, st.exposure, st.bloom, st.grain, st.vignette);
+      gl.uniform4f(P.grade.u.uP1, st.lift, st.aberration, 0, 0);
+      blit(null);
+      gl.activeTexture(gl.TEXTURE0);
+    }
+
+    function clearTrails() {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, accum[0].fb); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, accum[1].fb); gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+
+    function disposeBatch(b) {
+      if (!b) return;
+      gl.deleteVertexArray(b.vao);
+      if (b.buf) gl.deleteBuffer(b.buf);
+    }
+
+    return {
+      gl: gl,
+      hdr: hdr,
+      programs: P,
+      get size() { return { w: W, h: H }; },
+      get drawn() { return lastDrawn; },
+      setSize: setSize,
+      frame: frame,
+      clearTrails: clearTrails,
+      setPoints: function (index, res, tag) {
+        if (batches.points[index]) disposeBatch(batches.points[index]);
+        batches.points[index] = uploadPoints(res, tag);
+        return batches.points[index];
+      },
+      /* 核心画幅的雾团面片 / 散景 / 丝线 */
+      setExtras: function (core) {
+        freeQuads();
+        var hz = uploadQuads(core.haze, false), sp = uploadQuads(core.sprites, true);
+        hz.sprite = false; sp.sprite = true;
+        batches.quads = [hz, sp];
+        if (batches.lines) { gl.deleteVertexArray(batches.lines.vao); }
+        batches.lines = uploadLines(core.lines);
+      },
+      /* 画幅外的雾团面片（随视口宽高比重建） */
+      setMarginQuads: function (arr) {
+        batches.marginQuads.forEach(disposeBatch);
+        batches.marginQuads = arr && arr.length ? [Object.assign(uploadQuads(arr, false), { sprite: false })] : [];
+      },
+      stats: function () {
+        var tot = 0, objs = 0;
+        batches.points.forEach(function (b) { tot += b.total; objs += b.objs.length; });
+        return { particles: tot, objects: objs, hdr: hdr, w: W, h: H, levels: levels, bytes: tot * STRIDE * 4, quads: batches.quads.length + batches.marginQuads.length };
+      },
+      dispose: function () {
+        batches.points.forEach(disposeBatch);
+        freeQuads();
+        batches.marginQuads.forEach(disposeBatch);
+        if (batches.lines) { gl.deleteVertexArray(batches.lines.vao); }
+        freeTarget(scene); freeTarget(accum[0]); freeTarget(accum[1]);
+        down.forEach(freeTarget); up.forEach(freeTarget);
+        Object.keys(P).forEach(function (k) { gl.deleteProgram(P[k].prog); });
+        var ext = gl.getExtension('WEBGL_lose_context');
+        if (ext) ext.loseContext();
+      }
+    };
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
+/* ===== src/ui.js ===== */
+/* Flower · 界面层：黑幕淡出、操作提示自动隐藏、右下角控制（暂停 / 回正 / 存图）。不参与渲染。 */
+(function (root) {
+  'use strict';
+  var TF = root.TF;
+  var hint, ctrl, hintTimer = 0, ctrlTimer = 0, interacted = false;
+  // window.__TF 由 main.js 创建；这里总是动态取，避免加载顺序依赖
+  function hook() { return root.__TF || {}; }
+
+  function isTouch() { return (navigator.maxTouchPoints || 0) > 0 && root.innerWidth < 1100; }
+
+  function sync() {
+    var H = hook();
+    var st = H.state ? H.state() : { paused: false };
+    document.documentElement.classList.toggle('is-paused', !!st.paused && !st.still);
+    var b = document.getElementById('btn-pause');
+    if (b) {
+      b.setAttribute('aria-pressed', st.paused ? 'true' : 'false');
+      b.setAttribute('aria-label', st.paused ? '继续' : '暂停');
+      b.title = st.paused ? '继续（空格）' : '暂停（空格）';
+    }
+  }
+
+  function hideHint() {
+    clearTimeout(hintTimer);
+    document.documentElement.classList.add('hint-off');
+  }
+
+  var ui = (TF.ui = {
+    sync: sync,
+    /* 首次交互后收起提示 */
+    noteInteraction: function () {
+      interacted = true;
+      hideHint();
+    },
+    init: function () {
+      hint = document.getElementById('hint');
+      ctrl = document.getElementById('ctrl');
+      var bp = document.getElementById('btn-pause'), br = document.getElementById('btn-reset'), bs = document.getElementById('btn-save');
+      if (bp) bp.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var H = hook(), st = H.state();
+        if (st.paused) H.resume(); else H.pause();
+        sync();
+      });
+      if (br) br.addEventListener('click', function (e) { e.stopPropagation(); hook().resetView(); });
+      if (bs) bs.addEventListener('click', function (e) { e.stopPropagation(); hook().savePng(); });
+      // 鼠标动一下才显示控制条，静止 3 秒后收起
+      function wake() {
+        document.documentElement.classList.add('ctrl-on');
+        clearTimeout(ctrlTimer);
+        if (!isTouch()) ctrlTimer = setTimeout(function () { document.documentElement.classList.remove('ctrl-on'); }, 3000);
+      }
+      root.addEventListener('pointermove', wake, { passive: true });
+      root.addEventListener('pointerdown', wake, { passive: true });
+      if (isTouch()) root.setTimeout(wake, 1800);
+      // 提示 8 秒后自动收起
+      hintTimer = setTimeout(hideHint, 8000);
+      sync();
+    }
+  });
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
+/* ===== src/main.js ===== */
+/* Flower · 启动与主循环：构建场景 → 自适应画质 → RAF → 测试钩子 window.__TF */
+(function () {
+  'use strict';
+  var TF = window.TF;
+  var errs = [];
+  var hook = (window.__TF = { version: '1.0.0', ready: false, errs: errs, params: null, built: false });
+  window.addEventListener('error', function (e) {
+    errs.push(String((e && e.message) || e) + ' @' + (e && e.lineno || '?'));
+    hook.lastError = errs[errs.length - 1];
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    errs.push('REJ ' + String(e && e.reason && e.reason.message || e && e.reason || e));
+  });
+
+  function parseQuery() {
+    var q = {};
+    String(location.search || '').replace(/^\?/, '').split('&').forEach(function (kv) {
+      if (!kv) return;
+      var p = kv.split('='), k = decodeURIComponent(p[0]);
+      q[k] = p[1] === undefined ? '1' : decodeURIComponent(p[1]);
+    });
+    return q;
+  }
+
+  var Q = parseQuery();
+  var canvas = document.getElementById('stage');
+  var L = TF.layout, F = TF.FRAME;
+  var layoutProblems = L.validate();
+  if (layoutProblems.length) errs.push('layout: ' + layoutProblems.join('; '));
+
+  var renderer;
+  try {
+    renderer = TF.createRenderer(canvas, { preserveDrawingBuffer: true });
+  } catch (e) {
+    errs.push('renderer: ' + (e && e.message || e));
+  }
+  if (!renderer) {
+    hook.webgl = false;
+    var fb = document.getElementById('fallback');
+    if (fb) fb.hidden = false;
+    var veil = document.getElementById('veil');
+    if (veil) veil.className = 'veil is-out';
+    hook.ready = true;
+    return;
+  }
+  hook.webgl = true;
+
+  var reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var isTouch = (navigator.maxTouchPoints || 0) > 0 && window.innerWidth < 1100;
+  var seed = Q.seed ? (parseInt(Q.seed, 10) >>> 0) : 7;
+
+  /* 可调参数（参考图基准值，可被 URL 覆盖） */
+  var params = {};
+  Object.keys(L.params).forEach(function (k) { params[k] = L.params[k]; });
+  var EXTRA = { haze: 0.15, lines: 1.0 };
+  Object.keys(EXTRA).forEach(function (k) { params[k] = EXTRA[k]; });
+  Object.keys(params).forEach(function (k) {
+    if (Q[k] !== undefined && isFinite(+Q[k])) params[k] = +Q[k];
+  });
+  hook.params = params;
+
+  var QUAL = L.quality;
+  var state = {
+    time: Q.t !== undefined ? Math.max(0, +Q.t || 0) : 0,
+    fixedT: Q.t !== undefined ? Math.max(0, +Q.t || 0) : null,
+    paused: Q.pause !== undefined || Q.still !== undefined,
+    still: Q.still !== undefined,
+    stopped: false,
+    quality: (Q.q && QUAL[Q.q]) ? Q.q : (isTouch ? 'mid' : 'high'),
+    frac: 1, scale: 1, dpr: 1, speed: params.speed * (reduced ? 0.25 : 1),
+    frames: 0, fps: 0, frameMs: 0, ema: 16, draws: 0
+  };
+  state.frac = QUAL[state.quality].frac;
+
+  var camera = TF.createCamera();
+  var core = null, margins = null;
+  var cssW = 1, cssH = 1, viewRect = null, lastMarginsKey = '';
+  var raf = 0, lastNow = 0, ema = 16, adaptCounter = 0;
+
+  function setParam(k, v) {
+    if (!(k in params) || !isFinite(+v)) return false;
+    params[k] = +v;
+    if (k === 'speed') state.speed = +v * (reduced ? 0.25 : 1);
+    return true;
+  }
+
+  function rebuildMargins(force) {
+    // 画幅外内容：可见范围（按 160 参考像素取整）变化才重建；5:7 视口下什么都不生成
+    var key = [Math.round(viewRect.x0 / 160), Math.round(viewRect.x1 / 160), Math.round(viewRect.y0 / 160), Math.round(viewRect.y1 / 160)].join(',');
+    if (!force && key === lastMarginsKey) return false;
+    lastMarginsKey = key;
+    var t0 = performance.now();
+    margins = TF.gen.buildMargins(L, viewRect, { seed: seed });
+    if (margins.total) renderer.setPoints(1, margins, 'margins');
+    renderer.setMarginQuads(margins.haze);
+    hook.marginMs = Math.round(performance.now() - t0);
+    return true;
+  }
+
+  function build() {
+    var t0 = performance.now();
+    viewRect = L.fit(cssW, cssH);
+    core = TF.gen.buildCore(L, viewRect, { seed: seed });
+    var problems = TF.gen.validate(core);
+    if (problems.length) errs.push('gen: ' + problems.join('; '));
+    renderer.setPoints(0, core, 'core');
+    renderer.setExtras(core);
+    lastMarginsKey = '';
+    rebuildMargins(true);
+    hook.buildMs = Math.round(performance.now() - t0);
+    hook.built = true;
+  }
+
+  function applySize() {
+    var q = QUAL[state.quality];
+    state.dpr = Math.min(window.devicePixelRatio || 1, q.dpr);
+    state.scale = Math.min(state.scale, q.maxScale);
+    cssW = Math.max(1, canvas.clientWidth || window.innerWidth);
+    cssH = Math.max(1, canvas.clientHeight || window.innerHeight);
+    camera.aspect = cssW / cssH;
+    if (viewRect) viewRect = L.fit(cssW, cssH);
+    renderer.setSize(Math.round(cssW * state.dpr * state.scale), Math.round(cssH * state.dpr * state.scale));
+  }
+
+  function render(dt) {
+    var S = viewRect.scale;
+    renderer.frame({
+      time: state.time, dt: dt, vp: camera.vp, camPos: camera.pos, cssW: cssW, pxPerRef: S,
+      frac: state.frac, focus: camera.st.focus, dof: 1.3 * params.dof * S,
+      trail: params.trail, bloomRadius: params.bloomRadius, exposure: params.exposure, bloom: params.bloom,
+      grain: params.grain, vignette: params.vignette, lift: params.lift, aberration: params.aberration,
+      haze: params.haze, lineB: params.lines, lineW: 1
+    });
+    state.draws = renderer.drawn;
+  }
+
+  function setQuality(name) {
+    if (!QUAL[name]) return false;
+    state.quality = name;
+    state.frac = QUAL[name].frac;
+    state.scale = Math.min(state.scale, QUAL[name].maxScale);
+    applySize();
+    renderer.clearTrails();
+    return true;
+  }
+
+  /* 自适应：帧耗时 EMA 超阈值先降内部倍率，仍慢再降粒子档；富余时回升 */
+  function adapt(dt) {
+    ema = ema * 0.94 + dt * 1000 * 0.06;
+    state.ema = ema;
+    if (++adaptCounter < 45) return;
+    adaptCounter = 0;
+    var q = QUAL[state.quality];
+    if (ema > 27 && state.scale > 0.52) {
+      state.scale = Math.max(0.5, state.scale - 0.12);
+      applySize();
+    } else if (ema > 42 && state.frac > 0.35) {
+      state.frac = Math.max(0.34, state.frac * 0.7);
+      renderer.clearTrails();
+    } else if (ema < 12.5 && state.scale < q.maxScale) {
+      state.scale = Math.min(q.maxScale, state.scale + 0.08);
+      applySize();
+    }
+  }
+
+  function frame(now) {
+    raf = 0;
+    var dt = state.fixedT !== null || state.still ? 1 / 60 : Math.min(0.05, Math.max(0, (now - lastNow) / 1000));
+    if (!lastNow) dt = 1 / 60;
+    lastNow = now;
+    if (!state.paused && state.fixedT === null) state.time += dt * state.speed;
+    camera.update(dt);
+    render(dt);
+    state.frames++;
+    state.frameMs = dt * 1000;
+    if (dt > 0.002 && state.fixedT === null && !document.hidden) adapt(dt);
+    if (state.frames === 1) {
+      hook.ready = true;
+      document.documentElement.className += ' is-ready';
+    }
+    if (!state.stopped) raf = requestAnimationFrame(frame);
+  }
+
+  function start() {
+    if (raf || state.stopped) return;
+    lastNow = 0;
+    raf = requestAnimationFrame(frame);
+  }
+  function stop() {
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+  }
+
+  /* 固定时间渲染 n 帧（拖尾收敛），供截图与回归使用 */
+  function step(n) {
+    n = n || 1;
+    var was = state.paused;
+    state.paused = true;
+    for (var i = 0; i < n; i++) {
+      camera.update(1 / 60);
+      render(1 / 60);
+      state.frames++;
+    }
+    state.paused = was;
+    if (state.frames >= 1) { hook.ready = true; document.documentElement.className += ' is-ready'; }
+  }
+
+  /* ---------- 事件 ---------- */
+  var pointers = new Map(), lastPinch = 0, lastPt = null, lastPtT = 0;
+  canvas.addEventListener('pointerdown', function (e) {
+    canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1) {
+      lastPt = { x: e.clientX, y: e.clientY }; lastPtT = performance.now();
+      camera.startDrag();
+      canvas.className = 'is-dragging';
+    } else if (pointers.size === 2) {
+      var p = Array.from(pointers.values());
+      lastPinch = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+    }
+    TF.ui && TF.ui.noteInteraction && TF.ui.noteInteraction();
+  });
+  canvas.addEventListener('pointermove', function (e) {
+    if (pointers.has(e.pointerId)) {
+      var prev = pointers.get(e.pointerId);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 1) {
+        var now = performance.now();
+        camera.drag(e.clientX - prev.x, e.clientY - prev.y, (now - lastPtT) / 1000);
+        lastPtT = now;
+      } else if (pointers.size === 2) {
+        var p = Array.from(pointers.values()), d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+        if (lastPinch > 0) camera.pinch(d / lastPinch);
+        lastPinch = d;
+      }
+    } else if (e.pointerType === 'mouse') {
+      camera.pointer((e.clientX / cssW) * 2 - 1, 1 - (e.clientY / cssH) * 2);
+    }
+  });
+  function endPointer(e) {
+    pointers.delete(e.pointerId);
+    if (pointers.size === 0) { camera.endDrag(); canvas.className = ''; }
+    else if (pointers.size === 1) {
+      var p = Array.from(pointers.values())[0];
+      pointers.set(Array.from(pointers.keys())[0], p);
+      lastPinch = 0;
+    }
+  }
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
+  canvas.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    camera.wheel(e.deltaY);
+    TF.ui && TF.ui.noteInteraction && TF.ui.noteInteraction();
+  }, { passive: false });
+  canvas.addEventListener('dblclick', function () { camera.reset(); });
+  canvas.addEventListener('webglcontextlost', function (e) {
+    e.preventDefault();
+    stop();
+    errs.push('webgl context lost');
+  });
+
+  var resizeTimer = 0;
+  function onResize() {
+    applySize();
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { rebuildMargins(false); }, 260);
+  }
+  window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', onResize);
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) stop();
+    else if (!state.stopped) start();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
+    var k = e.key;
+    if (k === ' ' || k === 'Spacebar') { e.preventDefault(); togglePause(); }
+    else if (k === 'r' || k === 'R') resetView();
+    else if (k === 's' || k === 'S') savePng();
+    else if (k === 'h' || k === 'H') toggleUi();
+  });
+
+  function togglePause() {
+    if (state.fixedT !== null) return false;
+    state.paused = !state.paused;
+    if (!state.paused) lastNow = 0;
+    TF.ui && TF.ui.sync && TF.ui.sync();
+    return state.paused;
+  }
+  function resetView() { camera.reset(); TF.ui && TF.ui.sync && TF.ui.sync(); }
+  function toggleUi() {
+    var hidden = document.documentElement.classList.toggle('ui-hidden');
+    TF.ui && TF.ui.sync && TF.ui.sync();
+    return hidden;
+  }
+  function savePng() {
+    render(1 / 60);
+    var a = document.createElement('a');
+    a.download = 'flower-' + Math.round(state.time * 10) / 10 + 's.png';
+    a.href = canvas.toDataURL('image/png');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return a.href.length;
+  }
+
+  /* ---------- 测试钩子 ---------- */
+  hook.state = function () {
+    var s = renderer.stats();
+    return {
+      time: Math.round(state.time * 1000) / 1000, paused: state.paused, still: state.still, stopped: state.stopped,
+      quality: state.quality, frac: state.frac, scale: Math.round(state.scale * 1000) / 1000, dpr: state.dpr,
+      width: s.w, height: s.h, cssW: cssW, cssH: cssH, frames: state.frames,
+      fps: Math.round(1000 / Math.max(ema, 0.01)), frameMs: Math.round(ema * 10) / 10,
+      particles: s.particles, drawn: state.draws, objects: s.objects, hdr: s.hdr, levels: s.levels,
+      buildMs: hook.buildMs, marginMs: hook.marginMs,
+      camera: { yaw: +camera.st.yaw.toFixed(4), pitch: +camera.st.pitch.toFixed(4), zoom: +camera.st.zoom.toFixed(4), dragging: camera.st.dragging },
+      view: viewRect ? { scale: +viewRect.scale.toFixed(4), x0: Math.round(viewRect.x0), x1: Math.round(viewRect.x1), y0: Math.round(viewRect.y0), y1: Math.round(viewRect.y1) } : null,
+      layout: core ? core.flowers.map(function (f) { return { id: f.id, count: f.count, petals: f.petals.length }; }) : [],
+      params: Object.assign({}, params),
+      errs: errs.slice()
+    };
+  };
+  hook.pause = function () { if (!state.paused) togglePause(); return state.paused; };
+  hook.resume = function () { if (state.paused && state.fixedT === null) togglePause(); return state.paused; };
+  hook.setTime = function (t) { state.time = Math.max(0, +t || 0); state.fixedT = Math.max(0, +t || 0); state.paused = true; step(1); return state.time; };
+  hook.setLive = function () { state.fixedT = null; state.paused = false; state.still = false; lastNow = 0; return true; };
+  hook.step = step;
+  hook.stop = function () { state.stopped = true; stop(); return true; };
+  hook.start = function () { state.stopped = false; start(); return true; };
+  hook.resetView = resetView;
+  hook.toggleUi = toggleUi;
+  hook.savePng = savePng;
+  hook.snapshot = function () { render(1 / 60); return canvas.toDataURL('image/png'); };
+  hook.setQuality = setQuality;
+  hook.setParam = setParam;
+  hook.camera = camera;
+  hook.renderer = renderer;
+
+  /* ---------- 启动 ---------- */
+  if (TF.ui) TF.ui.init();
+  if (Q.ui === '0') document.documentElement.classList.add('ui-hidden');
+  applySize();
+  build();
+  if (state.still) {
+    // 静帧：固定时间渲染 48 帧让拖尾收敛，然后停住
+    step(48);
+    hook.ready = true;
+    state.stopped = true;
+  } else {
+    start();
+  }
+})();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+/* Flower · 全屏黑底，只留一处左上角标记与一行操作提示；控制条鼠标动才出现。 */
+:root {
+  --gold: #d9ab5c;
+  --gold-dim: rgba(217, 171, 92, 0.6);
+  --ui-font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  --serif: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", "STSong", Georgia, "Times New Roman", serif;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  color: var(--gold);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+body {
+  font-family: var(--serif);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+  background: #000;
+}
+#stage.is-dragging { cursor: grabbing; }
+
+.veil {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 1.8s ease 0.15s;
+}
+html.is-ready .veil { opacity: 0; }
+
+.mark {
+  position: fixed;
+  left: max(30px, env(safe-area-inset-left));
+  top: max(26px, env(safe-area-inset-top));
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.8s ease 1.4s;
+}
+html.is-ready .mark { opacity: 1; }
+.mark-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  color: var(--gold);
+}
+.mark-sub {
+  margin: 10px 0 0;
+  font-family: var(--ui-font);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  color: var(--gold-dim);
+}
+
+.hint {
+  position: fixed;
+  left: 50%;
+  bottom: max(26px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  margin: 0;
+  font-family: var(--ui-font);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+  color: rgba(255, 244, 226, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.4s ease 1.8s;
+}
+html.is-ready .hint { opacity: 1; }
+html.hint-off .hint { opacity: 0; transition-delay: 0s; transition-duration: 0.7s; }
+
+.ctrl {
+  position: fixed;
+  right: max(22px, env(safe-area-inset-right));
+  bottom: max(22px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+html.ctrl-on .ctrl { opacity: 1; }
+.ctrl button {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(217, 171, 92, 0.34);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--gold);
+  cursor: pointer;
+}
+.ctrl button:hover, .ctrl button:focus-visible { border-color: rgba(217, 171, 92, 0.85); outline: none; }
+.ctrl svg { width: 16px; height: 16px; display: block; }
+#btn-pause .ico-play { display: none; }
+html.is-paused #btn-pause .ico-play { display: block; }
+html.is-paused #btn-pause .ico-pause { display: none; }
+
+html.ui-hidden .ui { opacity: 0 !important; pointer-events: none; }
+html.ui-hidden .veil { opacity: 0 !important; transition: none !important; }
+
+.fallback {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  font-size: 17px;
+  line-height: 1.8;
+  color: var(--gold);
+}
+.fallback[hidden] { display: none; }
+
+@media (hover: none) {
+  html.is-ready .ctrl { opacity: 0.8; }
+  .hint { display: none; }
+}
+@media (max-height: 420px) {
+  .mark-title { font-size: 22px; }
+  .mark-sub { margin-top: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .veil, .mark, .hint, .ctrl { transition-duration: 0.25s; transition-delay: 0s; }
+}
