@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>月面鹈鹕骑士 · Lunar Pelican Cycle</title>
+  <style>
+/* __INLINE_CSS__ */
+  </style>
+</head>
+<body>
+  <canvas id="gl-canvas" aria-label="3D Lunar Pelican Bicycle Simulation"></canvas>
+
+  <div id="hud-root">
+    <header class="top-bar">
+      <div class="brand-group">
+        <div class="brand-badge">
+          <span class="dot-live"></span>
+          <span class="brand-title">月面鹈鹕骑士</span>
+        </div>
+        <button id="btn-env-pill" class="pill pill-env" type="button" title="切换月球/地球物理环境">
+          <span id="env-label">月球 1.62 m/s²</span>
+        </button>
+        <div class="pill pill-beacon" title="已发现的月球物理信标">
+          <span>信标</span>
+          <strong id="beacon-count">0/8</strong>
+        </div>
+      </div>
+
+      <nav class="action-group" aria-label="快捷操作">
+        <button id="btn-cam" class="hud-btn" type="button">视角</button>
+        <button id="btn-auto" class="hud-btn" type="button">巡航</button>
+        <button id="btn-lab" class="hud-btn" type="button">物理</button>
+        <button id="btn-reset" class="hud-btn" type="button">重置</button>
+        <button id="btn-mute" class="hud-btn" type="button">声音</button>
+      </nav>
+    </header>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite">
+      <div class="toast-tag" id="toast-tag">LUNAR PHYSICS</div>
+      <div class="toast-title" id="toast-title"></div>
+      <div class="toast-body" id="toast-body"></div>
+    </div>
+
+    <aside id="lab-drawer" class="lab-drawer hidden" aria-label="物理实验室面板">
+      <div class="lab-header">
+        <span>月面物理实验室</span>
+        <button id="btn-lab-close" class="lab-close" type="button" aria-label="关闭面板">×</button>
+      </div>
+
+      <div class="env-switch">
+        <button id="env-moon" class="seg-btn active" type="button">月球 · 1.62 m/s² 真空</button>
+        <button id="env-earth" class="seg-btn" type="button">地球 · 9.81 m/s² 有风阻</button>
+      </div>
+
+      <div class="lab-grid">
+        <div class="lab-cell"><span>重力加速度 g</span><strong id="lab-g">1.62 m/s²</strong></div>
+        <div class="lab-cell"><span>空气密度 ρ</span><strong id="lab-rho">0.000 kg/m³</strong></div>
+        <div class="lab-cell"><span>地面支持力 N</span><strong id="lab-n">51.8 N</strong></div>
+        <div class="lab-cell"><span>最大抓地力 μN</span><strong id="lab-trac">16.8 N</strong></div>
+        <div class="lab-cell"><span>气动阻力 F_d</span><strong id="lab-drag">0.00 N</strong></div>
+        <div class="lab-cell"><span>当前坡度 θ</span><strong id="lab-slope">0.0°</strong></div>
+        <div class="lab-cell"><span>最高起跳</span><strong id="lab-best-h">0.00 m</strong></div>
+        <div class="lab-cell"><span>最长滞空</span><strong id="lab-best-t">0.00 s</strong></div>
+      </div>
+
+      <div class="lab-row">
+        <span>触屏按键</span>
+        <button id="btn-touch-mode" class="mini-btn" type="button">自动</button>
+      </div>
+
+      <div class="lab-controls-help">
+        <div><strong>电脑键鼠：</strong>W/S 蹬踏刹车 · A/D 转向 · Space 跃起/真空振翅 · Shift 冲刺打滑 · 拖拽环视 · C 视角</div>
+        <div><strong>手机触屏：</strong>左下方向舵滑推/点按转向 · 右下蹬踏/刹车/冲刺/跃起 · 单指划屏环视 · 双指缩放</div>
+      </div>
+    </aside>
+
+    <section id="telemetry-bar" class="telemetry-bar" aria-label="实时遥测">
+      <div class="tel-item"><span class="tel-k">速度</span><strong id="tel-speed">0.0</strong><span class="tel-u">km/h</span></div>
+      <div class="tel-item"><span class="tel-k">离地</span><strong id="tel-alt">0.00</strong><span class="tel-u">m</span></div>
+      <div class="tel-item"><span class="tel-k">体感</span><strong id="tel-g">0.17</strong><span class="tel-u">G</span></div>
+      <div class="tel-item" id="tel-slip-box"><span class="tel-k">滑移</span><strong id="tel-slip">0</strong><span class="tel-u">%</span></div>
+      <div class="tel-item"><span class="tel-k">倾角</span><strong id="tel-lean">0</strong><span class="tel-u">°</span></div>
+    </section>
+
+    <div id="desktop-hint" class="desktop-hint">
+      W/S 蹬踏刹车 · A/D 转向 · Space 跃起/振翅 · Shift 冲刺打滑 · 拖拽环视
+    </div>
+
+    <div id="touch-controls" class="touch-controls" aria-label="触屏控制器">
+      <div id="steer-pad" class="steer-pad">
+        <button id="btn-left" class="touch-btn steer-btn" type="button" aria-label="左转">◀</button>
+        <div class="steer-indicator"><span id="steer-thumb" class="steer-thumb"></span></div>
+        <button id="btn-right" class="touch-btn steer-btn" type="button" aria-label="右转">▶</button>
+      </div>
+
+      <div class="right-pad">
+        <div class="right-row">
+          <button id="btn-hop" class="touch-btn act-btn act-hop" type="button">跃起</button>
+          <button id="btn-sprint" class="touch-btn act-btn act-sprint" type="button">冲刺</button>
+        </div>
+        <div class="right-row">
+          <button id="btn-brake" class="touch-btn act-btn act-brake" type="button">刹车</button>
+          <button id="btn-pedal" class="touch-btn act-btn act-pedal" type="button">蹬踏</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+/* __INLINE_JS__ */
+  </script>
+</body>
+</html>

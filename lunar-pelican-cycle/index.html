@@ -1,0 +1,4854 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>月面鹈鹕骑士 · Lunar Pelican Cycle</title>
+  <style>
+:root {
+  --bg: #02040a;
+  --panel: rgba(9, 14, 26, 0.72);
+  --panel-strong: rgba(11, 17, 32, 0.88);
+  --border: rgba(148, 178, 224, 0.22);
+  --text: #eef4ff;
+  --muted: #98abc9;
+  --accent: #38bdf8;
+  --amber: #f59e0b;
+  --emerald: #34d399;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#gl-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+#hud-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  padding: env(safe-area-inset-top, 10px) env(safe-area-inset-right, 12px) env(safe-area-inset-bottom, 12px) env(safe-area-inset-left, 12px);
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px 0;
+  flex-wrap: wrap;
+}
+
+.brand-group,
+.action-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  pointer-events: auto;
+}
+
+.brand-badge,
+.pill,
+.hud-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.dot-live {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--emerald);
+  box-shadow: 0 0 8px var(--emerald);
+}
+
+.pill-env {
+  cursor: pointer;
+  color: #bae6fd;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.pill-env.earth {
+  color: #fde68a;
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.pill-beacon strong {
+  color: var(--accent);
+}
+
+.hud-btn {
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+}
+
+.hud-btn:hover {
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.hud-btn:active {
+  transform: scale(0.96);
+}
+
+.hud-btn.active {
+  background: rgba(14, 116, 144, 0.55);
+  border-color: var(--accent);
+  color: #e0f2fe;
+}
+
+.toast {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 10px) + 54px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(90vw, 430px);
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--panel-strong);
+  border: 1px solid rgba(56, 189, 248, 0.38);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 20;
+}
+
+.toast.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-8px);
+  pointer-events: none;
+}
+
+.toast-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+.toast-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+
+.toast-body {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #cbd5e1;
+}
+
+.lab-drawer {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 10px) + 52px);
+  right: calc(env(safe-area-inset-right, 12px) + 10px);
+  width: min(92vw, 350px);
+  max-height: calc(100vh - 130px);
+  overflow-y: auto;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--panel-strong);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  pointer-events: auto;
+  z-index: 30;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+}
+
+.lab-drawer.hidden {
+  display: none;
+}
+
+.lab-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.lab-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.env-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.seg-btn {
+  padding: 7px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.seg-btn.active {
+  background: rgba(14, 116, 144, 0.55);
+  border-color: var(--accent);
+  color: #f0f9ff;
+}
+
+.lab-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.lab-cell {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 10px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lab-cell span {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.lab-cell strong {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.lab-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  font-size: 12px;
+}
+
+.mini-btn {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(30, 41, 59, 0.8);
+  color: var(--text);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.lab-controls-help {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.telemetry-bar {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 12px) + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+
+.tel-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tel-k {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.tel-item strong {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.tel-u {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.tel-item.slip-warn strong,
+.tel-item.slip-warn .tel-k {
+  color: var(--amber);
+}
+
+.desktop-hint {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 12px) + 14px);
+  left: calc(env(safe-area-inset-left, 12px) + 14px);
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(8, 13, 24, 0.55);
+  border: 1px solid rgba(148, 178, 224, 0.14);
+  font-size: 11.5px;
+  color: #cbd5e1;
+  transition: opacity 0.4s ease;
+}
+
+.desktop-hint.faded {
+  opacity: 0.45;
+}
+
+/* Mobile Multi-Touch Controls */
+.touch-controls {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 10px) + 12px);
+  padding: 0 calc(env(safe-area-inset-right, 12px) + 14px) 0 calc(env(safe-area-inset-left, 12px) + 14px);
+  align-items: flex-end;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.touch-controls.force-on {
+  display: flex;
+}
+
+.touch-controls.force-off {
+  display: none !important;
+}
+
+.steer-pad {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 22px;
+  background: rgba(8, 13, 24, 0.52);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.steer-indicator {
+  width: 28px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.25);
+  position: relative;
+}
+
+.steer-thumb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translate(-50%, -50%);
+}
+
+.right-pad {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.right-row {
+  display: flex;
+  gap: 8px;
+}
+
+.touch-btn {
+  min-width: 58px;
+  min-height: 58px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 178, 224, 0.34);
+  background: rgba(11, 18, 34, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  touch-action: none;
+  cursor: pointer;
+  transition: transform 0.06s ease, background 0.1s ease;
+}
+
+.touch-btn.pressed {
+  transform: scale(0.94);
+  background: rgba(56, 189, 248, 0.45);
+  border-color: var(--accent);
+}
+
+.act-pedal {
+  min-width: 74px;
+  min-height: 64px;
+  background: rgba(14, 116, 144, 0.65);
+  border-color: rgba(56, 189, 248, 0.6);
+}
+
+.act-hop {
+  background: rgba(245, 158, 11, 0.28);
+  border-color: rgba(245, 158, 11, 0.55);
+}
+
+.act-sprint {
+  background: rgba(234, 88, 12, 0.30);
+  border-color: rgba(249, 115, 22, 0.55);
+}
+
+/* Mobile & narrow screen responsive rules */
+@media (hover: none) and (pointer: coarse), (max-width: 900px) {
+  .touch-controls {
+    display: flex;
+  }
+
+  .desktop-hint {
+    display: none;
+  }
+
+  .telemetry-bar {
+    bottom: auto;
+    top: calc(env(safe-area-inset-top, 10px) + 74px);
+    gap: 8px;
+    padding: 5px 11px;
+    max-width: calc(100vw - 16px);
+    flex-wrap: nowrap;
+  }
+
+  .tel-item {
+    white-space: nowrap;
+    gap: 3px;
+  }
+
+  .tel-k {
+    font-size: 10px;
+  }
+
+  .tel-item strong {
+    font-size: 12.5px;
+  }
+
+  .tel-u {
+    font-size: 9.5px;
+  }
+
+  .top-bar {
+    padding: 6px 6px 0;
+  }
+
+  .brand-badge,
+  .pill,
+  .hud-btn {
+    height: 30px;
+    padding: 0 9px;
+    font-size: 11.5px;
+  }
+
+  .toast {
+    top: calc(env(safe-area-inset-top, 10px) + 112px);
+  }
+}
+
+@media (max-height: 460px) and (max-width: 940px) {
+  .telemetry-bar {
+    top: calc(env(safe-area-inset-top, 6px) + 42px);
+    padding: 4px 10px;
+    gap: 8px;
+  }
+
+  .touch-btn {
+    min-width: 52px;
+    min-height: 50px;
+    font-size: 12.5px;
+    border-radius: 15px;
+  }
+
+  .act-pedal {
+    min-width: 66px;
+    min-height: 54px;
+  }
+
+  .toast {
+    top: calc(env(safe-area-inset-top, 6px) + 78px);
+    padding: 7px 12px;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <canvas id="gl-canvas" aria-label="3D Lunar Pelican Bicycle Simulation"></canvas>
+
+  <div id="hud-root">
+    <header class="top-bar">
+      <div class="brand-group">
+        <div class="brand-badge">
+          <span class="dot-live"></span>
+          <span class="brand-title">月面鹈鹕骑士</span>
+        </div>
+        <button id="btn-env-pill" class="pill pill-env" type="button" title="切换月球/地球物理环境">
+          <span id="env-label">月球 1.62 m/s²</span>
+        </button>
+        <div class="pill pill-beacon" title="已发现的月球物理信标">
+          <span>信标</span>
+          <strong id="beacon-count">0/8</strong>
+        </div>
+      </div>
+
+      <nav class="action-group" aria-label="快捷操作">
+        <button id="btn-cam" class="hud-btn" type="button">视角</button>
+        <button id="btn-auto" class="hud-btn" type="button">巡航</button>
+        <button id="btn-lab" class="hud-btn" type="button">物理</button>
+        <button id="btn-reset" class="hud-btn" type="button">重置</button>
+        <button id="btn-mute" class="hud-btn" type="button">声音</button>
+      </nav>
+    </header>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite">
+      <div class="toast-tag" id="toast-tag">LUNAR PHYSICS</div>
+      <div class="toast-title" id="toast-title"></div>
+      <div class="toast-body" id="toast-body"></div>
+    </div>
+
+    <aside id="lab-drawer" class="lab-drawer hidden" aria-label="物理实验室面板">
+      <div class="lab-header">
+        <span>月面物理实验室</span>
+        <button id="btn-lab-close" class="lab-close" type="button" aria-label="关闭面板">×</button>
+      </div>
+
+      <div class="env-switch">
+        <button id="env-moon" class="seg-btn active" type="button">月球 · 1.62 m/s² 真空</button>
+        <button id="env-earth" class="seg-btn" type="button">地球 · 9.81 m/s² 有风阻</button>
+      </div>
+
+      <div class="lab-grid">
+        <div class="lab-cell"><span>重力加速度 g</span><strong id="lab-g">1.62 m/s²</strong></div>
+        <div class="lab-cell"><span>空气密度 ρ</span><strong id="lab-rho">0.000 kg/m³</strong></div>
+        <div class="lab-cell"><span>地面支持力 N</span><strong id="lab-n">51.8 N</strong></div>
+        <div class="lab-cell"><span>最大抓地力 μN</span><strong id="lab-trac">16.8 N</strong></div>
+        <div class="lab-cell"><span>气动阻力 F_d</span><strong id="lab-drag">0.00 N</strong></div>
+        <div class="lab-cell"><span>当前坡度 θ</span><strong id="lab-slope">0.0°</strong></div>
+        <div class="lab-cell"><span>最高起跳</span><strong id="lab-best-h">0.00 m</strong></div>
+        <div class="lab-cell"><span>最长滞空</span><strong id="lab-best-t">0.00 s</strong></div>
+      </div>
+
+      <div class="lab-row">
+        <span>触屏按键</span>
+        <button id="btn-touch-mode" class="mini-btn" type="button">自动</button>
+      </div>
+
+      <div class="lab-controls-help">
+        <div><strong>电脑键鼠：</strong>W/S 蹬踏刹车 · A/D 转向 · Space 跃起/真空振翅 · Shift 冲刺打滑 · 拖拽环视 · C 视角</div>
+        <div><strong>手机触屏：</strong>左下方向舵滑推/点按转向 · 右下蹬踏/刹车/冲刺/跃起 · 单指划屏环视 · 双指缩放</div>
+      </div>
+    </aside>
+
+    <section id="telemetry-bar" class="telemetry-bar" aria-label="实时遥测">
+      <div class="tel-item"><span class="tel-k">速度</span><strong id="tel-speed">0.0</strong><span class="tel-u">km/h</span></div>
+      <div class="tel-item"><span class="tel-k">离地</span><strong id="tel-alt">0.00</strong><span class="tel-u">m</span></div>
+      <div class="tel-item"><span class="tel-k">体感</span><strong id="tel-g">0.17</strong><span class="tel-u">G</span></div>
+      <div class="tel-item" id="tel-slip-box"><span class="tel-k">滑移</span><strong id="tel-slip">0</strong><span class="tel-u">%</span></div>
+      <div class="tel-item"><span class="tel-k">倾角</span><strong id="tel-lean">0</strong><span class="tel-u">°</span></div>
+    </section>
+
+    <div id="desktop-hint" class="desktop-hint">
+      W/S 蹬踏刹车 · A/D 转向 · Space 跃起/振翅 · Shift 冲刺打滑 · 拖拽环视
+    </div>
+
+    <div id="touch-controls" class="touch-controls" aria-label="触屏控制器">
+      <div id="steer-pad" class="steer-pad">
+        <button id="btn-left" class="touch-btn steer-btn" type="button" aria-label="左转">◀</button>
+        <div class="steer-indicator"><span id="steer-thumb" class="steer-thumb"></span></div>
+        <button id="btn-right" class="touch-btn steer-btn" type="button" aria-label="右转">▶</button>
+      </div>
+
+      <div class="right-pad">
+        <div class="right-row">
+          <button id="btn-hop" class="touch-btn act-btn act-hop" type="button">跃起</button>
+          <button id="btn-sprint" class="touch-btn act-btn act-sprint" type="button">冲刺</button>
+        </div>
+        <div class="right-row">
+          <button id="btn-brake" class="touch-btn act-btn act-brake" type="button">刹车</button>
+          <button id="btn-pedal" class="touch-btn act-btn act-pedal" type="button">蹬踏</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+(function () {
+"use strict";
+
+// --- math3d.js ---
+// Pure 3D math, procedural noise, column-major Mat4 utilities, and 2-bone IK solver.
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function nextRand() {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function clamp(v, lo, hi) {
+  return v < lo ? lo : v > hi ? hi : v;
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function smoothstep(edge0, edge1, x) {
+  const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
+function damp(cur, target, lambda, dt) {
+  return lerp(cur, target, 1 - Math.exp(-lambda * dt));
+}
+
+function hash2D(ix, iz) {
+  let n = Math.imul(ix, 374761393) + Math.imul(iz, 668265263);
+  n = (n ^ (n >>> 13)) | 0;
+  n = Math.imul(n, 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967295;
+}
+
+function noise2D(x, z) {
+  const ix = Math.floor(x);
+  const iz = Math.floor(z);
+  const fx = x - ix;
+  const fz = z - iz;
+  const ux = fx * fx * (3 - 2 * fx);
+  const uz = fz * fz * (3 - 2 * fz);
+  const a = hash2D(ix, iz);
+  const b = hash2D(ix + 1, iz);
+  const c = hash2D(ix, iz + 1);
+  const d = hash2D(ix + 1, iz + 1);
+  return lerp(lerp(a, b, ux), lerp(c, d, ux), uz);
+}
+
+function fbm2D(x, z, octaves = 4) {
+  let val = 0;
+  let amp = 0.5;
+  let freq = 1;
+  let norm = 0;
+  for (let i = 0; i < octaves; i++) {
+    val += amp * noise2D(x * freq, z * freq);
+    norm += amp;
+    amp *= 0.5;
+    freq *= 2.03;
+  }
+  return norm > 0 ? val / norm : 0;
+}
+
+function v3(x = 0, y = 0, z = 0) {
+  return [x, y, z];
+}
+
+function v3Add(a, b) {
+  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+}
+
+function v3Sub(a, b) {
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+}
+
+function v3Scale(a, s) {
+  return [a[0] * s, a[1] * s, a[2] * s];
+}
+
+function v3Dot(a, b) {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+function v3Cross(a, b) {
+  return [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
+}
+
+function v3Len(a) {
+  return Math.hypot(a[0], a[1], a[2]);
+}
+
+function v3Norm(a) {
+  const len = Math.hypot(a[0], a[1], a[2]);
+  if (len < 1e-8) return [0, 1, 0];
+  return [a[0] / len, a[1] / len, a[2] / len];
+}
+
+function v3Lerp(a, b, t) {
+  return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+}
+
+function m4Identity() {
+  const m = new Float32Array(16);
+  m[0] = 1;
+  m[5] = 1;
+  m[10] = 1;
+  m[15] = 1;
+  return m;
+}
+
+function m4Mul(a, b) {
+  const out = new Float32Array(16);
+  for (let col = 0; col < 4; col++) {
+    const b0 = b[col * 4];
+    const b1 = b[col * 4 + 1];
+    const b2 = b[col * 4 + 2];
+    const b3 = b[col * 4 + 3];
+    out[col * 4] = a[0] * b0 + a[4] * b1 + a[8] * b2 + a[12] * b3;
+    out[col * 4 + 1] = a[1] * b0 + a[5] * b1 + a[9] * b2 + a[13] * b3;
+    out[col * 4 + 2] = a[2] * b0 + a[6] * b1 + a[10] * b2 + a[14] * b3;
+    out[col * 4 + 3] = a[3] * b0 + a[7] * b1 + a[11] * b2 + a[15] * b3;
+  }
+  return out;
+}
+
+function m4Translate(x, y, z) {
+  const m = m4Identity();
+  m[12] = x;
+  m[13] = y;
+  m[14] = z;
+  return m;
+}
+
+function m4Scale(sx, sy, sz) {
+  const m = new Float32Array(16);
+  m[0] = sx;
+  m[5] = sy;
+  m[10] = sz;
+  m[15] = 1;
+  return m;
+}
+
+function m4RotateX(rad) {
+  const c = Math.cos(rad);
+  const s = Math.sin(rad);
+  const m = m4Identity();
+  m[5] = c;
+  m[6] = s;
+  m[9] = -s;
+  m[10] = c;
+  return m;
+}
+
+function m4RotateY(rad) {
+  const c = Math.cos(rad);
+  const s = Math.sin(rad);
+  const m = m4Identity();
+  m[0] = c;
+  m[2] = -s;
+  m[8] = s;
+  m[10] = c;
+  return m;
+}
+
+function m4RotateZ(rad) {
+  const c = Math.cos(rad);
+  const s = Math.sin(rad);
+  const m = m4Identity();
+  m[0] = c;
+  m[1] = s;
+  m[4] = -s;
+  m[5] = c;
+  return m;
+}
+
+function m4Perspective(fovRad, aspect, near, far) {
+  const f = 1.0 / Math.tan(fovRad * 0.5);
+  const nf = 1.0 / (near - far);
+  const m = new Float32Array(16);
+  m[0] = f / aspect;
+  m[5] = f;
+  m[10] = (far + near) * nf;
+  m[11] = -1;
+  m[14] = 2 * far * near * nf;
+  return m;
+}
+
+function m4Ortho(left, right, bottom, top, near, far) {
+  const lr = 1 / (left - right);
+  const bt = 1 / (bottom - top);
+  const nf = 1 / (near - far);
+  const m = new Float32Array(16);
+  m[0] = -2 * lr;
+  m[5] = -2 * bt;
+  m[10] = 2 * nf;
+  m[12] = (left + right) * lr;
+  m[13] = (top + bottom) * bt;
+  m[14] = (far + near) * nf;
+  m[15] = 1;
+  return m;
+}
+
+function m4LookAt(eye, target, up) {
+  const zAxis = v3Norm(v3Sub(eye, target));
+  const xAxis = v3Norm(v3Cross(up, zAxis));
+  const yAxis = v3Cross(zAxis, xAxis);
+  const m = new Float32Array(16);
+  m[0] = xAxis[0];
+  m[1] = yAxis[0];
+  m[2] = zAxis[0];
+  m[3] = 0;
+  m[4] = xAxis[1];
+  m[5] = yAxis[1];
+  m[6] = zAxis[1];
+  m[7] = 0;
+  m[8] = xAxis[2];
+  m[9] = yAxis[2];
+  m[10] = zAxis[2];
+  m[11] = 0;
+  m[12] = -v3Dot(xAxis, eye);
+  m[13] = -v3Dot(yAxis, eye);
+  m[14] = -v3Dot(zAxis, eye);
+  m[15] = 1;
+  return m;
+}
+
+function m4Invert(m) {
+  const out = new Float32Array(16);
+  const a00 = m[0], a01 = m[1], a02 = m[2], a03 = m[3];
+  const a10 = m[4], a11 = m[5], a12 = m[6], a13 = m[7];
+  const a20 = m[8], a21 = m[9], a22 = m[10], a23 = m[11];
+  const a30 = m[12], a31 = m[13], a32 = m[14], a33 = m[15];
+
+  const b00 = a00 * a11 - a01 * a10;
+  const b01 = a00 * a12 - a02 * a10;
+  const b02 = a00 * a13 - a03 * a10;
+  const b03 = a01 * a12 - a02 * a11;
+  const b04 = a01 * a13 - a03 * a11;
+  const b05 = a02 * a13 - a03 * a12;
+  const b06 = a20 * a31 - a21 * a30;
+  const b07 = a20 * a32 - a22 * a30;
+  const b08 = a20 * a33 - a23 * a30;
+  const b09 = a21 * a32 - a22 * a31;
+  const b10 = a21 * a33 - a23 * a31;
+  const b11 = a22 * a33 - a23 * a32;
+
+  let det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+  if (Math.abs(det) < 1e-12) return m4Identity();
+  det = 1.0 / det;
+
+  out[0] = (a11 * b11 - a12 * b10 + a13 * b09) * det;
+  out[1] = (a02 * b10 - a01 * b11 - a03 * b09) * det;
+  out[2] = (a31 * b05 - a32 * b04 + a33 * b03) * det;
+  out[3] = (a22 * b04 - a21 * b05 - a23 * b03) * det;
+  out[4] = (a12 * b08 - a10 * b11 - a13 * b07) * det;
+  out[5] = (a00 * b11 - a02 * b08 + a03 * b07) * det;
+  out[6] = (a32 * b02 - a30 * b05 - a33 * b01) * det;
+  out[7] = (a20 * b05 - a22 * b02 + a23 * b01) * det;
+  out[8] = (a10 * b10 - a11 * b08 + a13 * b06) * det;
+  out[9] = (a01 * b08 - a00 * b10 - a03 * b06) * det;
+  out[10] = (a30 * b04 - a31 * b02 + a33 * b00) * det;
+  out[11] = (a21 * b02 - a20 * b04 - a23 * b00) * det;
+  out[12] = (a11 * b07 - a10 * b09 - a12 * b06) * det;
+  out[13] = (a00 * b09 - a01 * b07 + a02 * b06) * det;
+  out[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det;
+  out[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
+  return out;
+}
+
+function m4NormalMat3(m) {
+  const inv = m4Invert(m);
+  return new Float32Array([
+    inv[0], inv[4], inv[8],
+    inv[1], inv[5], inv[9],
+    inv[2], inv[6], inv[10],
+  ]);
+}
+
+function m4TransformPoint(m, p) {
+  const x = p[0], y = p[1], z = p[2];
+  const w = m[3] * x + m[7] * y + m[11] * z + m[15] || 1;
+  return [
+    (m[0] * x + m[4] * y + m[8] * z + m[12]) / w,
+    (m[1] * x + m[5] * y + m[9] * z + m[13]) / w,
+    (m[2] * x + m[6] * y + m[10] * z + m[14]) / w,
+  ];
+}
+
+function m4TransformDir(m, d) {
+  const x = d[0], y = d[1], z = d[2];
+  return [
+    m[0] * x + m[4] * y + m[8] * z,
+    m[1] * x + m[5] * y + m[9] * z,
+    m[2] * x + m[6] * y + m[10] * z,
+  ];
+}
+
+// Analytical 2-bone IK solver in bike-local (Z, Y) sagittal plane.
+// Z = forward, Y = up. kneeForwardSign = +1 bends knee toward +Z.
+function solveTwoBoneIK2D(hipZ, hipY, footZ, footY, upperLen, lowerLen, kneeForwardSign = 1) {
+  const dz = footZ - hipZ;
+  const dy = footY - hipY;
+  const rawDist = Math.hypot(dz, dy);
+  const minReach = Math.abs(upperLen - lowerLen) + 1e-4;
+  const maxReach = upperLen + lowerLen - 1e-4;
+  const dist = clamp(rawDist, minReach, maxReach);
+
+  const baseAngle = Math.atan2(dy, dz);
+  const cosAlpha = clamp(
+    (upperLen * upperLen + dist * dist - lowerLen * lowerLen) / (2 * upperLen * dist),
+    -1,
+    1
+  );
+  const alpha = Math.acos(cosAlpha);
+  const thighAngle = baseAngle + kneeForwardSign * alpha;
+
+  const kneeZ = hipZ + upperLen * Math.cos(thighAngle);
+  const kneeY = hipY + upperLen * Math.sin(thighAngle);
+  const shinAngle = Math.atan2(footY - kneeY, footZ - kneeZ);
+
+  return {
+    kneeZ,
+    kneeY,
+    thighAngle,
+    shinAngle,
+  };
+}
+
+// --- terrain.js ---
+const WORLD_RADIUS = 220;
+const TERRAIN_EXTENT = 240;
+
+const BASE_PROPS = {
+  lander: { x: 8.2, z: 6.4, rotY: -0.65 },
+  flag: { x: 4.5, z: 4.6, rotY: -0.35 },
+  solar: { x: 9.6, z: 2.2, rotY: 0.28 },
+};
+
+const CRATERS = [
+  // Signature launch crater directly ahead of spawn
+  { x: 0, z: 31, radius: 12.0, depth: 2.15, rimHeight: 1.08, centralPeak: 0 },
+  // Grand Tycho-style crater
+  { x: 58, z: 66, radius: 36.0, depth: 5.0, rimHeight: 1.85, centralPeak: 1.55 },
+  // Scenic loop craters
+  { x: 34, z: 22, radius: 9.5, depth: 1.4, rimHeight: 0.62, centralPeak: 0 },
+  { x: 66, z: 12, radius: 14.0, depth: 2.2, rimHeight: 0.85, centralPeak: 0 },
+  { x: 26, z: 96, radius: 16.5, depth: 2.6, rimHeight: 1.15, centralPeak: 0.35 },
+  { x: -28, z: 66, radius: 13.0, depth: 1.9, rimHeight: 0.88, centralPeak: 0 },
+  { x: -58, z: 32, radius: 18.0, depth: 2.9, rimHeight: 1.1, centralPeak: 0.4 },
+  { x: -46, z: -28, radius: 15.0, depth: 2.3, rimHeight: 0.82, centralPeak: 0 },
+  { x: 42, z: -34, radius: 19.0, depth: 2.8, rimHeight: 1.05, centralPeak: 0.45 },
+  { x: -12, z: -58, radius: 12.5, depth: 1.8, rimHeight: 0.72, centralPeak: 0 },
+  { x: 96, z: -18, radius: 24.0, depth: 3.6, rimHeight: 1.3, centralPeak: 0.8 },
+  { x: -95, z: 75, radius: 28.0, depth: 4.1, rimHeight: 1.45, centralPeak: 0.9 },
+  { x: 108, z: 105, radius: 22.0, depth: 3.2, rimHeight: 1.2, centralPeak: 0 },
+  { x: -108, z: -85, radius: 26.0, depth: 3.8, rimHeight: 1.35, centralPeak: 0.7 },
+  { x: 14, z: 136, radius: 20.0, depth: 3.0, rimHeight: 1.15, centralPeak: 0.4 },
+  { x: -64, z: 118, radius: 15.0, depth: 2.2, rimHeight: 0.9, centralPeak: 0 },
+  { x: 85, z: -88, radius: 21.0, depth: 3.1, rimHeight: 1.1, centralPeak: 0.3 },
+  { x: -135, z: 12, radius: 30.0, depth: 4.4, rimHeight: 1.5, centralPeak: 1.1 },
+];
+
+const BEACONS = [
+  {
+    id: 'base-jump',
+    x: 0,
+    z: 15,
+    title: '1/6 重力跃起',
+    lawTag: 'g = 1.62 m/s²',
+    fact: '月面重力仅为地球的 1/6，以相同初速蹬地起跳，跃起高度与滞空时间均达到地球的 6 倍。',
+  },
+  {
+    id: 'rim-launch',
+    x: 0,
+    z: 43,
+    title: '坡顶临界起飞',
+    lawTag: 'v²κ > g·cosθ',
+    fact: '高速冲过环形山凸起坡顶时，向心需求超过重力法向分量，地面支持力归零自然抛物起飞。',
+  },
+  {
+    id: 'traction-limit',
+    x: 30,
+    z: 34,
+    title: '低重力抓地极限',
+    lawTag: 'F_max = μN',
+    fact: '正压力降至地球的 1/6，轮胎最大静摩擦力大幅缩水；猛踩冲刺极易引发后轮空转打滑。',
+  },
+  {
+    id: 'ballistic-dust',
+    x: 56,
+    z: 20,
+    title: '真空弹道扬尘',
+    lawTag: 'ρ_air = 0',
+    fact: '月球没有大气浮力与紊流，轮胎甩起的月尘不会形成漂浮烟团，而是沿精准抛物线瞬间砸回月面。',
+  },
+  {
+    id: 'vacuum-coast',
+    x: 58,
+    z: 66,
+    title: '无风阻超长滑行',
+    lawTag: 'F_drag = 0',
+    fact: '真空中气动阻力严格为零，停止蹬踏后仅受极微弱的低重月壤滚阻，可滑行百米以上。',
+  },
+  {
+    id: 'reaction-wheel',
+    x: 20,
+    z: 88,
+    title: '腾空角动量守恒',
+    lawTag: 'ΔL_bike = -ΔL_wheel',
+    fact: '离地后系统外力矩为零；空中加速后轮会借反作用力矩抬高车头，捏闸减速则会压低车头。',
+  },
+  {
+    id: 'slow-lean',
+    x: -30,
+    z: 70,
+    title: '慢动作压弯平衡',
+    lawTag: 'ω ∝ √(g/h)',
+    fact: '倒立摆特征频率与 √g 成正比，月面过弯侧倾、扶正与失稳倾倒的节奏均比地球慢约 2.46 倍。',
+  },
+  {
+    id: 'earthrise-shadow',
+    x: -48,
+    z: 22,
+    title: '真空黑影与地照',
+    lawTag: 'Albedo Earthshine',
+    fact: '无空气瑞利散射，月球背光面阴影深邃如墨，仅靠天顶蓝白色地球反射的微弱地照略微提亮。',
+  },
+];
+
+function generateBoulders() {
+  const rng = mulberry32(20260720);
+  const rocks = [];
+  let attempts = 0;
+  while (rocks.length < 85 && attempts < 1400) {
+    attempts++;
+    const angle = rng() * Math.PI * 2;
+    const dist = 18 + Math.pow(rng(), 0.72) * (WORLD_RADIUS - 32);
+    const x = Math.cos(angle) * dist;
+    const z = Math.sin(angle) * dist;
+
+    // Keep Base Camp clear
+    if (Math.hypot(x, z) < 17) continue;
+    // Keep straight launch corridor (0, 0) -> (0, 48) clear
+    if (Math.abs(x) < 6.5 && z > -4 && z < 49) continue;
+
+    let tooCloseToBeacon = false;
+    for (let i = 0; i < BEACONS.length; i++) {
+      if (Math.hypot(x - BEACONS[i].x, z - BEACONS[i].z) < 6.5) {
+        tooCloseToBeacon = true;
+        break;
+      }
+    }
+    if (tooCloseToBeacon) continue;
+
+    let overlap = false;
+    for (let i = 0; i < rocks.length; i++) {
+      if (Math.hypot(x - rocks[i].x, z - rocks[i].z) < 4.2) {
+        overlap = true;
+        break;
+      }
+    }
+    if (overlap) continue;
+
+    const radius = 0.35 + Math.pow(rng(), 1.8) * 1.15;
+    rocks.push({
+      x,
+      z,
+      radius,
+      scaleY: 0.55 + rng() * 0.55,
+      rotY: rng() * Math.PI * 2,
+      rotX: (rng() - 0.5) * 0.35,
+      tint: 0.8 + rng() * 0.36,
+    });
+  }
+  return rocks;
+}
+
+const BOULDERS = generateBoulders();
+
+function craterProfile(dist, c) {
+  const u = dist / c.radius;
+  if (u > 1.75) return 0;
+
+  let h = 0;
+  // Bowl depression inside u < 1.05
+  if (u < 1.08) {
+    const t = clamp(u / 1.05, 0, 1);
+    // Flat-ish crater floor rising smoothly toward rim
+    const bowl = Math.pow(1 - t * t, 1.35);
+    h -= c.depth * bowl;
+  }
+
+  // Smooth raised ejecta rim around u = 1.0
+  const rimSigma = 0.24;
+  const du = (u - 1.0) / rimSigma;
+  h += c.rimHeight * Math.exp(-du * du);
+
+  // Subtle outer ejecta skirt
+  if (u > 1.0) {
+    const skirt = Math.exp(-((u - 1.0) / 0.45));
+    h += c.rimHeight * 0.14 * skirt;
+  }
+
+  // Optional central peak
+  if (c.centralPeak > 0 && u < 0.35) {
+    const pu = u / 0.18;
+    h += c.centralPeak * Math.exp(-pu * pu);
+  }
+  return h;
+}
+
+function getTerrainHeight(x, z) {
+  const r = Math.hypot(x, z);
+
+  // Broad lunar mare swells
+  const macro =
+    (fbm2D(x * 0.011 + 13.7, z * 0.011 - 7.3, 3) - 0.5) * 3.8 +
+    Math.sin(x * 0.021) * Math.cos(z * 0.018) * 0.85;
+  const micro = (fbm2D(x * 0.085 - 4.1, z * 0.085 + 9.2, 2) - 0.5) * 0.24;
+
+  let h = macro + micro;
+
+  // Add craters
+  for (let i = 0; i < CRATERS.length; i++) {
+    const c = CRATERS[i];
+    const dx = x - c.x;
+    const dz = z - c.z;
+    const maxR = c.radius * 1.75;
+    if (Math.abs(dx) > maxR || Math.abs(dz) > maxR) continue;
+    const dist = Math.hypot(dx, dz);
+    if (dist < maxR) {
+      h += craterProfile(dist, c);
+    }
+  }
+
+  // Smooth outer basin rim past r > 190
+  if (r > 190) {
+    const t = clamp((r - 190) / 48, 0, 1);
+    h += t * t * 14.0;
+  }
+
+  // Flatten Base Camp landing pad around (0, 0)
+  if (r < 14.5) {
+    const padBlend = smoothstep(9.5, 14.5, r);
+    h *= padBlend;
+  }
+
+  return h;
+}
+
+function getTerrainNormal(x, z) {
+  const eps = 0.25;
+  const hL = getTerrainHeight(x - eps, z);
+  const hR = getTerrainHeight(x + eps, z);
+  const hD = getTerrainHeight(x, z - eps);
+  const hU = getTerrainHeight(x, z + eps);
+  const nx = hL - hR;
+  const ny = 2 * eps;
+  const nz = hD - hU;
+  const len = Math.hypot(nx, ny, nz) || 1;
+  return [nx / len, ny / len, nz / len];
+}
+
+// Positive on convex hill crests (rims), negative in concave bowls
+function getTerrainCurvature(x, z, dirX, dirZ) {
+  const d = 0.6;
+  const len = Math.hypot(dirX, dirZ) || 1;
+  const ux = (dirX / len) * d;
+  const uz = (dirZ / len) * d;
+  const h0 = getTerrainHeight(x, z);
+  const hF = getTerrainHeight(x + ux, z + uz);
+  const hB = getTerrainHeight(x - ux, z - uz);
+  return -(hF - 2 * h0 + hB) / (d * d);
+}
+
+function getTerrainColorFactor(x, z) {
+  let ejecta = 0;
+  for (let i = 0; i < CRATERS.length; i++) {
+    const c = CRATERS[i];
+    const dist = Math.hypot(x - c.x, z - c.z);
+    const u = dist / c.radius;
+    if (u > 0.72 && u < 1.55) {
+      const w = Math.exp(-Math.pow((u - 1.0) / 0.28, 2));
+      ejecta = Math.max(ejecta, w);
+    }
+  }
+  const mareNoise = fbm2D(x * 0.025 + 2.4, z * 0.025 - 5.8, 3);
+  return clamp(0.28 + mareNoise * 0.36 + ejecta * 0.36, 0, 1);
+}
+
+// --- physics.js ---
+const FIXED_DT = 1 / 120;
+const MAX_DUST = 600;
+
+const ENV_PRESETS = {
+  moon: {
+    id: 'moon',
+    label: '月球 · 真空',
+    gravity: 1.62,
+    airDensity: 0.0,
+    mu: 0.68,
+    crr: 0.022,
+  },
+  earth: {
+    id: 'earth',
+    label: '地球对照 · 1 atm',
+    gravity: 9.81,
+    airDensity: 1.225,
+    mu: 0.90,
+    crr: 0.012,
+  },
+};
+
+const BIKE_PARAMS = {
+  mass: 32.0,
+  wheelbase: 1.18,
+  wheelRadius: 0.34,
+  cgHeight: 0.86,
+  rearWeightFrac: 0.58,
+  gearRatio: 2.6,
+  wheelInertia: 0.16,
+  bikePitchInertia: 6.2,
+  normalTorque: 12.5,
+  sprintTorque: 32.0,
+  brakeMaxDecelFactor: 0.92,
+  cda: 0.48,
+  jumpImpulseV: 2.45,
+  maxChargeBonus: 0.45,
+  maxSteerAngle: 0.58,
+  maxCadenceRad: 18.0,
+};
+
+function smoothSign(v) {
+  if (Math.abs(v) < 0.05) return v / 0.05;
+  return v > 0 ? 1 : -1;
+}
+
+function createPhysicsState(envId = 'moon') {
+  const startY = getTerrainHeight(0, 0);
+  return {
+    envId: ENV_PRESETS[envId] ? envId : 'moon',
+    time: 0,
+    accumulator: 0,
+    x: 0,
+    y: startY,
+    z: 0,
+    vx: 0,
+    vy: 0,
+    vz: 0,
+    heading: 0,
+    steerAngle: 0,
+    pitch: 0,
+    pitchRate: 0,
+    roll: 0,
+    rollRate: 0,
+    grounded: true,
+    omegaRear: 0,
+    omegaFront: 0,
+    wheelRotRear: 0,
+    wheelRotFront: 0,
+    crankAngle: 0,
+    slipRatio: 0,
+    lateralSlip: 0,
+    pedalLoad: 0,
+    crouchCharge: 0,
+    prevJumpHeld: false,
+    wingFlapBoost: 0,
+    wingFlapPhase: 0,
+    suspRear: 0,
+    suspRearVel: 0,
+    suspFront: 0,
+    suspFrontVel: 0,
+    pouchOffset: 0,
+    pouchVel: 0,
+    feltG: ENV_PRESETS[envId] ? ENV_PRESETS[envId].gravity / 9.81 : 1.62 / 9.81,
+    altitude: 0,
+    airTime: 0,
+    airPeakHeight: 0,
+    lastJumpStats: null,
+    bestJumpHeight: 0,
+    bestAirTime: 0,
+    distanceTraveled: 0,
+    speed: 0,
+    speedKmh: 0,
+    vFwd: 0,
+    vLat: 0,
+    groundPitch: 0,
+    groundSlopeDeg: 0,
+    normalForce: 0,
+    maxTraction: 0,
+    driveForce: 0,
+    brakeForce: 0,
+    rollForce: 0,
+    dragForce: 0,
+    slopeForce: 0,
+    beaconsCollected: [],
+    events: [],
+    dustPos: new Float32Array(MAX_DUST * 3),
+    dustVel: new Float32Array(MAX_DUST * 3),
+    dustAge: new Float32Array(MAX_DUST),
+    dustMaxAge: new Float32Array(MAX_DUST),
+    dustSize: new Float32Array(MAX_DUST),
+    dustHead: 0,
+    activeDust: 0,
+    _rngState: 13379001,
+  };
+}
+
+function nextStateRand(state) {
+  let a = state._rngState | 0;
+  a = (a + 0x6d2b79f5) | 0;
+  state._rngState = a;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
+function spawnDustParticle(state, x, y, z, vx, vy, vz, size = 0.075, maxAge = 2.6) {
+  const idx = state.dustHead;
+  state.dustHead = (idx + 1) % MAX_DUST;
+  const p3 = idx * 3;
+  state.dustPos[p3] = x;
+  state.dustPos[p3 + 1] = y;
+  state.dustPos[p3 + 2] = z;
+  state.dustVel[p3] = vx;
+  state.dustVel[p3 + 1] = vy;
+  state.dustVel[p3 + 2] = vz;
+  state.dustAge[idx] = 0.0001;
+  state.dustMaxAge[idx] = maxAge;
+  state.dustSize[idx] = size;
+}
+
+function emitDustBurst(state, x, y, z, baseVx, baseVy, baseVz, count, speedSpread, sizeBase) {
+  for (let i = 0; i < count; i++) {
+    const a = nextStateRand(state) * Math.PI * 2;
+    const sp = (0.3 + 0.7 * nextStateRand(state)) * speedSpread;
+    const up = (0.35 + 0.85 * nextStateRand(state)) * speedSpread * 0.7;
+    spawnDustParticle(
+      state,
+      x + (nextStateRand(state) - 0.5) * 0.16,
+      y + 0.04,
+      z + (nextStateRand(state) - 0.5) * 0.16,
+      baseVx + Math.cos(a) * sp,
+      baseVy + up,
+      baseVz + Math.sin(a) * sp,
+      sizeBase * (0.7 + 0.6 * nextStateRand(state)),
+      1.8 + nextStateRand(state) * 1.4
+    );
+  }
+}
+
+function stepPhysicsFixed(state, rawInput, dt) {
+  const env = ENV_PRESETS[state.envId] || ENV_PRESETS.moon;
+  const g = env.gravity;
+  const P = BIKE_PARAMS;
+
+  const throttle = clamp(rawInput?.throttle || 0, 0, 1);
+  const brake = clamp(rawInput?.brake || 0, 0, 1);
+  const steerIn = clamp(rawInput?.steer || 0, -1, 1);
+  const sprint = Boolean(rawInput?.sprint);
+  const jumpHeld = Boolean(rawInput?.jumpHeld);
+  const jumpTriggered = Boolean(rawInput?.jumpTriggered);
+
+  state.time += dt;
+
+  // Forward & Left basis vectors in horizontal plane (right-handed, heading=0 -> +Z forward, +X left)
+  const sinH = Math.sin(state.heading);
+  const cosH = Math.cos(state.heading);
+  const fwdX = sinH;
+  const fwdZ = cosH;
+  const leftX = cosH;
+  const leftZ = -sinH;
+
+  const halfL = P.wheelbase * 0.5;
+  const hFront = getTerrainHeight(state.x + fwdX * halfL, state.z + fwdZ * halfL);
+  const hRear = getTerrainHeight(state.x - fwdX * halfL, state.z - fwdZ * halfL);
+  const groundY = 0.5 * (hFront + hRear);
+  const groundPitch = Math.atan2(hFront - hRear, P.wheelbase);
+  const groundSlopeVy = (state.vx * fwdX + state.vz * fwdZ) * Math.tan(groundPitch);
+
+  state.groundPitch = groundPitch;
+  state.groundSlopeDeg = (groundPitch * 180) / Math.PI;
+
+  // Current forward and lateral speeds
+  let vFwd = state.vx * fwdX + state.vz * fwdZ;
+  let vLat = state.vx * leftX + state.vz * leftZ;
+
+  // Steer angle with gentle high-speed damping for stability
+  const speedAtten = 1 / (1 + 0.045 * Math.abs(vFwd));
+  const targetSteer = steerIn * P.maxSteerAngle * speedAtten;
+  state.steerAngle = damp(state.steerAngle, targetSteer, 12.0, dt);
+
+  // Crouch charge & Jump trigger
+  let didJump = false;
+  if (state.grounded) {
+    if (jumpTriggered) {
+      didJump = true;
+    } else if (jumpHeld) {
+      state.crouchCharge = clamp(state.crouchCharge + dt * 1.4, 0, 1);
+    } else if (state.prevJumpHeld && !jumpHeld && state.crouchCharge > 0.06) {
+      didJump = true;
+    } else {
+      state.crouchCharge = damp(state.crouchCharge, 0, 14, dt);
+    }
+  } else {
+    state.crouchCharge = damp(state.crouchCharge, 0, 10, dt);
+    if (jumpTriggered) {
+      // Flapping wings in vacuum produces visual motion ONLY, strictly zero lift!
+      state.wingFlapBoost = 1.0;
+      state.events.push({ type: 'flap' });
+    }
+  }
+  state.prevJumpHeld = jumpHeld;
+
+  if (didJump) {
+    const impulse = P.jumpImpulseV + state.crouchCharge * P.maxChargeBonus;
+    state.grounded = false;
+    state.y = Math.max(state.y, groundY) + 0.01;
+    state.vy = groundSlopeVy + impulse;
+    state.airTime = 0;
+    state.airPeakHeight = 0;
+    state.crouchCharge = 0;
+    state.pitchRate += 0.32;
+    emitDustBurst(state, state.x - fwdX * 0.2, groundY, state.z - fwdZ * 0.2, state.vx * 0.35, 0.2, state.vz * 0.35, 16, 1.35, 0.08);
+    state.events.push({ type: 'jump', impulse });
+  }
+
+  let dragMag = 0;
+  let normalForce = 0;
+  let maxTraction = 0;
+  let driveForce = 0;
+  let brakeForce = 0;
+  let rollForce = 0;
+  let slopeForce = 0;
+
+  if (state.grounded) {
+    // 1. Crest curvature & liftoff check: v^2 * kappa > g * cos(theta)
+    const kappa = getTerrainCurvature(state.x, state.z, fwdX, fwdZ);
+    const aNorm = g * Math.cos(groundPitch) - vFwd * vFwd * Math.max(0, kappa);
+
+    if (aNorm <= 0.05 && Math.abs(vFwd) > 1.8) {
+      // Natural ballistic liftoff off crater crest!
+      state.grounded = false;
+      state.vy = vFwd * Math.sin(groundPitch);
+      state.y = groundY + 0.015;
+      state.airTime = 0;
+      state.airPeakHeight = 0;
+      state.events.push({ type: 'crest_launch', speed: Math.abs(vFwd) });
+    } else {
+      normalForce = P.mass * Math.max(0, aNorm);
+
+      // 2. Pedal torque & rear traction limit (F_max = mu * N_r)
+      const torqueCap = sprint ? P.sprintTorque : P.normalTorque;
+      const wheelCadence = Math.abs(state.omegaRear) / P.gearRatio;
+      const cadenceTaper = clamp(1 - wheelCadence / P.maxCadenceRad, 0.08, 1);
+      const pedalTorque = throttle * torqueCap * cadenceTaper;
+
+      const rearLoadFrac = clamp(
+        P.rearWeightFrac + clamp((pedalTorque / P.wheelRadius) / Math.max(normalForce, 1) * 0.14, 0, 0.2),
+        0.25,
+        0.85
+      );
+      const rearNormal = normalForce * rearLoadFrac;
+      maxTraction = env.mu * rearNormal;
+
+      const requestedDrive = pedalTorque / P.wheelRadius;
+      driveForce = Math.min(requestedDrive, maxTraction);
+      const excessTorque = Math.max(0, pedalTorque - driveForce * P.wheelRadius);
+
+      // Wheel spin from excess torque beyond lunar traction
+      const groundOmega = vFwd / P.wheelRadius;
+      if (excessTorque > 0.01) {
+        const spinAccel = excessTorque / P.wheelInertia;
+        state.omegaRear = clamp(state.omegaRear + spinAccel * dt, groundOmega, 62);
+      } else {
+        state.omegaRear = damp(state.omegaRear, groundOmega, 18.0, dt);
+      }
+      state.omegaFront = groundOmega;
+
+      const wheelSurfSpeed = state.omegaRear * P.wheelRadius;
+      state.slipRatio = clamp(
+        (wheelSurfSpeed - vFwd) / Math.max(1.5, Math.abs(vFwd), Math.abs(wheelSurfSpeed)),
+        0,
+        1
+      );
+      state.pedalLoad = clamp(pedalTorque / P.sprintTorque, 0, 1);
+
+      // Emit crisp ballistic dust backward when rear tire slips
+      if (state.slipRatio > 0.14 && nextStateRand(state) < 0.72) {
+        const rearX = state.x - fwdX * halfL;
+        const rearZ = state.z - fwdZ * halfL;
+        const kick = 1.6 + state.slipRatio * 3.4;
+        spawnDustParticle(
+          state,
+          rearX + (nextStateRand(state) - 0.5) * 0.12,
+          hRear + 0.05,
+          rearZ + (nextStateRand(state) - 0.5) * 0.12,
+          state.vx - fwdX * kick + (nextStateRand(state) - 0.5) * 0.7,
+          0.55 + nextStateRand(state) * 0.95 * state.slipRatio * 1.4,
+          state.vz - fwdZ * kick + (nextStateRand(state) - 0.5) * 0.7,
+          0.055 + 0.045 * nextStateRand(state),
+          2.0
+        );
+      }
+
+      // 3. Braking, rolling resistance, aerodynamic drag (0 on Moon!), slope gravity
+      const totalFrictionLimit = env.mu * normalForce * P.brakeMaxDecelFactor;
+      if (brake > 0.02) {
+        if (vFwd > 0.2) {
+          brakeForce = -brake * totalFrictionLimit;
+        } else if (vFwd < -0.2) {
+          brakeForce = brake * totalFrictionLimit * 0.6;
+        } else if (brake > 0.5 && vFwd > -2.2) {
+          // Gentle reverse assist at near-standstill
+          brakeForce = -Math.min(4.0, totalFrictionLimit * 0.45);
+        }
+      }
+
+      rollForce = -env.crr * normalForce * smoothSign(vFwd);
+
+      const speedSq = vFwd * vFwd + vLat * vLat;
+      const spd = Math.sqrt(speedSq);
+      dragMag = 0.5 * env.airDensity * P.cda * speedSq;
+      const dragFwd = spd > 1e-4 ? -dragMag * (vFwd / spd) : 0;
+
+      slopeForce = -P.mass * g * Math.sin(groundPitch);
+
+      const netFwdForce = driveForce + brakeForce + rollForce + dragFwd + slopeForce;
+      const newVFwd = vFwd + (netFwdForce / P.mass) * dt;
+      // Prevent brake zero-crossing jitter when slowing down from forward motion
+      if (brake > 0.02 && vFwd > 0.05 && newVFwd < 0) {
+        vFwd = 0;
+      } else {
+        vFwd = newVFwd;
+      }
+
+      // 4. Steering, lateral traction limit, and inverted-pendulum roll
+      const yawRateGeom = (vFwd / P.wheelbase) * Math.tan(state.steerAngle);
+      const aLatReq = vFwd * yawRateGeom;
+      const latBudgetForce = Math.sqrt(Math.max(0, Math.pow(env.mu * normalForce, 2) - driveForce * driveForce));
+      const aLatMax = latBudgetForce / P.mass;
+      const aLatActual = clamp(aLatReq, -aLatMax, aLatMax);
+      const actualYawRate = Math.abs(vFwd) > 0.15 ? aLatActual / vFwd : yawRateGeom;
+
+      state.heading += actualYawRate * dt;
+      const excessLat = aLatReq - aLatActual;
+      state.lateralSlip = clamp(Math.abs(excessLat) / Math.max(0.5, g), 0, 1);
+
+      // Lateral tire damping + gentle drift when exceeding lunar side grip
+      vLat = damp(vLat - excessLat * dt * 0.45, 0, clamp(6.0 * env.mu * (g / 1.62), 3.0, 20.0), dt);
+      if (state.lateralSlip > 0.25 && Math.abs(vFwd) > 2.0 && nextStateRand(state) < 0.45) {
+        const sideSign = excessLat > 0 ? -1 : 1;
+        spawnDustParticle(
+          state,
+          state.x - fwdX * halfL,
+          hRear + 0.04,
+          state.z - fwdZ * halfL,
+          state.vx + leftX * sideSign * 1.4,
+          0.45 + nextStateRand(state) * 0.5,
+          state.vz + leftZ * sideSign * 1.4,
+          0.06,
+          1.7
+        );
+      }
+
+      // Inverted pendulum frequency scales with sqrt(g / cgHeight) -> 2.46x slower on Moon!
+      // +roll leans rightward (-X), so left turn (aLatActual > 0) requires negative roll (-atan2).
+      const omegaNat = Math.sqrt(g / P.cgHeight);
+      const rollTarget = clamp(-Math.atan2(aLatActual, g), -0.52, 0.52);
+      const rollStiffness = omegaNat * omegaNat * 3.8;
+      const rollDamping = omegaNat * 3.4;
+      const rollAccel = (rollTarget - state.roll) * rollStiffness - state.rollRate * rollDamping;
+      state.rollRate += rollAccel * dt;
+      state.roll = clamp(state.roll + state.rollRate * dt, -0.62, 0.62);
+
+      // Recombine world velocities aligned to updated heading + terrain slope
+      const nSin = Math.sin(state.heading);
+      const nCos = Math.cos(state.heading);
+      state.vx = nSin * vFwd + nCos * vLat;
+      state.vz = nCos * vFwd - nSin * vLat;
+      state.vy = vFwd * Math.sin(groundPitch);
+
+      state.x += state.vx * dt;
+      state.z += state.vz * dt;
+      const newHF = getTerrainHeight(state.x + nSin * halfL, state.z + nCos * halfL);
+      const newHR = getTerrainHeight(state.x - nSin * halfL, state.z - nCos * halfL);
+      state.y = 0.5 * (newHF + newHR);
+      state.pitch = damp(state.pitch, Math.atan2(newHF - newHR, P.wheelbase), 18.0, dt);
+      state.pitchRate = 0;
+      state.altitude = 0;
+
+      // Grounded suspension & felt G
+      state.suspRear = damp(state.suspRear, 0, 12, dt);
+      state.suspFront = damp(state.suspFront, 0, 12, dt);
+      const feltMult = clamp(aNorm / 9.81, 0, 2.5);
+      state.feltG = damp(state.feltG, feltMult, 16, dt);
+    }
+  }
+
+  if (!state.grounded) {
+    // Airborne pure ballistics + optional air drag (strictly 0 on Moon!)
+    state.airTime += dt;
+    state.slipRatio = damp(state.slipRatio, 0, 8, dt);
+    state.lateralSlip = damp(state.lateralSlip, 0, 8, dt);
+    state.pedalLoad = throttle;
+
+    const airSpd = Math.hypot(state.vx, state.vy, state.vz);
+    dragMag = 0.5 * env.airDensity * P.cda * airSpd * airSpd;
+    if (dragMag > 0 && airSpd > 1e-4) {
+      const decel = (dragMag / P.mass) * dt;
+      const scale = Math.max(0, 1 - decel / airSpd);
+      state.vx *= scale;
+      state.vy *= scale;
+      state.vz *= scale;
+    }
+
+    state.vy -= g * dt;
+
+    // Reaction-wheel conservation of angular momentum in pitch:
+    // Accelerating rear wheel (+alphaW) produces equal & opposite reaction pitch UP (+pitchRate)
+    let alphaW = 0;
+    if (throttle > 0.05) {
+      alphaW = throttle * 38.0;
+    } else if (brake > 0.05) {
+      alphaW = -brake * 38.0;
+    }
+    state.omegaRear = clamp(state.omegaRear + alphaW * dt, -35, 65);
+    const reactionPitchAccel = (P.wheelInertia / P.bikePitchInertia) * alphaW * 3.2;
+    state.pitchRate = clamp(state.pitchRate + reactionPitchAccel * dt, -2.4, 2.4);
+    state.pitchRate *= Math.exp(-1.1 * dt);
+    state.pitch = clamp(state.pitch + state.pitchRate * dt, -0.82, 0.92);
+
+    // Slow roll stabilization in flight
+    state.rollRate = damp(state.rollRate, 0, 2.0 * Math.sqrt(g / 9.81), dt);
+    state.roll = clamp(state.roll + state.rollRate * dt, -0.62, 0.62);
+
+    state.x += state.vx * dt;
+    state.y += state.vy * dt;
+    state.z += state.vz * dt;
+
+    const curHF = getTerrainHeight(state.x + fwdX * halfL, state.z + fwdZ * halfL);
+    const curHR = getTerrainHeight(state.x - fwdX * halfL, state.z - fwdZ * halfL);
+    const curGroundY = 0.5 * (curHF + curHR);
+    const curGroundPitch = Math.atan2(curHF - curHR, P.wheelbase);
+    const curGroundSlopeVy = (state.vx * fwdX + state.vz * fwdZ) * Math.tan(curGroundPitch);
+
+    const alt = Math.max(0, state.y - curGroundY);
+    state.altitude = alt;
+    if (alt > state.airPeakHeight) {
+      state.airPeakHeight = alt;
+    }
+
+    // Freefall felt gravity = 0.00 G!
+    state.feltG = 0.0;
+
+    // Touchdown detection
+    if (state.y <= curGroundY && state.vy <= curGroundSlopeVy + 0.02) {
+      const impactSpeed = Math.max(0, curGroundSlopeVy - state.vy);
+      state.y = curGroundY;
+      state.grounded = true;
+      state.altitude = 0;
+      state.vy = curGroundSlopeVy;
+
+      const suspComp = clamp(impactSpeed * 0.032, 0.01, 0.14);
+      state.suspRear = suspComp;
+      state.suspFront = suspComp;
+      state.pitch = damp(state.pitch, curGroundPitch, 14, dt * 8);
+      state.pitchRate = 0;
+
+      if (state.airTime >= 0.35) {
+        state.lastJumpStats = {
+          height: state.airPeakHeight,
+          airTime: state.airTime,
+          impactSpeed,
+        };
+        if (state.airPeakHeight > state.bestJumpHeight) {
+          state.bestJumpHeight = state.airPeakHeight;
+        }
+        if (state.airTime > state.bestAirTime) {
+          state.bestAirTime = state.airTime;
+        }
+      }
+      if (impactSpeed > 0.4) {
+        emitDustBurst(state, state.x, curGroundY, state.z, state.vx * 0.25, 0.15, state.vz * 0.25, 18, Math.min(2.4, 0.6 + impactSpeed * 0.55), 0.075);
+        state.events.push({ type: 'land', impactSpeed, airTime: state.airTime, peakHeight: state.airPeakHeight });
+      }
+    }
+  }
+
+  // Wheel & crank kinematics
+  state.wheelRotRear += state.omegaRear * dt;
+  state.wheelRotFront += state.omegaFront * dt;
+  if (throttle > 0.05) {
+    state.crankAngle += (Math.max(4.5, Math.abs(state.omegaRear)) / P.gearRatio) * dt;
+  }
+
+  // Wing flap animation decay
+  if (state.wingFlapBoost > 0.001) {
+    state.wingFlapPhase += dt * 19.0;
+    state.wingFlapBoost = damp(state.wingFlapBoost, 0, 2.2, dt);
+  } else {
+    state.wingFlapBoost = 0;
+  }
+
+  // Pelican gular pouch spring-mass driven by feltG
+  // At 0 G in freefall, pouch floats upward (+0.045); on heavy landing, drops down
+  const pouchTarget = clamp((0.165 - state.feltG) * 0.28, -0.055, 0.055);
+  const pouchAcc = (pouchTarget - state.pouchOffset) * 75.0 - state.pouchVel * 7.2;
+  state.pouchVel += pouchAcc * dt;
+  state.pouchOffset = clamp(state.pouchOffset + state.pouchVel * dt, -0.07, 0.07);
+
+  // Soft boulder collisions
+  const bikeR = 0.65;
+  for (let i = 0; i < BOULDERS.length; i++) {
+    const b = BOULDERS[i];
+    const dx = state.x - b.x;
+    const dz = state.z - b.z;
+    const minD = b.radius + bikeR;
+    const d2 = dx * dx + dz * dz;
+    if (d2 < minD * minD && d2 > 1e-6) {
+      const d = Math.sqrt(d2);
+      const nx = dx / d;
+      const nz = dz / d;
+      state.x = b.x + nx * minD;
+      state.z = b.z + nz * minD;
+      const vn = state.vx * nx + state.vz * nz;
+      if (vn < 0) {
+        state.vx -= 1.45 * vn * nx;
+        state.vz -= 1.45 * vn * nz;
+        state.events.push({ type: 'bump', speed: -vn });
+      }
+    }
+  }
+
+  // Soft world basin boundary return
+  const distOrigin = Math.hypot(state.x, state.z);
+  if (distOrigin > WORLD_RADIUS - 12) {
+    const nx = state.x / distOrigin;
+    const nz = state.z / distOrigin;
+    const over = distOrigin - (WORLD_RADIUS - 12);
+    state.vx -= nx * over * 1.4 * dt;
+    state.vz -= nz * over * 1.4 * dt;
+    if (distOrigin > WORLD_RADIUS) {
+      state.x = nx * WORLD_RADIUS;
+      state.z = nz * WORLD_RADIUS;
+    }
+  }
+
+  // Beacon discovery check
+  for (let i = 0; i < BEACONS.length; i++) {
+    const bc = BEACONS[i];
+    if (state.beaconsCollected.indexOf(bc.id) === -1) {
+      if (Math.hypot(state.x - bc.x, state.z - bc.z) < 4.5) {
+        state.beaconsCollected.push(bc.id);
+        state.events.push({ type: 'beacon', beacon: bc });
+      }
+    }
+  }
+
+  // Ballistic dust particle simulation (strict parabola in vacuum!)
+  let activeDustCount = 0;
+  for (let i = 0; i < MAX_DUST; i++) {
+    const age = state.dustAge[i];
+    if (age <= 0) continue;
+    const p3 = i * 3;
+    if (env.airDensity > 0) {
+      const dragD = Math.exp(-1.4 * env.airDensity * dt);
+      state.dustVel[p3] *= dragD;
+      state.dustVel[p3 + 1] *= dragD;
+      state.dustVel[p3 + 2] *= dragD;
+    }
+    state.dustVel[p3 + 1] -= g * dt;
+    const nx = state.dustPos[p3] + state.dustVel[p3] * dt;
+    const ny = state.dustPos[p3 + 1] + state.dustVel[p3 + 1] * dt;
+    const nz = state.dustPos[p3 + 2] + state.dustVel[p3 + 2] * dt;
+
+    const newAge = age + dt;
+    const th = getTerrainHeight(nx, nz);
+    if (ny <= th || newAge >= state.dustMaxAge[i]) {
+      state.dustAge[i] = 0;
+    } else {
+      state.dustPos[p3] = nx;
+      state.dustPos[p3 + 1] = ny;
+      state.dustPos[p3 + 2] = nz;
+      state.dustAge[i] = newAge;
+      activeDustCount++;
+    }
+  }
+  state.activeDust = activeDustCount;
+
+  // Final telemetry summary
+  const horizSpd = Math.hypot(state.vx, state.vz);
+  state.distanceTraveled += horizSpd * dt;
+  state.speed = Math.hypot(state.vx, state.vy, state.vz);
+  state.speedKmh = state.speed * 3.6;
+  state.vFwd = vFwd;
+  state.vLat = vLat;
+  state.normalForce = normalForce;
+  state.maxTraction = maxTraction;
+  state.driveForce = driveForce;
+  state.brakeForce = brakeForce;
+  state.rollForce = rollForce;
+  state.dragForce = dragMag;
+  state.slopeForce = slopeForce;
+}
+
+function stepPhysics(state, input, frameDt) {
+  const safeDt = Math.min(Math.max(frameDt, 0), 0.1);
+  state.accumulator += safeDt;
+  let triggeredConsumed = false;
+  while (state.accumulator >= FIXED_DT) {
+    const stepInput = triggeredConsumed && input?.jumpTriggered
+      ? { ...input, jumpTriggered: false }
+      : input;
+    stepPhysicsFixed(state, stepInput, FIXED_DT);
+    triggeredConsumed = true;
+    state.accumulator -= FIXED_DT;
+  }
+}
+
+function getGroundSlopeAngle(x, z, heading) {
+  const n = getTerrainNormal(x, z);
+  const fx = Math.sin(heading);
+  const fz = Math.cos(heading);
+  return Math.asin(clamp(-(n[0] * fx + n[2] * fz), -1, 1));
+}
+
+// --- mesh.js ---
+class MeshBuilder {
+  constructor() {
+    this.pos = [];
+    this.norm = [];
+    this.col = [];
+    this.uv = [];
+    this.idx = [];
+  }
+
+  vertexCount() {
+    return this.pos.length / 3;
+  }
+
+  pushVertex(px, py, pz, nx, ny, nz, r, g, b, u = 0, v = 0) {
+    const id = this.pos.length / 3;
+    this.pos.push(px, py, pz);
+    this.norm.push(nx, ny, nz);
+    this.col.push(r, g, b);
+    this.uv.push(u, v);
+    return id;
+  }
+
+  pushTri(a, b, c) {
+    this.idx.push(a, b, c);
+  }
+
+  addTransformed(subBuilder, mat) {
+    const base = this.vertexCount();
+    const nMat = m4NormalMat3(mat);
+    const pArr = subBuilder.pos;
+    const nArr = subBuilder.norm;
+    const cArr = subBuilder.col;
+    const uArr = subBuilder.uv;
+    for (let i = 0; i < pArr.length; i += 3) {
+      const p = m4TransformPoint(mat, [pArr[i], pArr[i + 1], pArr[i + 2]]);
+      const nx = nArr[i], ny = nArr[i + 1], nz = nArr[i + 2];
+      const tnx = nMat[0] * nx + nMat[3] * ny + nMat[6] * nz;
+      const tny = nMat[1] * nx + nMat[4] * ny + nMat[7] * nz;
+      const tnz = nMat[2] * nx + nMat[5] * ny + nMat[8] * nz;
+      const n = v3Norm([tnx, tny, tnz]);
+      this.pos.push(p[0], p[1], p[2]);
+      this.norm.push(n[0], n[1], n[2]);
+      this.col.push(cArr[i], cArr[i + 1], cArr[i + 2]);
+      const ui = (i / 3) * 2;
+      this.uv.push(uArr[ui], uArr[ui + 1]);
+    }
+    const iArr = subBuilder.idx;
+    for (let i = 0; i < iArr.length; i++) {
+      this.idx.push(base + iArr[i]);
+    }
+  }
+
+  addEllipsoid(cx, cy, cz, rx, ry, rz, color, segU = 18, segV = 12, mat = null) {
+    const sub = mat ? new MeshBuilder() : this;
+    const base = sub.vertexCount();
+    const [cr, cg, cb] = color;
+
+    for (let iv = 0; iv <= segV; iv++) {
+      const vFrac = iv / segV;
+      const phi = vFrac * Math.PI;
+      const sinP = Math.sin(phi);
+      const cosP = Math.cos(phi);
+      for (let iu = 0; iu <= segU; iu++) {
+        const uFrac = iu / segU;
+        const theta = uFrac * Math.PI * 2;
+        const cosT = Math.cos(theta);
+        const sinT = Math.sin(theta);
+
+        const lx = sinP * cosT;
+        const ly = cosP;
+        const lz = sinP * sinT;
+        const n = v3Norm([lx / (rx || 1), ly / (ry || 1), lz / (rz || 1)]);
+        sub.pushVertex(cx + lx * rx, cy + ly * ry, cz + lz * rz, n[0], n[1], n[2], cr, cg, cb, uFrac, vFrac);
+      }
+    }
+
+    const stride = segU + 1;
+    for (let iv = 0; iv < segV; iv++) {
+      for (let iu = 0; iu < segU; iu++) {
+        const v00 = base + iv * stride + iu;
+        const v10 = base + (iv + 1) * stride + iu;
+        const v01 = v00 + 1;
+        const v11 = v10 + 1;
+        sub.pushTri(v00, v01, v10);
+        sub.pushTri(v01, v11, v10);
+      }
+    }
+
+    if (mat) this.addTransformed(sub, mat);
+  }
+
+  addTubeSegment(a, b, rA, rB, color, segs = 12, capA = true, capB = true) {
+    const axis = v3Sub(b, a);
+    const len = v3Len(axis);
+    if (len < 1e-6) return;
+    const dir = [axis[0] / len, axis[1] / len, axis[2] / len];
+    const ref = Math.abs(dir[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+    const uVec = v3Norm(v3Cross(ref, dir));
+    const vVec = v3Cross(dir, uVec);
+    const [cr, cg, cb] = color;
+
+    const ringA = [];
+    const ringB = [];
+    const dr = rA - rB;
+    const slopeNormFactor = 1 / Math.hypot(len, dr);
+    const radialScale = len * slopeNormFactor;
+    const axialScale = dr * slopeNormFactor;
+
+    for (let k = 0; k <= segs; k++) {
+      const t = (k / segs) * Math.PI * 2;
+      const ct = Math.cos(t);
+      const st = Math.sin(t);
+      const rx = ct * uVec[0] + st * vVec[0];
+      const ry = ct * uVec[1] + st * vVec[1];
+      const rz = ct * uVec[2] + st * vVec[2];
+
+      const nx = rx * radialScale + dir[0] * axialScale;
+      const ny = ry * radialScale + dir[1] * axialScale;
+      const nz = rz * radialScale + dir[2] * axialScale;
+      const n = v3Norm([nx, ny, nz]);
+
+      ringA.push(this.pushVertex(a[0] + rx * rA, a[1] + ry * rA, a[2] + rz * rA, n[0], n[1], n[2], cr, cg, cb, k / segs, 0));
+      ringB.push(this.pushVertex(b[0] + rx * rB, b[1] + ry * rB, b[2] + rz * rB, n[0], n[1], n[2], cr, cg, cb, k / segs, 1));
+    }
+
+    for (let k = 0; k < segs; k++) {
+      const a0 = ringA[k], a1 = ringA[k + 1];
+      const b0 = ringB[k], b1 = ringB[k + 1];
+      this.pushTri(a0, a1, b0);
+      this.pushTri(a1, b1, b0);
+    }
+
+    if (capA && rA > 1e-5) {
+      const ca = this.pushVertex(a[0], a[1], a[2], -dir[0], -dir[1], -dir[2], cr, cg, cb, 0.5, 0.5);
+      const capVerts = [];
+      for (let k = 0; k <= segs; k++) {
+        const t = (k / segs) * Math.PI * 2;
+        const rx = Math.cos(t) * uVec[0] + Math.sin(t) * vVec[0];
+        const ry = Math.cos(t) * uVec[1] + Math.sin(t) * vVec[1];
+        const rz = Math.cos(t) * uVec[2] + Math.sin(t) * vVec[2];
+        capVerts.push(this.pushVertex(a[0] + rx * rA, a[1] + ry * rA, a[2] + rz * rA, -dir[0], -dir[1], -dir[2], cr, cg, cb, 0, 0));
+      }
+      for (let k = 0; k < segs; k++) {
+        this.pushTri(ca, capVerts[k + 1], capVerts[k]);
+      }
+    }
+
+    if (capB && rB > 1e-5) {
+      const cbIdx = this.pushVertex(b[0], b[1], b[2], dir[0], dir[1], dir[2], cr, cg, cb, 0.5, 0.5);
+      const capVerts = [];
+      for (let k = 0; k <= segs; k++) {
+        const t = (k / segs) * Math.PI * 2;
+        const rx = Math.cos(t) * uVec[0] + Math.sin(t) * vVec[0];
+        const ry = Math.cos(t) * uVec[1] + Math.sin(t) * vVec[1];
+        const rz = Math.cos(t) * uVec[2] + Math.sin(t) * vVec[2];
+        capVerts.push(this.pushVertex(b[0] + rx * rB, b[1] + ry * rB, b[2] + rz * rB, dir[0], dir[1], dir[2], cr, cg, cb, 0, 0));
+      }
+      for (let k = 0; k < segs; k++) {
+        this.pushTri(cbIdx, capVerts[k], capVerts[k + 1]);
+      }
+    }
+  }
+
+  addBox(cx, cy, cz, sx, sy, sz, color, mat = null) {
+    const sub = mat ? new MeshBuilder() : this;
+    const hx = sx * 0.5, hy = sy * 0.5, hz = sz * 0.5;
+    const [cr, cg, cb] = color;
+    const faces = [
+      // +X
+      [[1, 0, 0], [cx + hx, cy - hy, cz + hz], [cx + hx, cy - hy, cz - hz], [cx + hx, cy + hy, cz - hz], [cx + hx, cy + hy, cz + hz]],
+      // -X
+      [[-1, 0, 0], [cx - hx, cy - hy, cz - hz], [cx - hx, cy - hy, cz + hz], [cx - hx, cy + hy, cz + hz], [cx - hx, cy + hy, cz - hz]],
+      // +Y
+      [[0, 1, 0], [cx - hx, cy + hy, cz + hz], [cx + hx, cy + hy, cz + hz], [cx + hx, cy + hy, cz - hz], [cx - hx, cy + hy, cz - hz]],
+      // -Y
+      [[0, -1, 0], [cx - hx, cy - hy, cz - hz], [cx + hx, cy - hy, cz - hz], [cx + hx, cy - hy, cz + hz], [cx - hx, cy - hy, cz + hz]],
+      // +Z
+      [[0, 0, 1], [cx - hx, cy - hy, cz + hz], [cx + hx, cy - hy, cz + hz], [cx + hx, cy + hy, cz + hz], [cx - hx, cy + hy, cz + hz]],
+      // -Z
+      [[0, 0, -1], [cx + hx, cy - hy, cz - hz], [cx - hx, cy - hy, cz - hz], [cx - hx, cy + hy, cz - hz], [cx + hx, cy + hy, cz - hz]],
+    ];
+
+    for (let f = 0; f < faces.length; f++) {
+      const [n, p0, p1, p2, p3] = faces[f];
+      const i0 = sub.pushVertex(p0[0], p0[1], p0[2], n[0], n[1], n[2], cr, cg, cb, 0, 0);
+      const i1 = sub.pushVertex(p1[0], p1[1], p1[2], n[0], n[1], n[2], cr, cg, cb, 1, 0);
+      const i2 = sub.pushVertex(p2[0], p2[1], p2[2], n[0], n[1], n[2], cr, cg, cb, 1, 1);
+      const i3 = sub.pushVertex(p3[0], p3[1], p3[2], n[0], n[1], n[2], cr, cg, cb, 0, 1);
+      sub.pushTri(i0, i1, i2);
+      sub.pushTri(i0, i2, i3);
+    }
+
+    if (mat) this.addTransformed(sub, mat);
+  }
+
+  // Torus around X axis (for bicycle wheels lying in YZ plane)
+  addTorusX(cx, cy, cz, majorR, minorR, color, segMajor = 32, segMinor = 12) {
+    const base = this.vertexCount();
+    const [cr, cg, cb] = color;
+
+    for (let i = 0; i <= segMajor; i++) {
+      const u = (i / segMajor) * Math.PI * 2;
+      const cu = Math.cos(u);
+      const su = Math.sin(u);
+      for (let j = 0; j <= segMinor; j++) {
+        const v = (j / segMinor) * Math.PI * 2;
+        const cv = Math.cos(v);
+        const sv = Math.sin(v);
+
+        const rRing = majorR + minorR * cv;
+        const px = cx + minorR * sv;
+        const py = cy + rRing * cu;
+        const pz = cz + rRing * su;
+
+        const nx = sv;
+        const ny = cv * cu;
+        const nz = cv * su;
+        const n = v3Norm([nx, ny, nz]);
+        this.pushVertex(px, py, pz, n[0], n[1], n[2], cr, cg, cb, i / segMajor, j / segMinor);
+      }
+    }
+
+    const stride = segMinor + 1;
+    for (let i = 0; i < segMajor; i++) {
+      for (let j = 0; j < segMinor; j++) {
+        const v00 = base + i * stride + j;
+        const v10 = base + (i + 1) * stride + j;
+        const v01 = v00 + 1;
+        const v11 = v10 + 1;
+        // Outward CCW check: along +i (du) ~ -Z/+Y tangent, along +j (dv) around tube -> du x dv points inward, so reverse:
+        this.pushTri(v00, v10, v01);
+        this.pushTri(v01, v10, v11);
+      }
+    }
+  }
+
+  // Torus around Y axis (for horizontal rings like beacon halo)
+  addTorusY(cx, cy, cz, majorR, minorR, color, segMajor = 28, segMinor = 10) {
+    const base = this.vertexCount();
+    const [cr, cg, cb] = color;
+
+    for (let i = 0; i <= segMajor; i++) {
+      const u = (i / segMajor) * Math.PI * 2;
+      const cu = Math.cos(u);
+      const su = Math.sin(u);
+      for (let j = 0; j <= segMinor; j++) {
+        const v = (j / segMinor) * Math.PI * 2;
+        const cv = Math.cos(v);
+        const sv = Math.sin(v);
+
+        const rRing = majorR + minorR * cv;
+        const px = cx + rRing * cu;
+        const py = cy + minorR * sv;
+        const pz = cz + rRing * su;
+
+        const nx = cv * cu;
+        const ny = sv;
+        const nz = cv * su;
+        const n = v3Norm([nx, ny, nz]);
+        this.pushVertex(px, py, pz, n[0], n[1], n[2], cr, cg, cb, i / segMajor, j / segMinor);
+      }
+    }
+
+    const stride = segMinor + 1;
+    for (let i = 0; i < segMajor; i++) {
+      for (let j = 0; j < segMinor; j++) {
+        const v00 = base + i * stride + j;
+        const v10 = base + (i + 1) * stride + j;
+        const v01 = v00 + 1;
+        const v11 = v10 + 1;
+        this.pushTri(v00, v01, v10);
+        this.pushTri(v01, v11, v10);
+      }
+    }
+  }
+
+  build() {
+    return {
+      positions: new Float32Array(this.pos),
+      normals: new Float32Array(this.norm),
+      colors: new Float32Array(this.col),
+      uvs: new Float32Array(this.uv),
+      indices: new Uint32Array(this.idx),
+    };
+  }
+}
+
+function buildTerrainMesh(gridN = 172) {
+  const mb = new MeshBuilder();
+  const half = TERRAIN_EXTENT;
+  const step = (half * 2) / gridN;
+
+  for (let iz = 0; iz <= gridN; iz++) {
+    const z = -half + iz * step;
+    for (let ix = 0; ix <= gridN; ix++) {
+      const x = -half + ix * step;
+      const y = getTerrainHeight(x, z);
+      const n = getTerrainNormal(x, z);
+      const cf = getTerrainColorFactor(x, z);
+      // Authentic lunar regolith palette (basalt dark grey to brighter highland/ejecta dust)
+      const baseShade = lerp(0.32, 0.64, cf);
+      const r = baseShade * 1.01;
+      const g = baseShade * 1.0;
+      const b = baseShade * 0.985;
+      mb.pushVertex(x, y, z, n[0], n[1], n[2], r, g, b, ix / gridN, iz / gridN);
+    }
+  }
+
+  const stride = gridN + 1;
+  for (let iz = 0; iz < gridN; iz++) {
+    for (let ix = 0; ix < gridN; ix++) {
+      const v00 = iz * stride + ix;
+      const v10 = v00 + 1;
+      const v01 = (iz + 1) * stride + ix;
+      const v11 = v01 + 1;
+      mb.pushTri(v00, v01, v10);
+      mb.pushTri(v01, v11, v10);
+    }
+  }
+  return mb.build();
+}
+
+function buildBikeFrameMesh() {
+  const mb = new MeshBuilder();
+  const titanium = [0.76, 0.79, 0.84];
+  const darkMetal = [0.22, 0.25, 0.3];
+  const accentOrange = [0.95, 0.44, 0.14];
+  const saddleCol = [0.16, 0.17, 0.2];
+  const tailRed = [0.95, 0.16, 0.12];
+
+  const rearAxleL = [0.065, 0, -0.59];
+  const rearAxleR = [-0.065, 0, -0.59];
+  const bb = [0, -0.04, -0.14];
+  const seatTop = [0, 0.44, -0.31];
+  const saddleBase = [0, 0.53, -0.34];
+  const headBot = [0, 0.34, 0.42];
+  const headTop = [0, 0.52, 0.36];
+
+  // Main diamond frame tubes
+  mb.addTubeSegment(bb, seatTop, 0.024, 0.022, titanium, 12);
+  mb.addTubeSegment(bb, headBot, 0.028, 0.026, titanium, 12);
+  mb.addTubeSegment(seatTop, headTop, 0.022, 0.022, titanium, 12);
+  mb.addTubeSegment(headBot, headTop, 0.032, 0.032, accentOrange, 14);
+  // Orange stripe cuff on down tube
+  mb.addTubeSegment([0, 0.12, 0.10], [0, 0.21, 0.22], 0.030, 0.030, accentOrange, 12);
+
+  // Rear stays (left & right)
+  mb.addTubeSegment([0.04, -0.04, -0.14], rearAxleL, 0.015, 0.012, titanium, 8);
+  mb.addTubeSegment([-0.04, -0.04, -0.14], rearAxleR, 0.015, 0.012, titanium, 8);
+  mb.addTubeSegment([0.025, 0.40, -0.30], rearAxleL, 0.013, 0.011, titanium, 8);
+  mb.addTubeSegment([-0.025, 0.40, -0.30], rearAxleR, 0.013, 0.011, titanium, 8);
+
+  // Seatpost + saddle
+  mb.addTubeSegment(seatTop, saddleBase, 0.016, 0.015, darkMetal, 10);
+  mb.addEllipsoid(0, 0.55, -0.35, 0.085, 0.026, 0.135, saddleCol, 14, 10);
+
+  // Rear lunar battery rack & tail LED
+  mb.addTubeSegment([0.04, 0.36, -0.32], [0.05, 0.37, -0.62], 0.011, 0.011, darkMetal, 8);
+  mb.addTubeSegment([-0.04, 0.36, -0.32], [-0.05, 0.37, -0.62], 0.011, 0.011, darkMetal, 8);
+  mb.addBox(0, 0.40, -0.50, 0.13, 0.06, 0.22, [0.25, 0.28, 0.34]);
+  mb.addBox(0, 0.40, -0.62, 0.07, 0.035, 0.03, tailRed);
+
+  // Bottom bracket shell & chain spans (right side -X)
+  mb.addTubeSegment([-0.07, -0.04, -0.14], [0.07, -0.04, -0.14], 0.032, 0.032, darkMetal, 12);
+  mb.addTubeSegment([-0.055, 0.04, -0.14], [-0.045, 0.055, -0.59], 0.007, 0.007, darkMetal, 6);
+  mb.addTubeSegment([-0.055, -0.12, -0.14], [-0.045, -0.055, -0.59], 0.007, 0.007, darkMetal, 6);
+
+  return mb.build();
+}
+
+function buildBikeForkMesh() {
+  const mb = new MeshBuilder();
+  const goldStanchion = [0.92, 0.72, 0.26];
+  const darkSlider = [0.20, 0.23, 0.28];
+  const barMetal = [0.76, 0.80, 0.85];
+  const gripRubber = [0.14, 0.15, 0.18];
+  const lampGlow = [1.0, 0.96, 0.84];
+
+  // Fork local origin at headTube center (0, 0.43, 0.39)
+  // Crown sits around (0, -0.12, 0.04), front axle sits at (0, -0.43, 0.20)
+  const crownL = [0.065, -0.11, 0.04];
+  const crownR = [-0.065, -0.11, 0.04];
+  const midL = [0.065, -0.25, 0.105];
+  const midR = [-0.065, -0.25, 0.105];
+  const tipL = [0.065, -0.43, 0.20];
+  const tipR = [-0.065, -0.43, 0.20];
+
+  mb.addTubeSegment([0, -0.08, 0.025], crownL, 0.018, 0.016, darkSlider, 10);
+  mb.addTubeSegment([0, -0.08, 0.025], crownR, 0.018, 0.016, darkSlider, 10);
+  mb.addTubeSegment(crownL, midL, 0.017, 0.017, goldStanchion, 10);
+  mb.addTubeSegment(crownR, midR, 0.017, 0.017, goldStanchion, 10);
+  mb.addTubeSegment(midL, tipL, 0.020, 0.015, darkSlider, 10);
+  mb.addTubeSegment(midR, tipR, 0.020, 0.015, darkSlider, 10);
+
+  // Stem & swept handlebar
+  mb.addTubeSegment([0, 0.07, -0.02], [0, 0.17, 0.01], 0.018, 0.016, darkSlider, 10);
+  mb.addTubeSegment([-0.14, 0.17, -0.01], [0.14, 0.17, -0.01], 0.014, 0.014, barMetal, 10);
+  mb.addTubeSegment([0.14, 0.17, -0.01], [0.29, 0.17, -0.06], 0.014, 0.013, barMetal, 10);
+  mb.addTubeSegment([-0.14, 0.17, -0.01], [-0.29, 0.17, -0.06], 0.014, 0.013, barMetal, 10);
+
+  // Grips
+  mb.addTubeSegment([0.21, 0.17, -0.032], [0.30, 0.17, -0.065], 0.018, 0.018, gripRubber, 10);
+  mb.addTubeSegment([-0.21, 0.17, -0.032], [-0.30, 0.17, -0.065], 0.018, 0.018, gripRubber, 10);
+
+  // Front LED headlamp housing + glowing lens
+  mb.addTubeSegment([0, 0.14, 0.01], [0, 0.13, 0.09], 0.034, 0.038, darkSlider, 12);
+  mb.addEllipsoid(0, 0.13, 0.09, 0.031, 0.031, 0.012, lampGlow, 12, 8);
+
+  return mb.build();
+}
+
+function buildBikeWheelMesh() {
+  const mb = new MeshBuilder();
+  const tireCol = [0.16, 0.17, 0.20];
+  const lugCol = [0.23, 0.25, 0.28];
+  const rimCol = [0.78, 0.82, 0.88];
+  const spokeCol = [0.68, 0.72, 0.78];
+  const hubCol = [0.95, 0.44, 0.14];
+
+  const outerR = 0.295;
+  const tubeR = 0.045;
+  // Main chunky lunar tire + metallic rim
+  mb.addTorusX(0, 0, 0, outerR, tubeR, tireCol, 36, 12);
+  mb.addTorusX(0, 0, 0, 0.252, 0.016, rimCol, 36, 8);
+
+  // Tread lugs around tire so rotation & wheelspin read crisply!
+  const lugCount = 24;
+  for (let i = 0; i < lugCount; i++) {
+    const a = (i / lugCount) * Math.PI * 2;
+    const cy = Math.cos(a) * (outerR + tubeR * 0.82);
+    const cz = Math.sin(a) * (outerR + tubeR * 0.82);
+    const xOff = (i % 2 === 0 ? 1 : -1) * 0.014;
+    mb.addBox(xOff, cy, cz, 0.042, 0.022, 0.022, lugCol);
+  }
+
+  // Hub & 12 spokes
+  mb.addTubeSegment([-0.055, 0, 0], [0.055, 0, 0], 0.032, 0.032, hubCol, 12);
+  mb.addTubeSegment([0.042, 0, 0], [0.048, 0, 0], 0.095, 0.095, [0.58, 0.62, 0.68], 16);
+  const spokeCount = 12;
+  for (let i = 0; i < spokeCount; i++) {
+    const a = (i / spokeCount) * Math.PI * 2;
+    const rimY = Math.cos(a) * 0.245;
+    const rimZ = Math.sin(a) * 0.245;
+    const hubX = (i % 2 === 0 ? 1 : -1) * 0.036;
+    mb.addTubeSegment([hubX, 0, 0], [0, rimY, rimZ], 0.004, 0.004, spokeCol, 5, false, false);
+  }
+
+  return mb.build();
+}
+
+function buildBikeCrankMesh() {
+  const mb = new MeshBuilder();
+  const ringCol = [0.65, 0.69, 0.75];
+  const armCol = [0.24, 0.27, 0.32];
+
+  // Chainring on right (-X)
+  mb.addTorusX(-0.055, 0, 0, 0.088, 0.011, ringCol, 24, 6);
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    mb.addTubeSegment([-0.055, 0, 0], [-0.055, Math.sin(a) * 0.085, Math.cos(a) * 0.085], 0.008, 0.007, ringCol, 6);
+  }
+  // Left crank arm (+X, +Z at angle=0) & Right crank arm (-X, -Z at angle=0)
+  mb.addTubeSegment([0.075, 0, 0], [0.095, 0, 0.16], 0.014, 0.011, armCol, 8);
+  mb.addTubeSegment([-0.075, 0, 0], [-0.095, 0, -0.16], 0.014, 0.011, armCol, 8);
+
+  return mb.build();
+}
+
+function buildPedalMesh() {
+  const mb = new MeshBuilder();
+  mb.addBox(0, 0, 0, 0.078, 0.022, 0.085, [0.22, 0.24, 0.28]);
+  mb.addBox(0, 0, 0.044, 0.045, 0.01, 0.008, [0.98, 0.68, 0.15]);
+  return mb.build();
+}
+
+function buildPelicanTorsoMesh() {
+  const mb = new MeshBuilder();
+  const featherWhite = [0.95, 0.94, 0.90];
+  const featherWarm = [0.89, 0.87, 0.82];
+  const suitOrange = [0.94, 0.42, 0.14];
+  const suitNavy = [0.16, 0.24, 0.38];
+  const packWhite = [0.86, 0.88, 0.91];
+  const metalCol = [0.64, 0.68, 0.74];
+  const ledCyan = [0.24, 0.95, 0.85];
+
+  // Local origin at pelvis center (0, 0, 0). Torso leans forward (+Z, +Y).
+  // Plump pear-shaped pelican body
+  mb.addEllipsoid(0, 0.18, 0.05, 0.175, 0.21, 0.22, featherWhite, 20, 14);
+  mb.addEllipsoid(0, 0.32, 0.16, 0.145, 0.16, 0.17, featherWhite, 18, 12);
+
+  // Mission harness / flight vest stripes
+  mb.addTubeSegment([0, 0.21, 0.12], [0, 0.36, 0.20], 0.155, 0.135, suitNavy, 16, false, false);
+  mb.addTubeSegment([0, 0.26, 0.15], [0, 0.31, 0.18], 0.159, 0.151, suitOrange, 16, false, false);
+
+  // Tail feathers pointing back (-Z)
+  mb.addTubeSegment([0, 0.08, -0.10], [0, 0.13, -0.34], 0.095, 0.025, featherWarm, 10);
+  mb.addTubeSegment([0.05, 0.09, -0.12], [0.08, 0.14, -0.31], 0.04, 0.015, [0.35, 0.36, 0.40], 8);
+  mb.addTubeSegment([-0.05, 0.09, -0.12], [-0.08, 0.14, -0.31], 0.04, 0.015, [0.35, 0.36, 0.40], 8);
+
+  // NASA-style PLSS oxygen backpack tilted cleanly behind shoulders
+  mb.addBox(0, 0.40, -0.05, 0.23, 0.26, 0.14, packWhite);
+  mb.addBox(0, 0.41, -0.125, 0.15, 0.14, 0.02, suitOrange);
+  // Dual silver oxygen canisters
+  mb.addTubeSegment([0.065, 0.29, -0.09], [0.065, 0.51, -0.09], 0.038, 0.038, metalCol, 12);
+  mb.addTubeSegment([-0.065, 0.29, -0.09], [-0.065, 0.51, -0.09], 0.038, 0.038, metalCol, 12);
+  // Status LED + antenna whip
+  mb.addBox(0.06, 0.48, -0.13, 0.04, 0.025, 0.015, ledCyan);
+  mb.addTubeSegment([-0.08, 0.52, -0.08], [-0.09, 0.78, -0.12], 0.006, 0.003, metalCol, 6);
+
+  // Gold metallic helmet neck collar ring
+  mb.addTorusY(0, 0.49, 0.22, 0.135, 0.022, [0.85, 0.68, 0.26], 22, 8);
+
+  return mb.build();
+}
+
+function buildPelicanHeadMesh() {
+  const mb = new MeshBuilder();
+  const featherWhite = [0.96, 0.95, 0.91];
+  const beakGold = [0.96, 0.64, 0.14];
+  const beakTip = [0.90, 0.30, 0.12];
+  const eyeDark = [0.05, 0.06, 0.09];
+  const eyeShine = [0.98, 0.99, 1.0];
+
+  // Neck + rounded pelican head at local origin (0, 0, 0)
+  mb.addTubeSegment([0, -0.05, -0.02], [0, 0.07, 0.02], 0.085, 0.075, featherWhite, 14);
+  mb.addEllipsoid(0, 0.10, 0.03, 0.095, 0.098, 0.11, featherWhite, 18, 12);
+  // Cheeky feathered crest tuft
+  mb.addTubeSegment([0, 0.17, -0.01], [0, 0.23, -0.09], 0.032, 0.008, featherWhite, 8);
+
+  // Expressive glossy eyes on left & right sides
+  mb.addEllipsoid(0.082, 0.125, 0.075, 0.022, 0.024, 0.024, eyeDark, 10, 8);
+  mb.addEllipsoid(-0.082, 0.125, 0.075, 0.022, 0.024, 0.024, eyeDark, 10, 8);
+  mb.addEllipsoid(0.094, 0.133, 0.085, 0.007, 0.007, 0.007, eyeShine, 6, 6);
+  mb.addEllipsoid(-0.094, 0.133, 0.085, 0.007, 0.007, 0.007, eyeShine, 6, 6);
+
+  // Iconic long pelican upper beak extending along +Z with hooked orange-red tip
+  mb.addTubeSegment([0, 0.088, 0.10], [0, 0.070, 0.36], 0.056, 0.024, beakGold, 14);
+  // Subtle top ridge
+  mb.addTubeSegment([0, 0.120, 0.11], [0, 0.086, 0.35], 0.022, 0.011, [0.99, 0.74, 0.24], 10);
+  // Hooked tip
+  mb.addTubeSegment([0, 0.072, 0.35], [0, 0.028, 0.39], 0.022, 0.005, beakTip, 10);
+
+  return mb.build();
+}
+
+function buildPelicanPouchMesh() {
+  const mb = new MeshBuilder();
+  const pouchAmber = [0.96, 0.56, 0.24];
+  const pouchSoft = [0.98, 0.68, 0.38];
+
+  // Pivots at jaw hinge (0, 0, 0) extending along +Z and hanging slightly down (-Y)
+  mb.addTubeSegment([0, 0.0, 0.0], [0, -0.012, 0.25], 0.048, 0.018, pouchAmber, 12);
+  // Sculpted inflatable gular throat pouch
+  mb.addEllipsoid(0, -0.055, 0.135, 0.056, 0.068, 0.125, pouchSoft, 16, 12);
+
+  return mb.build();
+}
+
+function buildPelicanHelmetMesh() {
+  const mb = new MeshBuilder();
+  const visorTint = [0.82, 0.90, 1.0];
+  // Elongated astronaut bubble enclosing the pelican's head AND full beak!
+  // Centered around head (0, 0.10, 0.17)
+  mb.addEllipsoid(0, 0.10, 0.175, 0.175, 0.175, 0.305, visorTint, 28, 20);
+  return mb.build();
+}
+
+function buildPelicanWingMesh(side = 1) {
+  const mb = new MeshBuilder();
+  const featherWhite = [0.95, 0.94, 0.90];
+  const covertCream = [0.89, 0.87, 0.81];
+  const primaryTip = [0.22, 0.25, 0.31];
+  const cuffOrange = [0.94, 0.42, 0.14];
+
+  // Built with local origin at shoulder (0, 0, 0), arm reaching along +Z to length 0.65m
+  // Wing feather span flares laterally along side * X
+  mb.addTubeSegment([0, 0, 0], [0, 0, 0.34], 0.058, 0.044, featherWhite, 12);
+  mb.addTubeSegment([0, 0, 0.34], [0, 0, 0.62], 0.044, 0.028, covertCream, 12);
+  // Orange space suit wrist cuff
+  mb.addTubeSegment([0, 0, 0.56], [0, 0, 0.61], 0.036, 0.034, cuffOrange, 12);
+
+  // Layered primary flight feathers fanning laterally outward
+  for (let i = 0; i < 4; i++) {
+    const t = i / 3;
+    const zStart = 0.14 + t * 0.34;
+    const zEnd = zStart + 0.14;
+    const xOut = side * (0.08 + (1 - Math.abs(t - 0.5)) * 0.09);
+    mb.addTubeSegment(
+      [side * 0.02, -0.005, zStart],
+      [xOut, -0.012, zEnd],
+      0.024,
+      0.008,
+      i >= 2 ? primaryTip : covertCream,
+      8
+    );
+  }
+  // Wingtip glove
+  mb.addEllipsoid(0, 0, 0.64, 0.034, 0.028, 0.04, [0.92, 0.93, 0.95], 10, 8);
+
+  return mb.build();
+}
+
+function buildPelicanThighMesh() {
+  const mb = new MeshBuilder();
+  const featherWhite = [0.94, 0.93, 0.89];
+  const kneeOrange = [0.94, 0.42, 0.14];
+  // Built along +Z from (0,0,0) to (0,0,0.46)
+  mb.addTubeSegment([0, 0, 0], [0, 0, 0.46], 0.068, 0.034, featherWhite, 12);
+  mb.addEllipsoid(0, 0, 0.45, 0.038, 0.038, 0.038, kneeOrange, 10, 8);
+  return mb.build();
+}
+
+function buildPelicanShinMesh() {
+  const mb = new MeshBuilder();
+  const legOrange = [0.95, 0.55, 0.18];
+  // Built along +Z from (0,0,0) to (0,0,0.46)
+  mb.addTubeSegment([0, 0, 0], [0, 0, 0.46], 0.028, 0.021, legOrange, 10);
+  return mb.build();
+}
+
+function buildPelicanFootMesh() {
+  const mb = new MeshBuilder();
+  const webOrange = [0.96, 0.52, 0.16];
+  // Flat webbed pelican foot centered around ankle (0, 0, 0), toes forward (+Z)
+  mb.addEllipsoid(0, 0.012, 0.045, 0.058, 0.016, 0.085, webOrange, 12, 8);
+  mb.addTubeSegment([0, 0.012, -0.01], [0.038, 0.01, 0.115], 0.011, 0.006, webOrange, 6);
+  mb.addTubeSegment([0, 0.012, -0.01], [0, 0.01, 0.125], 0.012, 0.006, webOrange, 6);
+  mb.addTubeSegment([0, 0.012, -0.01], [-0.038, 0.01, 0.115], 0.011, 0.006, webOrange, 6);
+  return mb.build();
+}
+
+function buildLanderMesh() {
+  const mb = new MeshBuilder();
+  const goldFoil = [0.88, 0.66, 0.16];
+  const goldDeep = [0.74, 0.50, 0.10];
+  const cabinWhite = [0.82, 0.84, 0.88];
+  const darkMetal = [0.22, 0.25, 0.30];
+  const windowDark = [0.06, 0.09, 0.14];
+
+  // 4 splayed landing legs + circular footpads (grounded cleanly at Y = 0)
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + Math.PI * 0.25;
+    const ca = Math.cos(a);
+    const sa = Math.sin(a);
+    const footPos = [ca * 2.45, 0.06, sa * 2.45];
+    const topAttach = [ca * 1.35, 1.85, sa * 1.35];
+    const midAttach = [ca * 1.35, 0.95, sa * 1.35];
+
+    mb.addTubeSegment(footPos, topAttach, 0.075, 0.085, goldFoil, 10);
+    mb.addTubeSegment(footPos, midAttach, 0.045, 0.045, darkMetal, 8);
+    // Circular footpad
+    mb.addTubeSegment([footPos[0], 0.0, footPos[2]], [footPos[0], 0.09, footPos[2]], 0.38, 0.32, goldDeep, 14);
+  }
+
+  // Descent stage octagonal gold-foil hull
+  mb.addTubeSegment([0, 0.82, 0], [0, 2.08, 0], 1.48, 1.48, goldFoil, 8);
+  mb.addTubeSegment([0, 0.45, 0], [0, 0.85, 0], 0.42, 0.62, darkMetal, 14); // engine bell
+
+  // Ascent crew cabin
+  mb.addBox(0, 2.85, 0, 2.05, 1.55, 2.05, cabinWhite);
+  mb.addBox(0, 3.35, 0.15, 1.55, 0.85, 1.55, [0.70, 0.73, 0.78]);
+  // Dark cockpit windows facing +Z
+  mb.addBox(0.42, 3.05, 1.03, 0.48, 0.36, 0.04, windowDark);
+  mb.addBox(-0.42, 3.05, 1.03, 0.48, 0.36, 0.04, windowDark);
+
+  // Dish antenna on roof
+  mb.addTubeSegment([0.55, 3.62, -0.35], [0.55, 4.35, -0.35], 0.04, 0.04, darkMetal, 8);
+  mb.addTubeSegment([0.55, 4.35, -0.35], [0.75, 4.55, -0.15], 0.06, 0.48, [0.86, 0.88, 0.92], 16);
+
+  // Access ladder on +Z leg
+  mb.addTubeSegment([0.18, 0.4, 1.65], [0.18, 2.35, 1.05], 0.025, 0.025, darkMetal, 8);
+  mb.addTubeSegment([-0.18, 0.4, 1.65], [-0.18, 2.35, 1.05], 0.025, 0.025, darkMetal, 8);
+
+  return mb.build();
+}
+
+function buildFlagMesh() {
+  const mb = new MeshBuilder();
+  const poleCol = [0.80, 0.83, 0.88];
+  const navyFlag = [0.11, 0.22, 0.46];
+  const stripeGold = [0.95, 0.72, 0.20];
+  const emblemWhite = [0.96, 0.97, 0.99];
+
+  // Vertical mast + horizontal rigid crossbar (Apollo rigid wire bar!)
+  mb.addTubeSegment([0, 0, 0], [0, 2.35, 0], 0.032, 0.028, poleCol, 10);
+  mb.addTubeSegment([0, 2.28, 0], [1.18, 2.28, 0], 0.02, 0.02, poleCol, 8);
+  mb.addEllipsoid(0, 2.38, 0, 0.05, 0.05, 0.05, stripeGold, 10, 8);
+
+  // Flag fabric hanging crisp (two-sided box panel with slight ripple)
+  mb.addBox(0.58, 1.92, 0, 1.12, 0.68, 0.018, navyFlag);
+  mb.addBox(0.58, 1.64, 0, 1.12, 0.09, 0.022, stripeGold);
+  mb.addBox(0.46, 1.97, 0, 0.28, 0.22, 0.024, emblemWhite);
+
+  return mb.build();
+}
+
+function buildSolarArrayMesh() {
+  const mb = new MeshBuilder();
+  const frameCol = [0.76, 0.79, 0.84];
+  const panelBlue = [0.10, 0.22, 0.48];
+  const gridSilver = [0.65, 0.76, 0.92];
+
+  // Tripod legs
+  mb.addTubeSegment([0, 0, 0.65], [0, 1.05, 0], 0.03, 0.025, frameCol, 8);
+  mb.addTubeSegment([0.56, 0, -0.35], [0, 1.05, 0], 0.03, 0.025, frameCol, 8);
+  mb.addTubeSegment([-0.56, 0, -0.35], [0, 1.05, 0], 0.03, 0.025, frameCol, 8);
+  mb.addTubeSegment([0, 1.0, 0], [0, 1.55, 0], 0.04, 0.04, frameCol, 10);
+
+  // Angled twin solar wings
+  mb.addBox(0, 1.55, 0, 2.8, 0.05, 0.95, frameCol);
+  mb.addBox(0.72, 1.58, 0, 1.25, 0.02, 0.86, panelBlue);
+  mb.addBox(-0.72, 1.58, 0, 1.25, 0.02, 0.86, panelBlue);
+  mb.addBox(0.72, 1.595, 0, 1.25, 0.008, 0.03, gridSilver);
+  mb.addBox(-0.72, 1.595, 0, 1.25, 0.008, 0.03, gridSilver);
+
+  return mb.build();
+}
+
+function buildBoulderMesh() {
+  const mb = new MeshBuilder();
+  const rng = mulberry32(84217);
+  const segU = 10;
+  const segV = 7;
+
+  // Precompute deterministic facet displacements across sphere directions
+  const dirs = [];
+  for (let i = 0; i < 8; i++) {
+    dirs.push([rng() * 2 - 1, rng() * 2 - 1, rng() * 2 - 1, 0.72 + rng() * 0.42]);
+  }
+
+  function rockRadius(dx, dy, dz) {
+    let r = 0.88;
+    for (let i = 0; i < dirs.length; i++) {
+      const d = dirs[i][0] * dx + dirs[i][1] * dy + dirs[i][2] * dz;
+      r += Math.max(0, d) * 0.14 * dirs[i][3];
+    }
+    return clamp(r, 0.65, 1.25);
+  }
+
+  const pts = [];
+  for (let iv = 0; iv <= segV; iv++) {
+    const phi = (iv / segV) * Math.PI;
+    const sp = Math.sin(phi), cp = Math.cos(phi);
+    for (let iu = 0; iu <= segU; iu++) {
+      const theta = (iu / segU) * Math.PI * 2;
+      const dx = sp * Math.cos(theta);
+      const dy = cp;
+      const dz = sp * Math.sin(theta);
+      const r = rockRadius(dx, dy, dz);
+      pts.push([dx * r, dy * r, dz * r]);
+    }
+  }
+
+  const stride = segU + 1;
+  for (let iv = 0; iv < segV; iv++) {
+    for (let iu = 0; iu < segU; iu++) {
+      const a = pts[iv * stride + iu];
+      const b = pts[iv * stride + iu + 1];
+      const c = pts[(iv + 1) * stride + iu];
+      const d = pts[(iv + 1) * stride + iu + 1];
+
+      // Flat-faceted shading per triangle pair
+      const n1 = v3Norm(v3Cross(v3Sub(b, a), v3Sub(c, a)));
+      const shade = 0.38 + (iu % 3) * 0.04;
+      const va = mb.pushVertex(a[0], a[1], a[2], n1[0], n1[1], n1[2], shade, shade, shade * 0.99, 0, 0);
+      const vb = mb.pushVertex(b[0], b[1], b[2], n1[0], n1[1], n1[2], shade, shade, shade * 0.99, 1, 0);
+      const vc = mb.pushVertex(c[0], c[1], c[2], n1[0], n1[1], n1[2], shade, shade, shade * 0.99, 0, 1);
+      mb.pushTri(va, vb, vc);
+
+      const n2 = v3Norm(v3Cross(v3Sub(d, b), v3Sub(c, b)));
+      const vb2 = mb.pushVertex(b[0], b[1], b[2], n2[0], n2[1], n2[2], shade * 0.96, shade * 0.96, shade * 0.95, 1, 0);
+      const vd2 = mb.pushVertex(d[0], d[1], d[2], n2[0], n2[1], n2[2], shade * 0.96, shade * 0.96, shade * 0.95, 1, 1);
+      const vc2 = mb.pushVertex(c[0], c[1], c[2], n2[0], n2[1], n2[2], shade * 0.96, shade * 0.96, shade * 0.95, 0, 1);
+      mb.pushTri(vb2, vd2, vc2);
+    }
+  }
+
+  return mb.build();
+}
+
+function buildBeaconBaseMesh() {
+  const mb = new MeshBuilder();
+  const metal = [0.80, 0.84, 0.88];
+  const accent = [0.95, 0.44, 0.14];
+
+  mb.addTubeSegment([0.45, 0, 0.25], [0, 0.72, 0], 0.026, 0.022, metal, 8);
+  mb.addTubeSegment([-0.45, 0, 0.25], [0, 0.72, 0], 0.026, 0.022, metal, 8);
+  mb.addTubeSegment([0, 0, -0.50], [0, 0.72, 0], 0.026, 0.022, metal, 8);
+  mb.addTubeSegment([0, 0.65, 0], [0, 1.45, 0], 0.055, 0.035, accent, 12);
+  mb.addTorusY(0, 1.55, 0, 0.34, 0.035, [0.92, 0.96, 1.0], 24, 8);
+  return mb.build();
+}
+
+function buildBeaconBeamMesh() {
+  const mb = new MeshBuilder();
+  mb.addTubeSegment([0, 0.3, 0], [0, 18.0, 0], 0.32, 0.14, [1, 1, 1], 14, false, false);
+  return mb.build();
+}
+
+function buildEarthMesh() {
+  const mb = new MeshBuilder();
+  mb.addEllipsoid(0, 0, 0, 1, 1, 1, [1, 1, 1], 48, 32);
+  return mb.build();
+}
+
+// --- renderer.js ---
+const SUN_DIR = v3Norm([0.72, 0.36, 0.59]);
+const EARTH_DIR = v3Norm([0.20, 0.11, 0.97]);
+const SHADOW_SIZE = 1024;
+const MAX_TRACK_VERTS = 1200;
+
+function compileShader(gl, type, src) {
+  const sh = gl.createShader(type);
+  gl.shaderSource(sh, src);
+  gl.compileShader(sh);
+  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+    const info = gl.getShaderInfoLog(sh);
+    gl.deleteShader(sh);
+    throw new Error('Shader error: ' + info);
+  }
+  return sh;
+}
+
+function createProgram(gl, vsSrc, fsSrc) {
+  const prog = gl.createProgram();
+  const vs = compileShader(gl, gl.VERTEX_SHADER, vsSrc);
+  const fs = compileShader(gl, gl.FRAGMENT_SHADER, fsSrc);
+  gl.attachShader(prog, vs);
+  gl.attachShader(prog, fs);
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    const info = gl.getProgramInfoLog(prog);
+    gl.deleteProgram(prog);
+    throw new Error('Program link error: ' + info);
+  }
+  gl.deleteShader(vs);
+  gl.deleteShader(fs);
+  return prog;
+}
+
+function createMeshGPU(gl, data) {
+  const vao = gl.createVertexArray();
+  gl.bindVertexArray(vao);
+
+  const posBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, data.positions, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+  const normBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, normBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, data.normals, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(1);
+  gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+
+  const colBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, colBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, data.colors, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(2);
+  gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 0, 0);
+
+  const uvBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, uvBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, data.uvs, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(3);
+  gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 0, 0);
+
+  const idxBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.indices, gl.STATIC_DRAW);
+
+  gl.bindVertexArray(null);
+  return { vao, count: data.indices.length };
+}
+
+function createEarthTexture(gl) {
+  const w = 512;
+  const h = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(w, h);
+  const d = img.data;
+
+  for (let py = 0; py < h; py++) {
+    const v = py / (h - 1);
+    const lat = (0.5 - v) * Math.PI;
+    const absLat = Math.abs(v - 0.5) * 2;
+    for (let px = 0; px < w; px++) {
+      const u = px / w;
+      const lon = u * Math.PI * 2;
+      const sx = Math.cos(lat) * Math.cos(lon);
+      const sy = Math.sin(lat);
+      const sz = Math.cos(lat) * Math.sin(lon);
+
+      const cont = fbm2D(sx * 2.1 + sz * 1.4 + 4.2, sy * 2.4 - sx * 0.9 + 7.1, 4);
+      const cloud = fbm2D(sx * 3.8 + 11.4, sz * 3.8 + sy * 2.1 - 3.3, 4);
+
+      let r = 18, g = 68, b = 152;
+      if (absLat > 0.82 - cont * 0.08) {
+        r = 228;
+        g = 236;
+        b = 246;
+      } else if (cont > 0.52) {
+        const dry = clamp((cont - 0.52) * 4.5, 0, 1);
+        r = lerp(52, 165, dry * 0.7);
+        g = lerp(118, 148, dry * 0.7);
+        b = lerp(58, 96, dry * 0.7);
+      } else {
+        const shallow = clamp((cont - 0.42) * 10, 0, 1);
+        r = lerp(14, 34, shallow);
+        g = lerp(58, 112, shallow);
+        b = lerp(138, 184, shallow);
+      }
+
+      if (cloud > 0.54) {
+        const ca = clamp((cloud - 0.54) * 2.6, 0, 0.88);
+        r = lerp(r, 245, ca);
+        g = lerp(g, 248, ca);
+        b = lerp(b, 255, ca);
+      }
+
+      const idx = (py * w + px) * 4;
+      d[idx] = r;
+      d[idx + 1] = g;
+      d[idx + 2] = b;
+      d[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  return tex;
+}
+
+const SHADOW_VS = `#version 300 es
+layout(location=0) in vec3 aPos;
+uniform mat4 uLightMVP;
+void main() {
+  gl_Position = uLightMVP * vec4(aPos, 1.0);
+}`;
+
+const SHADOW_FS = `#version 300 es
+precision mediump float;
+void main() {}`;
+
+const TERRAIN_VS = `#version 300 es
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec3 aNorm;
+layout(location=2) in vec3 aCol;
+layout(location=3) in vec2 aUv;
+
+uniform mat4 uViewProj;
+uniform mat4 uLightViewProj;
+
+out vec3 vWorldPos;
+out vec3 vNorm;
+out vec3 vCol;
+out vec4 vShadowCoord;
+
+void main() {
+  vWorldPos = aPos;
+  vNorm = aNorm;
+  vCol = aCol;
+  vShadowCoord = uLightViewProj * vec4(aPos, 1.0);
+  gl_Position = uViewProj * vec4(aPos, 1.0);
+}`;
+
+const TERRAIN_FS = `#version 300 es
+precision highp float;
+precision highp sampler2DShadow;
+
+in vec3 vWorldPos;
+in vec3 vNorm;
+in vec3 vCol;
+in vec4 vShadowCoord;
+
+uniform vec3 uCamPos;
+uniform vec3 uSunDir;
+uniform vec3 uEarthDir;
+uniform vec3 uHeadPos;
+uniform vec3 uHeadDir;
+uniform float uEnvAir;
+uniform sampler2DShadow uShadowMap;
+
+out vec4 fragColor;
+
+float hash21(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+float vnoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(hash21(i), hash21(i + vec2(1.0, 0.0)), u.x),
+    mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), u.x),
+    u.y
+  );
+}
+
+float sampleShadowPCF(vec4 sc, float ndotl) {
+  vec3 proj = sc.xyz / sc.w;
+  proj = proj * 0.5 + 0.5;
+  if (proj.x < 0.01 || proj.x > 0.99 || proj.y < 0.01 || proj.y > 0.99 || proj.z > 0.999) {
+    return 1.0;
+  }
+  float bias = max(0.0042 * (1.0 - ndotl), 0.0022);
+  float texel = 1.0 / 1024.0;
+  float sum = 0.0;
+  for (int x = -1; x <= 1; x++) {
+    for (int y = -1; y <= 1; y++) {
+      sum += texture(uShadowMap, vec3(proj.xy + vec2(float(x), float(y)) * texel, proj.z - bias));
+    }
+  }
+  return sum / 9.0;
+}
+
+void main() {
+  vec3 N = normalize(vNorm);
+  float distCam = length(uCamPos - vWorldPos);
+  float detailFade = 1.0 - smoothstep(18.0, 95.0, distCam);
+
+  // High-frequency regolith grain micro-perturbation (consistent frequency finite difference)
+  float g0 = vnoise(vWorldPos.xz * 3.8);
+  float gx = vnoise(vWorldPos.xz * 3.8 + vec2(0.08, 0.0));
+  float gz = vnoise(vWorldPos.xz * 3.8 + vec2(0.0, 0.08));
+  float g2 = vnoise(vWorldPos.xz * 9.5);
+  float micro = ((g0 * 0.65 + g2 * 0.35) - 0.5) * detailFade;
+  vec3 microN = normalize(N + vec3(
+    (g0 - gx) * 0.14 * detailFade,
+    0.0,
+    (g0 - gz) * 0.14 * detailFade
+  ));
+
+  vec3 V = normalize(uCamPos - vWorldPos);
+  vec3 L = normalize(uSunDir);
+
+  float mu0 = max(dot(microN, L), 0.0);
+  float mu = max(dot(microN, V), 0.05);
+  // Lommel-Seeliger lunar regolith photometric function + opposition surge
+  float lommel = (mu0 / max(mu0 + mu, 0.04)) * 1.45;
+  float phaseAngle = dot(L, V);
+  float surge = 1.0 + 0.22 * pow(max(phaseAngle, 0.0), 6.0);
+
+  float shadow = sampleShadowPCF(vShadowCoord, max(dot(N, L), 0.0));
+  vec3 sunColor = mix(vec3(1.18, 1.15, 1.10), vec3(1.15, 1.08, 0.95), uEnvAir);
+  vec3 albedo = vCol * (0.88 + micro * 0.24);
+
+  // Sharp vacuum shadow vs faint cool Earthshine fill
+  vec3 earthFill = mix(vec3(0.036, 0.058, 0.105), vec3(0.22, 0.30, 0.42), uEnvAir);
+  float earthWrap = 0.5 + 0.5 * dot(microN, normalize(uEarthDir));
+  vec3 ambient = albedo * earthFill * (0.45 + 0.55 * earthWrap);
+
+  // Bike LED headlamp spotlight cone
+  vec3 toFrag = vWorldPos - uHeadPos;
+  float headDist = length(toFrag);
+  vec3 headVec = toFrag / max(headDist, 0.001);
+  float cone = smoothstep(0.84, 0.965, dot(headVec, normalize(uHeadDir)));
+  float atten = 1.0 / (1.0 + 0.045 * headDist * headDist);
+  vec3 headLight = albedo * vec3(1.15, 1.08, 0.92) * cone * atten * max(dot(microN, -headVec), 0.0) * 1.8;
+
+  vec3 lit = ambient + albedo * sunColor * lommel * surge * shadow + headLight;
+
+  // Subtle horizon fade only near world edge (more atmospheric in Earth mode)
+  if (uEnvAir > 0.5) {
+    float fog = smoothstep(35.0, 220.0, distCam);
+    lit = mix(lit, vec3(0.46, 0.62, 0.85), fog * 0.72);
+  } else {
+    float edgeFade = smoothstep(175.0, 240.0, length(vWorldPos.xz));
+    lit *= (1.0 - edgeFade * 0.75);
+  }
+
+  // ACES-lite filmic tone curve + gamma
+  lit = lit / (lit + vec3(0.75));
+  lit = pow(clamp(lit, 0.0, 1.0), vec3(1.0 / 2.2));
+  fragColor = vec4(lit, 1.0);
+}`;
+
+const MESH_VS = `#version 300 es
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec3 aNorm;
+layout(location=2) in vec3 aCol;
+
+uniform mat4 uModel;
+uniform mat3 uNormalMat;
+uniform mat4 uViewProj;
+uniform mat4 uLightViewProj;
+
+out vec3 vWorldPos;
+out vec3 vNorm;
+out vec3 vCol;
+out vec4 vShadowCoord;
+
+void main() {
+  vec4 wp = uModel * vec4(aPos, 1.0);
+  vWorldPos = wp.xyz;
+  vNorm = normalize(uNormalMat * aNorm);
+  vCol = aCol;
+  vShadowCoord = uLightViewProj * wp;
+  gl_Position = uViewProj * wp;
+}`;
+
+const MESH_FS = `#version 300 es
+precision highp float;
+precision highp sampler2DShadow;
+
+in vec3 vWorldPos;
+in vec3 vNorm;
+in vec3 vCol;
+in vec4 vShadowCoord;
+
+uniform vec3 uCamPos;
+uniform vec3 uSunDir;
+uniform vec3 uEarthDir;
+uniform vec3 uTint;
+uniform vec3 uEmissive;
+uniform float uRoughness;
+uniform float uMetalness;
+uniform float uAlpha;
+uniform float uEnvAir;
+uniform sampler2DShadow uShadowMap;
+
+out vec4 fragColor;
+
+float sampleShadowPCF(vec4 sc) {
+  vec3 proj = sc.xyz / sc.w;
+  proj = proj * 0.5 + 0.5;
+  if (proj.x < 0.01 || proj.x > 0.99 || proj.y < 0.01 || proj.y > 0.99 || proj.z > 0.999) {
+    return 1.0;
+  }
+  float texel = 1.0 / 1024.0;
+  float sum = 0.0;
+  for (int x = -1; x <= 1; x++) {
+    for (int y = -1; y <= 1; y++) {
+      sum += texture(uShadowMap, vec3(proj.xy + vec2(float(x), float(y)) * texel, proj.z - 0.0018));
+    }
+  }
+  return sum / 9.0;
+}
+
+void main() {
+  vec3 N = normalize(vNorm);
+  vec3 V = normalize(uCamPos - vWorldPos);
+  vec3 L = normalize(uSunDir);
+  vec3 H = normalize(L + V);
+
+  vec3 baseCol = vCol * uTint;
+  float ndotl = max(dot(N, L), 0.0);
+  float shadow = sampleShadowPCF(vShadowCoord);
+
+  float specPower = mix(128.0, 10.0, uRoughness);
+  float spec = pow(max(dot(N, H), 0.0), specPower) * mix(0.28, 1.15, uMetalness);
+  vec3 specCol = mix(vec3(1.0), baseCol, uMetalness);
+
+  vec3 earthFill = mix(vec3(0.04, 0.07, 0.13), vec3(0.24, 0.34, 0.48), uEnvAir);
+  float earthWrap = 0.5 + 0.5 * dot(N, normalize(uEarthDir));
+  float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0) * 0.14;
+
+  vec3 sunCol = vec3(1.22, 1.18, 1.12);
+  vec3 lit = baseCol * earthFill * (0.5 + 0.5 * earthWrap)
+           + (baseCol * ndotl + specCol * spec) * sunCol * shadow
+           + earthFill * rim
+           + uEmissive;
+
+  lit = lit / (lit + vec3(0.75));
+  lit = pow(clamp(lit, 0.0, 1.0), vec3(1.0 / 2.2));
+  fragColor = vec4(lit, uAlpha);
+}`;
+
+const VISOR_FS = `#version 300 es
+precision highp float;
+
+in vec3 vWorldPos;
+in vec3 vNorm;
+in vec3 vCol;
+
+uniform vec3 uCamPos;
+uniform vec3 uSunDir;
+
+out vec4 fragColor;
+
+void main() {
+  vec3 N = normalize(vNorm);
+  vec3 V = normalize(uCamPos - vWorldPos);
+  vec3 L = normalize(uSunDir);
+  vec3 H = normalize(L + V);
+
+  float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.8);
+  float sunGlint = pow(max(dot(N, H), 0.0), 96.0);
+
+  vec3 glassCol = mix(vec3(0.60, 0.80, 0.98), vec3(1.0, 0.80, 0.36), fresnel);
+  vec3 col = glassCol * (0.28 + fresnel * 0.85) + vec3(1.4, 1.35, 1.2) * sunGlint;
+  float alpha = clamp(0.11 + fresnel * 0.44 + sunGlint * 0.55, 0.1, 0.82);
+
+  col = col / (col + vec3(0.8));
+  col = pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.2));
+  fragColor = vec4(col, alpha);
+}`;
+
+const EARTH_VS = `#version 300 es
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec3 aNorm;
+layout(location=3) in vec2 aUv;
+
+uniform mat4 uModel;
+uniform mat4 uViewProj;
+
+out vec3 vWorldPos;
+out vec3 vNorm;
+out vec2 vUv;
+
+void main() {
+  vec4 wp = uModel * vec4(aPos, 1.0);
+  vWorldPos = wp.xyz;
+  vNorm = normalize(mat3(uModel) * aNorm);
+  vUv = aUv;
+  gl_Position = uViewProj * wp;
+}`;
+
+const EARTH_FS = `#version 300 es
+precision highp float;
+
+in vec3 vWorldPos;
+in vec3 vNorm;
+in vec2 vUv;
+
+uniform vec3 uCamPos;
+uniform vec3 uSunDir;
+uniform sampler2D uEarthTex;
+
+out vec4 fragColor;
+
+void main() {
+  vec3 N = normalize(vNorm);
+  vec3 V = normalize(uCamPos - vWorldPos);
+  vec3 L = normalize(uSunDir);
+  vec3 texCol = texture(uEarthTex, vUv).rgb;
+
+  float ndotl = smoothstep(-0.08, 0.45, dot(N, L));
+  float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.2);
+  vec3 atmo = vec3(0.28, 0.62, 1.0) * fresnel * (0.25 + 0.9 * ndotl);
+
+  vec3 col = texCol * (0.04 + 1.15 * ndotl) + atmo;
+  col = pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.2));
+  fragColor = vec4(col, 1.0);
+}`;
+
+const STAR_VS = `#version 300 es
+layout(location=0) in vec3 aDir;
+layout(location=1) in vec3 aCol;
+layout(location=2) in float aSize;
+
+uniform mat4 uViewProj;
+uniform vec3 uCamPos;
+uniform float uEnvAir;
+
+out vec3 vCol;
+out float vAlpha;
+
+void main() {
+  vec4 pos = uViewProj * vec4(uCamPos + aDir * 350.0, 1.0);
+  gl_Position = vec4(pos.xy, pos.w * 0.9999, pos.w);
+  gl_PointSize = aSize;
+  vCol = aCol;
+  vAlpha = 1.0 - uEnvAir;
+}`;
+
+const STAR_FS = `#version 300 es
+precision mediump float;
+in vec3 vCol;
+in float vAlpha;
+out vec4 fragColor;
+void main() {
+  if (vAlpha <= 0.02) discard;
+  vec2 c = gl_PointCoord - 0.5;
+  float r2 = dot(c, c);
+  if (r2 > 0.25) discard;
+  float glow = smoothstep(0.25, 0.02, r2);
+  fragColor = vec4(vCol * glow, glow * vAlpha);
+}`;
+
+const DUST_VS = `#version 300 es
+layout(location=0) in vec3 aPos;
+layout(location=1) in float aAge;
+layout(location=2) in float aMaxAge;
+layout(location=3) in float aSize;
+
+uniform mat4 uViewProj;
+uniform float uViewportH;
+
+out float vLife;
+
+void main() {
+  if (aAge <= 0.0) {
+    gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+    gl_PointSize = 0.0;
+    vLife = 0.0;
+    return;
+  }
+  vec4 clip = uViewProj * vec4(aPos, 1.0);
+  gl_Position = clip;
+  float dist = max(clip.w, 0.5);
+  gl_PointSize = clamp((aSize * uViewportH) / dist * 1.15, 1.5, 14.0);
+  vLife = 1.0 - clamp(aAge / max(aMaxAge, 0.01), 0.0, 1.0);
+}`;
+
+const DUST_FS = `#version 300 es
+precision mediump float;
+in float vLife;
+out vec4 fragColor;
+void main() {
+  if (vLife <= 0.01) discard;
+  vec2 c = gl_PointCoord - 0.5;
+  if (dot(c, c) > 0.25) discard;
+  // Crisp sunlit regolith dust grains (not smoky cloud)
+  fragColor = vec4(0.68, 0.67, 0.65, 0.85 * vLife);
+}`;
+
+const TRACK_VS = `#version 300 es
+layout(location=0) in vec3 aPos;
+layout(location=1) in float aAlpha;
+uniform mat4 uViewProj;
+out float vAlpha;
+void main() {
+  vAlpha = aAlpha;
+  gl_Position = uViewProj * vec4(aPos, 1.0);
+}`;
+
+const TRACK_FS = `#version 300 es
+precision mediump float;
+in float vAlpha;
+out vec4 fragColor;
+void main() {
+  fragColor = vec4(0.14, 0.14, 0.15, vAlpha * 0.52);
+}`;
+
+class WebGLRenderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    const gl = canvas.getContext('webgl2', {
+      antialias: true,
+      alpha: false,
+      powerPreference: 'high-performance',
+      preserveDrawingBuffer: true,
+    });
+    if (!gl) {
+      throw new Error('WebGL2 is unavailable in this browser.');
+    }
+    this.gl = gl;
+    this.width = 1;
+    this.height = 1;
+    this.dpr = 1;
+    this.fps = 60;
+    this._fpsAccum = 0;
+    this._fpsFrames = 0;
+    this._lastFpsTime = performance.now();
+
+    this._initPrograms();
+    this._initShadowMap();
+    this._initMeshes();
+    this._initStars();
+    this._initDustBuffers();
+    this._initTrackBuffers();
+    this.earthTex = createEarthTexture(gl);
+    this.resize();
+  }
+
+  _initPrograms() {
+    const gl = this.gl;
+    this.shadowProg = createProgram(gl, SHADOW_VS, SHADOW_FS);
+    this.terrainProg = createProgram(gl, TERRAIN_VS, TERRAIN_FS);
+    this.meshProg = createProgram(gl, MESH_VS, MESH_FS);
+    this.visorProg = createProgram(gl, MESH_VS, VISOR_FS);
+    this.earthProg = createProgram(gl, EARTH_VS, EARTH_FS);
+    this.starProg = createProgram(gl, STAR_VS, STAR_FS);
+    this.dustProg = createProgram(gl, DUST_VS, DUST_FS);
+    this.trackProg = createProgram(gl, TRACK_VS, TRACK_FS);
+  }
+
+  _initShadowMap() {
+    const gl = this.gl;
+    this.shadowTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this.shadowTex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.DEPTH_COMPONENT24,
+      SHADOW_SIZE,
+      SHADOW_SIZE,
+      0,
+      gl.DEPTH_COMPONENT,
+      gl.UNSIGNED_INT,
+      null
+    );
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);
+
+    this.shadowFbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.shadowFbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.shadowTex, 0);
+    gl.drawBuffers([gl.NONE]);
+    gl.readBuffer(gl.NONE);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  _initMeshes() {
+    const gl = this.gl;
+    this.meshes = {
+      terrain: createMeshGPU(gl, buildTerrainMesh(172)),
+      bikeFrame: createMeshGPU(gl, buildBikeFrameMesh()),
+      bikeFork: createMeshGPU(gl, buildBikeForkMesh()),
+      bikeWheel: createMeshGPU(gl, buildBikeWheelMesh()),
+      bikeCrank: createMeshGPU(gl, buildBikeCrankMesh()),
+      pedal: createMeshGPU(gl, buildPedalMesh()),
+      pelicanTorso: createMeshGPU(gl, buildPelicanTorsoMesh()),
+      pelicanHead: createMeshGPU(gl, buildPelicanHeadMesh()),
+      pelicanPouch: createMeshGPU(gl, buildPelicanPouchMesh()),
+      pelicanHelmet: createMeshGPU(gl, buildPelicanHelmetMesh()),
+      pelicanWingL: createMeshGPU(gl, buildPelicanWingMesh(1)),
+      pelicanWingR: createMeshGPU(gl, buildPelicanWingMesh(-1)),
+      pelicanThigh: createMeshGPU(gl, buildPelicanThighMesh()),
+      pelicanShin: createMeshGPU(gl, buildPelicanShinMesh()),
+      pelicanFoot: createMeshGPU(gl, buildPelicanFootMesh()),
+      lander: createMeshGPU(gl, buildLanderMesh()),
+      flag: createMeshGPU(gl, buildFlagMesh()),
+      solar: createMeshGPU(gl, buildSolarArrayMesh()),
+      boulder: createMeshGPU(gl, buildBoulderMesh()),
+      beaconBase: createMeshGPU(gl, buildBeaconBaseMesh()),
+      beaconBeam: createMeshGPU(gl, buildBeaconBeamMesh()),
+      earth: createMeshGPU(gl, buildEarthMesh()),
+    };
+  }
+
+  _initStars() {
+    const gl = this.gl;
+    const count = 2000;
+    const rng = mulberry32(991177);
+    const dirs = new Float32Array(count * 3);
+    const cols = new Float32Array(count * 3);
+    const sizes = new Float32Array(count);
+
+    for (let i = 0; i < count; i++) {
+      const u = rng() * 2 - 1;
+      const theta = rng() * Math.PI * 2;
+      const rHoriz = Math.sqrt(Math.max(0, 1 - u * u));
+      dirs[i * 3] = rHoriz * Math.cos(theta);
+      dirs[i * 3 + 1] = Math.abs(u) * 0.92 + 0.04;
+      dirs[i * 3 + 2] = rHoriz * Math.sin(theta);
+
+      const tint = rng();
+      const bright = 0.45 + Math.pow(rng(), 2.2) * 0.65;
+      if (tint < 0.25) {
+        cols[i * 3] = 0.78 * bright;
+        cols[i * 3 + 1] = 0.88 * bright;
+        cols[i * 3 + 2] = 1.0 * bright;
+      } else if (tint < 0.45) {
+        cols[i * 3] = 1.0 * bright;
+        cols[i * 3 + 1] = 0.92 * bright;
+        cols[i * 3 + 2] = 0.78 * bright;
+      } else {
+        cols[i * 3] = bright;
+        cols[i * 3 + 1] = bright;
+        cols[i * 3 + 2] = bright;
+      }
+      sizes[i] = 1.8 + Math.pow(rng(), 2.6) * 3.4;
+    }
+
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+
+    const bDir = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, bDir);
+    gl.bufferData(gl.ARRAY_BUFFER, dirs, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+    const bCol = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, bCol);
+    gl.bufferData(gl.ARRAY_BUFFER, cols, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+
+    const bSize = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, bSize);
+    gl.bufferData(gl.ARRAY_BUFFER, sizes, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(2);
+    gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 0, 0);
+
+    gl.bindVertexArray(null);
+    this.starVao = vao;
+    this.starCount = count;
+  }
+
+  _initDustBuffers() {
+    const gl = this.gl;
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+
+    this.dustPosBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.dustPosBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, MAX_DUST * 3 * 4, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+    this.dustAgeBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.dustAgeBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, MAX_DUST * 4, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 0, 0);
+
+    this.dustMaxAgeBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.dustMaxAgeBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, MAX_DUST * 4, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(2);
+    gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 0, 0);
+
+    this.dustSizeBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.dustSizeBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, MAX_DUST * 4, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(3);
+    gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 0, 0);
+
+    gl.bindVertexArray(null);
+    this.dustVao = vao;
+  }
+
+  _initTrackBuffers() {
+    const gl = this.gl;
+    this.trackPosData = new Float32Array(MAX_TRACK_VERTS * 3);
+    this.trackAlphaData = new Float32Array(MAX_TRACK_VERTS);
+    this.trackCount = 0;
+    this.trackHead = 0;
+    this.lastTrackPos = null;
+
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+
+    this.trackPosBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.trackPosBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, this.trackPosData.byteLength, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+    this.trackAlphaBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.trackAlphaBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, this.trackAlphaData.byteLength, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 0, 0);
+
+    gl.bindVertexArray(null);
+    this.trackVao = vao;
+  }
+
+  clearTracks() {
+    this.trackCount = 0;
+    this.trackHead = 0;
+    this.lastTrackPos = null;
+  }
+
+  _recordTrackPoint(state) {
+    if (!state.grounded) {
+      this.lastTrackPos = null;
+      return;
+    }
+    const rearX = state.x - Math.sin(state.heading) * (BIKE_PARAMS.wheelbase * 0.5);
+    const rearZ = state.z - Math.cos(state.heading) * (BIKE_PARAMS.wheelbase * 0.5);
+    const rearY = getTerrainHeight(rearX, rearZ) + 0.022;
+
+    if (this.lastTrackPos) {
+      const dx = rearX - this.lastTrackPos[0];
+      const dz = rearZ - this.lastTrackPos[2];
+      if (dx * dx + dz * dz < 0.09) return;
+      const len = Math.hypot(dx, dz);
+      const sx = (-dz / len) * 0.055;
+      const sz = (dx / len) * 0.055;
+
+      const p0 = [this.lastTrackPos[0] + sx, this.lastTrackPos[1], this.lastTrackPos[2] + sz];
+      const p1 = [this.lastTrackPos[0] - sx, this.lastTrackPos[1], this.lastTrackPos[2] - sz];
+      const p2 = [rearX + sx, rearY, rearZ + sz];
+      const p3 = [rearX - sx, rearY, rearZ - sz];
+
+      const verts = [p0, p1, p2, p1, p3, p2];
+      for (let i = 0; i < 6; i++) {
+        const idx = this.trackHead;
+        this.trackHead = (idx + 1) % MAX_TRACK_VERTS;
+        this.trackPosData[idx * 3] = verts[i][0];
+        this.trackPosData[idx * 3 + 1] = verts[i][1];
+        this.trackPosData[idx * 3 + 2] = verts[i][2];
+        this.trackAlphaData[idx] = 0.85;
+        if (this.trackCount < MAX_TRACK_VERTS) this.trackCount++;
+      }
+    }
+    this.lastTrackPos = [rearX, rearY, rearZ];
+  }
+
+  resize() {
+    const rect = this.canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.round(rect.width * dpr));
+    const h = Math.max(1, Math.round(rect.height * dpr));
+    if (this.canvas.width !== w || this.canvas.height !== h) {
+      this.canvas.width = w;
+      this.canvas.height = h;
+    }
+    this.width = w;
+    this.height = h;
+    this.dpr = dpr;
+  }
+
+  getStats() {
+    return {
+      fps: Math.round(this.fps),
+      width: this.width,
+      height: this.height,
+      dpr: this.dpr,
+      webgl2: true,
+    };
+  }
+
+  _drawMesh(prog, mesh, modelMat, viewProj, lightVP, opts = {}) {
+    const gl = this.gl;
+    gl.useProgram(prog);
+    const uModel = gl.getUniformLocation(prog, 'uModel');
+    if (uModel) gl.uniformMatrix4fv(uModel, false, modelMat);
+    const uNorm = gl.getUniformLocation(prog, 'uNormalMat');
+    if (uNorm) gl.uniformMatrix3fv(uNorm, false, m4NormalMat3(modelMat));
+    const uVP = gl.getUniformLocation(prog, 'uViewProj');
+    if (uVP) gl.uniformMatrix4fv(uVP, false, viewProj);
+    const uLVP = gl.getUniformLocation(prog, 'uLightViewProj');
+    if (uLVP) gl.uniformMatrix4fv(uLVP, false, lightVP);
+
+    if (opts.tint) gl.uniform3fv(gl.getUniformLocation(prog, 'uTint'), opts.tint);
+    if (opts.emissive) gl.uniform3fv(gl.getUniformLocation(prog, 'uEmissive'), opts.emissive);
+    if (opts.roughness !== undefined) gl.uniform1f(gl.getUniformLocation(prog, 'uRoughness'), opts.roughness);
+    if (opts.metalness !== undefined) gl.uniform1f(gl.getUniformLocation(prog, 'uMetalness'), opts.metalness);
+    if (opts.alpha !== undefined) gl.uniform1f(gl.getUniformLocation(prog, 'uAlpha'), opts.alpha);
+
+    gl.bindVertexArray(mesh.vao);
+    gl.drawElements(gl.TRIANGLES, mesh.count, gl.UNSIGNED_INT, 0);
+  }
+
+  _drawShadowMesh(mesh, modelMat, lightVP) {
+    const gl = this.gl;
+    gl.useProgram(this.shadowProg);
+    const mvp = m4Mul(lightVP, modelMat);
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.shadowProg, 'uLightMVP'), false, mvp);
+    gl.bindVertexArray(mesh.vao);
+    gl.drawElements(gl.TRIANGLES, mesh.count, gl.UNSIGNED_INT, 0);
+  }
+
+  _computeRigMatrices(state) {
+    const suspAvg = 0.5 * (state.suspRear + state.suspFront);
+    const bikeY = state.y + BIKE_PARAMS.wheelRadius - suspAvg;
+
+    const bikeWorld = m4Mul(
+      m4Translate(state.x, bikeY, state.z),
+      m4Mul(
+        m4RotateY(state.heading),
+        m4Mul(m4RotateZ(state.roll), m4RotateX(-state.pitch))
+      )
+    );
+
+    const rearWheelMat = m4Mul(
+      bikeWorld,
+      m4Mul(m4Translate(0, 0, -0.59), m4RotateX(state.wheelRotRear))
+    );
+
+    const forkBase = m4Mul(
+      bikeWorld,
+      m4Mul(
+        m4Translate(0, 0.43, 0.39),
+        m4Mul(m4RotateX(-0.32), m4Mul(m4RotateY(state.steerAngle), m4RotateX(0.32)))
+      )
+    );
+
+    // Front wheel local position relative to forkBase is (0, -0.43, 0.20)
+    const frontWheelMat = m4Mul(
+      forkBase,
+      m4Mul(m4Translate(0, -0.43, 0.20), m4RotateX(state.wheelRotFront))
+    );
+
+    const crankMat = m4Mul(
+      bikeWorld,
+      m4Mul(m4Translate(0, -0.04, -0.14), m4RotateX(state.crankAngle))
+    );
+
+    // Pedals stay level in bike frame
+    const pedalPosL = [0.14, -0.04 - Math.sin(state.crankAngle) * 0.16, -0.14 + Math.cos(state.crankAngle) * 0.16];
+    const pedalPosR = [-0.14, -0.04 + Math.sin(state.crankAngle) * 0.16, -0.14 - Math.cos(state.crankAngle) * 0.16];
+    const pedalLMat = m4Mul(bikeWorld, m4Translate(pedalPosL[0], pedalPosL[1], pedalPosL[2]));
+    const pedalRMat = m4Mul(bikeWorld, m4Translate(pedalPosR[0], pedalPosR[1], pedalPosR[2]));
+
+    // Pelican torso crouch & subtle cadence sway
+    const crouchY = -state.crouchCharge * 0.08;
+    const cadenceRock = Math.sin(state.crankAngle) * 0.035 * state.pedalLoad;
+    const torsoLocal = m4Mul(
+      m4Translate(0, 0.64 + crouchY, -0.32),
+      m4RotateZ(cadenceRock)
+    );
+    const torsoMat = m4Mul(bikeWorld, torsoLocal);
+
+    // Head looks into turn slightly
+    const headLocal = m4Mul(
+      torsoLocal,
+      m4Mul(m4Translate(0, 0.51, 0.23), m4RotateY(state.steerAngle * 0.55))
+    );
+    const headMat = m4Mul(bikeWorld, headLocal);
+
+    // Gular pouch bounces/floats with feltG (pouchOffset)
+    const pouchMat = m4Mul(
+      headMat,
+      m4Mul(m4Translate(0, 0.065 + state.pouchOffset * 0.45, 0.095), m4RotateX(-state.pouchOffset * 2.5))
+    );
+
+    // Helmet encloses head & beak
+    const helmetMat = headMat;
+
+    // 2-bone IK for left & right legs
+    const buildLegMats = (side, pedalPos) => {
+      const hipX = side * 0.11;
+      const hipY = 0.63 + crouchY;
+      const hipZ = -0.29;
+      const ik = solveTwoBoneIK2D(hipZ, hipY, pedalPos[2], pedalPos[1], 0.46, 0.46, 1);
+
+      // Thigh built along +Z: map +Z to (0, sin(thighAngle), cos(thighAngle))
+      // Since m4RotateX(rad) maps +Z to (0, -sin(rad), cos(rad)), use rad = -thighAngle!
+      const thighLocal = m4Mul(m4Translate(hipX, hipY, hipZ), m4RotateX(-ik.thighAngle));
+      const shinLocal = m4Mul(m4Translate(hipX, ik.kneeY, ik.kneeZ), m4RotateX(-ik.shinAngle));
+      const footLocal = m4Translate(pedalPos[0], pedalPos[1] + 0.015, pedalPos[2]);
+      return {
+        thigh: m4Mul(bikeWorld, thighLocal),
+        shin: m4Mul(bikeWorld, shinLocal),
+        foot: m4Mul(bikeWorld, footLocal),
+      };
+    };
+    const legL = buildLegMats(1, pedalPosL);
+    const legR = buildLegMats(-1, pedalPosR);
+
+    // Wings: reach handlebar grips when grounded, spread & flap dramatically in air
+    const buildWingMat = (side) => {
+      const shoulder = [side * 0.16, 0.64 + crouchY + 0.40, -0.32 + 0.19];
+      let target;
+      if (state.grounded) {
+        const gripInFork = [side * 0.26, 0.17, -0.05];
+        const forkToBike = m4Mul(
+          m4Translate(0, 0.43, 0.39),
+          m4Mul(m4RotateX(-0.32), m4Mul(m4RotateY(state.steerAngle), m4RotateX(0.32)))
+        );
+        target = m4TransformPoint(forkToBike, gripInFork);
+      } else {
+        const flapY = Math.sin(state.wingFlapPhase + (side > 0 ? 0 : 0.12)) * (0.28 * state.wingFlapBoost + 0.08);
+        target = [side * 0.64, shoulder[1] + 0.12 + flapY, shoulder[2] + 0.12];
+      }
+      const dx = target[0] - shoulder[0];
+      const dy = target[1] - shoulder[1];
+      const dz = target[2] - shoulder[2];
+      const horiz = Math.hypot(dx, dz);
+      const yaw = Math.atan2(dx, dz);
+      const pitch = -Math.atan2(dy, horiz);
+      const dist = Math.hypot(dx, dy, dz);
+      const stretch = clamp(dist / 0.64, 0.78, 1.15);
+      const wingLocal = m4Mul(
+        m4Translate(shoulder[0], shoulder[1], shoulder[2]),
+        m4Mul(m4RotateY(yaw), m4Mul(m4RotateX(pitch), m4Scale(1, 1, stretch)))
+      );
+      return m4Mul(bikeWorld, wingLocal);
+    };
+
+    const wingLMat = buildWingMat(1);
+    const wingRMat = buildWingMat(-1);
+
+    const headWorldPos = m4TransformPoint(forkBase, [0, 0.13, 0.10]);
+    const headTipPos = m4TransformPoint(forkBase, [0, 0.09, 1.10]);
+    const headWorldDir = v3Norm(v3Sub(headTipPos, headWorldPos));
+
+    return {
+      bikeWorld,
+      rearWheelMat,
+      forkBase,
+      frontWheelMat,
+      crankMat,
+      pedalLMat,
+      pedalRMat,
+      torsoMat,
+      headMat,
+      pouchMat,
+      helmetMat,
+      legL,
+      legR,
+      wingLMat,
+      wingRMat,
+      headWorldPos,
+      headWorldDir,
+    };
+  }
+
+  _drawRig(rig, viewProj, lightVP, shadowOnly = false) {
+    const draw = (mesh, mat, opts) => {
+      if (shadowOnly) {
+        this._drawShadowMesh(mesh, mat, lightVP);
+      } else {
+        this._drawMesh(this.meshProg, mesh, mat, viewProj, lightVP, opts);
+      }
+    };
+
+    const matte = { tint: [1, 1, 1], emissive: [0, 0, 0], roughness: 0.72, metalness: 0.05, alpha: 1 };
+    const metal = { tint: [1, 1, 1], emissive: [0, 0, 0], roughness: 0.28, metalness: 0.75, alpha: 1 };
+    const tire = { tint: [1, 1, 1], emissive: [0, 0, 0], roughness: 0.85, metalness: 0.05, alpha: 1 };
+
+    draw(this.meshes.bikeFrame, rig.bikeWorld, metal);
+    draw(this.meshes.bikeFork, rig.forkBase, metal);
+    draw(this.meshes.bikeWheel, rig.rearWheelMat, tire);
+    draw(this.meshes.bikeWheel, rig.frontWheelMat, tire);
+    draw(this.meshes.bikeCrank, rig.crankMat, metal);
+    draw(this.meshes.pedal, rig.pedalLMat, matte);
+    draw(this.meshes.pedal, rig.pedalRMat, matte);
+
+    draw(this.meshes.pelicanTorso, rig.torsoMat, matte);
+    draw(this.meshes.pelicanHead, rig.headMat, matte);
+    draw(this.meshes.pelicanPouch, rig.pouchMat, matte);
+    draw(this.meshes.pelicanWingL, rig.wingLMat, matte);
+    draw(this.meshes.pelicanWingR, rig.wingRMat, matte);
+    draw(this.meshes.pelicanThigh, rig.legL.thigh, matte);
+    draw(this.meshes.pelicanShin, rig.legL.shin, matte);
+    draw(this.meshes.pelicanFoot, rig.legL.foot, matte);
+    draw(this.meshes.pelicanThigh, rig.legR.thigh, matte);
+    draw(this.meshes.pelicanShin, rig.legR.shin, matte);
+    draw(this.meshes.pelicanFoot, rig.legR.foot, matte);
+  }
+
+  _drawWorldProps(state, time, viewProj, lightVP, shadowOnly = false) {
+    const draw = (mesh, mat, opts) => {
+      if (shadowOnly) {
+        this._drawShadowMesh(mesh, mat, lightVP);
+      } else {
+        this._drawMesh(this.meshProg, mesh, mat, viewProj, lightVP, opts);
+      }
+    };
+
+    // Base Camp props
+    const landerH = getTerrainHeight(BASE_PROPS.lander.x, BASE_PROPS.lander.z);
+    const landerMat = m4Mul(
+      m4Translate(BASE_PROPS.lander.x, landerH - 0.03, BASE_PROPS.lander.z),
+      m4RotateY(BASE_PROPS.lander.rotY)
+    );
+    draw(this.meshes.lander, landerMat, { tint: [1, 1, 1], emissive: [0, 0, 0], roughness: 0.35, metalness: 0.72, alpha: 1 });
+
+    const flagH = getTerrainHeight(BASE_PROPS.flag.x, BASE_PROPS.flag.z);
+    const flagMat = m4Mul(
+      m4Translate(BASE_PROPS.flag.x, flagH - 0.02, BASE_PROPS.flag.z),
+      m4RotateY(BASE_PROPS.flag.rotY)
+    );
+    draw(this.meshes.flag, flagMat, { tint: [1, 1, 1], emissive: [0, 0, 0], roughness: 0.55, metalness: 0.25, alpha: 1 });
+
+    const solarH = getTerrainHeight(BASE_PROPS.solar.x, BASE_PROPS.solar.z);
+    const solarMat = m4Mul(
+      m4Translate(BASE_PROPS.solar.x, solarH - 0.02, BASE_PROPS.solar.z),
+      m4RotateY(BASE_PROPS.solar.rotY)
+    );
+    draw(this.meshes.solar, solarMat, { tint: [1, 1, 1], emissive: [0, 0, 0], roughness: 0.25, metalness: 0.65, alpha: 1 });
+
+    // Boulders
+    for (let i = 0; i < BOULDERS.length; i++) {
+      const b = BOULDERS[i];
+      if (shadowOnly && Math.hypot(b.x - state.x, b.z - state.z) > 34) continue;
+      const bh = getTerrainHeight(b.x, b.z);
+      const bMat = m4Mul(
+        m4Translate(b.x, bh + b.radius * b.scaleY * 0.45, b.z),
+        m4Mul(m4RotateY(b.rotY), m4Mul(m4RotateX(b.rotX), m4Scale(b.radius, b.radius * b.scaleY, b.radius)))
+      );
+      draw(this.meshes.boulder, bMat, { tint: [b.tint, b.tint, b.tint], emissive: [0, 0, 0], roughness: 0.92, metalness: 0.02, alpha: 1 });
+    }
+
+    // Beacons
+    for (let i = 0; i < BEACONS.length; i++) {
+      const bc = BEACONS[i];
+      const found = state.beaconsCollected.indexOf(bc.id) !== -1;
+      const bh = getTerrainHeight(bc.x, bc.z);
+      const mat = m4Mul(m4Translate(bc.x, bh, bc.z), m4RotateY(time * 0.6 + i));
+      draw(this.meshes.beaconBase, mat, {
+        tint: [1, 1, 1],
+        emissive: found ? [0.12, 0.45, 0.22] : [0.08, 0.35, 0.55],
+        roughness: 0.32,
+        metalness: 0.65,
+        alpha: 1,
+      });
+    }
+  }
+
+  render(state, camEye, camTarget, time) {
+    const gl = this.gl;
+    this.resize();
+    this._recordTrackPoint(state);
+
+    // FPS tracking
+    const now = performance.now();
+    this._fpsFrames++;
+    this._fpsAccum += now - this._lastFpsTime;
+    this._lastFpsTime = now;
+    if (this._fpsAccum >= 400) {
+      this.fps = (this._fpsFrames * 1000) / this._fpsAccum;
+      this._fpsFrames = 0;
+      this._fpsAccum = 0;
+    }
+
+    const isEarth = state.envId === 'earth';
+    const envAir = isEarth ? 1.0 : 0.0;
+
+    // Snap shadow frustum center to texel grid around bike to eliminate shadow crawl
+    const shadowHalf = 26.0;
+    const texelSize = (shadowHalf * 2) / SHADOW_SIZE;
+    const snapX = Math.round(state.x / texelSize) * texelSize;
+    const snapY = Math.round(state.y / texelSize) * texelSize;
+    const snapZ = Math.round(state.z / texelSize) * texelSize;
+    const shadowFocus = [snapX, snapY, snapZ];
+    const lightEye = v3Add(shadowFocus, v3Scale(SUN_DIR, 42));
+    const lightView = m4LookAt(lightEye, shadowFocus, [0, 1, 0]);
+    const lightProj = m4Ortho(-shadowHalf, shadowHalf, -shadowHalf, shadowHalf, 4.0, 96.0);
+    const lightVP = m4Mul(lightProj, lightView);
+
+    const rig = this._computeRigMatrices(state);
+
+    // 1. Shadow Pass (polygonOffset eliminates shadow-map surface acne)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.shadowFbo);
+    gl.viewport(0, 0, SHADOW_SIZE, SHADOW_SIZE);
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
+    gl.enable(gl.POLYGON_OFFSET_FILL);
+    gl.polygonOffset(2.5, 4.0);
+    gl.clearDepth(1.0);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+
+    this._drawShadowMesh(this.meshes.terrain, m4Identity(), lightVP);
+    this._drawRig(rig, lightVP, lightVP, true);
+    this._drawWorldProps(state, time, lightVP, lightVP, true);
+    gl.disable(gl.POLYGON_OFFSET_FILL);
+
+    // 2. Main Render Pass
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, this.width, this.height);
+    if (isEarth) {
+      gl.clearColor(0.32, 0.50, 0.78, 1.0);
+    } else {
+      gl.clearColor(0.008, 0.012, 0.028, 1.0);
+    }
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    const aspect = this.width / Math.max(1, this.height);
+    const fov = aspect < 0.85 ? (56 * Math.PI) / 180 : (48 * Math.PI) / 180;
+    const proj = m4Perspective(fov, aspect, 0.15, 900);
+    const view = m4LookAt(camEye, camTarget, [0, 1, 0]);
+    const viewProj = m4Mul(proj, view);
+
+    // 2a. Stars (drawn at far depth in vacuum)
+    gl.disable(gl.CULL_FACE);
+    gl.depthMask(false);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    gl.useProgram(this.starProg);
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.starProg, 'uViewProj'), false, viewProj);
+    gl.uniform3fv(gl.getUniformLocation(this.starProg, 'uCamPos'), camEye);
+    gl.uniform1f(gl.getUniformLocation(this.starProg, 'uEnvAir'), envAir);
+    gl.bindVertexArray(this.starVao);
+    gl.drawArrays(gl.POINTS, 0, this.starCount);
+    gl.disable(gl.BLEND);
+    gl.depthMask(true);
+
+    // 2b. Distant Earth hanging in lunar sky (positioned relative to camera so zero parallax clipping)
+    const earthPos = v3Add(camEye, v3Scale(EARTH_DIR, 420));
+    const earthMat = m4Mul(
+      m4Translate(earthPos[0], earthPos[1], earthPos[2]),
+      m4Mul(m4RotateY(time * 0.018 + 1.2), m4Scale(16, 16, 16))
+    );
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
+    gl.useProgram(this.earthProg);
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.earthProg, 'uModel'), false, earthMat);
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.earthProg, 'uViewProj'), false, viewProj);
+    gl.uniform3fv(gl.getUniformLocation(this.earthProg, 'uCamPos'), camEye);
+    gl.uniform3fv(gl.getUniformLocation(this.earthProg, 'uSunDir'), SUN_DIR);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.earthTex);
+    gl.uniform1i(gl.getUniformLocation(this.earthProg, 'uEarthTex'), 0);
+    gl.bindVertexArray(this.meshes.earth.vao);
+    gl.drawElements(gl.TRIANGLES, this.meshes.earth.count, gl.UNSIGNED_INT, 0);
+
+    // Clear depth after sky backdrop so Earth & stars never occlude terrain!
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+
+    // Bind shadow map on texture unit 1
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.shadowTex);
+
+    // 2c. Lunar Terrain
+    gl.useProgram(this.terrainProg);
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.terrainProg, 'uViewProj'), false, viewProj);
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.terrainProg, 'uLightViewProj'), false, lightVP);
+    gl.uniform3fv(gl.getUniformLocation(this.terrainProg, 'uCamPos'), camEye);
+    gl.uniform3fv(gl.getUniformLocation(this.terrainProg, 'uSunDir'), SUN_DIR);
+    gl.uniform3fv(gl.getUniformLocation(this.terrainProg, 'uEarthDir'), EARTH_DIR);
+    gl.uniform3fv(gl.getUniformLocation(this.terrainProg, 'uHeadPos'), rig.headWorldPos);
+    gl.uniform3fv(gl.getUniformLocation(this.terrainProg, 'uHeadDir'), rig.headWorldDir);
+    gl.uniform1f(gl.getUniformLocation(this.terrainProg, 'uEnvAir'), envAir);
+    gl.uniform1i(gl.getUniformLocation(this.terrainProg, 'uShadowMap'), 1);
+    gl.bindVertexArray(this.meshes.terrain.vao);
+    gl.drawElements(gl.TRIANGLES, this.meshes.terrain.count, gl.UNSIGNED_INT, 0);
+
+    // 2d. Tire tracks on regolith
+    if (this.trackCount > 0) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthMask(false);
+      gl.disable(gl.CULL_FACE);
+      gl.useProgram(this.trackProg);
+      gl.uniformMatrix4fv(gl.getUniformLocation(this.trackProg, 'uViewProj'), false, viewProj);
+      gl.bindVertexArray(this.trackVao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.trackPosBuf);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.trackPosData.subarray(0, this.trackCount * 3));
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.trackAlphaBuf);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.trackAlphaData.subarray(0, this.trackCount));
+      gl.drawArrays(gl.TRIANGLES, 0, this.trackCount);
+      gl.depthMask(true);
+      gl.disable(gl.BLEND);
+      gl.enable(gl.CULL_FACE);
+    }
+
+    // 2e. Common uniforms on MeshProg
+    gl.useProgram(this.meshProg);
+    gl.uniform3fv(gl.getUniformLocation(this.meshProg, 'uCamPos'), camEye);
+    gl.uniform3fv(gl.getUniformLocation(this.meshProg, 'uSunDir'), SUN_DIR);
+    gl.uniform3fv(gl.getUniformLocation(this.meshProg, 'uEarthDir'), EARTH_DIR);
+    gl.uniform1f(gl.getUniformLocation(this.meshProg, 'uEnvAir'), envAir);
+    gl.uniform1i(gl.getUniformLocation(this.meshProg, 'uShadowMap'), 1);
+
+    // 2f. World props + Bike + Pelican
+    this._drawWorldProps(state, time, viewProj, lightVP, false);
+    this._drawRig(rig, viewProj, lightVP, false);
+
+    // 2g. Translucent pass: Beacon plasma beams + Pelican glass helmet visor
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.depthMask(false);
+
+    // Beacon energy beams
+    for (let i = 0; i < BEACONS.length; i++) {
+      const bc = BEACONS[i];
+      const found = state.beaconsCollected.indexOf(bc.id) !== -1;
+      const bh = getTerrainHeight(bc.x, bc.z);
+      const pulse = 0.85 + 0.15 * Math.sin(time * 3.0 + i);
+      const mat = m4Mul(m4Translate(bc.x, bh, bc.z), m4Scale(pulse, 1, pulse));
+      this._drawMesh(this.meshProg, this.meshes.beaconBeam, mat, viewProj, lightVP, {
+        tint: found ? [0.22, 0.96, 0.56] : [0.22, 0.82, 1.0],
+        emissive: found ? [0.18, 0.72, 0.40] : [0.16, 0.62, 0.92],
+        roughness: 0.4,
+        metalness: 0,
+        alpha: found ? 0.16 : 0.34,
+      });
+    }
+
+    // Pelican Glass Space Helmet Dome (renders over the head & beak cleanly)
+    gl.useProgram(this.visorProg);
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.visorProg, 'uModel'), false, rig.helmetMat);
+    gl.uniformMatrix3fv(gl.getUniformLocation(this.visorProg, 'uNormalMat'), false, m4NormalMat3(rig.helmetMat));
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.visorProg, 'uViewProj'), false, viewProj);
+    gl.uniform3fv(gl.getUniformLocation(this.visorProg, 'uCamPos'), camEye);
+    gl.uniform3fv(gl.getUniformLocation(this.visorProg, 'uSunDir'), SUN_DIR);
+    gl.bindVertexArray(this.meshes.pelicanHelmet.vao);
+    gl.drawElements(gl.TRIANGLES, this.meshes.pelicanHelmet.count, gl.UNSIGNED_INT, 0);
+
+    // 2h. Ballistic lunar dust particles
+    gl.useProgram(this.dustProg);
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.dustProg, 'uViewProj'), false, viewProj);
+    gl.uniform1f(gl.getUniformLocation(this.dustProg, 'uViewportH'), this.height);
+    gl.bindVertexArray(this.dustVao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.dustPosBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, state.dustPos);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.dustAgeBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, state.dustAge);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.dustMaxAgeBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, state.dustMaxAge);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.dustSizeBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, state.dustSize);
+    gl.drawArrays(gl.POINTS, 0, MAX_DUST);
+
+    gl.depthMask(true);
+    gl.disable(gl.BLEND);
+  }
+}
+
+// --- audio.js ---
+// Zero-dependency procedural WebAudio "inside-helmet" sound synthesizer.
+// Simulates structure-borne wheel/regolith vibrations through frame & suit,
+// dropping cleanly to eerie vacuum silence when airborne!
+
+class HelmetAudio {
+  constructor() {
+    this.ctx = null;
+    this.muted = false;
+    this.master = null;
+    this.rollGain = null;
+    this.rollFilter = null;
+    this.slipGain = null;
+    this.slipFilter = null;
+    this.lastCrankTick = 0;
+  }
+
+  unlock() {
+    if (this.muted) return;
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = 0.24;
+      this.master.connect(this.ctx.destination);
+
+      // Noise buffer for regolith tire texture
+      const len = this.ctx.sampleRate * 2;
+      const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+
+      const rollSrc = this.ctx.createBufferSource();
+      rollSrc.buffer = buf;
+      rollSrc.loop = true;
+      this.rollFilter = this.ctx.createBiquadFilter();
+      this.rollFilter.type = 'lowpass';
+      this.rollFilter.frequency.value = 140;
+      this.rollGain = this.ctx.createGain();
+      this.rollGain.gain.value = 0;
+      rollSrc.connect(this.rollFilter);
+      this.rollFilter.connect(this.rollGain);
+      this.rollGain.connect(this.master);
+      rollSrc.start();
+
+      const slipSrc = this.ctx.createBufferSource();
+      slipSrc.buffer = buf;
+      slipSrc.loop = true;
+      this.slipFilter = this.ctx.createBiquadFilter();
+      this.slipFilter.type = 'bandpass';
+      this.slipFilter.frequency.value = 420;
+      this.slipFilter.Q.value = 1.6;
+      this.slipGain = this.ctx.createGain();
+      this.slipGain.gain.value = 0;
+      slipSrc.connect(this.slipFilter);
+      this.slipFilter.connect(this.slipGain);
+      this.slipGain.connect(this.master);
+      slipSrc.start();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+  }
+
+  setMuted(flag) {
+    this.muted = Boolean(flag);
+    if (this.master && this.ctx) {
+      this.master.gain.setTargetAtTime(this.muted ? 0 : 0.24, this.ctx.currentTime, 0.03);
+    }
+  }
+
+  isMuted() {
+    return this.muted;
+  }
+
+  _playTone(freq, dur, type = 'sine', gainPeak = 0.14, endFreq = freq) {
+    if (this.muted || !this.ctx || this.ctx.state !== 'running') return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    if (endFreq !== freq) {
+      osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + dur);
+    }
+    g.gain.setValueAtTime(0.001, now);
+    g.gain.linearRampToValueAtTime(gainPeak, now + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0005, now + dur);
+    osc.connect(g);
+    g.connect(this.master);
+    osc.start(now);
+    osc.stop(now + dur + 0.02);
+  }
+
+  playJump() {
+    this._playTone(135, 0.16, 'triangle', 0.15, 290);
+  }
+
+  playLand(impactSpeed) {
+    const strength = Math.min(1, impactSpeed / 5);
+    this._playTone(95, 0.18, 'sine', 0.12 + strength * 0.18, 38);
+  }
+
+  playBeacon() {
+    if (this.muted || !this.ctx || this.ctx.state !== 'running') return;
+    this._playTone(587.33, 0.18, 'sine', 0.14);
+    setTimeout(() => this._playTone(880, 0.28, 'sine', 0.14), 90);
+    setTimeout(() => this._playTone(1174.66, 0.36, 'triangle', 0.11), 190);
+  }
+
+  playSwitch() {
+    this._playTone(520, 0.09, 'triangle', 0.10, 680);
+  }
+
+  update(state) {
+    if (!this.ctx || this.muted || this.ctx.state !== 'running') return;
+    const now = this.ctx.currentTime;
+
+    if (state.grounded) {
+      const spd = Math.min(1, state.speed / 12);
+      const rollLevel = spd * 0.22;
+      this.rollGain.gain.setTargetAtTime(rollLevel, now, 0.04);
+      this.rollFilter.frequency.setTargetAtTime(95 + spd * 240, now, 0.05);
+
+      const slipLevel = state.slipRatio > 0.14 ? Math.min(0.28, state.slipRatio * 0.36) : 0;
+      this.slipGain.gain.setTargetAtTime(slipLevel, now, 0.04);
+    } else {
+      // Pure vacuum silence when airborne!
+      this.rollGain.gain.setTargetAtTime(0, now, 0.03);
+      this.slipGain.gain.setTargetAtTime(0, now, 0.03);
+    }
+
+    // Subtle helmet-conduction freewheel tick while cranking
+    const crankPhase = Math.floor(state.crankAngle / (Math.PI * 0.5));
+    if (crankPhase !== this.lastCrankTick && state.pedalLoad > 0.1) {
+      this.lastCrankTick = crankPhase;
+      this._playTone(210 + state.pedalLoad * 70, 0.025, 'triangle', 0.025, 140);
+    }
+  }
+}
+
+// --- ui.js ---
+class UIController {
+  constructor(callbacks) {
+    this.callbacks = callbacks;
+    this.keys = new Set();
+    this.touchState = {
+      left: false,
+      right: false,
+      pedal: false,
+      brake: false,
+      sprint: false,
+      steerAnalog: 0,
+      jumpQueued: false,
+      jumpHeld: false,
+    };
+    this.manualInputOverride = null;
+    this.orbitPointers = new Map();
+    this.lastPinchDist = null;
+    this.orbitYawDelta = 0;
+    this.orbitPitchDelta = 0;
+    this.orbitZoomDelta = 0;
+    this.touchMode = 'auto';
+    this.toastTimer = 0;
+    this.lastDomUpdate = 0;
+    this.hasMoved = false;
+
+    this.$ = {
+      canvas: document.getElementById('gl-canvas'),
+      btnEnvPill: document.getElementById('btn-env-pill'),
+      envLabel: document.getElementById('env-label'),
+      beaconCount: document.getElementById('beacon-count'),
+      btnCam: document.getElementById('btn-cam'),
+      btnAuto: document.getElementById('btn-auto'),
+      btnLab: document.getElementById('btn-lab'),
+      btnReset: document.getElementById('btn-reset'),
+      btnMute: document.getElementById('btn-mute'),
+      toast: document.getElementById('toast'),
+      toastTag: document.getElementById('toast-tag'),
+      toastTitle: document.getElementById('toast-title'),
+      toastBody: document.getElementById('toast-body'),
+      labDrawer: document.getElementById('lab-drawer'),
+      btnLabClose: document.getElementById('btn-lab-close'),
+      envMoon: document.getElementById('env-moon'),
+      envEarth: document.getElementById('env-earth'),
+      labG: document.getElementById('lab-g'),
+      labRho: document.getElementById('lab-rho'),
+      labN: document.getElementById('lab-n'),
+      labTrac: document.getElementById('lab-trac'),
+      labDrag: document.getElementById('lab-drag'),
+      labSlope: document.getElementById('lab-slope'),
+      labBestH: document.getElementById('lab-best-h'),
+      labBestT: document.getElementById('lab-best-t'),
+      btnTouchMode: document.getElementById('btn-touch-mode'),
+      telSpeed: document.getElementById('tel-speed'),
+      telAlt: document.getElementById('tel-alt'),
+      telG: document.getElementById('tel-g'),
+      telSlip: document.getElementById('tel-slip'),
+      telSlipBox: document.getElementById('tel-slip-box'),
+      telLean: document.getElementById('tel-lean'),
+      desktopHint: document.getElementById('desktop-hint'),
+      touchControls: document.getElementById('touch-controls'),
+      steerPad: document.getElementById('steer-pad'),
+      steerThumb: document.getElementById('steer-thumb'),
+      btnLeft: document.getElementById('btn-left'),
+      btnRight: document.getElementById('btn-right'),
+      btnHop: document.getElementById('btn-hop'),
+      btnSprint: document.getElementById('btn-sprint'),
+      btnBrake: document.getElementById('btn-brake'),
+      btnPedal: document.getElementById('btn-pedal'),
+    };
+
+    this._bindKeyboard();
+    this._bindButtons();
+    this._bindTouchControls();
+    this._bindCanvasOrbit();
+  }
+
+  _bindKeyboard() {
+    window.addEventListener('keydown', (e) => {
+      this.callbacks.onInteract?.();
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (!e.repeat) {
+          this.touchState.jumpQueued = true;
+        }
+      }
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+        e.preventDefault();
+      }
+      if (!e.repeat) {
+        if (e.code === 'KeyC') this.callbacks.onCycleCamera?.();
+        if (e.code === 'KeyG') this.callbacks.onToggleEnv?.();
+        if (e.code === 'KeyR') this.callbacks.onReset?.();
+        if (e.code === 'KeyP') this.callbacks.onToggleAuto?.();
+        if (e.code === 'KeyM') this.callbacks.onToggleMute?.();
+      }
+      this.keys.add(e.code);
+    });
+
+    window.addEventListener('keyup', (e) => {
+      this.keys.delete(e.code);
+    });
+
+    window.addEventListener('blur', () => {
+      this.keys.clear();
+    });
+  }
+
+  _bindButtons() {
+    const unlock = () => this.callbacks.onInteract?.();
+
+    this.$.btnEnvPill.addEventListener('click', () => {
+      unlock();
+      this.callbacks.onToggleEnv?.();
+    });
+    this.$.btnCam.addEventListener('click', () => {
+      unlock();
+      this.callbacks.onCycleCamera?.();
+    });
+    this.$.btnAuto.addEventListener('click', () => {
+      unlock();
+      this.callbacks.onToggleAuto?.();
+    });
+    this.$.btnLab.addEventListener('click', () => {
+      unlock();
+      this.toggleLabDrawer();
+    });
+    this.$.btnLabClose.addEventListener('click', () => {
+      this.toggleLabDrawer(false);
+    });
+    this.$.btnReset.addEventListener('click', () => {
+      unlock();
+      this.callbacks.onReset?.();
+    });
+    this.$.btnMute.addEventListener('click', () => {
+      unlock();
+      this.callbacks.onToggleMute?.();
+    });
+
+    this.$.envMoon.addEventListener('click', () => {
+      unlock();
+      this.callbacks.onSetEnv?.('moon');
+    });
+    this.$.envEarth.addEventListener('click', () => {
+      unlock();
+      this.callbacks.onSetEnv?.('earth');
+    });
+    this.$.btnTouchMode.addEventListener('click', () => {
+      if (this.touchMode === 'auto') this.touchMode = 'on';
+      else if (this.touchMode === 'on') this.touchMode = 'off';
+      else this.touchMode = 'auto';
+      this._applyTouchVisibility();
+    });
+  }
+
+  _applyTouchVisibility() {
+    const tc = this.$.touchControls;
+    tc.classList.remove('force-on', 'force-off');
+    if (this.touchMode === 'on') {
+      tc.classList.add('force-on');
+      this.$.btnTouchMode.textContent = '开启';
+    } else if (this.touchMode === 'off') {
+      tc.classList.add('force-off');
+      this.$.btnTouchMode.textContent = '关闭';
+    } else {
+      this.$.btnTouchMode.textContent = '自动';
+    }
+  }
+
+  _bindTouchControls() {
+    const bindHoldBtn = (el, key, onDown) => {
+      const activeIds = new Set();
+      const setState = (down) => {
+        this.touchState[key] = down;
+        el.classList.toggle('pressed', down);
+      };
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.callbacks.onInteract?.();
+        activeIds.add(e.pointerId);
+        try {
+          el.setPointerCapture(e.pointerId);
+        } catch (_) {}
+        setState(true);
+        onDown?.();
+      });
+      const release = (e) => {
+        activeIds.delete(e.pointerId);
+        if (activeIds.size === 0) setState(false);
+      };
+      el.addEventListener('pointerup', release);
+      el.addEventListener('pointercancel', release);
+      el.addEventListener('lostpointercapture', release);
+    };
+
+    bindHoldBtn(this.$.btnLeft, 'left');
+    bindHoldBtn(this.$.btnRight, 'right');
+    bindHoldBtn(this.$.btnPedal, 'pedal');
+    bindHoldBtn(this.$.btnBrake, 'brake');
+    bindHoldBtn(this.$.btnSprint, 'sprint');
+    bindHoldBtn(this.$.btnHop, 'jumpHeld', () => {
+      this.touchState.jumpQueued = true;
+    });
+
+    // Slide horizontal thumb across steer pad indicator for analog steering
+    const pad = this.$.steerPad;
+    let slideId = null;
+    const updateAnalog = (clientX) => {
+      const rect = pad.getBoundingClientRect();
+      const cx = rect.left + rect.width * 0.5;
+      const norm = clamp((clientX - cx) / (rect.width * 0.42), -1, 1);
+      // Note: screen left (-1) = turn left (+1 steer), screen right (+1) = turn right (-1 steer)
+      this.touchState.steerAnalog = -norm;
+      this.$.steerThumb.style.left = `${50 + norm * 38}%`;
+    };
+    pad.addEventListener('pointerdown', (e) => {
+      if (e.target === this.$.btnLeft || e.target === this.$.btnRight) return;
+      e.preventDefault();
+      e.stopPropagation();
+      this.callbacks.onInteract?.();
+      slideId = e.pointerId;
+      try {
+        pad.setPointerCapture(e.pointerId);
+      } catch (_) {}
+      updateAnalog(e.clientX);
+    });
+    pad.addEventListener('pointermove', (e) => {
+      if (e.pointerId === slideId) updateAnalog(e.clientX);
+    });
+    const endSlide = (e) => {
+      if (e.pointerId === slideId) {
+        slideId = null;
+        this.touchState.steerAnalog = 0;
+        this.$.steerThumb.style.left = '50%';
+      }
+    };
+    pad.addEventListener('pointerup', endSlide);
+    pad.addEventListener('pointercancel', endSlide);
+  }
+
+  _bindCanvasOrbit() {
+    const canvas = this.$.canvas;
+    canvas.addEventListener('pointerdown', (e) => {
+      this.callbacks.onInteract?.();
+      this.orbitPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch (_) {}
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      const prev = this.orbitPointers.get(e.pointerId);
+      if (!prev) return;
+      const dx = e.clientX - prev.x;
+      const dy = e.clientY - prev.y;
+      prev.x = e.clientX;
+      prev.y = e.clientY;
+
+      if (this.orbitPointers.size === 1) {
+        this.orbitYawDelta -= dx * 0.0055;
+        this.orbitPitchDelta = clamp(this.orbitPitchDelta + dy * 0.004, -0.5, 0.5);
+      } else if (this.orbitPointers.size === 2) {
+        const pts = Array.from(this.orbitPointers.values());
+        const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        if (this.lastPinchDist !== null) {
+          this.orbitZoomDelta -= (dist - this.lastPinchDist) * 0.025;
+        }
+        this.lastPinchDist = dist;
+      }
+    });
+
+    const release = (e) => {
+      this.orbitPointers.delete(e.pointerId);
+      if (this.orbitPointers.size < 2) this.lastPinchDist = null;
+    };
+    canvas.addEventListener('pointerup', release);
+    canvas.addEventListener('pointercancel', release);
+
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.orbitZoomDelta += e.deltaY * 0.004;
+    }, { passive: false });
+  }
+
+  toggleLabDrawer(force) {
+    const isHidden = this.$.labDrawer.classList.contains('hidden');
+    const nextShow = force !== undefined ? force : isHidden;
+    this.$.labDrawer.classList.toggle('hidden', !nextShow);
+    this.$.btnLab.classList.toggle('active', nextShow);
+  }
+
+  consumeOrbitDeltas() {
+    const out = {
+      yaw: this.orbitYawDelta,
+      pitch: this.orbitPitchDelta,
+      zoom: this.orbitZoomDelta,
+    };
+    this.orbitYawDelta = 0;
+    this.orbitPitchDelta = 0;
+    this.orbitZoomDelta = 0;
+    return out;
+  }
+
+  hasManualInput() {
+    if (this.manualInputOverride) return true;
+    const k = this.keys;
+    if (
+      k.has('KeyW') || k.has('ArrowUp') ||
+      k.has('KeyS') || k.has('ArrowDown') ||
+      k.has('KeyA') || k.has('ArrowLeft') ||
+      k.has('KeyD') || k.has('ArrowRight') ||
+      k.has('Space') || k.has('ShiftLeft') || k.has('ShiftRight')
+    ) return true;
+    const t = this.touchState;
+    return t.left || t.right || t.pedal || t.brake || t.sprint || t.jumpHeld || Math.abs(t.steerAnalog) > 0.05;
+  }
+
+  getInput() {
+    if (this.manualInputOverride) {
+      const res = { ...this.manualInputOverride };
+      this.manualInputOverride.jumpTriggered = false;
+      return res;
+    }
+
+    const k = this.keys;
+    const t = this.touchState;
+    const throttle = (k.has('KeyW') || k.has('ArrowUp') || t.pedal) ? 1 : 0;
+    const brake = (k.has('KeyS') || k.has('ArrowDown') || t.brake) ? 1 : 0;
+
+    let steer = 0;
+    if (k.has('KeyA') || k.has('ArrowLeft') || t.left) steer += 1;
+    if (k.has('KeyD') || k.has('ArrowRight') || t.right) steer -= 1;
+    if (Math.abs(t.steerAnalog) > 0.05) steer = t.steerAnalog;
+
+    const sprint = k.has('ShiftLeft') || k.has('ShiftRight') || t.sprint;
+    const jumpHeld = k.has('Space') || t.jumpHeld;
+    const jumpTriggered = t.jumpQueued;
+    t.jumpQueued = false;
+
+    if ((throttle || Math.abs(steer) > 0.1 || jumpTriggered) && !this.hasMoved) {
+      this.hasMoved = true;
+      this.$.desktopHint.classList.add('faded');
+    }
+
+    return { throttle, brake, steer, sprint, jumpHeld, jumpTriggered };
+  }
+
+  showToast(tag, title, body, durationSec = 4.6) {
+    this.$.toastTag.textContent = tag;
+    this.$.toastTitle.textContent = title;
+    this.$.toastBody.textContent = body;
+    this.$.toast.classList.remove('hidden');
+    this.toastTimer = durationSec;
+  }
+
+  updateHUD(state, camMode, autoCruise, muted, dt) {
+    if (this.toastTimer > 0) {
+      this.toastTimer -= dt;
+      if (this.toastTimer <= 0) {
+        this.$.toast.classList.add('hidden');
+      }
+    }
+
+    const now = performance.now();
+    if (now - this.lastDomUpdate < 50) return;
+    this.lastDomUpdate = now;
+
+    const env = ENV_PRESETS[state.envId];
+    const isEarth = state.envId === 'earth';
+
+    this.$.envLabel.textContent = isEarth ? '地球 9.81 m/s²' : '月球 1.62 m/s²';
+    this.$.btnEnvPill.classList.toggle('earth', isEarth);
+    this.$.envMoon.classList.toggle('active', !isEarth);
+    this.$.envEarth.classList.toggle('active', isEarth);
+
+    this.$.beaconCount.textContent = `${state.beaconsCollected.length}/8`;
+
+    const camNames = { chase: '视角:追随', side: '视角:侧拍', orbit: '视角:环月' };
+    this.$.btnCam.textContent = camNames[camMode] || '视角';
+    this.$.btnAuto.classList.toggle('active', autoCruise);
+    this.$.btnAuto.textContent = autoCruise ? '巡航中' : '巡航';
+    this.$.btnMute.textContent = muted ? '静音' : '声音';
+
+    // Telemetry strip
+    this.$.telSpeed.textContent = state.speedKmh.toFixed(1);
+    this.$.telAlt.textContent = state.altitude.toFixed(2);
+    this.$.telG.textContent = state.feltG.toFixed(2);
+    const slipPct = Math.round(state.slipRatio * 100);
+    this.$.telSlip.textContent = String(slipPct);
+    this.$.telSlipBox.classList.toggle('slip-warn', slipPct >= 15);
+    this.$.telLean.textContent = String(Math.round((state.roll * 180) / Math.PI));
+
+    // Lab drawer readouts (only update when open)
+    if (!this.$.labDrawer.classList.contains('hidden')) {
+      this.$.labG.textContent = `${env.gravity.toFixed(2)} m/s²`;
+      this.$.labRho.textContent = `${env.airDensity.toFixed(3)} kg/m³`;
+      this.$.labN.textContent = `${state.normalForce.toFixed(1)} N`;
+      this.$.labTrac.textContent = `${state.maxTraction.toFixed(1)} N`;
+      this.$.labDrag.textContent = `${state.dragForce.toFixed(2)} N`;
+      this.$.labSlope.textContent = `${state.groundSlopeDeg.toFixed(1)}°`;
+      this.$.labBestH.textContent = `${state.bestJumpHeight.toFixed(2)} m`;
+      this.$.labBestT.textContent = `${state.bestAirTime.toFixed(2)} s`;
+    }
+  }
+}
+
+// --- main.js ---
+const runtimeErrors = [];
+window.addEventListener('error', (e) => {
+  runtimeErrors.push(String(e.message || e.error || 'Unknown error'));
+});
+window.addEventListener('unhandledrejection', (e) => {
+  runtimeErrors.push(String(e.reason || 'Unhandled promise rejection'));
+});
+
+function computeAutoCruiseInput(state) {
+  let target = null;
+  let bestDist = Infinity;
+  for (let i = 0; i < BEACONS.length; i++) {
+    const bc = BEACONS[i];
+    if (state.beaconsCollected.indexOf(bc.id) === -1) {
+      const d = Math.hypot(bc.x - state.x, bc.z - state.z);
+      if (d < bestDist) {
+        bestDist = d;
+        target = bc;
+      }
+    }
+  }
+
+  let tx = 0;
+  let tz = 31;
+  if (target) {
+    tx = target.x;
+    tz = target.z;
+  } else {
+    const angle = state.time * 0.14;
+    tx = Math.sin(angle) * 46;
+    tz = Math.cos(angle) * 46;
+  }
+
+  const dx = tx - state.x;
+  const dz = tz - state.z;
+  const desiredHeading = Math.atan2(dx, dz);
+  let diff = desiredHeading - state.heading;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+
+  const steer = clamp(diff * 1.4, -0.85, 0.85);
+  const desiredSpeed = Math.abs(diff) > 0.7 ? 4.5 : 8.2;
+  const throttle = state.vFwd < desiredSpeed ? 0.78 : 0.15;
+  const jumpTriggered = state.grounded && state.speed > 5.8 && Math.abs(state.groundSlopeDeg) > 8.0 && (Math.floor(state.time * 10) % 25 === 0);
+
+  return {
+    throttle,
+    brake: 0,
+    steer,
+    sprint: false,
+    jumpHeld: false,
+    jumpTriggered,
+  };
+}
+
+function initApp() {
+  const canvas = document.getElementById('gl-canvas');
+  const renderer = new WebGLRenderer(canvas);
+  const audio = new HelmetAudio();
+
+  let state = createPhysicsState('moon');
+  let camMode = 'chase';
+  let autoCruise = false;
+  let orbitYaw = 0.62;
+  let orbitPitch = 0.14;
+  let orbitDist = 4.8;
+
+  const camEye = [-2.8, 1.85, -3.9];
+  const camTarget = [0, 1.0, 1.2];
+
+  const ui = new UIController({
+    onInteract: () => audio.unlock(),
+    onCycleCamera: () => {
+      const modes = ['chase', 'side', 'orbit'];
+      camMode = modes[(modes.indexOf(camMode) + 1) % modes.length];
+      orbitYaw = camMode === 'chase' ? 0.72 : camMode === 'side' ? Math.PI * 0.5 : 0.78;
+      orbitPitch = camMode === 'orbit' ? 0.30 : 0.14;
+      orbitDist = camMode === 'side' ? 4.4 : camMode === 'orbit' ? 9.0 : 4.9;
+    },
+    onToggleEnv: () => {
+      const next = state.envId === 'moon' ? 'earth' : 'moon';
+      state.envId = next;
+      audio.playSwitch();
+      ui.showToast(
+        next === 'moon' ? 'LUNAR VACUUM · 1.62 m/s²' : 'EARTH CONTROL · 9.81 m/s²',
+        next === 'moon' ? '已切换至月球真空环境' : '已切换至地球对照环境',
+        next === 'moon'
+          ? '1/6 重力、零空气阻力、6 倍跃起高度、猛踩极易打滑。'
+          : '1.0 G 重力与大气风阻已开启，可直观对比跳高、刹车与扬尘差异。',
+        3.8
+      );
+    },
+    onSetEnv: (id) => {
+      if (state.envId === id) return;
+      state.envId = id;
+      audio.playSwitch();
+    },
+    onToggleAuto: () => {
+      autoCruise = !autoCruise;
+      if (autoCruise) {
+        ui.showToast('AUTO CRUISE', '月面自动巡航已开启', '鹈鹕将自动寻路收集 8 处月球物理信标，随时操作即可接管。', 3.5);
+      }
+    },
+    onReset: () => {
+      const envId = state.envId;
+      state = createPhysicsState(envId);
+      renderer.clearTracks();
+      orbitYaw = 0.72;
+      orbitPitch = 0.14;
+      orbitDist = 4.9;
+      ui.showToast('BASE CAMP', '已返回静海基地起点', '前方 31 米处为弹射环形山，加速冲刺试试坡顶腾空！', 3.4);
+    },
+    onToggleMute: () => {
+      audio.setMuted(!audio.isMuted());
+    },
+  });
+
+  // Initial welcome toast
+  ui.showToast(
+    'APOLLO PELICAN · 1/6 G',
+    '欢迎来到月球静海基地',
+    '向前骑行探索 8 处月球物理信标！Shift 冲刺体验低重力打滑，Space 跃起体验 6 倍滞空。',
+    5.2
+  );
+
+  let frames = 0;
+  let lastT = performance.now();
+
+  function frame(now) {
+    const dt = Math.min((now - lastT) / 1000, 0.05);
+    lastT = now;
+
+    // Input handling (manual cancels auto-cruise smoothly)
+    const manualActive = ui.hasManualInput();
+    if (manualActive && autoCruise) {
+      autoCruise = false;
+    }
+    const input = autoCruise && !manualActive ? computeAutoCruiseInput(state) : ui.getInput();
+
+    stepPhysics(state, input, dt);
+
+    // Handle physics events (audio & discovery toasts)
+    while (state.events.length > 0) {
+      const ev = state.events.shift();
+      if (ev.type === 'jump') {
+        audio.playJump();
+      } else if (ev.type === 'land') {
+        audio.playLand(ev.impactSpeed);
+        if (ev.airTime >= 1.5 && ev.peakHeight >= 1.2) {
+          ui.showToast(
+            'TELEMETRY RECORD',
+            `月面腾空 ${ev.airTime.toFixed(2)} 秒 · 高度 ${ev.peakHeight.toFixed(2)} 米`,
+            state.envId === 'moon'
+              ? '相同蹬地初速在月球达到地球 6 倍高度与 6 倍滞空时间！'
+              : '地球 1.0 G 重力下拉回地面仅需约 0.5 秒。',
+            3.6
+          );
+        }
+      } else if (ev.type === 'beacon') {
+        audio.playBeacon();
+        ui.showToast(
+          `信标 ${state.beaconsCollected.length}/8 · ${ev.beacon.lawTag}`,
+          ev.beacon.title,
+          ev.beacon.fact,
+          6.0
+        );
+      }
+    }
+
+    audio.update(state);
+
+    // Camera orbit & tracking
+    const deltas = ui.consumeOrbitDeltas();
+    orbitYaw += deltas.yaw;
+    orbitPitch = clamp(orbitPitch + deltas.pitch, -0.05, 1.15);
+    orbitDist = clamp(orbitDist + deltas.zoom, 2.8, 16.0);
+
+    const bikeCenter = [state.x, state.y + 0.92, state.z];
+    const aspect = canvas.width / Math.max(1, canvas.height);
+    const portraitScale = aspect < 0.75 ? 1.18 : 1.0;
+    const lookAhead = aspect < 0.75 ? 0.35 : 0.95;
+    let desiredTarget = [
+      state.x + Math.sin(state.heading) * lookAhead,
+      state.y + 0.98,
+      state.z + Math.cos(state.heading) * lookAhead,
+    ];
+    let desiredEye;
+
+    if (camMode === 'side') {
+      const sideHeading = state.heading + Math.PI * 0.5 + (orbitYaw - Math.PI * 0.5) * 0.25;
+      desiredTarget = [state.x, state.y + 0.85, state.z];
+      desiredEye = [
+        state.x + Math.sin(sideHeading) * orbitDist * portraitScale,
+        state.y + 1.15 + Math.sin(orbitPitch) * 1.2,
+        state.z + Math.cos(sideHeading) * orbitDist * portraitScale,
+      ];
+    } else {
+      const worldYaw = state.heading + Math.PI + orbitYaw;
+      const effDist = orbitDist * portraitScale;
+      const horiz = Math.cos(orbitPitch) * effDist;
+      const vert = Math.sin(orbitPitch) * effDist;
+      desiredEye = [
+        bikeCenter[0] + Math.sin(worldYaw) * horiz,
+        bikeCenter[1] + vert + 0.55,
+        bikeCenter[2] + Math.cos(worldYaw) * horiz,
+      ];
+    }
+
+    // Prevent camera from dipping below lunar regolith
+    const camGround = getTerrainHeight(desiredEye[0], desiredEye[2]) + 0.55;
+    if (desiredEye[1] < camGround) desiredEye[1] = camGround;
+
+    const camSmooth = camMode === 'side' ? 14 : 9.5;
+    for (let i = 0; i < 3; i++) {
+      camEye[i] = damp(camEye[i], desiredEye[i], camSmooth, dt);
+      camTarget[i] = damp(camTarget[i], desiredTarget[i], camSmooth * 1.2, dt);
+    }
+
+    renderer.render(state, camEye, camTarget, state.time);
+    ui.updateHUD(state, camMode, autoCruise, audio.isMuted(), dt);
+    frames++;
+
+    if (window.__LUNAR_PELICAN__) {
+      window.__LUNAR_PELICAN__.frames = frames;
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  window.__LUNAR_PELICAN__ = {
+    ready: true,
+    frames: 0,
+    getState: () => ({
+      envId: state.envId,
+      x: state.x,
+      y: state.y,
+      z: state.z,
+      speed: state.speed,
+      speedKmh: state.speedKmh,
+      altitude: state.altitude,
+      grounded: state.grounded,
+      feltG: state.feltG,
+      slipRatio: state.slipRatio,
+      pitch: state.pitch,
+      roll: state.roll,
+      activeDust: state.activeDust,
+      beaconsCollected: state.beaconsCollected.slice(),
+      bestJumpHeight: state.bestJumpHeight,
+      bestAirTime: state.bestAirTime,
+      camMode,
+      autoCruise,
+    }),
+    setInput: (obj) => {
+      ui.manualInputOverride = obj ? { ...obj } : null;
+    },
+    setEnv: (id) => {
+      if (id === 'moon' || id === 'earth') state.envId = id;
+    },
+    setCamera: (mode) => {
+      if (['chase', 'side', 'orbit'].includes(mode)) {
+        camMode = mode;
+        orbitYaw = mode === 'chase' ? 0.72 : mode === 'side' ? Math.PI * 0.5 : 0.78;
+        orbitPitch = mode === 'orbit' ? 0.30 : 0.14;
+        orbitDist = mode === 'side' ? 4.4 : mode === 'orbit' ? 9.0 : 4.9;
+      }
+    },
+    setAutoCruise: (flag) => {
+      autoCruise = Boolean(flag);
+    },
+    triggerJump: () => {
+      ui.touchState.jumpQueued = true;
+    },
+    reset: () => {
+      state = createPhysicsState(state.envId);
+      renderer.clearTracks();
+    },
+    teleport: (x, z, heading = 0) => {
+      state.x = x;
+      state.z = z;
+      state.y = getTerrainHeight(x, z);
+      state.heading = heading;
+      state.vx = 0;
+      state.vy = 0;
+      state.vz = 0;
+      state.grounded = true;
+    },
+    getCanvasStats: () => renderer.getStats(),
+    getErrors: () => runtimeErrors.slice(),
+  };
+
+  requestAnimationFrame(frame);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
+
+})();
+
+  </script>
+</body>
+</html>
