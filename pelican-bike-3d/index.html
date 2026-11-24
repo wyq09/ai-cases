@@ -56505,8 +56505,10 @@ window.__errs=window.__errs||[];window.addEventListener('error',function(e){wind
       for (var side = 0; side < 2; side++) {
         var sg = side ? 1 : -1, hip = side ? hipR : hipL, leg = side ? legR : legL, foot = side ? rider.footR : rider.footL;
         var ang = st.crank + (side ? 0 : Math.PI);
-        _a.set(BB.x + Math.cos(ang) * CRANK, BB.y - Math.sin(ang) * CRANK, sg * (PEDAL_Z + 0.018));      // 踏板中心（车架系）
-        foot.position.set(_a.x, _a.y + 0.023, _a.z); foot.rotation.set(0, 0, -0.10 + 0.10 * Math.sin(ang));
+        // 脚心比踏板中心再外移 2.2cm、蹼面外旋 14°：蹼面内缘必须始终在曲柄臂板（z 0.059..0.085）和链轮盘（z≤0.058）外侧，
+        // 否则踏板过前后死点时脚会切进曲柄——定量探针实测最深 ~7mm
+        _a.set(BB.x + Math.cos(ang) * CRANK, BB.y - Math.sin(ang) * CRANK, sg * (PEDAL_Z + 0.040));
+        foot.position.set(_a.x, _a.y + 0.023, _a.z); foot.rotation.set(0, -sg * 0.25, -0.10 + 0.10 * Math.sin(ang));
         _a.y += 0.037; _a.x -= 0.01;
         frame.localToWorld(_a);
         hip.getWorldPosition(_b);
