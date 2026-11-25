@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>天之第三极 · 珠穆朗玛峰海拔带纪行</title>
+  <meta name="description" content="一篇配有七幅版画风格插图与交互剖面图的长篇网页随笔，自 1,500 米季风河谷逐级攀升至 8,848.86 米珠穆朗玛峰顶，系统解读六大垂直海拔带的地质、气候、生态与人类足迹。" />
+  <style>
+/* __INLINE_CSS__ */
+  </style>
+</head>
+<body>
+  <!-- TOP STICKY TELEMETRY BAR -->
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <a href="#top" class="brand-mark">
+        <svg class="brand-peak-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2 20L9.5 6L14 14L17 9.5L22 20H2Z" />
+          <path d="M7.6 9.6L9.5 11.2L11.6 9.8" />
+        </svg>
+        <span>天之第三极</span>
+        <span class="brand-text-sub" style="opacity:0.55;font-weight:400;">· 珠峰海拔带纪行</span>
+      </a>
+
+      <div class="top-telemetry" aria-label="实时滚动海拔读数">
+        <span class="tele-pill">
+          <span class="tele-dot" aria-hidden="true"></span>
+          <span data-live-alt>1,500 m</span>
+        </span>
+        <span class="tele-meta">含氧 <strong data-live-o2>84%</strong></span>
+        <span class="tele-meta">气压 <strong data-live-hpa>848 hPa</strong></span>
+        <span class="tele-meta">沸点 <strong data-live-boil>95.1°C</strong></span>
+      </div>
+
+      <button type="button" id="toc-toggle-btn" class="toc-btn" aria-expanded="false" aria-controls="toc-drawer">
+        <span>目录</span>
+        <span aria-hidden="true">☰</span>
+      </button>
+    </div>
+    <div class="reading-progress-track" aria-hidden="true">
+      <div id="reading-progress-fill" class="reading-progress-fill"></div>
+    </div>
+  </header>
+
+  <!-- SLIDE-OUT TOC DRAWER -->
+  <aside id="toc-drawer" class="toc-drawer" aria-hidden="true" aria-label="章节目录">
+    <div class="toc-drawer-panel">
+      <div class="toc-drawer-head">
+        <h3>海拔攀升目录</h3>
+        <button type="button" id="toc-close-btn" class="icon-close-btn" aria-label="关闭目录">×</button>
+      </div>
+      <ul class="toc-drawer-list">
+        <li><a href="#intro"><span>引言 · 海底前世与命名</span><small>序</small></a></li>
+        <li><a href="#cross-section"><span>南北坡垂直带交互剖面图</span><small>全景</small></a></li>
+        <li><a href="#zone-1"><span>I · 暖湿河谷与山地阔叶林带</span><small>1,500–3,000 m</small></a></li>
+        <li><a href="#zone-2"><span>II · 亚高山针叶林与桦林带</span><small>3,000–4,000 m</small></a></li>
+        <li><a href="#zone-3"><span>III · 高山灌丛与高寒草甸带</span><small>4,000–5,000 m</small></a></li>
+        <li><a href="#zone-4"><span>IV · 流石滩、冰川舌与大本营带</span><small>5,000–6,000 m</small></a></li>
+        <li><a href="#zone-5"><span>V · 永久冰雪带与高海拔营地</span><small>6,000–8,000 m</small></a></li>
+        <li><a href="#zone-6"><span>VI · 极高山“死亡地带”与顶峰</span><small>8,000–8,848.86 m</small></a></li>
+        <li><a href="#zone-table"><span>六大海拔带全景速查表</span><small>汇总</small></a></li>
+        <li><a href="#altitude-lab"><span>高海拔物理与生理实验室</span><small>交互</small></a></li>
+        <li><a href="#epilogue"><span>尾声 · 山不在人类脚下</span><small>跋</small></a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- DESKTOP STICKY ALTIMETER RAIL -->
+  <aside class="altimeter-rail" aria-label="垂直海拔仪表与章节导航">
+    <div class="rail-head">
+      <span class="rail-kicker">LIVE ALTIMETER</span>
+      <span class="rail-alt-value" data-live-alt>1,500 m</span>
+      <div class="rail-mini-stats">
+        <span>O₂ <strong data-live-o2>84%</strong></span>
+        <span data-live-hpa>848 hPa</span>
+      </div>
+    </div>
+    <div class="rail-body">
+      <div class="rail-meter" aria-hidden="true">
+        <div id="rail-alt-fill" class="rail-meter-fill"></div>
+      </div>
+      <ul class="rail-nav">
+        <li><a href="#intro"><span>引言</span><small>序</small></a></li>
+        <li><a href="#cross-section"><span>垂直剖面</span><small>图谱</small></a></li>
+        <li><a href="#zone-1"><span>I 阔叶林</span><small>1.5–3k</small></a></li>
+        <li><a href="#zone-2"><span>II 针叶桦林</span><small>3–4k</small></a></li>
+        <li><a href="#zone-3"><span>III 高寒草甸</span><small>4–5k</small></a></li>
+        <li><a href="#zone-4"><span>IV 冰川营地</span><small>5–6k</small></a></li>
+        <li><a href="#zone-5"><span>V 永久冰雪</span><small>6–8k</small></a></li>
+        <li><a href="#zone-6"><span>VI 死亡地带</span><small>8–8.8k</small></a></li>
+        <li><a href="#altitude-lab"><span>大气实验室</span><small>交互</small></a></li>
+        <li><a href="#epilogue"><span>尾声</span><small>跋</small></a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- FULL-BLEED HERO -->
+  <section id="top" class="hero" data-altitude="1500">
+    <figure style="margin:0;position:static;" data-plate-index="0" tabindex="0" role="button" aria-label="点击放大查看封面插图：晨曦中的珠穆朗玛峰">
+      <img class="hero-bg" src="__IMG_HERO__" alt="晨曦金光映照下的珠穆朗玛峰全景版画插图，峰顶吹出白色旗云，前景是冰碛石与高原经幡" />
+      <figcaption style="display:none;">封面图版 · 晨曦中的珠穆朗玛峰（8,848.86 m）：高空急流掠过金字塔形峰体吹出洁白旗云，阳光率先点燃最高处暗色灰岩。</figcaption>
+    </figure>
+    <div class="hero-scrim" aria-hidden="true"></div>
+    <div class="hero-content">
+      <div class="hero-kicker">
+        <span>CHOMOLUNGMA · SAGARMATHA</span>
+        <span class="hero-kicker-sep">/</span>
+        <span>27°59′17″N, 86°55′31″E</span>
+        <span class="hero-kicker-sep">/</span>
+        <span>VERTICAL NATURAL ATLAS</span>
+      </div>
+      <h1 class="hero-title">天之第三极</h1>
+      <p class="hero-subtitle">珠穆朗玛峰海拔带纪行——从 1,500 米湿润的印度洋季风河谷出发，穿过杜鹃密林、千年林线、牦牛牧场、蓝冰裂隙与寂静雪原，直至 8,848.86 米触碰对流层之巅。</p>
+      <div class="hero-facts">
+        <div class="hero-fact">
+          <span>雪面高程（2020 测定）</span>
+          <strong>8,848.86 m</strong>
+        </div>
+        <div class="hero-fact">
+          <span>垂直生态高差</span>
+          <strong>&gt; 7,300 m</strong>
+        </div>
+        <div class="hero-fact">
+          <span>峰顶实测气压（夏季）</span>
+          <strong>~337 hPa</strong>
+        </div>
+        <div class="hero-fact">
+          <span>峰顶有效含氧</span>
+          <strong>~33% 海平面</strong>
+        </div>
+      </div>
+      <a href="#intro" class="hero-scroll-cue">开始垂直阅读 · 逐级攀升 ↓</a>
+    </div>
+  </section>
+
+  <!-- MAIN LONG-FORM ESSAY -->
+  <main class="essay-main">
+
+    <!-- PROLOGUE / INTRODUCTION -->
+    <section id="intro" class="essay-section" data-altitude="1500">
+      <div class="prose-col">
+        <span class="section-kicker">PROLOGUE · 引言</span>
+        <h2 class="section-title">一座曾沉睡于古海之底的山，与它折叠出的整个地球</h2>
+        <p class="lead-paragraph drop-cap">在藏语里，人们称她为“珠穆朗玛”（ཇོ་མོ་གླང་མ，Chomolungma），意为“大地之母”或“第三女神”；在尼泊尔语中，她是“萨加玛塔”（Sagarmatha），意为“天空之额”。两个古老的名字恰好指向同一桩惊人的地理事实——她一端深深扎根于温润繁茂的大地峡谷，另一端却直接刺入了民航客机巡航高度的稀薄平流层边缘。</p>
+
+        <p>我们习惯把珠穆朗玛峰想象成一块孤悬云端的白色巨碑，仿佛它只由寒风、蓝冰与生死考验构成。但倘若从地理学与生态学的目光去丈量，珠峰远不只是一个海拔数字。2020 年 12 月，中国与尼泊尔联合宣布了珠峰最新的雪面高程：<strong>8,848.86 米</strong>。在这从山麓河谷直指苍穹的七千余米垂直落差里，喜马拉雅山脉几乎将地球从亚热带到极地的全部气候与植被类型，压缩进了一场只需十余天徒步便可亲身穿越的立体旅程。</p>
+
+        <p>更具戏剧性的是它的地质前世。如果你有幸拾起一块来自珠峰 8,800 米顶峰附近的暗灰色石灰岩，在显微镜下细细端详，会发现里面密布着四亿五千万年前奥陶纪的海洋生命遗骸——海百合茎节、三叶虫碎片与腕足动物贝壳。世界之巅的岩石，原本铺展在古老的<strong>特提斯海（Tethys Ocean）</strong>海底。约五千万年前，原本位于南半球的印度次大陆板块一路北漂，如同一艘巨轮撞上欧亚板块；海洋闭合、海底沉积岩被剧烈褶皱抬升，喜马拉雅造山带拔地而起。直到今天，印度板块仍以每年约 4 至 5 厘米的速度向北楔入，让珠穆朗玛峰在风雪侵蚀与地震扰动之间，持续以每年数毫米的微幅节奏缓慢生长。</p>
+
+        <blockquote class="pull-quote">
+          “站在 8,848 米的峰顶，你的冰爪正踩在四亿五千万年前的海洋沉积物上。大地用最漫长的慢动作，把最深的海底托举到了最接近星空的地方。”
+          <cite>—— 珠峰地层解剖：顶峰“珠穆朗玛灰岩”与 8,200 米处著名的“黄带（Yellow Band）”变质大理岩</cite>
+        </blockquote>
+      </div>
+
+      <!-- GEOLOGICAL TECTONIC DIAGRAM -->
+      <div class="wide-col reveal-on-scroll">
+        <div class="diagram-card">
+          <div class="diagram-head">
+            <span class="section-kicker" style="margin-bottom:2px;">GEOLOGICAL ORIGIN · 板块碰撞与地层结构</span>
+            <h3>海底如何化作世界之巅</h3>
+            <p>印度板块持续俯冲至欧亚板块之下，使青藏高原地壳增厚至约 70 公里，并将古特提斯海海底的奥陶纪灰岩推举至海拔八千八百米之上。</p>
+          </div>
+          <div id="tectonic-diagram-root"></div>
+        </div>
+      </div>
+
+      <div class="prose-col">
+        <p>垂直高度改写了气温、气压与含氧量，也改写了每一株草木与每一种生灵的生存策略。地理学中有一条经典的“垂直递减率”：海拔每升高 1,000 米，气温大约下降 6°C 左右——相当于向地球两极水平移动将近 1,000 公里。正因如此，在珠峰南坡，每向上迈出几百米，眼前的世界便悄然换幕：树冠由阔叶变为针叶，继而伏低为紧贴地面的灌丛与垫状花草，再往上便只剩裸露流石、移动冰川与万古不化的蓝冰。</p>
+        <p>而当我们把目光同时投向珠峰的<strong>南坡（尼泊尔一侧）</strong>与<strong>北坡（中国西藏一侧）</strong>，会发现大自然在这里写下了一组令人屏息的对称破缺——喜马拉雅山脉像一堵绵延两千多公里的巨墙，截住了来自印度洋的暖湿西南季风。水汽在南坡倾泻而下，催生出完整而浓密的七层自然带；翻越脊线落入北坡时，空气已变得干冷清冽，且青藏高原本身的基底海拔便已超过 4,000 米。南坡丰茂而陡峭，北坡辽阔而苍茫，两面山坡共同构成了地球上最壮观的垂直自然标本馆。</p>
+      </div>
+    </section>
+
+    <!-- INTERACTIVE CROSS-SECTION ATLAS -->
+    <section id="cross-section" class="essay-section" data-altitude="2100">
+      <div class="wide-col reveal-on-scroll">
+        <div class="diagram-card">
+          <div class="diagram-head">
+            <span class="section-kicker" style="margin-bottom:2px;">INTERACTIVE VERTICAL ATLAS · 交互式垂直海拔带剖面图</span>
+            <h3>珠穆朗玛峰六大海拔带与南北坡对照</h3>
+            <p>点击下方山体色带、右侧罗马数字标牌或营地圆点，查看各海拔带的气压、含氧量、沸点与南北坡差异；也可切换上方按钮单独聚焦南坡或北坡。</p>
+          </div>
+          <div id="cross-section-root"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ZONE I ==================== -->
+    <article id="zone-1" class="essay-section zone-chapter" data-altitude="2250" style="--zone-accent:#2B6A4E;">
+      <header class="zone-header">
+        <div class="zone-badge-row">
+          <span class="zone-num-chip">第 I 带 · ZONE I</span>
+          <span class="zone-alt-span">1,500 – 3,000 m</span>
+          <span class="zone-en">Subtropical &amp; Montane Broadleaf Forest</span>
+        </div>
+        <h2 class="zone-title">暖湿河谷与山地阔叶林带：季风的入口</h2>
+        <p class="zone-subtitle">湿润雾气、杜鹃花潮、铁杉与督德科西河谷上的经幡吊桥</p>
+        <div class="zone-metrics-bar">
+          <div class="z-metric"><span>典型气压</span><strong>701 – 848 hPa</strong></div>
+          <div class="z-metric"><span>有效含氧</span><strong>71% – 84%</strong></div>
+          <div class="z-metric"><span>纯水沸点</span><strong>90.4°C – 95.1°C</strong></div>
+          <div class="z-metric"><span>年降水量</span><strong>1,800 – 2,500 mm</strong></div>
+        </div>
+      </header>
+
+      <figure class="plate-figure reveal-on-scroll" data-plate-index="1" tabindex="0" role="button" aria-label="点击放大查看图版一：暖湿河谷与山地阔叶林带">
+        <div class="plate-frame">
+          <img src="__IMG_ZONE_1__" alt="珠峰南坡1500至3000米暖湿河谷与山地阔叶林带版画插图：盛开的红白乔木杜鹃、青苔铁杉林、飞瀑与跨越冰川河的经幡吊桥" />
+          <span class="plate-zoom-badge">点击鉴赏原图</span>
+        </div>
+        <figcaption>
+          <span><strong>图版 I · 1,500 – 3,000 m</strong> — 珠峰南坡督德科西（Dudh Koshi）河谷：冰川融水呈牛奶般的松石绿，两岸红白乔木杜鹃与喜马拉雅铁杉层叠入云。</span>
+          <span>季风迎风坡 · 湿润山地林</span>
+        </figcaption>
+      </figure>
+
+      <div class="prose-col">
+        <p>很少有人会把珠穆朗玛峰的起点与温热潮湿、苔藓滴水的峡谷联系在一起，但所有从南坡走向世界之巅的脚步，几乎都始于这片充满水声的绿色迷宫。来自孟加拉湾的印度洋暖湿季风沿着恒河平原北上，撞击喜马拉雅山脉的南翼，沿着督德科西河（藏语意为“乳河”，因河水中悬浮着细密的冰川岩粉而泛出乳白与松石蓝）深深切出的 V 形峡谷盘旋而上。</p>
+
+        <p>在海拔 1,500 至 3,000 米之间，年降水量可达两千毫米左右。湿热的上升气流日复一日地滋养着层次极其丰富的山地常绿与落叶混交林：低处是高大的高山栎、青冈与木兰，稍高处则是枝干苍劲、挂满淡绿色长松萝（俗称“树胡子”）的喜马拉雅铁杉与蓝松。每年四月到五月，这里会迎来喜马拉雅最浓烈的一场视觉盛宴——高达十余米的<strong>乔木杜鹃（<em>Rhododendron arboreum</em>）</strong>从山脚一路烧向半山腰，深红、绯粉与象牙白的花团在乳白色山雾中若隐若现，落花沿着石阶铺成潮湿的红毯。</p>
+
+        <p>这片森林也是珠峰垂直带谱中生物多样性最繁盛的庇护所。晨雾未散时，喜马拉雅叶猴在林冠间发出清脆的呼哨，胆小而珍稀的小熊猫蜷伏在箭竹与青苔覆盖的树杈上觅食嫩笋；飞瀑拍打岩壁的轰鸣声中，雪鸽成群掠过河面。人类在此同样世代安居：海拔 2,860 米的卢克拉（Lukla）与 2,610 米的帕克丁（Phakding）散布着石砌的夏尔巴村舍与梯田，马铃薯、荞麦与青稞沿着陡峭山坡层层铺开。一座座挂满五色风马旗的铁索吊桥飞架在激流之上，摇晃的桥面将旅行者的脉搏，缓缓送向更高的群山。</p>
+
+        <div class="slope-compare-box">
+          <div class="slope-card">
+            <h4>南坡 · 尼泊尔昆布河谷</h4>
+            <p>垂直带谱的真正起点。峡谷深切、季风充沛、植被茂密，人体呼吸尚感轻松，空气中弥漫着松脂、湿泥土与柴火的味道。</p>
+          </div>
+          <div class="slope-card is-north">
+            <h4>北坡 · 中国西藏一侧</h4>
+            <p><strong>此海拔带在北坡缺失。</strong>珠峰北麓直接坐落在平均海拔 4,200 米以上的青藏高原定日盆地，山体从一开始便处于高寒半干旱草原之上。</p>
+          </div>
+        </div>
+
+        <div class="specimen-grid">
+          <div class="specimen-card">
+            <h5>代表植被</h5>
+            <ul>
+              <li>乔木杜鹃（尼泊尔国花）</li>
+              <li>喜马拉雅铁杉与蓝松</li>
+              <li>青冈栎、附生蕨与长松萝</li>
+            </ul>
+          </div>
+          <div class="specimen-card">
+            <h5>代表生灵</h5>
+            <ul>
+              <li>小熊猫与喜马拉雅叶猴</li>
+              <li>喜马拉雅黑熊（林带活动）</li>
+              <li>蓝矶鸫、雪鸽与山雀群</li>
+            </ul>
+          </div>
+          <div class="specimen-card">
+            <h5>关键地标</h5>
+            <ul>
+              <li>帕克丁河谷（2,610 m）</li>
+              <li>卢克拉高台机场（2,860 m）</li>
+              <li>萨加玛塔国家公园入口门</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== ZONE II ==================== -->
+    <article id="zone-2" class="essay-section zone-chapter" data-altitude="3500" style="--zone-accent:#3A5F6F;">
+      <header class="zone-header">
+        <div class="zone-badge-row">
+          <span class="zone-num-chip">第 II 带 · ZONE II</span>
+          <span class="zone-alt-span">3,000 – 4,000 m</span>
+          <span class="zone-en">Subalpine Conifer &amp; Birch Timberline</span>
+        </div>
+        <h2 class="zone-title">亚高山针叶林与桦林带：森林的边界</h2>
+        <p class="zone-subtitle">冷杉与糙皮桦的退守，南池巴扎马蹄谷，以及 4,000 米林线的最后告别</p>
+        <div class="zone-metrics-bar">
+          <div class="z-metric"><span>典型气压</span><strong>624 – 701 hPa</strong></div>
+          <div class="z-metric"><span>有效含氧</span><strong>63% – 71%</strong></div>
+          <div class="z-metric"><span>纯水沸点</span><strong>87.2°C – 90.4°C</strong></div>
+          <div class="z-metric"><span>生态节点</span><strong>林线 ~3,900–4,100 m</strong></div>
+        </div>
+      </header>
+
+      <figure class="plate-figure reveal-on-scroll" data-plate-index="2" tabindex="0" role="button" aria-label="点击放大查看图版二：亚高山针叶林与桦林带">
+        <div class="plate-frame">
+          <img src="__IMG_ZONE_2__" alt="珠峰3000至4000米亚高山针叶林与桦林带版画插图：云雾山脊上的藏传佛寺、喜马拉雅冷杉与糙皮桦、前景岩石上的棕尾虹雉，远方雪峰耸立" />
+          <span class="plate-zoom-badge">点击鉴赏原图</span>
+        </div>
+        <figcaption>
+          <span><strong>图版 II · 3,000 – 4,000 m</strong> — 近似天波切山脊的亚高山带：冷杉与剥皮糙皮桦向高处渐矮，山脊佛寺背后是棱角如刀的阿玛达布拉姆与珠峰雪脊。</span>
+          <span>亚高山带 · 林线临界点</span>
+        </figcaption>
+      </figure>
+
+      <div class="prose-col">
+        <p>跨过 3,000 米等高线，河谷的温润开始收紧，空气变得清冽而锋利。你第一次真正听见自己的呼吸声——大气压降到了海平面的三分之二左右，每吸进一口空气，肺泡所能捕捉的氧分子数量已比平地少了近三成。也是在这一段陡峭爬升之后，宽大丰腴的常绿阔叶林悄然退场，取而代之的是耐寒、耐旱、更能抵御积雪重压的针叶巨人：挺拔如塔的<strong>喜马拉雅冷杉（<em>Abies spectabilis</em>）</strong>、丽江云杉与散发浓郁辛香的高山圆柏。</p>
+
+        <p>最动人的风景出现在海拔 3,600 米至 4,000 米的林带上限。这里的针叶林间大片生长着<strong>糙皮桦（<em>Betula utilis</em>）</strong>——它们的树干披着一层层薄如古籍纸张的银白或赭红色树皮，在漫长的冬雪与山风里被扭曲成苍劲的弧线。历史上，喜马拉雅高地的僧侣曾剥取桦树皮作为书写经卷的天然纸张。随着海拔逼近 3,900 至 4,100 米，土壤生长期缩短到不足三个月，严霜与寒风再也无法允许树木将养分投入高大的木质树干；树冠越来越矮，枝条匍匐弯曲成生态学所称的<strong>“畸形林”（Krummholz）</strong>，最终在一条看不见却无比清晰的等温线前戛然而止——这就是高山生态学最富哲学意味的分界线：<strong>林线（Timberline）</strong>。</p>
+
+        <p>在森林尚未熄灭的最后一道温暖里，镶嵌着昆布地区最著名的两座人文坐标。海拔 3,440 米的<strong>南池巴扎（Namche Bazaar）</strong>坐落在一处天然马蹄形山坳中，层层叠叠的彩色屋顶像一座面向雪山的露天剧场，几个世纪以来都是藏地食盐与尼泊尔谷物的商贸枢纽，如今也是每位登山者必须停留至少两夜以完成初步高原适应的驿站。再向上行，穿过一阵阵冷杉林雾，便来到 3,867 米的<strong>天波切寺（Tengboche Monastery）</strong>。傍晚时分，煨桑的柏枝青烟从白墙金顶上升起，远处珠峰、洛子峰与努子峰组成的巨大雪壁正燃起日落前的玫瑰金色——如果运气够好，还能在寺外林缘撞见羽色如金属虹彩般璀璨的<strong>棕尾虹雉</strong>，以及在悬崖间轻盈起落的喜马拉雅塔尔羊。</p>
+
+        <div class="slope-compare-box">
+          <div class="slope-card">
+            <h4>南坡 · 森林与寺院的交响</h4>
+            <p>亚高山冷杉、圆柏与糙皮桦林带保存完好，林线高至约 4,000 米；超过 3,000 米后进入临床高海拔医学关注的适应区间，头痛与夜间失眠开始零星出现。</p>
+          </div>
+          <div class="slope-card is-north">
+            <h4>北坡 · 雨影下的高原边缘</h4>
+            <p>北侧仅在极少数深切外流河谷（如绒辖、陈塘等地）可见类似海拔林木；珠峰北坡主廊道定日一带海拔已逾 4,200 米，几乎无成片乔木，风沙与强日照主导视野。</p>
+          </div>
+        </div>
+
+        <div class="specimen-grid">
+          <div class="specimen-card">
+            <h5>代表植被</h5>
+            <ul>
+              <li>喜马拉雅冷杉与云杉</li>
+              <li>糙皮桦（银白剥皮桦）</li>
+              <li>高山圆柏与林缘矮杜鹃</li>
+            </ul>
+          </div>
+          <div class="specimen-card">
+            <h5>代表生灵</h5>
+            <ul>
+              <li>棕尾虹雉（尼泊尔国鸟）</li>
+              <li>喜马拉雅麝与塔尔羊</li>
+              <li>血雉与暗腹雪鸡</li>
+            </ul>
+          </div>
+          <div class="specimen-card">
+            <h5>关键地标</h5>
+            <ul>
+              <li>南池巴扎（3,440 m）</li>
+              <li>昆琼古村（3,780 m）</li>
+              <li>天波切佛寺（3,867 m）</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== ZONE III ==================== -->
+    <article id="zone-3" class="essay-section zone-chapter" data-altitude="4500" style="--zone-accent:#9C6B32;">
+      <header class="zone-header">
+        <div class="zone-badge-row">
+          <span class="zone-num-chip">第 III 带 · ZONE III</span>
+          <span class="zone-alt-span">4,000 – 5,000 m</span>
+          <span class="zone-en">Alpine Scrub &amp; High-Altitude Meadow</span>
+        </div>
+        <h2 class="zone-title">高山灌丛与高寒草甸带：风与牦牛的牧场</h2>
+        <p class="zone-subtitle">林线之上，万物学会伏低；蓝绿绒蒿、雪豹踪迹与北坡绒布河谷的开阔苍茫</p>
+        <div class="zone-metrics-bar">
+          <div class="z-metric"><span>典型气压</span><strong>552 – 624 hPa</strong></div>
+          <div class="z-metric"><span>有效含氧</span><strong>54% – 63%</strong></div>
+          <div class="z-metric"><span>纯水沸点</span><strong>83.8°C – 87.2°C</strong></div>
+          <div class="z-metric"><span>医学警示</span><strong>AMS 急性高反高发带</strong></div>
+        </div>
+      </header>
+
+      <figure class="plate-figure reveal-on-scroll" data-plate-index="3" tabindex="0" role="button" aria-label="点击放大查看图版三：高山灌丛与高寒草甸带">
+        <div class="plate-frame">
+          <img src="__IMG_ZONE_3__" alt="珠峰4000至5000米高山灌丛与高寒草甸带版画插图：无树的金褐冰川U形谷、蓝绿绒蒿与垫状植物、玛尼石墙与缓缓行进的牦牛驮队" />
+          <span class="plate-zoom-badge">点击鉴赏原图</span>
+        </div>
+        <figcaption>
+          <span><strong>图版 III · 4,000 – 5,000 m</strong> — 越过林线后的冰川 U 形谷：高大乔木彻底消失，只余金褐嵩草、石墙与牦牛驮队，在巨大花岗岩雪壁下如微尘缓行。</span>
+          <span>高寒草甸带 · 牦牛与牧村</span>
+        </figcaption>
+      </figure>
+
+      <div class="prose-col">
+        <p>一旦迈过海拔 4,000 米的林线，世界豁然敞开，同时也骤然变得赤裸。树木不再为你遮蔽天空，太阳紫外线强度比海平面高出近一半，每一阵从冰川垭口灌下来的谷风都带着冰碴的冷意。山谷的形态也随之改变——下方被河流切出的陡峭 V 形峡谷，在这里展宽为远古冰川刨蚀出的宏阔 <strong>U 形谷</strong>，遍地是成百上千年前滚落堆积的灰白冰碛石。</p>
+
+        <p>在这片看似严酷的荒原里，植物演化出了地球上最克制也最动人的生存智慧——<strong>伏低</strong>。矮化到仅及膝盖甚至贴地而生的杜鹃与刺柏取代了森林；再往高处，便是连绵的金褐色高山嵩草草甸，以及像绿苔馒头般紧密抱团的<strong>垫状植物（Cushion Plants）</strong>。垫状植物把上百条细枝缩成半球形硬壳，既能将贴近地表的太阳余热牢牢锁在株丛内部（其中心温度常比外界高出 5 至 10°C），又能像流线型盾牌一样让狂风从头顶滑过。每年短暂的七八月盛夏，在砾石缝隙中会骤然绽放出透亮如天青釉的<strong>喜马拉雅蓝绿绒蒿</strong>，以及披着白色棉毛保暖的雪兔子，用短短数周完成发芽、授粉与结籽的全部生命循环。</p>
+
+        <p>这里是高原真正的主人——<strong>牦牛</strong>的王国。牦牛拥有比低地牛类更大的肺活量、更高密度的红细胞与对氧亲和力极强的血红蛋白，厚重的长毛垂至膝踝，让它们能在零下二十度的雪地安然过夜。在海拔 4,410 米的南坡丁波切（Dingboche），夏尔巴牧民用冰碛石垒起迷宫般的低矮石墙，把仅存的青稞与牧草护在背风处；在珠峰北坡，这一海拔正是西藏定日通往绒布河谷的主舞台——天空低得仿佛伸手可触，岩羊（蓝羊）在碎石陡坡上如履平地，肥硕的喜马拉雅旱獭在洞口直立哨望，而在最幽深的岩脊阴影里，被称为“雪山幽灵”的<strong>雪豹</strong>正以近乎隐身的灰白皮毛巡视领地。</p>
+
+        <p>对于未经充分适应的徒步者而言，4,000 至 5,000 米是身体发出明确警报的分水岭。这里的含氧量跌破海平面的六成，静息心率加快，夜晚常出现被称为“周期性呼吸”的阵发喘息，急性高原反应（AMS）在此高频发生。所有经验丰富的向导都会在这一带反复叮嘱一句铁律：<strong>“高爬低睡，步履如龟。”</strong></p>
+
+        <div class="slope-compare-box">
+          <div class="slope-card">
+            <h4>南坡 · 湿润高寒草甸</h4>
+            <p>矮灌丛与草甸覆盖率仍较高，夏季云雾多、午后常落冻雨或阵雪；丁波切（4,410 m）与佩里切（4,371 m，设有名闻全球的高山医疗急救站）是冲向大本营前最后的人类常驻聚落。</p>
+          </div>
+          <div class="slope-card is-north">
+            <h4>北坡 · 高原干旱荒漠草原</h4>
+            <p>珠峰北坡自此真正拉开帷幕。因南翼山体截留了绝大部分水汽，定日至绒布河谷年降水常不足 300 毫米，砾石滩与紫花针茅广袤苍凉，视野却比南坡更为通透宏大。</p>
+          </div>
+        </div>
+
+        <div class="specimen-grid">
+          <div class="specimen-card">
+            <h5>代表植被</h5>
+            <ul>
+              <li>高山垫状点地梅与囊种草</li>
+              <li>喜马拉雅蓝绿绒蒿与雪兔子</li>
+              <li>高山嵩草与矮化圆柏灌丛</li>
+            </ul>
+          </div>
+          <div class="specimen-card">
+            <h5>代表生灵</h5>
+            <ul>
+              <li>雪豹与岩羊（蓝羊）</li>
+              <li>喜马拉雅旱獭与高原鼠兔</li>
+              <li>藏雪鸡、高原胡兀鹫与牦牛</li>
+            </ul>
+          </div>
+          <div class="specimen-card">
+            <h5>关键地标</h5>
+            <ul>
+              <li>佩里切高原医疗站（4,371 m）</li>
+              <li>丁波切石墙牧村（4,410 m）</li>
+              <li>西藏绒布河谷廊道（~4,500–4,900 m）</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== ZONE IV ==================== -->
+    <article id="zone-4" class="essay-section zone-chapter" data-altitude="5500" style="--zone-accent:#4E687D;">
+      <header class="zone-header">
+        <div class="zone-badge-row">
+          <span class="zone-num-chip">第 IV 带 · ZONE IV</span>
+          <span class="zone-alt-span">5,000 – 6,000 m</span>
+          <span class="zone-en">Subnival Scree, Glaciers &amp; Base Camp</span>
+        </div>
+        <h2 class="zone-title">流石滩、冰川舌与大本营带：生命的稀薄边缘</h2>
+        <p class="zone-subtitle">海平面一半的气压、昆布冰瀑的蓝冰迷宫、绒布寺北壁，以及栖居于 6,700 米的跳蛛</p>
+        <div class="zone-metrics-bar">
+          <div class="z-metric"><span>典型气压</span><strong>486 – 552 hPa</strong></div>
+          <div class="z-metric"><span>有效含氧</span><strong>48% – 54%</strong></div>
+          <div class="z-metric"><span>纯水沸点</span><strong>80.5°C – 83.8°C</strong></div>
+          <div class="z-metric"><span>人类极限</span><strong>5,500 m 长期定居上限</strong></div>
+        </div>
+      </header>
+
+      <figure class="plate-figure reveal-on-scroll" data-plate-index="4" tabindex="0" role="button" aria-label="点击放大查看图版四：流石滩、冰川舌与大本营带">
+        <div class="plate-frame">
+          <img src="__IMG_ZONE_4__" alt="珠峰5000至6000米流石滩与珠峰大本营版画插图：灰暗冰碛碎石上的橙黄色登山帐篷，背后是巍峨破碎的昆布冰瀑蓝冰塔林" />
+          <span class="plate-zoom-badge">点击鉴赏原图</span>
+        </div>
+        <figcaption>
+          <span><strong>图版 IV · 5,000 – 6,000 m</strong> — 南坡珠峰大本营（5,364 m）与昆布冰瀑：橙黄帐篷宛如落入灰色冰碛碎石间的微光，前方是每日缓慢滑动的蓝冰迷宫。</span>
+          <span>亚冰雪流石带 · 冰川之门</span>
+        </figcaption>
+      </figure>
+
+      <div class="prose-col">
+        <p>进入海拔 5,000 米，空气的重量已经减去将近一半。这里没有泥土的芬芳，也没有绿草的柔软，放眼望去是漫山遍野被剧烈昼夜冻融劈裂的灰色碎石——地理学称之为<strong>“高山流石滩”（Subnival Scree）</strong>。白昼阳光将深色石块炙烤至微温，雪水渗入岩石细缝；入夜气温骤降到零下十余度，裂隙里的水结冰膨胀，日复一日将整座山体崩解为尖锐的砾石坡。</p>
+
+        <p>然而，生命并未就此缴械。在看似寸草不生的碎石背面，色彩斑斓的壳状地衣（亮黄、铁锈红、浅灰绿）以每百年仅仅扩展几毫米的耐心覆盖着石面；在海拔 5,500 米至 5,800 米的背风微环境中，甚至仍有极少数垫状维管植物顽强开花。更令人惊叹的是动物界的极限奇迹：早在 1924 年英国探险队就曾在海拔高达 <strong>6,700 米</strong>的珠峰裸露岩缝中发现了一种通体漆黑的微小蜘蛛——<strong>喜马拉雅跳蛛（<em>Euophrys omnisuperstes</em>）</strong>，它的拉丁种名意为“凌驾于一切之上”。它既不靠草木，也不依赖大型猎物，而是以高空上升气流从低谷吹上来的死昆虫与花粉微屑为生，成为地球上已知常驻海拔最高的捕食者之一。而在帐篷营地上空，黑羽黄喙的<strong>黄嘴山鸦</strong>常常乘着上升热气流轻松盘旋，甚至曾被记录尾随登山队飞抵 8,000 米。</p>
+
+        <p>海拔 5,200 米至 5,400 米，也是人类在珠峰脚下建立的最后两座“临时城市”。在南坡，海拔 <strong>5,364 米的珠峰大本营（EBC）</strong>并非建在坚固的岩石地面上，而是直接扎在缓慢流动的<strong>昆布冰川</strong>表碛之上——每年春季，上千顶黄橙帐篷如候鸟般聚拢，夜晚躺在睡袋里，能听见脚下几十米厚的冰体断裂挤压发出的低沉闷响。而在大本营上方仅仅百余米处，便是令无数登山者屏息的<strong>昆布冰瀑（Khumbu Icefall，5,486 – 5,900 m）</strong>：巨大的冰川从陡坡倾泻而下，碎裂成上千座房屋大小的蓝冰塔（Seracs）与深不见底的冰裂缝，整个冰瀑每天以约一米的速度向山谷滑动。每年开季，经验最丰富的“冰瀑医生”（夏尔巴修路队）必须冒着冰塔随时坍塌的风险，用铝合金梯子与数千米固定路绳，在瞬息万变的冰迷宫里搭起一条通往高空的生命悬桥。</p>
+
+        <p>若你转到中国西藏一侧的北坡，海拔 5,000 米的<strong>绒布寺</strong>（世界海拔最高的寺庙之一）与 <strong>5,200 米的北坡大本营</strong>呈现出截然不同的庄严气质：这里没有遮挡视线的群峰，珠峰巍峨对称的巨大金字塔形北壁就那样毫无保留地矗立在冰川河谷尽头。因为气压降低，在大本营烧一壶开水，水温刚到 <strong>82°C 左右</strong>便剧烈沸腾——滚烫的茶水入口并不灼喉，米饭也必须依靠高压锅才能煮熟。高海拔生理学普遍将 <strong>5,500 米</strong>视为人类能够长期定居繁衍的生理天花板；迈过这道门槛，人类不再是土地的居民，而只是风雪的访客。</p>
+
+        <div class="slope-compare-box">
+          <div class="slope-card">
+            <h4>南坡 · 冰瀑前的帐篷城</h4>
+            <p>南坡雪线大约落在 5,500 – 5,800 m。大本营（5,364 m）紧邻破碎剧烈的昆布冰瀑，春季攀登季需在凌晨 2 至 4 点冰体最冻结稳固时快速穿越冰瀑。</p>
+          </div>
+          <div class="slope-card is-north">
+            <h4>北坡 · 干旱抬升的雪线</h4>
+            <p>由于青藏高原空气干燥、降雪量远少于南坡，北坡雪线显著抬升至 <strong>5,800 – 6,200 m</strong>。大本营（5,200 m）通达公路，视野直面东绒布冰川与壮阔北壁。</p>
+          </div>
+        </div>
+
+        <div class="specimen-grid">
+          <div class="specimen-card">
+            <h5>极限生态</h5>
+            <ul>
+              <li>壳状地衣与耐寒高山苔藓</li>
+              <li>喜马拉雅跳蛛（常驻至 6,700 m）</li>
+              <li>黄嘴山鸦与高原雪雀</li>
+            </ul>
+          </div>
+          <div class="specimen-card">
+            <h5>冰川地貌</h5>
+            <ul>
+              <li>昆布冰川表碛与冰蘑菇</li>
+              <li>昆布冰瀑蓝冰塔与裂隙带</li>
+              <li>东绒布冰川冰塔林（北坡）</li>
+            </ul>
+          </div>
+          <div class="specimen-card">
+            <h5>关键地标</h5>
+            <ul>
+              <li>西藏绒布寺（~5,000 m）</li>
+              <li>北坡大本营（5,200 m）</li>
+              <li>南坡大本营 EBC（5,364 m）</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== ZONE V ==================== -->
+    <article id="zone-5" class="essay-section zone-chapter" data-altitude="7000" style="--zone-accent:#1F557C;">
+      <header class="zone-header">
+        <div class="zone-badge-row">
+          <span class="zone-num-chip">第 V 带 · ZONE V</span>
+          <span class="zone-alt-span">6,000 – 8,000 m</span>
+          <span class="zone-en">Permanent Snow, Icefall &amp; High Camps</span>
+        </div>
+        <h2 class="zone-title">永久冰雪带与高海拔营地带：雪线之上的白色荒漠</h2>
+        <p class="zone-subtitle">烈日蒸烤的“寂静谷”、冷酷的洛子蓝冰壁、斑头雁的羽翼，与沉默的身体消耗</p>
+        <div class="zone-metrics-bar">
+          <div class="z-metric"><span>典型气压</span><strong>374 – 486 hPa</strong></div>
+          <div class="z-metric"><span>有效含氧</span><strong>37% – 48%</strong></div>
+          <div class="z-metric"><span>纯水沸点</span><strong>74.5°C – 80.5°C</strong></div>
+          <div class="z-metric"><span>气候特征</span><strong>全年负温 · 极端辐射差</strong></div>
+        </div>
+      </header>
+
+      <figure class="plate-figure reveal-on-scroll" data-plate-index="5" tabindex="0" role="button" aria-label="点击放大查看图版五：永久冰雪带与高海拔营地带">
+        <div class="plate-frame">
+          <img src="__IMG_ZONE_5__" alt="珠峰6000至8000米永久冰雪带版画插图：寂静谷与洛子冰壁之间，微小登山者结绳跨过深蓝冰裂缝铝梯，上方雪脊悬着三顶黄色高海拔帐篷" />
+          <span class="plate-zoom-badge">点击鉴赏原图</span>
+        </div>
+        <figcaption>
+          <span><strong>图版 V · 6,000 – 8,000 m</strong> — 寂静谷（Western Cwm）与洛子冰壁：越过雪线之后色彩收敛为纯粹的白、钢蓝与深影，登山者借固定路绳与铝梯向南坳步步推进。</span>
+          <span>永久冰雪带 · 高海拔营地</span>
+        </figcaption>
+      </figure>
+
+      <div class="prose-col">
+        <p>越过雪线，抵达海拔 6,000 米以上，地球的色彩瞬间被剥离得只剩下三种：雪的耀白、古老压实冰的冷蓝，以及稀薄大气滤去散射后近乎深钴的天空。这里已彻底告别高等植物，降水几乎全部以固态雪晶落下，经过反复融冻与重压化作粒雪与蓝冰。唯一仍在这里悄然延续的原生生命，藏匿在显微镜的世界里——表层雪隙中的嗜冷雪藻与随风飘落的耐辐射细菌孢子。</p>
+
+        <p>但在无风的晴朗正午，海拔 6,000 至 6,400 米的南坡<strong>“寂静谷”（Western Cwm，Cwm 为威尔士语“冰斗谷”）</strong>却会展现出违背常人直觉的奇异气候：珠峰西南壁、洛子峰与努子峰三面雪墙围出一口巨大的白色凹面镜，稀薄清澈的空气几乎不阻挡太阳辐射，光线在四壁反复折射叠加。正午的寂静谷内闷热如蒸笼，帐篷里的温度甚至能飙升至 <strong>35°C 以上</strong>，登山者不得不脱掉羽绒服，忍受剧烈的雪盲眩光与脱水；然而一旦太阳落到努子峰脊线背后，温度便在半小时内断崖式跌破 <strong>-25°C</strong>，极端昼夜温差超过五十摄氏度。</p>
+
+        <p>告别寂静谷的 C2 营地（6,400 m），真正的硬仗在眼前垂直竖起——坡度达 40 至 50 度、闪烁着钢铁般寒光的<strong>洛子壁（Lhotse Face）</strong>。这是被高空风吹走表雪后裸露出的坚硬蓝冰壁，冰爪踩上去发出清脆的“咔嚓”声；海拔 7,200 米的 C3 营地就那样紧贴在冰壁凿出的窄小平台上，帐篷外一米便是坠落千米的悬崖。而在北坡，登山者要从 6,500 米的前进营地（ABC）仰攻 7,020 米的<strong>北坳（North Col）</strong>陡峭冰雪坡，再沿着风势凛冽的东北山脊一路推向 7,790 米高营。</p>
+
+        <p>在这一区间，人体进入了微妙而脆弱的“代偿极限”。为了对抗仅有海平面四成左右的氧分压，肾脏加速分泌促红细胞生成素（EPO），骨髓疯狂制造红细胞，使血液变得像糖浆般黏稠，显著增加了脑水肿（HACE）、肺水肿（HAPE）与血栓的风险。登山者普遍丧失食欲，消化吸收能力大幅衰退，肌肉与脂肪每天都在静悄悄地自我分解。唯有极少数自然界的演化大师能从容掠过这片白色荒漠——每年春秋，<strong>斑头雁（<em>Anser indicus</em>）</strong>凭着比普通水鸟更大比例的肺毛细血管、更高氧亲和力的突变血红蛋白，振翅飞越海拔七八千米的喜马拉雅风口，令身负氧气瓶的登山者仰首惊叹。</p>
+
+        <div class="slope-compare-box">
+          <div class="slope-card">
+            <h4>南坡 · C1 → 寂静谷 C2 → 洛子壁 C3 → 南坳 C4</h4>
+            <p>路线从 6,065 m（C1）穿越平缓冰裂隙区至 6,400 m（C2），随后沿洛子壁蓝冰攀升至 7,200 m（C3），最终横切日内瓦岩柱抵达 7,906 m 的南坳（South Col）。</p>
+          </div>
+          <div class="slope-card is-north">
+            <h4>北坡 · 前进营地 ABC → 北坳 → 7,790 m 营地</h4>
+            <p>自 6,500 m 东绒布冰川前进营地出发，攀登冰壁登上 7,020 m 北坳，随后暴露在毫无遮挡的北风大风口之下，风寒效应往往比同海拔南坡更为严酷。</p>
+          </div>
+        </div>
+
+        <div class="specimen-grid">
+          <div class="specimen-card">
+            <h5>高空生灵与微生态</h5>
+            <ul>
+              <li>斑头雁（迁徙飞越 7,000–8,000 m）</li>
+              <li>高山兀鹫（极高空滑翔纪录）</li>
+              <li>雪隙嗜冷微生物与雪藻</li>
+            </ul>
+          </div>
+          <div class="specimen-card">
+            <h5>生理挑战</h5>
+            <ul>
+              <li>血红蛋白增生导致血液黏稠</li>
+              <li>高海拔厌食与持续肌肉分解</li>
+              <li>极端紫外线灼伤与雪盲风险</li>
+            </ul>
+          </div>
+          <div class="specimen-card">
+            <h5>核心高海拔营地</h5>
+            <ul>
+              <li>寂静谷 C2（6,400 m）/ ABC（6,500 m）</li>
+              <li>北坳（7,020 m）/ 洛子壁 C3（7,200 m）</li>
+              <li>南坳 C4（7,906 m，最后门户）</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== ZONE VI: THE DEATH ZONE ==================== -->
+    <article id="zone-6" class="essay-section zone-chapter death-zone-section" data-altitude="8650" style="--zone-accent:#C87A4B;">
+      <header class="zone-header">
+        <div class="zone-badge-row">
+          <span class="zone-num-chip">第 VI 带 · ZONE VI · DEATH ZONE</span>
+          <span class="zone-alt-span">8,000 – 8,848.86 m</span>
+          <span class="zone-en">The Death Zone &amp; Summit Ridge</span>
+        </div>
+        <h2 class="zone-title">极高山“死亡地带”与顶峰：触碰对流层之巅</h2>
+        <p class="zone-subtitle">三分之一含氧量、副热带高空急流、旗云翻涌，以及地球弧线之上的黎明</p>
+
+        <div class="death-warning-banner">
+          <strong>大气临界提示（&gt; 8,000 m）：</strong>此时你已进入登山医学所称的“死亡地带”（Death Zone）。在 8,848.86 米峰顶，夏季实测大气压仅约 <strong>337 hPa</strong>，有效含氧量约为海平面的 <strong>33%</strong>，纯水沸点跌至约 <strong>71.6°C</strong>。人体在此无法完成适应，细胞正以每小时可察觉的速度走向不可逆损耗。
+        </div>
+
+        <div class="zone-metrics-bar">
+          <div class="z-metric"><span>峰顶气压（夏季）</span><strong>~337 hPa</strong></div>
+          <div class="z-metric"><span>有效含氧</span><strong>~33% 海平面</strong></div>
+          <div class="z-metric"><span>纯水沸点</span><strong>~71.6°C</strong></div>
+          <div class="z-metric"><span>急流风速</span><strong>可达 160–280 km/h</strong></div>
+        </div>
+      </header>
+
+      <figure class="plate-figure reveal-on-scroll" data-plate-index="6" tabindex="0" role="button" aria-label="点击放大查看图版六：死亡地带与珠穆朗玛峰顶">
+        <div class="plate-frame">
+          <img src="__IMG_ZONE_6__" alt="珠峰8000至8848.86米死亡地带与顶峰刃脊版画插图：高空急流吹起白色雪羽，近乎漆黑的靛紫星空中泛起金橙晨曦，远方云海下浮现地球弧线，孤影独立峰顶" />
+          <span class="plate-zoom-badge">点击鉴赏原图</span>
+        </div>
+        <figcaption>
+          <span><strong>图版 VI · 8,000 – 8,848.86 m</strong> — 黎明前的珠峰刃脊与顶峰：空气稀薄至天空转为深靛黑，星辰尚未隐去，风雪在急流中拉成水平白焰，群峰尽化云海之下的微型岛屿。</span>
+          <span>死亡地带 · 对流层顶缘</span>
+        </figcaption>
+      </figure>
+
+      <div class="prose-col">
+        <p>1953 年，瑞士探险队医生爱德华·维斯-杜南（Edouard Wyss-Dunant）首次提出了<strong>“死亡地带”（Death Zone）</strong>这一令人战栗的概念——通常指海拔 8,000 米以上的空间。在这里，时间不再是朋友，而是一座沙漏：即便你静坐帐篷中一动不动，心脏仍在每分钟超过百次的搏动中剧烈泵血，每一口深吸气换回的氧分压已接近人体基础代谢维持的底线。没有辅助供氧时，大脑前额叶的判断力会迅速钝化，幻觉、失温与冻伤随时趁虚而入；哪怕背负氧气瓶，登山者也通常只能在这一高度停留 48 小时左右，必须趁着短暂的天气窗口速登速撤。</p>
+
+        <p>珠峰顶峰的气象之所以如此凶险，是因为它几乎直接伸进了<strong>北半球副热带高空西风急流（Subtropical Jet Stream）</strong>的河道之中。冬春时节，这股位于 9 至 12 公里高空的空气狂涛常常下压扫过珠峰顶部，瞬时风速可达每小时 200 公里以上，堪比强台风中心；唯有每年五月上中旬前后，印度洋季风北推、西风急流短暂北撤的寥寥数日，峰顶才会出现风速降至每小时 30 公里以下的宝贵“好天气窗口”。即便在晴朗无云的日子，强风掠过峰顶背风面时气压骤降、水汽凝结，仍会拉出一道长达数公里的洁白<strong>“珠峰旗云”</strong>——登山者只需远远观察旗云的仰角与飘动速度，便能读出顶峰此刻的风力凶吉。</p>
+
+        <p>从南坳（7,906 m）发起的最后冲顶，通常始于漆黑零下三十度的深夜。一串串头灯像沿着陡峭暗脊缓慢挪移的萤火虫，在呼啸风声中每走两三步便须伏在冰镐上大口喘息五六次：经过海拔 8,400 米更换氧气瓶的“阳台”（The Balcony），翻越 8,749 米的南峰，走过两侧均为两三千米万丈绝壁的狭窄雪刃脊，再攀上约 8,790 米的希拉里台阶（Hillary Step，2015 年尼泊尔大地震后其岩石轮廓已发生部分塌变）。而在北坡，8,300 米突击营地之上的“第一、第二、第三台阶”同样名震登山史——尤其是海拔 8,610 米、近乎垂直的“第二台阶”，1960 年中国登山队曾以搭人梯的决绝方式完成人类首次北坡登顶，1975 年架设的金属“中国梯”则在随后的三十余年间帮助上千名北坡攀登者跨过天堑。</p>
+
+        <p>当双脚终于站在 <strong>8,848.86 米</strong>那块仅容数人并立的拱形雪顶上，周围再也没有任何更高的岩石。晨光从东方地平线升起，在云海之上投下珠峰巨大的暗蓝色三角形山影；天空深邃得接近午夜的靛黑，远方隐约浮现出蓝色星球的温柔弧度。在这片寂静无声的冰雪之巅，你会突然明白：这并非人类征服自然的凯旋时刻，而是一次极为克制的、被山岳短暂允许的造访。</p>
+
+        <div class="slope-compare-box">
+          <div class="slope-card">
+            <h4>南坡冲顶脊线（东南山脊）</h4>
+            <p>路线经南坳 C4（7,906 m）→ 阳台（8,400 m）→ 南峰（8,749 m）→ 刀刃雪脊与希拉里台阶 → 顶峰。风势略缓于北脊，但高海拔队列拥堵风险更突出。</p>
+          </div>
+          <div class="slope-card is-north">
+            <h4>北坡冲顶脊线（东北山脊）</h4>
+            <p>路线经 8,300 m 突击营地 → 裸露风化的“三台阶”（含 8,610 m 第二台阶）→ 顶峰雪坡。横切距离长、岩石技术难度高、受西风急流直吹更为剧烈。</p>
+          </div>
+        </div>
+
+        <div class="specimen-grid">
+          <div class="specimen-card">
+            <h5>极端大气指标</h5>
+            <ul>
+              <li>气压 ~337 hPa（冬季可低至 ~310 hPa）</li>
+              <li>有效氧分压仅海平面 ~1/3</li>
+              <li>水沸点 ~71.6°C，极易严重脱水</li>
+            </ul>
+          </div>
+          <div class="specimen-card">
+            <h5>峰顶地质奇观</h5>
+            <ul>
+              <li>“黄带”大理岩（8,200–8,600 m）</li>
+              <li>奥陶纪珠穆朗玛灰岩（含海百合化石）</li>
+              <li>副热带急流造就“珠峰旗云”</li>
+            </ul>
+          </div>
+          <div class="specimen-card">
+            <h5>冲顶关键节点</h5>
+            <ul>
+              <li>阳台（8,400 m）/ 北坡 C3（8,300 m）</li>
+              <li>第二台阶（8,610 m）/ 南峰（8,749 m）</li>
+              <li>珠穆朗玛峰顶（8,848.86 m）</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== SUMMARY TABLE ==================== -->
+    <section id="zone-table" class="essay-section" data-altitude="8848.86">
+      <div class="wide-col reveal-on-scroll">
+        <span class="section-kicker">FIELD REFERENCE · 全景对照</span>
+        <h2 class="section-title">珠穆朗玛峰六大海拔带核心指标速查</h2>
+        <div class="summary-table-wrap">
+          <table class="summary-table">
+            <thead>
+              <tr>
+                <th>海拔带</th>
+                <th>海拔区间</th>
+                <th>典型气压 / 相对含氧</th>
+                <th>水沸点</th>
+                <th>生态与地貌特征</th>
+                <th>南北坡核心差异</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>I · 暖湿河谷与山地阔叶林带</strong></td>
+                <td class="mono-cell">1,500 – 3,000 m</td>
+                <td class="mono-cell">701–848 hPa · 71–84%</td>
+                <td class="mono-cell">90.4–95.1°C</td>
+                <td>乔木杜鹃、青冈栎、铁杉、小熊猫、夏尔巴梯田与吊桥</td>
+                <td>仅南坡发育；北坡青藏高原基面已高于 4,000 m</td>
+              </tr>
+              <tr>
+                <td><strong>II · 亚高山针叶林与桦林带</strong></td>
+                <td class="mono-cell">3,000 – 4,000 m</td>
+                <td class="mono-cell">624–701 hPa · 63–71%</td>
+                <td class="mono-cell">87.2–90.4°C</td>
+                <td>喜马拉雅冷杉、糙皮桦、棕尾虹雉；~4,000 m 抵达林线</td>
+                <td>南坡林木茂密（南池巴扎/天波切）；北坡主谷几乎无林</td>
+              </tr>
+              <tr>
+                <td><strong>III · 高山灌丛与高寒草甸带</strong></td>
+                <td class="mono-cell">4,000 – 5,000 m</td>
+                <td class="mono-cell">552–624 hPa · 54–63%</td>
+                <td class="mono-cell">83.8–87.2°C</td>
+                <td>垫状植物、蓝绿绒蒿、嵩草、牦牛、雪豹；AMS 高反高发</td>
+                <td>南坡湿润草甸（丁波切）；北坡干旱砾石草原（定日/绒布）</td>
+              </tr>
+              <tr>
+                <td><strong>IV · 流石滩、冰川舌与大本营带</strong></td>
+                <td class="mono-cell">5,000 – 6,000 m</td>
+                <td class="mono-cell">486–552 hPa · 48–54%</td>
+                <td class="mono-cell">80.5–83.8°C</td>
+                <td>冻融流石、壳状地衣、喜马拉雅跳蛛、昆布冰瀑；5,500 m 定居上限</td>
+                <td>南坡雪线 ~5,650 m（EBC 5,364 m）；北坡雪线 ~6,050 m（大本营 5,200 m）</td>
+              </tr>
+              <tr>
+                <td><strong>V · 永久冰雪带与高海拔营地</strong></td>
+                <td class="mono-cell">6,000 – 8,000 m</td>
+                <td class="mono-cell">374–486 hPa · 37–48%</td>
+                <td class="mono-cell">74.5–80.5°C</td>
+                <td>永久积雪、寂静谷极端辐射温差、洛子蓝冰壁、斑头雁迁徙通道</td>
+                <td>南坡经寂静谷与南坳（7,906 m）；北坡经 ABC 与北坳（7,020 m）</td>
+              </tr>
+              <tr>
+                <td><strong>VI · 极高山“死亡地带”与顶峰</strong></td>
+                <td class="mono-cell">8,000 – 8,848.86 m</td>
+                <td class="mono-cell">~337–374 hPa · ~33–37%</td>
+                <td class="mono-cell">~71.6–74.5°C</td>
+                <td>副热带西风急流、旗云、黄带与奥陶纪海洋化石灰岩、生理不可逆衰减</td>
+                <td>南坡经阳台/南峰/希拉里台阶；北坡经暴露风化的“三台阶”</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== INTERACTIVE ALTITUDE LAB ==================== -->
+    <section id="altitude-lab" class="essay-section" data-altitude="5364">
+      <div class="wide-col reveal-on-scroll">
+        <div class="diagram-card">
+          <div id="altitude-lab-root"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== EPILOGUE ==================== -->
+    <section id="epilogue" class="essay-section" data-altitude="4200">
+      <div class="prose-col">
+        <span class="section-kicker">EPILOGUE · 尾声与时间轴</span>
+        <h2 class="section-title">山不在人类脚下，而在地球的呼吸之中</h2>
+        <p>过去一个世纪里，珠穆朗玛峰的名字不断与人类最极致的雄心相连：1924 年，乔治·马洛里与安德鲁·欧文消失在北脊 8,600 米的云雾中，留下一句被反复引用的回答——“因为山就在那里”；1953 年 5 月 29 日，新西兰人埃德蒙·希拉里与夏尔巴向导丹增·诺盖首次立于雪顶；1960 年 5 月 25 日凌晨，中国登山队王富洲、贡布、屈银华在没有路绳与梯子的黑暗中完成了人类首次北坡登顶；1978 年，莱因霍尔德·梅斯纳尔与彼得·哈伯勒证明人类竟能不借辅助氧气触碰 8,848 米的生理边疆。</p>
+
+        <ul class="timeline-list">
+          <li><span class="timeline-year">1856</span>大印度三角测量局公布“第十五号峰”为当时已知世界最高峰；而早在清康熙五十六年（1717 年），《皇舆全览图》便已清晰标注“朱母郎马阿林”。</li>
+          <li><span class="timeline-year">1924</span>马洛里与欧文在北坡冲顶途中失踪，1999 年马洛里遗体在 8,155 米处被发现，他们是否曾率先登顶至今仍是登山史最动人的悬案。</li>
+          <li><span class="timeline-year">1953</span>希拉里与丹增·诺盖沿南坡路线首次成功登顶珠穆朗玛峰，开启现代喜马拉雅高海拔攀登纪元。</li>
+          <li><span class="timeline-year">1960</span>中国登山队首次从条件极其严酷的北坡登顶；1975 年中国队再次登顶并在第二台阶架设金属梯、首次测得 8,848.13 米高程。</li>
+          <li><span class="timeline-year">2020</span>中尼两国联合公布珠峰最新精确雪面高程 <strong>8,848.86 米</strong>，并在 2022–2023 年于海拔 8,830 米架设全球海拔最高自动气象站。</li>
+        </ul>
+
+        <p>然而，当 21 世纪的风吹过珠峰时，最值得人类凝视的已不再是又多了一项怎样的速登纪录，而是高海拔冰川悄然发出的变化信号。2022 年刊登于《气候与大气科学》的研究指出，珠峰南坳冰川（海拔约 7,900 米）在过去二十余年间消融了厚达数十米的冰雪——那里原本积累了大约两千年的古冰，却在短短一代人的时间里暴露在阳光与强风的升华之下。而在下游海拔 4,000 至 5,000 米的河谷里，冰湖扩张、林线缓慢上移、融雪节律改变，正直接牵动着喜马拉雅南麓与青藏高原数亿人的水源命脉。</p>
+
+        <p>从 1,500 米盛放杜鹃的温润峡谷，到 8,848.86 米封存古海化石的凛冽峰顶，珠穆朗玛峰从来不是一座与尘世隔绝的死寂冰锥。她是一座活着的立体方舟，把热带季风、温带森林、极地冰原与高空急流编织在同一个坐标之上。理解她的每一条海拔带，或许正是我们学会以谦卑而非征服的目光，重新认识这颗蓝色星球的开始。</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- EDITORIAL FOOTER -->
+  <footer class="essay-footer">
+    <div class="footer-inner">
+      <strong>《天之第三极 · 珠穆朗玛峰海拔带纪行》</strong>
+      <span>参考数据来源：2020 中尼联合珠峰高程测量公报（8,848.86 m）、国际登山医学会（UIAA）高海拔生理模型、珠峰南坳 8,830 m 自动气象站与喜马拉雅垂直自然带谱研究。</span>
+      <span>单文件零外部资源版 · 七幅全幅版画风插图与三组交互图表均已本地内联，支持离线阅读。</span>
+    </div>
+  </footer>
+
+  <!-- FULL-BLEED PLATE LIGHTBOX -->
+  <div id="plate-lightbox" class="plate-lightbox" aria-hidden="true" role="dialog" aria-label="插图原图鉴赏弹窗">
+    <div class="lightbox-stage">
+      <img id="lightbox-img" class="lightbox-img" src="" alt="" />
+      <div class="lightbox-bar">
+        <div>
+          <div id="lightbox-counter" class="lightbox-counter">图版 1 / 7</div>
+          <div id="lightbox-caption"></div>
+        </div>
+        <div class="lightbox-controls">
+          <button type="button" id="lightbox-prev" class="lightbox-btn">← 上一幅</button>
+          <button type="button" id="lightbox-next" class="lightbox-btn">下一幅 →</button>
+          <button type="button" id="lightbox-close" class="lightbox-btn">关闭 (Esc)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+/* __INLINE_JS__ */
+  </script>
+</body>
+</html>
