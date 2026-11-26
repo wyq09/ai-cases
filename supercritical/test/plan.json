@@ -1,0 +1,5 @@
+[
+  {"id":"brief","beat":3,"t":3.4,"name":"probe-brief"},
+  {"id":"critical","beat":3,"t":5.0,"mx":0.95,"my":0.3,"name":"probe-critical"},
+  {"id":"scale","beat":5,"t":6.4,"name":"probe-scale"}
+]

@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>超临界 · SUPERCRITICAL — 关于智能爆炸</title>
+  <style>
+    :root {
+      --ink: #0a0a0a;
+      --edge: #2a2724;
+      --text: #ece7df;
+      --dim: #8a847c;
+      --ember: #ff4a1c;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; }
+    body {
+      overflow: hidden;
+      background: #070707;
+      color: var(--text);
+      font: 15px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    #stage {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      outline: none;
+      touch-action: none;
+      background: #070707;
+    }
+    #ui {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+    #ui > * { pointer-events: auto; }
+    body.idle { cursor: none; }
+
+    .notes {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 20px max(28px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(28px, env(safe-area-inset-left, 0px));
+      background: var(--ink);
+      border-top: 1px solid var(--ember);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px 40px;
+      align-items: start;
+    }
+    .notes p {
+      margin: 0;
+      max-width: 76ch;
+      font-size: 18px;
+      line-height: 1.6;
+      white-space: pre-line;
+      color: var(--text);
+    }
+    .notes .meta {
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      color: var(--dim);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      white-space: nowrap;
+      font-size: 14px;
+      line-height: 1.9;
+    }
+
+    .over {
+      position: absolute;
+      inset: 0;
+      background: #070707;
+      overflow: auto;
+      padding: 48px max(48px, env(safe-area-inset-right, 0px)) 48px max(48px, env(safe-area-inset-left, 0px));
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+      gap: 28px 24px;
+      align-content: start;
+    }
+    .over button {
+      all: unset;
+      cursor: pointer;
+      display: grid;
+      gap: 10px;
+    }
+    .over .th {
+      aspect-ratio: 16 / 9;
+      background: #0a0a0a center / cover no-repeat;
+      outline: 1px solid var(--edge);
+      outline-offset: 0;
+      overflow: hidden;
+      transition: outline-color 0.18s ease, outline-width 0.18s ease;
+    }
+    .over button:hover .th,
+    .over button:focus-visible .th,
+    .over button[aria-current="true"] .th {
+      outline: 2px solid var(--ember);
+    }
+    .over .th-fallback {
+      width: 100%;
+      height: 100%;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .over .th-fallback small {
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 11px;
+      opacity: 0.7;
+      letter-spacing: 0.06em;
+    }
+    .over .th-fallback strong {
+      font-family: "Songti SC", "Noto Serif SC", "Source Han Serif SC", "SimSun", serif;
+      font-weight: 900;
+      font-size: 18px;
+    }
+    .over span {
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      color: var(--dim);
+      font-size: 14px;
+    }
+    .over button[aria-current="true"] span { color: var(--ember); }
+
+    .help {
+      position: absolute;
+      right: 28px;
+      bottom: 28px;
+      background: var(--ink);
+      border: 1px solid var(--edge);
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: auto auto;
+      gap: 8px 28px;
+      max-width: calc(100vw - 56px);
+      font-size: 14px;
+    }
+    .help b {
+      font-weight: 500;
+      color: var(--text);
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    }
+    .help span { color: var(--dim); }
+
+    .toast {
+      position: absolute;
+      left: 50%;
+      bottom: 96px;
+      transform: translateX(-50%);
+      background: var(--ink);
+      border: 1px solid var(--edge);
+      padding: 9px 18px;
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 14px;
+      color: var(--text);
+      transition: opacity 0.4s ease;
+    }
+
+    .load {
+      position: absolute;
+      inset: 0;
+      background: #070707;
+      color: var(--dim);
+      display: grid;
+      place-content: center;
+      gap: 18px;
+    }
+    .load p {
+      margin: 0;
+      font: 13px/1 "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      letter-spacing: 0.32em;
+    }
+    .load div {
+      width: min(360px, 64vw);
+      height: 1px;
+      background: var(--edge);
+    }
+    .load i {
+      display: block;
+      height: 1px;
+      width: 0;
+      background: var(--ember);
+      transition: width 0.12s linear;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="stage" tabindex="0" aria-label="超临界 演示文稿"></canvas>
+  <div id="ui"></div>
+  /*INLINE_BUNDLE*/
+</body>
+</html>
